@@ -1,8 +1,9 @@
-## CRITICAL — REPO IDENTITY
-This is **agent7even-v2** — the EXPERIMENTAL repo.
-GitHub: github.com/rovaneD/agent7even-v2
+## REPO IDENTITY — READ FIRST
+This is the EXPERIMENTAL v2 app.
+GitHub: rovaneD/agent7even-v2
 Vercel: agent7even-v2.vercel.app
-Production app is at github.com/rovaneD/agent7even-app — **never touch it from this folder.**
+Production app lives at rovaneD/agent7even-app — never touch it from this folder.
+Before every push: run `git remote -v` and confirm it shows agent7even-v2.
 
 ---
 
