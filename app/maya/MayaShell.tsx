@@ -22,6 +22,7 @@ interface Props {
   marketingChallenge?: string
   contentComfort?: string
   pendingApprovalCount?: number
+  initialPrompt?: string
 }
 
 type CanvasState = 'default' | 'building' | 'plan'
@@ -102,6 +103,7 @@ export default function MayaShell({
   companyName, businessType, websiteUrl, instagramHandle, businessGoals,
   idealCustomer, sellLocations, marketingBudget, competitors = [],
   topGoals, marketingChallenge, contentComfort, pendingApprovalCount = 0,
+  initialPrompt,
 }: Props) {
   const [activeNav, setActiveNav] = useState('maya')
   const [canvasOpen, setCanvasOpen] = useState(true)
@@ -119,6 +121,7 @@ export default function MayaShell({
   })
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const initSent = useRef(false)
   const initials = companyName && companyName !== 'there' ? companyName.slice(0, 2).toUpperCase() : 'ME'
   const displayName = companyName !== 'there' ? companyName : 'Your business'
 
@@ -180,16 +183,19 @@ export default function MayaShell({
     return msg.parts.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join('')
   }
 
-  const chatStarted = messages.length > 0
+  const visibleMessages = messages.filter(msg => !getMsgText(msg).startsWith('__SYSTEM_INIT__'))
+  const hasInitMessage = messages.some(msg => getMsgText(msg).startsWith('__SYSTEM_INIT__'))
+  const chatStarted = visibleMessages.length > 0 || hasInitMessage
   const sessionTitle = (() => {
-    const first = messages.find(m => m.role === 'user')
+    const first = visibleMessages.find(m => m.role === 'user')
     if (!first) return ''
     const text = getMsgText(first)
     return text.length > 40 ? text.slice(0, 40) + '\u2026' : text
   })()
 
   useEffect(() => {
-    const userMsgs = messages.filter(m => m.role === 'user')
+    const userMsgs = visibleMessages.filter(m => m.role === 'user')
+    if (hasInitMessage && canvasState === 'default') setCanvasState('building')
     if (userMsgs.length === 0) return
     if (canvasState === 'default') setCanvasState('building')
     const latest = userMsgs[userMsgs.length - 1]
@@ -197,6 +203,13 @@ export default function MayaShell({
     const snippet = latestText.length > 22 ? latestText.slice(0, 22) + '\u2026' : latestText
     setKnownFacts(prev => [...new Set([...prev, snippet])].slice(0, 8))
   }, [messages]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (initialPrompt && !initSent.current) {
+      initSent.current = true
+      sendMessage({ text: initialPrompt })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -213,7 +226,8 @@ export default function MayaShell({
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitMessage() }
   }
 
-  const showThinking = isLoading && (messages.length === 0 || messages[messages.length - 1]?.role === 'user')
+  const lastVisible = visibleMessages[visibleMessages.length - 1]
+  const showThinking = isLoading && (!lastVisible || lastVisible.role === 'user')
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -324,7 +338,7 @@ export default function MayaShell({
           ) : (
             /* CHAT */
             <>
-              {messages.map((msg) => {
+              {visibleMessages.map((msg) => {
                 const text = getMsgText(msg)
                 return (
                   <div key={msg.id} style={{ marginBottom: msg.role === 'user' ? 28 : 32 }}>

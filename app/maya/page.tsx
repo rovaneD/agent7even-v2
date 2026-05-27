@@ -3,9 +3,18 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import MayaShell from './MayaShell'
 
-export default async function MayaPage() {
+const NEW_USER_PROMPT = `__SYSTEM_INIT__ User just completed onboarding. Generate your opening message based on what you know about their business. Reference their specific goals, budget, and biggest challenge. Keep it under 4 sentences. End with one specific question that moves them toward their first campaign.`
+
+export default async function MayaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ new?: string }>
+}) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
+
+  const params = await searchParams
+  const isNewUser = params?.new === 'true'
 
   const supabase = createServiceClient()
 
@@ -46,6 +55,7 @@ export default async function MayaPage() {
       marketingChallenge={profile?.marketing_challenge ?? ''}
       contentComfort={profile?.content_comfort ?? ''}
       pendingApprovalCount={pendingCount ?? 0}
+      initialPrompt={isNewUser ? NEW_USER_PROMPT : undefined}
     />
   )
 }

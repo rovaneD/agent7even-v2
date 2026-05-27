@@ -229,7 +229,7 @@ function OnboardingInner() {
           </div>
 
           <button
-            onClick={() => router.push(plan ? `/checkout-now?plan=${plan}` : '/maya')}
+            onClick={() => router.push(plan ? `/checkout-now?plan=${plan}` : '/maya?new=true')}
             className="w-full flex items-center justify-center gap-2 bg-white text-[#0d0d0d] text-sm font-semibold px-6 py-4 rounded-xl hover:bg-white/90 transition-colors"
           >
             Let's build your first campaign <ArrowRight size={15} />
