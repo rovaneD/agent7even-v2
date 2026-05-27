@@ -5,22 +5,6 @@ import { useUser, SignOutButton } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, Check } from 'lucide-react'
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-interface Answers {
-  company_name: string
-  business_type: string
-  ideal_customer: string
-  website_url: string
-  instagram_handle: string
-  sell_locations: string[]
-  marketing_budget: string
-  competitors: string[]
-  top_goals: string[]
-  marketing_challenge: string
-  content_comfort: string
-}
-
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const INDUSTRY_SUGGESTIONS = [
@@ -161,28 +145,37 @@ function OnboardingInner() {
 
   async function handleSubmit() {
     setSaving(true)
-    const competitors = [competitor1, competitor2, competitor3].map(c => c.trim().replace(/^@/, '')).filter(Boolean)
-    const answers: Answers = {
-      company_name: companyName.trim(),
-      business_type: businessType.trim(),
-      ideal_customer: idealCustomer.trim(),
-      website_url: websiteUrl.trim(),
-      instagram_handle: instagramHandle.trim().replace(/^@/, ''),
-      sell_locations: sellLocations,
-      marketing_budget: marketingBudget,
-      competitors,
-      top_goals: topGoals,
-      marketing_challenge: marketingChallenge,
-      content_comfort: contentComfort,
+    const competitorList = [competitor1, competitor2, competitor3].map(c => c.trim().replace(/^@/, '')).filter(Boolean)
+
+    const payload = {
+      companyName: companyName.trim(),
+      businessType: businessType.trim(),
+      idealCustomer: idealCustomer.trim(),
+      websiteUrl: websiteUrl.trim(),
+      instagramHandle: instagramHandle.trim().replace(/^@/, ''),
+      sellLocations,
+      marketingBudget,
+      competitors: competitorList,
+      topGoals,
+      marketingChallenge,
+      contentComfort,
     }
 
+    console.log('Onboarding submit payload:', payload)
+
     try {
-      await fetch('/api/onboarding/complete', {
+      const res = await fetch('/api/onboarding/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...answers, clerk_user_id: user?.id }),
+        body: JSON.stringify(payload),
       })
-    } catch { /* continue to reveal regardless */ }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.error('Onboarding API error:', err)
+      }
+    } catch (err) {
+      console.error('Onboarding fetch failed:', err)
+    }
 
     setSaving(false)
     setShowReveal(true)
