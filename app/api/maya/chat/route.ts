@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { convertToModelMessages } from 'ai'
 import { runAgent } from '@/lib/ai/runAgent'
 
 interface Profile {
@@ -20,7 +21,8 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messages, profile }: { messages: { role: 'user' | 'assistant'; content: string }[]; profile: Profile } = await req.json()
+  const { messages: rawMessages, profile }: { messages: unknown[]; profile: Profile } = await req.json()
+  const messages = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
   if (!messages?.length) {
     return NextResponse.json({ error: 'No messages provided' }, { status: 400 })
