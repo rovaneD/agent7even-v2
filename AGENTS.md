@@ -1,3 +1,11 @@
+## CRITICAL — REPO IDENTITY
+This is **agent7even-v2** — the EXPERIMENTAL repo.
+GitHub: github.com/rovaneD/agent7even-v2
+Vercel: agent7even-v2.vercel.app
+Production app is at github.com/rovaneD/agent7even-app — **never touch it from this folder.**
+
+---
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
