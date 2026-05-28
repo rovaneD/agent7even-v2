@@ -76,14 +76,24 @@ function extractPlanSections(text: string): { title: string; body: string }[] {
   return sections.slice(0, 8)
 }
 
-// Splits "Option 1 / Option 2 / Option 3" style responses into cards
+// Splits "Option 1 / Option 2 / Option 3" style responses into cards.
+// Filters out any intro text before the first Option header.
+// Handles both inline ("**Option 1:** text") and next-line formats.
 function parseTaskOptions(text: string): { label: string; content: string }[] | null {
-  const parts = text.split(/(?=\*?\*?Option\s+[123]\b)/i).map(p => p.trim()).filter(Boolean)
+  const parts = text
+    .split(/(?=\*{0,2}Option\s+[123]\b)/i)
+    .filter(p => /^\*{0,2}Option\s+[123]/i.test(p.trim()))
   if (parts.length < 2) return null
   return parts.map(part => {
-    const lines = part.replace(/^\*+/, '').split('\n')
-    const label = lines[0].replace(/[*:]+/g, '').trim()
-    const content = lines.slice(1).join('\n').replace(/^\s*[-*]\s*/gm, '').trim()
+    const cleaned = part.replace(/^\*+/, '').trim()
+    // Match "Option N" header; content may follow on same line or subsequent lines
+    const match = cleaned.match(/^(Option\s+[123])[:\s*\-]*([\s\S]*)$/i)
+    if (!match) return { label: 'Option', content: cleaned }
+    const label = match[1].trim()           // "Option 1" — displayed uppercase via CSS
+    const content = match[2]
+      .replace(/^\*+\s*/gm, '')             // strip leading asterisks per line
+      .replace(/^\s*[-–]\s*/gm, '')         // strip leading dashes
+      .trim()
     return { label, content }
   })
 }
@@ -143,6 +153,7 @@ export default function MayaShell({
   const [mode, setMode] = useState<string | null>(null)
   const [taskOutput, setTaskOutput] = useState<string>('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const [knownFacts, setKnownFacts] = useState<string[]>(() => {
     const facts: string[] = []
     if (companyName && companyName !== 'there') facts.push(companyName)
@@ -179,14 +190,26 @@ export default function MayaShell({
 
   const ORCHESTRATE_TRIGGER = "spinning up the campaign builder"
 
-  async function copyText(text: string, id: string) {
+  async function copyToClipboard(text: string, id: string) {
     try {
       await navigator.clipboard.writeText(text)
-      setCopiedId(id)
-      setTimeout(() => setCopiedId(null), 1500)
     } catch {
-      // clipboard API not available
+      // Fallback for non-secure contexts
+      const el = document.createElement('textarea')
+      el.value = text
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
     }
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 1500)
+  }
+
+  function selectOption(optId: string, label: string, content: string) {
+    setSelectedOptionId(optId)
+    const preview = content.length > 40 ? content.slice(0, 40) + '…' : content
+    submitMessage(`I like ${label} — "${preview}"`)
   }
 
   async function generateCampaign(currentMessages: UIMessage[]) {
@@ -347,6 +370,7 @@ export default function MayaShell({
             setCampaignId(null)
             setPlanSaved(false)
             setTaskOutput('')
+            setSelectedOptionId(null)
             setCanvasState('default')
             initSent.current = false
             isTaskMode.current = false
@@ -628,23 +652,37 @@ export default function MayaShell({
                 (() => {
                   const options = parseTaskOptions(taskOutput)
                   if (options && options.length >= 2) {
-                    // Multi-option cards
+                    // Multi-option cards — strictly EITHER cards OR single doc, never both
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {options.map((opt, i) => (
-                          <div key={i} style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: '14px 16px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                              <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999' }}>{opt.label}</p>
-                              <button
-                                onClick={() => copyText(opt.content, `opt-${i}`)}
-                                style={{ fontSize: 11, color: copiedId === `opt-${i}` ? '#16a34a' : '#bbb', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0, fontWeight: 500 }}
-                              >
-                                {copiedId === `opt-${i}` ? 'Copied!' : 'Copy'}
-                              </button>
+                        {options.map((opt, i) => {
+                          const optId = `opt-${i}`
+                          const isSelected = selectedOptionId === optId
+                          return (
+                            <div key={i} style={{ background: '#fff', border: isSelected ? '1.5px solid #0a0a0a' : '0.5px solid #ebebeb', borderRadius: 10, padding: '14px 16px', transition: 'border 0.15s' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                {/* Label — uppercase via CSS, content body is NOT uppercased */}
+                                <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999', margin: 0 }}>{opt.label}</p>
+                                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                  <button
+                                    onClick={() => copyToClipboard(opt.content, optId)}
+                                    style={{ fontSize: 11, color: copiedId === optId ? '#16a34a' : '#bbb', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0, fontWeight: 500 }}
+                                  >
+                                    {copiedId === optId ? 'Copied ✓' : 'Copy'}
+                                  </button>
+                                  <button
+                                    onClick={() => selectOption(optId, opt.label, opt.content)}
+                                    style={{ fontSize: 11, color: isSelected ? '#fff' : '#555', background: isSelected ? '#0a0a0a' : 'none', border: '0.5px solid ' + (isSelected ? '#0a0a0a' : '#ccc'), borderRadius: 5, padding: '2px 8px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}
+                                  >
+                                    {isSelected ? '✓ Selected' : '✓ Select'}
+                                  </button>
+                                </div>
+                              </div>
+                              {/* Content — normal casing, whiteSpace preserves line breaks */}
+                              <p style={{ fontSize: 13, color: '#333', lineHeight: 1.65, whiteSpace: 'pre-wrap', margin: 0 }}>{opt.content}</p>
                             </div>
-                            <p style={{ fontSize: 13, color: '#333', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{opt.content}</p>
-                          </div>
-                        ))}
+                          )
+                        })}
                         <p style={{ fontSize: 11, color: '#bbb', textAlign: 'center', paddingTop: 4 }}>
                           Reply in the chat to refine any option
                         </p>
@@ -656,13 +694,13 @@ export default function MayaShell({
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: '16px 18px' }}>
-                        <p style={{ fontSize: 13, color: '#333', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{clean}</p>
+                        <p style={{ fontSize: 13, color: '#333', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>{clean}</p>
                       </div>
                       <button
-                        onClick={() => copyText(clean, 'all')}
-                        style={{ fontSize: 12, color: copiedId === 'all' ? '#16a34a' : '#0a0a0a', background: 'none', border: '0.5px solid #e0e0e0', borderRadius: 8, padding: '9px 0', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500, transition: 'color 0.15s' }}
+                        onClick={() => copyToClipboard(clean, 'all')}
+                        style={{ fontSize: 12, color: copiedId === 'all' ? '#16a34a' : '#0a0a0a', background: 'none', border: '0.5px solid #e0e0e0', borderRadius: 8, padding: '9px 0', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}
                       >
-                        {copiedId === 'all' ? 'Copied!' : 'Copy to clipboard'}
+                        {copiedId === 'all' ? 'Copied ✓' : 'Copy to clipboard'}
                       </button>
                       <p style={{ fontSize: 11, color: '#bbb', textAlign: 'center' }}>
                         Reply in the chat to refine any option
