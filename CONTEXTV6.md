@@ -586,3 +586,31 @@ Approval flow: tasks create a record, user approves/rejects via `/api/agents/tas
 
 ### Workflow Note
 Cursor struggled with complex multi-file changes. Claude Code (terminal) is significantly more reliable for this codebase. Use Claude Code for all future development on v2.
+
+---
+
+## Product Vision — Maya as the Intelligence Layer
+
+Every section of the platform is a Maya briefing, not a data display.
+
+Core principle: Maya doesn't show data — she interprets it, contextualizes it, and recommends action.
+
+Pattern for every feature:
+- Analytics → Maya reads GA + Meta via analytics_reader agent, surfaces insights conversationally
+- Services → Maya tracks order status, flags issues, suggests improvements
+- Content → Maya drafts based on calendar and brand voice, user approves
+- Deliverables → Maya reviews against brief, flags mismatches before client sees them
+- Competitors → competitor_watcher agent runs autonomously, Maya surfaces relevant moves
+
+The agentic loop:
+Agents collect data → Maya synthesizes → User responds/approves → Agents execute → Maya reports back
+
+This means:
+- No static pages with charts the user has to interpret
+- Every metric change triggers a Maya insight
+- Every agent output goes through Maya before the user sees it
+- Maya educates the user on what's working, what's not, and what to do next
+
+This is the core differentiator from every other marketing tool.
+Inspiration: Mindtrip — you don't browse hotels, it builds your trip.
+Agent7even V2 — you don't check your analytics, Maya tells you what matters.
