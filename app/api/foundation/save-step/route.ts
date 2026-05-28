@@ -46,6 +46,7 @@ export async function POST(req: Request) {
           content_comfort: answers.toneTraits?.join(', ') || null,
         }
       case 4:
+        console.log('[save-step] step 4 answers.marketingBudget raw value:', JSON.stringify(answers.marketingBudget))
         return {
           marketing_budget: answers.marketingBudget || null,
           top_goals: answers.monthlyGoal ? [answers.monthlyGoal] : [],

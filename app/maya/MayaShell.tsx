@@ -186,7 +186,7 @@ export default function MayaShell({
     }
   }
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/maya/chat',
       body: { profile },
@@ -301,7 +301,18 @@ export default function MayaShell({
           </div>
           <span style={{ fontSize: 13, fontWeight: 500, color: '#0a0a0a', letterSpacing: '-0.2px' }}>Agent7even</span>
         </div>
-        <button style={{ width: '100%', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontFamily: 'inherit' }}>
+        <button
+          onClick={() => {
+            setMode(null)
+            setMessages([])
+            setCampaignPlan(null)
+            setCampaignId(null)
+            setPlanSaved(false)
+            setCanvasState('default')
+            initSent.current = false
+          }}
+          style={{ width: '100%', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontFamily: 'inherit' }}
+        >
           <i className="ti ti-plus" style={{ fontSize: 14 }} />
           New campaign
         </button>
