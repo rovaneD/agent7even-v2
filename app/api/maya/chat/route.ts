@@ -15,9 +15,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No messages provided' }, { status: 400 })
   }
 
-  // Fetch everything fresh from DB — authoritative, never stale from client
   const supabase = createServiceClient()
-  const { data: profile, error: profileError } = await supabase
+
+  // Try full select first; fall back to basic fields if extended columns don't exist yet
+  let profile: Record<string, any> | null = null
+  const { data: fullProfile, error: profileError } = await supabase
     .from('profiles')
     .select(`
       id, company_name, business_type,
@@ -28,7 +30,28 @@ export async function POST(req: Request) {
     .eq('clerk_user_id', userId)
     .single()
 
-  if (profileError) console.error('[maya/chat] profile fetch error:', profileError.code, profileError.message)
+  if (profileError) {
+    console.error('[maya/chat] full profile fetch error:', profileError.code, profileError.message)
+    // Fall back to guaranteed-safe columns
+    const { data: basicProfile, error: basicError } = await supabase
+      .from('profiles')
+      .select('id, company_name, business_type, website_url, instagram_handle')
+      .eq('clerk_user_id', userId)
+      .single()
+    if (basicError) console.error('[maya/chat] basic profile fetch error:', basicError.code, basicError.message)
+    profile = basicProfile
+  } else {
+    profile = fullProfile
+  }
+
+  console.log('[maya/chat] profile:', JSON.stringify({
+    id: profile?.id?.slice(0, 8),
+    company_name: profile?.company_name,
+    business_type: profile?.business_type,
+    ideal_customer: profile?.ideal_customer,
+    marketing_budget: profile?.marketing_budget,
+    top_goals: profile?.top_goals,
+  }))
 
   let brief = '', icp = '', positioning = '', voice = ''
 
