@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { convertToModelMessages } from 'ai'
+import { createServiceClient } from '@/lib/supabase/server'
 import { runAgent } from '@/lib/ai/runAgent'
 
 interface Profile {
@@ -29,14 +30,51 @@ export async function POST(req: Request) {
   }
 
   const p = profile ?? {}
+
+  // Fetch foundation documents for richer context
+  const supabase = createServiceClient()
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('clerk_user_id', userId)
+    .single()
+
+  let brief = '', icp = '', positioning = '', voice = ''
+
+  if (profileRow) {
+    const { data: foundationDocs } = await supabase
+      .from('foundation_documents')
+      .select('type, markdown')
+      .eq('user_id', profileRow.id)
+
+    brief = foundationDocs?.find(d => d.type === 'brief')?.markdown ?? ''
+    icp = foundationDocs?.find(d => d.type === 'icp')?.markdown ?? ''
+    positioning = foundationDocs?.find(d => d.type === 'positioning')?.markdown ?? ''
+    voice = foundationDocs?.find(d => d.type === 'voice')?.markdown ?? ''
+  }
+
+  const hasFoundation = !!(brief || icp || positioning || voice)
+
   const sellVia = p.sellLocations?.length ? p.sellLocations.join(', ') : 'not specified'
   const goals = p.topGoals?.length ? p.topGoals.join(', ') : 'not specified'
   const watchList = p.competitors?.length ? p.competitors.map(c => `@${c}`).join(', ') : 'none yet'
 
-  const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
+  const foundationSection = hasFoundation ? `
+You have already built this business's foundation. Here is what you know:
 
-You already know everything about this business. Never ask for information you already have.
+BUSINESS BRIEF:
+${brief}
 
+IDEAL CUSTOMER PROFILE:
+${icp}
+
+POSITIONING:
+${positioning}
+
+BRAND VOICE:
+${voice}
+
+You know this business deeply. Never ask for information covered in these documents. Your opening message should reference something specific from what you know.` : `
 WHAT YOU KNOW:
 - Business: ${p.companyName || 'this business'}
 - Industry/type: ${p.businessType || 'not specified'}
@@ -48,7 +86,12 @@ WHAT YOU KNOW:
 - Content comfort: ${p.contentComfort || 'not specified'}
 - Competitors to watch: ${watchList}
 - Website: ${p.websiteUrl || 'not provided'}
-- Instagram: ${p.instagramHandle ? `@${p.instagramHandle}` : 'not provided'}
+- Instagram: ${p.instagramHandle ? `@${p.instagramHandle}` : 'not provided'}`
+
+  const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
+
+You already know everything about this business. Never ask for information you already have.
+${foundationSection}
 
 HOW YOU OPEN:
 Your very first response should demonstrate you already know their business. Reference something specific — their goal, their challenge, their budget. Make them feel like you've been thinking about their business.

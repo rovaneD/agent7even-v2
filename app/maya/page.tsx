@@ -25,7 +25,8 @@ export default async function MayaPage({
         id, company_name, business_type, full_name, plan,
         website_url, instagram_handle, business_goals,
         ideal_customer, sell_locations, marketing_budget,
-        competitors, top_goals, marketing_challenge, content_comfort
+        competitors, top_goals, marketing_challenge, content_comfort,
+        foundation_complete
       `)
       .eq('clerk_user_id', userId)
       .single(),
@@ -38,6 +39,8 @@ export default async function MayaPage({
       .is('approved_at', null)
       .is('rejected_at', null),
   ])
+
+  if (!profile?.foundation_complete) redirect('/foundation')
 
   return (
     <MayaShell

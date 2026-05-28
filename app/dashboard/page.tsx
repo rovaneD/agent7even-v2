@@ -33,6 +33,10 @@ export default async function DashboardPage() {
     redirect('/onboarding')
   }
 
+  if (!profile?.foundation_complete) {
+    redirect('/foundation')
+  }
+
   const displayName = profile?.company_name || profile?.full_name || 'there'
   const hasPlan = !!profile?.plan
 
