@@ -125,6 +125,7 @@ Monthly goal: ${answers.monthlyGoal}
       .from('profiles')
       .update({
         foundation_complete: true,
+        onboarding_complete: true,
         foundation_step: 5,
         updated_at: new Date().toISOString(),
       })

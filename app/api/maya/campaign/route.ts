@@ -1,3 +1,15 @@
+/*
+create table if not exists campaigns (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  title text,
+  plan jsonb,
+  status text default 'active',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+*/
+
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
@@ -23,6 +35,10 @@ export async function POST(req: Request) {
   if (!profileRow) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
+
+  // Verify campaigns table exists
+  const { data: tableCheck, error: tableError } = await supabase.from('campaigns').select('id').limit(1)
+  console.log('campaigns table check:', tableCheck, tableError)
 
   // Build conversation summary from user messages
   const conversationSummary = (messages as { role: string; content: string }[])
@@ -93,21 +109,21 @@ OUTPUT FORMAT — return valid JSON only, no markdown, no preamble:
     return NextResponse.json({ error: 'Plan generation failed' }, { status: 500 })
   }
 
-  const { data: campaign, error } = await supabase
+  const { data: campaign, error: campaignError } = await supabase
     .from('campaigns')
     .insert({
       user_id: profileRow.id,
       title: plan.title,
       plan,
       status: 'active',
-      created_at: new Date().toISOString(),
     })
     .select()
     .single()
 
-  if (error) {
-    console.error('Campaign save error:', error)
-    return NextResponse.json({ error: 'Failed to save campaign' }, { status: 500 })
+  if (campaignError) {
+    console.error('Campaign insert failed:', campaignError)
+    // Still return the plan so the UI renders — just without a saved ID
+    return NextResponse.json({ plan, campaign: null, error: 'Failed to save campaign' })
   }
 
   return NextResponse.json({ campaign, plan })

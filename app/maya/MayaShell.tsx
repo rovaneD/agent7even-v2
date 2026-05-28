@@ -125,6 +125,7 @@ export default function MayaShell({
   const [campaignId, setCampaignId] = useState<string | null>(null)
   const [planLoading, setPlanLoading] = useState(false)
   const [planSaved, setPlanSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [knownFacts, setKnownFacts] = useState<string[]>(() => {
     const facts: string[] = []
     if (companyName && companyName !== 'there') facts.push(companyName)
@@ -245,9 +246,25 @@ export default function MayaShell({
   }
 
   async function savePlan() {
-    if (!campaignId) return
-    setPlanSaved(true)
-    setTimeout(() => router.push('/dashboard'), 1500)
+    if (planSaved || saving) return
+    setSaving(true)
+    try {
+      if (!campaignId) {
+        const res = await fetch('/api/maya/campaign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages, profile }),
+        })
+        const data = await res.json()
+        if (data.campaign?.id) setCampaignId(data.campaign.id)
+      }
+    } catch (err) {
+      console.error('savePlan failed:', err)
+    } finally {
+      setSaving(false)
+      setPlanSaved(true)
+      setTimeout(() => setPlanSaved(false), 2000)
+    }
   }
 
   const lastVisible = visibleMessages[visibleMessages.length - 1]
@@ -585,9 +602,9 @@ export default function MayaShell({
                 {/* Save button */}
                 <button
                   onClick={savePlan}
-                  style={{ width: '100%', background: planSaved ? '#16a34a' : '#0a0a0a', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 0', fontSize: 13, fontWeight: 600, cursor: planSaved ? 'default' : 'pointer', fontFamily: 'inherit', marginTop: 4, transition: 'background 0.2s' }}
+                  style={{ width: '100%', background: planSaved ? '#16a34a' : '#0a0a0a', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 0', fontSize: 13, fontWeight: 600, cursor: (planSaved || saving) ? 'default' : 'pointer', fontFamily: 'inherit', marginTop: 4, transition: 'background 0.2s', opacity: saving ? 0.7 : 1 }}
                 >
-                  {planSaved ? '✓ Saved — redirecting...' : 'Save plan'}
+                  {planSaved ? 'Plan saved ✓' : saving ? 'Saving...' : 'Save plan'}
                 </button>
               </div>
             )}

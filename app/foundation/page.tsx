@@ -25,7 +25,6 @@ export default async function FoundationPage() {
       avatar_url: user?.imageUrl ?? '',
       role: 'client',
       status: 'onboarding',
-      onboarding_complete: false,
     }, { onConflict: 'clerk_user_id', ignoreDuplicates: true })
 
   if (upsertError) console.error('[foundation] profile upsert error:', upsertError.message)
