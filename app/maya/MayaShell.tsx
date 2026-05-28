@@ -216,6 +216,7 @@ export default function MayaShell({
     submitMessage(`I like ${label} — "${preview}"`)
     // Fire-and-forget — save task completion to the campaign
     const activeCampaignId = campaignId ?? recentCampaignId ?? null
+    console.log('Saving task completion:', { campaignId: activeCampaignId, task: initialPrompt, selectedOption: content })
     fetch('/api/maya/task-complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -55,6 +55,8 @@ export async function POST(req: Request) {
     message_count: Array.isArray(messages) ? messages.length : 0,
   }
 
+  console.log('Task saved to campaign:', resolvedId, newTask)
+
   const { error: updateError } = await supabase
     .from('campaigns')
     .update({ tasks: [...existingTasks, newTask], updated_at: new Date().toISOString() })
