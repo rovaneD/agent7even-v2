@@ -71,7 +71,7 @@ export default async function MayaPage({
       marketingChallenge={profile?.marketing_challenge ?? ''}
       contentComfort={profile?.content_comfort ?? ''}
       pendingApprovalCount={pendingCount ?? 0}
-      recentCampaignId={recentCampaign?.id}
+      recentCampaignId={recentCampaign?.id ?? null}
       initialPrompt={taskParam ?? (isNewUser ? NEW_USER_PROMPT : undefined)}
     />
   )

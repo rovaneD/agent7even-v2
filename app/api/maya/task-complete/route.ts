@@ -8,6 +8,8 @@ export async function POST(req: Request) {
 
   const { campaignId, task, selectedOption, messages } = await req.json()
 
+  console.log('task-complete called, campaignId:', campaignId)
+
   const supabase = createServiceClient()
 
   const { data: profile } = await supabase
@@ -18,33 +20,37 @@ export async function POST(req: Request) {
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-  // Resolve campaign — use provided id or fall back to most recent active campaign
-  let resolvedId: string | null = campaignId ?? null
+  // Fetch campaign in one query — either the specific one or the most recent active
+  let campaign: { id: string; tasks: unknown[] | null } | null = null
 
-  if (!resolvedId) {
-    const { data: recent } = await supabase
+  if (campaignId) {
+    const { data, error } = await supabase
       .from('campaigns')
-      .select('id')
+      .select('id, tasks')
+      .eq('id', campaignId)
+      .single()
+    if (error) console.error('task-complete: campaignId lookup error:', error.message)
+    campaign = data
+  } else {
+    const { data, error } = await supabase
+      .from('campaigns')
+      .select('id, tasks')
       .eq('user_id', profile.id)
-      .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
-    resolvedId = recent?.id ?? null
+    if (error) console.error('task-complete: recent campaign lookup error:', error.message)
+    campaign = data
   }
 
-  if (!resolvedId) {
+  console.log('campaign found:', campaign?.id)
+
+  if (!campaign) {
     return NextResponse.json({ error: 'No campaign found' }, { status: 404 })
   }
 
-  // Fetch current tasks array
-  const { data: campaign } = await supabase
-    .from('campaigns')
-    .select('tasks')
-    .eq('id', resolvedId)
-    .single()
-
-  const existingTasks: unknown[] = Array.isArray(campaign?.tasks) ? campaign.tasks : []
+  const currentTasks: unknown[] = Array.isArray(campaign.tasks) ? campaign.tasks : []
+  console.log('current tasks:', currentTasks.length)
 
   const newTask = {
     id: crypto.randomUUID(),
@@ -55,17 +61,21 @@ export async function POST(req: Request) {
     message_count: Array.isArray(messages) ? messages.length : 0,
   }
 
-  console.log('Task saved to campaign:', resolvedId, newTask)
+  console.log('saving new task:', newTask)
+
+  const newTasks = [...currentTasks, newTask]
 
   const { error: updateError } = await supabase
     .from('campaigns')
-    .update({ tasks: [...existingTasks, newTask], updated_at: new Date().toISOString() })
-    .eq('id', resolvedId)
+    .update({ tasks: newTasks, updated_at: new Date().toISOString() })
+    .eq('id', campaign.id)
 
   if (updateError) {
     console.error('[task-complete] update error:', updateError.message)
     return NextResponse.json({ error: 'Failed to save task' }, { status: 500 })
   }
+
+  console.log('task-complete success, taskId:', newTask.id)
 
   return NextResponse.json({ success: true, taskId: newTask.id })
 }
