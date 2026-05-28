@@ -148,17 +148,14 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
   async function handleGenerate() {
     setGenerating(true)
 
-    for (let i = 0; i < ALL_DOCS.length; i++) {
-      await new Promise(r => setTimeout(r, 600))
-      setGenerationProgress(prev => [...prev, ALL_DOCS[i]])
-    }
-
     try {
-      await fetch('/api/foundation/generate', {
+      const res = await fetch('/api/foundation/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers, companyName }),
       })
+      if (!res.ok) throw new Error('Generation failed: ' + res.status)
+      setGenerationProgress(ALL_DOCS)
       router.push('/maya?new=true')
     } catch {
       setGenerating(false)
