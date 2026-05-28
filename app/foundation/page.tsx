@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import FoundationFlow from './FoundationFlow'
@@ -7,12 +7,28 @@ export default async function FoundationPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const supabase = createServiceClient()
+  const [user, supabase] = await Promise.all([
+    currentUser(),
+    Promise.resolve(createServiceClient()),
+  ])
 
-  // Upsert ensures a profile row always exists for this Clerk user
-  await supabase
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? ''
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+
+  // Ensure profile row exists — safe to call even if row already exists
+  const { error: upsertError } = await supabase
     .from('profiles')
-    .upsert({ clerk_user_id: userId, role: 'client', status: 'onboarding' }, { onConflict: 'clerk_user_id', ignoreDuplicates: true })
+    .upsert({
+      clerk_user_id: userId,
+      email,
+      full_name: fullName,
+      avatar_url: user?.imageUrl ?? '',
+      role: 'client',
+      status: 'onboarding',
+      onboarding_complete: false,
+    }, { onConflict: 'clerk_user_id', ignoreDuplicates: true })
+
+  if (upsertError) console.error('[foundation] profile upsert error:', upsertError.message)
 
   const { data: profile } = await supabase
     .from('profiles')
