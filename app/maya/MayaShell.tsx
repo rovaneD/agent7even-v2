@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import { useRouter } from 'next/navigation'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
+import { Rocket, PenLine, BarChart2, MessageCircle } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,13 @@ const SUGGESTIONS = [
   { icon: 'ti-eye', text: 'Help me stand out from competitors' },
 ]
 
+const MODES = [
+  { id: 'Build a campaign', label: 'Build a campaign', description: 'Create a 30-day marketing plan', Icon: Rocket },
+  { id: 'Create content', label: 'Create content', description: 'Generate captions, emails, or ad copy', Icon: PenLine },
+  { id: 'Analyze my marketing', label: 'Analyze my marketing', description: "Review what's working and what's not", Icon: BarChart2 },
+  { id: 'Just talk to Maya', label: 'Just talk to Maya', description: 'Open conversation, no agenda', Icon: MessageCircle },
+]
+
 // ── ReactMarkdown plain components (no bubble styles, just text) ───────────
 
 const PLAIN_MD: Record<string, React.ComponentType<{ children?: React.ReactNode }>> = {
@@ -126,6 +134,7 @@ export default function MayaShell({
   const [planLoading, setPlanLoading] = useState(false)
   const [planSaved, setPlanSaved] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [mode, setMode] = useState<string | null>(null)
   const [knownFacts, setKnownFacts] = useState<string[]>(() => {
     const facts: string[] = []
     if (companyName && companyName !== 'there') facts.push(companyName)
@@ -202,9 +211,13 @@ export default function MayaShell({
     return msg.parts.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join('')
   }
 
-  const visibleMessages = messages.filter(msg => !getMsgText(msg).startsWith('__SYSTEM_INIT__'))
+  const visibleMessages = messages.filter(msg => {
+    const t = getMsgText(msg)
+    return !t.startsWith('__SYSTEM_INIT__') && !t.startsWith('__MODE__')
+  })
   const hasInitMessage = messages.some(msg => getMsgText(msg).startsWith('__SYSTEM_INIT__'))
-  const chatStarted = visibleMessages.length > 0 || hasInitMessage
+  const chatStarted = visibleMessages.length > 0 || hasInitMessage || mode !== null
+  const showModePicker = mode === null && !chatStarted && !initialPrompt
   const sessionTitle = (() => {
     const first = visibleMessages.find(m => m.role === 'user')
     if (!first) return ''
@@ -233,6 +246,11 @@ export default function MayaShell({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  function selectMode(modeId: string) {
+    setMode(modeId)
+    sendMessage({ text: `__MODE__${modeId}__` })
+  }
 
   function submitMessage(text?: string) {
     const content = (text ?? chatInput).trim()
@@ -347,8 +365,37 @@ export default function MayaShell({
 
         {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
-          {!chatStarted ? (
-            /* GREETING */
+          {showModePicker ? (
+            /* MODE PICKER */
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: 32 }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', border: '0.5px solid #e5e5e5', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: '#fff', fontSize: 17, fontWeight: 600 }}>M</span>
+                </div>
+                <div style={{ position: 'absolute', bottom: 2, right: 2, width: 8, height: 8, borderRadius: '50%', background: '#0a0a0a', border: '1.5px solid #fff' }} />
+              </div>
+              <p style={{ fontSize: 18, fontWeight: 500, color: '#0a0a0a', marginBottom: 4, letterSpacing: '-0.3px' }}>
+                Hey {companyName !== 'there' ? companyName : 'there'}.
+              </p>
+              <p style={{ fontSize: 13, color: '#999', marginBottom: 24 }}>What would you like to work on?</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', maxWidth: 380 }}>
+                {MODES.map(({ id, label, description, Icon }) => (
+                  <button key={id} onClick={() => selectMode(id)}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, padding: '14px 14px', borderRadius: 12, border: '0.5px solid #e8e8e8', background: '#fafafa', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#0a0a0a'; (e.currentTarget as HTMLButtonElement).style.background = '#f5f5f5' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e8e8e8'; (e.currentTarget as HTMLButtonElement).style.background = '#fafafa' }}
+                  >
+                    <Icon size={16} color="#0a0a0a" strokeWidth={1.75} />
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#0a0a0a', marginBottom: 2 }}>{label}</p>
+                      <p style={{ fontSize: 11.5, color: '#999', lineHeight: 1.4 }}>{description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : !chatStarted ? (
+            /* GREETING — shown briefly for new users while init message sends */
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: 48 }}>
               <div style={{ width: 64, height: 64, borderRadius: '50%', border: '0.5px solid #e5e5e5', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 14 }}>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -360,21 +407,9 @@ export default function MayaShell({
               <p style={{ fontSize: 20, fontWeight: 500, color: '#0a0a0a', marginBottom: 8, textAlign: 'center', letterSpacing: '-0.3px' }}>
                 Hey {companyName !== 'there' ? companyName : 'there'}, good to see you.
               </p>
-              <p style={{ fontSize: 14, color: '#888', textAlign: 'center', maxWidth: 320, lineHeight: 1.6, marginBottom: 28 }}>
-                Ready to build something? Tell me what's on your mind — or pick a place to start.
+              <p style={{ fontSize: 14, color: '#888', textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
+                One moment while Maya gets ready...
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, width: '100%', maxWidth: 340 }}>
-                {SUGGESTIONS.map((s) => (
-                  <button key={s.text} onClick={() => submitMessage(s.text)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', borderRadius: 10, border: '0.5px solid #e8e8e8', background: '#fafafa', fontSize: 13, color: '#444', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color 0.15s, background 0.15s' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#0a0a0a'; (e.currentTarget as HTMLButtonElement).style.background = '#f5f5f5' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e8e8e8'; (e.currentTarget as HTMLButtonElement).style.background = '#fafafa' }}
-                  >
-                    <i className={`ti ${s.icon}`} style={{ fontSize: 14, color: '#bbb', flexShrink: 0 }} />
-                    {s.text}
-                  </button>
-                ))}
-              </div>
             </div>
           ) : (
             /* CHAT */
@@ -420,8 +455,8 @@ export default function MayaShell({
           )}
         </div>
 
-        {/* Input bar */}
-        <div style={{ flexShrink: 0, borderTop: '0.5px solid #f0f0f0', padding: '14px 20px', background: '#fff' }}>
+        {/* Input bar — hidden during mode picker */}
+        <div style={{ flexShrink: 0, borderTop: '0.5px solid #f0f0f0', padding: '14px 20px', background: '#fff', display: showModePicker ? 'none' : undefined }}>
           <div style={{ position: 'relative' }}>
             <textarea
               value={chatInput}

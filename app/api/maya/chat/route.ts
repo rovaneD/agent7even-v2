@@ -9,11 +9,29 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { messages: rawMessages } = await req.json()
-  const messages = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
+  const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
-  if (!messages?.length) {
+  if (!converted?.length) {
     return NextResponse.json({ error: 'No messages provided' }, { status: 400 })
   }
+
+  const MODE_PROMPTS: Record<string, string> = {
+    'Build a campaign': 'The user wants to build a 30-day marketing campaign. Start by confirming their primary goal for this month based on what you know from their foundation. Ask one clarifying question to get started.',
+    'Create content': 'The user wants to create marketing content. Ask them what type of content they need today — caption, email, ad copy, or something else. Keep it to one question.',
+    'Analyze my marketing': 'The user wants to analyze their marketing performance. Ask them what channel or campaign they want to review first.',
+    'Just talk to Maya': 'The user wants an open conversation. Greet them warmly and ask what is on their mind today regarding their marketing.',
+  }
+
+  const messages = converted.map(msg => {
+    if (msg.role !== 'user') return msg
+    const text = Array.isArray(msg.content)
+      ? msg.content.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join('')
+      : typeof msg.content === 'string' ? msg.content : ''
+    if (!text.startsWith('__MODE__')) return msg
+    const selectedMode = text.replace(/^__MODE__/, '').replace(/__$/, '')
+    const replacement = MODE_PROMPTS[selectedMode]
+    return replacement ? { ...msg, content: replacement } : msg
+  })
 
   const supabase = createServiceClient()
 
