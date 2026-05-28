@@ -34,6 +34,7 @@ interface Props {
   marketingChallenge?: string
   contentComfort?: string
   pendingApprovalCount?: number
+  recentCampaignId?: string
   initialPrompt?: string
 }
 
@@ -138,6 +139,7 @@ export default function MayaShell({
   profileId, companyName, businessType, websiteUrl, instagramHandle, businessGoals,
   idealCustomer, sellLocations, marketingBudget, competitors = [],
   topGoals, marketingChallenge, contentComfort, pendingApprovalCount = 0,
+  recentCampaignId,
   initialPrompt,
 }: Props) {
   const router = useRouter()
@@ -212,6 +214,18 @@ export default function MayaShell({
     setSelectedOptionId(optId)
     const preview = content.length > 40 ? content.slice(0, 40) + '…' : content
     submitMessage(`I like ${label} — "${preview}"`)
+    // Fire-and-forget — save task completion to the campaign
+    const activeCampaignId = campaignId ?? recentCampaignId ?? null
+    fetch('/api/maya/task-complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId: activeCampaignId,
+        task: initialPrompt ?? '',
+        selectedOption: content,
+        messages,
+      }),
+    }).catch(err => console.error('[selectOption] task-complete failed:', err))
   }
 
   async function generateCampaign(currentMessages: UIMessage[]) {

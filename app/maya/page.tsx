@@ -41,6 +41,16 @@ export default async function MayaPage({
       .is('rejected_at', null),
   ])
 
+  const { data: recentCampaign } = profile
+    ? await supabase
+        .from('campaigns')
+        .select('id')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+    : { data: null }
+
   // Only gate on foundation if the column exists and is explicitly false
   if (profile && profile.foundation_complete === false) redirect('/foundation')
 
@@ -61,6 +71,7 @@ export default async function MayaPage({
       marketingChallenge={profile?.marketing_challenge ?? ''}
       contentComfort={profile?.content_comfort ?? ''}
       pendingApprovalCount={pendingCount ?? 0}
+      recentCampaignId={recentCampaign?.id}
       initialPrompt={taskParam ?? (isNewUser ? NEW_USER_PROMPT : undefined)}
     />
   )

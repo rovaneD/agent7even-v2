@@ -27,21 +27,43 @@ interface CampaignPlan {
   budget_allocation: Record<string, string>
 }
 
+interface CompletedTask {
+  id: string
+  task: string
+  status: string
+  selected_option: string
+  completed_at: string
+  message_count: number
+}
+
 interface Campaign {
   id: string
   title: string
   plan: CampaignPlan
   status: string
   created_at: string
+  tasks?: CompletedTask[]
 }
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+function formatRelative(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
 export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
   const [openCampaign, setOpenCampaign] = useState<string | null>(null)
   const [openWeeks, setOpenWeeks] = useState<number[]>([])
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null)
 
   function toggleCampaign(id: string) {
     if (openCampaign === id) {
@@ -180,6 +202,40 @@ export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
                         <span key={i} className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-3 py-1">
                           {m}
                         </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Completed tasks */}
+                {c.tasks && c.tasks.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Completed tasks</p>
+                    <div className="flex flex-col gap-2">
+                      {c.tasks.map(t => (
+                        <div key={t.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                          <div className="flex items-start justify-between px-4 py-3 gap-3">
+                            <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                              <span className="text-green-600 text-sm mt-0.5 flex-shrink-0">✓</span>
+                              <div className="min-w-0">
+                                <p className="text-sm text-gray-800 leading-snug">{t.task}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">{formatRelative(t.completed_at)}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setOpenTaskId(openTaskId === t.id ? null : t.id)}
+                              className="flex-shrink-0 text-xs text-gray-400 hover:text-gray-700 border border-gray-200 hover:border-gray-400 px-2.5 py-1 rounded-lg transition-colors whitespace-nowrap mt-0.5"
+                            >
+                              {openTaskId === t.id ? 'Hide' : 'View selected'}
+                            </button>
+                          </div>
+                          {openTaskId === t.id && (
+                            <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
+                              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-2">Selected option</p>
+                              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{t.selected_option}</p>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>

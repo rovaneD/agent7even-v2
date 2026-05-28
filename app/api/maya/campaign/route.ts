@@ -8,6 +8,8 @@ create table if not exists campaigns (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+alter table campaigns add column if not exists tasks jsonb default '[]';
 */
 
 import { auth } from '@clerk/nextjs/server'
