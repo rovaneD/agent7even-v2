@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
   // Fetch everything fresh from DB — authoritative, never stale from client
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select(`
       id, company_name, business_type,
@@ -27,6 +27,8 @@ export async function POST(req: Request) {
     `)
     .eq('clerk_user_id', userId)
     .single()
+
+  if (profileError) console.error('[maya/chat] profile fetch error:', profileError.code, profileError.message)
 
   let brief = '', icp = '', positioning = '', voice = ''
 
