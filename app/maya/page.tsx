@@ -40,7 +40,8 @@ export default async function MayaPage({
       .is('rejected_at', null),
   ])
 
-  if (!profile?.foundation_complete) redirect('/foundation')
+  // Only gate on foundation if the column exists and is explicitly false
+  if (profile && profile.foundation_complete === false) redirect('/foundation')
 
   return (
     <MayaShell

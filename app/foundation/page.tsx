@@ -14,7 +14,7 @@ export default async function FoundationPage() {
     .eq('clerk_user_id', userId)
     .single()
 
-  if (!profile) redirect('/sign-in')
+  if (!profile) redirect('/dashboard')
   if (profile.foundation_complete) redirect('/maya')
 
   return (

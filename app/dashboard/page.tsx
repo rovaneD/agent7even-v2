@@ -33,7 +33,7 @@ export default async function DashboardPage() {
     redirect('/onboarding')
   }
 
-  if (!profile?.foundation_complete) {
+  if (profile && profile.foundation_complete === false) {
     redirect('/foundation')
   }
 
