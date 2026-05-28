@@ -77,26 +77,30 @@ function extractPlanSections(text: string): { title: string; body: string }[] {
   return sections.slice(0, 8)
 }
 
-// Splits "Option 1 / Option 2 / Option 3" style responses into cards.
-// Filters out any intro text before the first Option header.
-// Handles both inline ("**Option 1:** text") and next-line formats.
+// Detects "Option N" / "Version N" / bold variants and splits into cards.
+// Tries each pattern in order; returns on the first that yields 2+ matches.
 function parseTaskOptions(text: string): { label: string; content: string }[] | null {
-  const parts = text
-    .split(/(?=\*{0,2}Option\s+[123]\b)/i)
-    .filter(p => /^\*{0,2}Option\s+[123]/i.test(p.trim()))
-  if (parts.length < 2) return null
-  return parts.map(part => {
-    const cleaned = part.replace(/^\*+/, '').trim()
-    // Match "Option N" header; content may follow on same line or subsequent lines
-    const match = cleaned.match(/^(Option\s+[123])[:\s*\-]*([\s\S]*)$/i)
-    if (!match) return { label: 'Option', content: cleaned }
-    const label = match[1].trim()           // "Option 1" — displayed uppercase via CSS
-    const content = match[2]
-      .replace(/^\*+\s*/gm, '')             // strip leading asterisks per line
-      .replace(/^\s*[-–]\s*/gm, '')         // strip leading dashes
-      .trim()
-    return { label, content }
-  })
+  const optionPatterns = [
+    /Option\s+(\d+)[:\s*]+([\s\S]*?)(?=Option\s+\d+|Version\s+\d+|$)/gi,
+    /Version\s+(\d+)[:\s*]+([\s\S]*?)(?=Option\s+\d+|Version\s+\d+|$)/gi,
+    /\*\*Option\s+(\d+)\*\*[:\s]+([\s\S]*?)(?=\*\*Option|\*\*Version|$)/gi,
+  ]
+
+  for (const re of optionPatterns) {
+    re.lastIndex = 0
+    const matches: { label: string; content: string }[] = []
+    let m: RegExpExecArray | null
+    while ((m = re.exec(text)) !== null) {
+      const content = m[2]
+        .replace(/^\*+\s*/gm, '')
+        .replace(/^\s*[-–]\s*/gm, '')
+        .trim()
+      if (content) matches.push({ label: `Option ${m[1]}`, content })
+    }
+    if (matches.length >= 2) return matches
+  }
+
+  return null
 }
 
 // ── Static nav ─────────────────────────────────────────────────────────────
