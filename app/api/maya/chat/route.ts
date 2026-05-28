@@ -22,19 +22,31 @@ export async function POST(req: Request) {
     'Just talk to Maya': 'The user wants an open conversation. Greet them warmly and ask what is on their mind today regarding their marketing.',
   }
 
-  // Extract mode from messages; replace __MODE__ sentinel with a neutral opener
-  // so the mode instruction goes into the system prompt, not the user turn.
+  // Extract mode/task from messages; replace sentinels with neutral openers
+  // so the instruction goes into the system prompt, not the user turn.
   let modeInstruction = ''
   const messages = converted.map(msg => {
     if (msg.role !== 'user') return msg
     const text = Array.isArray(msg.content)
       ? msg.content.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join('')
       : typeof msg.content === 'string' ? msg.content : ''
-    if (!text.startsWith('__MODE__')) return msg
-    const selectedMode = text.replace(/^__MODE__/, '').replace(/__$/, '')
-    console.log('[maya/chat] Mode detected:', selectedMode)
-    modeInstruction = MODE_PROMPTS[selectedMode] ?? ''
-    return { ...msg, content: "Let's get started." }
+    if (text.startsWith('__MODE__')) {
+      const selectedMode = text.replace(/^__MODE__/, '').replace(/__$/, '')
+      console.log('[maya/chat] Mode detected:', selectedMode)
+      modeInstruction = MODE_PROMPTS[selectedMode] ?? ''
+      return { ...msg, content: "Let's get started." }
+    }
+    if (text.startsWith('__TASK__')) {
+      const task = text.replace(/^__TASK__/, '').replace(/__$/, '').trim()
+      console.log('[maya/chat] Task detected:', task)
+      modeInstruction = `The user wants to complete this specific marketing task right now: "${task}"
+
+Execute it immediately. Do not ask clarifying questions unless absolutely necessary.
+Draft the actual deliverable — copy, content, or plan — based on what you know about their business.
+Show 2-3 variations if it's copy. Be specific to their brand voice and audience.`
+      return { ...msg, content: "Let's do this." }
+    }
+    return msg
   })
 
   const supabase = createServiceClient()

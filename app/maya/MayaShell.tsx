@@ -213,7 +213,7 @@ export default function MayaShell({
 
   const visibleMessages = messages.filter(msg => {
     const t = getMsgText(msg)
-    return !t.startsWith('__SYSTEM_INIT__') && !t.startsWith('__MODE__')
+    return !t.startsWith('__SYSTEM_INIT__') && !t.startsWith('__MODE__') && !t.startsWith('__TASK__')
   })
   const hasInitMessage = messages.some(msg => getMsgText(msg).startsWith('__SYSTEM_INIT__'))
   const chatStarted = visibleMessages.length > 0 || hasInitMessage || mode !== null
@@ -239,7 +239,11 @@ export default function MayaShell({
   useEffect(() => {
     if (initialPrompt && !initSent.current) {
       initSent.current = true
-      sendMessage({ text: initialPrompt })
+      // Internal prompts already have __ prefix; plain task text gets wrapped
+      const content = initialPrompt.startsWith('__')
+        ? initialPrompt
+        : `__TASK__${initialPrompt}__`
+      sendMessage({ text: content })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -605,9 +609,19 @@ export default function MayaShell({
                   <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 10 }}>Do this today</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {campaignPlan.quick_wins?.map((win, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                        <span style={{ color: '#c8522a', flexShrink: 0, marginTop: 1, fontSize: 13 }}>→</span>
-                        <p style={{ fontSize: 13, color: '#444', lineHeight: 1.5 }}>{win}</p>
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                          <span style={{ color: '#c8522a', flexShrink: 0, marginTop: 1, fontSize: 13 }}>→</span>
+                          <p style={{ fontSize: 13, color: '#444', lineHeight: 1.5 }}>{win}</p>
+                        </div>
+                        <a
+                          href={`/maya?task=${encodeURIComponent(win)}`}
+                          style={{ flexShrink: 0, fontSize: 11, color: '#c8522a', fontWeight: 500, whiteSpace: 'nowrap', textDecoration: 'none', paddingTop: 2, marginLeft: 8 }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline' }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none' }}
+                        >
+                          Do this with Maya →
+                        </a>
                       </div>
                     ))}
                   </div>
