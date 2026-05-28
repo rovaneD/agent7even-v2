@@ -79,7 +79,7 @@ function extractPlanSections(text: string): { title: string; body: string }[] {
 
 const NAV_ITEMS = [
   { icon: 'ti-message-circle', label: 'Talk to Maya', id: 'maya', href: '/maya' },
-  { icon: 'ti-layout-grid', label: 'My campaigns', id: 'campaigns', href: null },
+  { icon: 'ti-layout-grid', label: 'My campaigns', id: 'campaigns', href: '/my-campaigns' },
   { icon: 'ti-calendar', label: 'Content calendar', id: 'calendar', href: null },
   { icon: 'ti-chart-bar', label: 'Results', id: 'results', href: null },
   { icon: 'ti-robot', label: 'Agents', id: 'agents', href: '/dashboard/agents' },
