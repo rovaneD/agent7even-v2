@@ -8,7 +8,7 @@ const NEW_USER_PROMPT = `__SYSTEM_INIT__ User just completed onboarding. Generat
 export default async function MayaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ new?: string; task?: string }>
+  searchParams: Promise<{ new?: string; task?: string; campaignId?: string }>
 }) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
@@ -16,6 +16,7 @@ export default async function MayaPage({
   const params = await searchParams
   const isNewUser = params?.new === 'true'
   const taskParam = params?.task ? decodeURIComponent(params.task) : undefined
+  const campaignIdParam = params?.campaignId ?? null
 
   const supabase = createServiceClient()
 
@@ -56,23 +57,10 @@ export default async function MayaPage({
 
   return (
     <MayaShell
-      profileId={profile?.id}
-      companyName={profile?.company_name ?? profile?.full_name ?? 'there'}
-      businessType={profile?.business_type ?? ''}
-      plan={profile?.plan ?? ''}
-      websiteUrl={profile?.website_url ?? ''}
-      instagramHandle={profile?.instagram_handle ?? ''}
-      businessGoals={profile?.business_goals ?? []}
-      idealCustomer={profile?.ideal_customer ?? ''}
-      sellLocations={profile?.sell_locations ?? []}
-      marketingBudget={profile?.marketing_budget ?? ''}
-      competitors={profile?.competitors ?? []}
-      topGoals={profile?.top_goals ?? []}
-      marketingChallenge={profile?.marketing_challenge ?? ''}
-      contentComfort={profile?.content_comfort ?? ''}
+      profile={profile}
       pendingApprovalCount={pendingCount ?? 0}
-      recentCampaignId={recentCampaign?.id ?? null}
       initialPrompt={taskParam ?? (isNewUser ? NEW_USER_PROMPT : undefined)}
+      activeCampaignId={campaignIdParam ?? recentCampaign?.id ?? null}
     />
   )
 }

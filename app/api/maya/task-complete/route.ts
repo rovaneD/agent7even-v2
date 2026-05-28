@@ -20,36 +20,35 @@ export async function POST(req: Request) {
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-  // Fetch campaign in one query — either the specific one or the most recent active
-  let campaign: { id: string; tasks: unknown[] | null } | null = null
+  // Resolve target campaign ID — use provided ID directly, fall back to most recent
+  let targetCampaignId: string | null = campaignId ?? null
 
-  if (campaignId) {
-    const { data, error } = await supabase
+  if (!targetCampaignId) {
+    console.log('task-complete: no campaignId provided, looking up most recent')
+    const { data: recent, error } = await supabase
       .from('campaigns')
-      .select('id, tasks')
-      .eq('id', campaignId)
-      .single()
-    if (error) console.error('task-complete: campaignId lookup error:', error.message)
-    campaign = data
-  } else {
-    const { data, error } = await supabase
-      .from('campaigns')
-      .select('id, tasks')
+      .select('id')
       .eq('user_id', profile.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
     if (error) console.error('task-complete: recent campaign lookup error:', error.message)
-    campaign = data
+    targetCampaignId = recent?.id ?? null
   }
 
-  console.log('campaign found:', campaign?.id)
-
-  if (!campaign) {
+  if (!targetCampaignId) {
     return NextResponse.json({ error: 'No campaign found' }, { status: 404 })
   }
 
-  const currentTasks: unknown[] = Array.isArray(campaign.tasks) ? campaign.tasks : []
+  console.log('task-complete: targeting campaign:', targetCampaignId)
+
+  const { data: campaignData } = await supabase
+    .from('campaigns')
+    .select('tasks')
+    .eq('id', targetCampaignId)
+    .single()
+
+  const currentTasks: unknown[] = Array.isArray(campaignData?.tasks) ? campaignData.tasks : []
   console.log('current tasks:', currentTasks.length)
 
   const newTask = {
@@ -68,7 +67,7 @@ export async function POST(req: Request) {
   const { error: updateError } = await supabase
     .from('campaigns')
     .update({ tasks: newTasks, updated_at: new Date().toISOString() })
-    .eq('id', campaign.id)
+    .eq('id', targetCampaignId)
 
   if (updateError) {
     console.error('[task-complete] update error:', updateError.message)

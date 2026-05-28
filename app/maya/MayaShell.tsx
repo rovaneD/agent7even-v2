@@ -18,24 +18,30 @@ interface CampaignPlan {
   budget_allocation: Record<string, string>
 }
 
+interface Profile {
+  id?: string
+  company_name?: string | null
+  full_name?: string | null
+  business_type?: string | null
+  plan?: string | null
+  website_url?: string | null
+  instagram_handle?: string | null
+  business_goals?: string[] | null
+  ideal_customer?: string | null
+  sell_locations?: string[] | null
+  marketing_budget?: string | null
+  competitors?: string[] | null
+  top_goals?: string[] | null
+  marketing_challenge?: string | null
+  content_comfort?: string | null
+  foundation_complete?: boolean | null
+}
+
 interface Props {
-  profileId?: string
-  companyName: string
-  businessType: string
-  plan?: string
-  websiteUrl?: string
-  instagramHandle?: string
-  businessGoals?: string[]
-  idealCustomer?: string
-  sellLocations?: string[]
-  marketingBudget?: string
-  competitors?: string[]
-  topGoals?: string[]
-  marketingChallenge?: string
-  contentComfort?: string
+  profile?: Profile | null
   pendingApprovalCount?: number
-  recentCampaignId?: string | null
-  initialPrompt?: string
+  initialPrompt?: string | null
+  activeCampaignId?: string | null
 }
 
 type CanvasState = 'default' | 'building' | 'plan' | 'task'
@@ -140,12 +146,23 @@ const PLAIN_MD: Record<string, React.ComponentType<{ children?: React.ReactNode 
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function MayaShell({
-  profileId, companyName, businessType, websiteUrl, instagramHandle, businessGoals,
-  idealCustomer, sellLocations, marketingBudget, competitors = [],
-  topGoals, marketingChallenge, contentComfort, pendingApprovalCount = 0,
-  recentCampaignId,
+  profile,
+  pendingApprovalCount = 0,
   initialPrompt,
+  activeCampaignId,
 }: Props) {
+  const companyName = profile?.company_name ?? profile?.full_name ?? 'there'
+  const businessType = profile?.business_type ?? ''
+  const websiteUrl = profile?.website_url ?? ''
+  const instagramHandle = profile?.instagram_handle ?? ''
+  const idealCustomer = profile?.ideal_customer ?? ''
+  const sellLocations = profile?.sell_locations ?? []
+  const marketingBudget = profile?.marketing_budget ?? ''
+  const competitors = profile?.competitors ?? []
+  const topGoals = profile?.top_goals ?? []
+  const marketingChallenge = profile?.marketing_challenge ?? ''
+  const contentComfort = profile?.content_comfort ?? ''
+
   const router = useRouter()
   const [activeNav, setActiveNav] = useState('maya')
   const [canvasOpen, setCanvasOpen] = useState(true)
@@ -173,22 +190,20 @@ export default function MayaShell({
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const initSent = useRef(false)
-  // True when this session was started from a ?task= URL param
   const isTaskMode = useRef(!!(initialPrompt && !initialPrompt.startsWith('__')))
-  // Locks the task canvas after the first response so subsequent messages don't overwrite it
   const taskCanvasLocked = useRef(false)
+  const activeCampaignIdRef = useRef<string | null>(activeCampaignId ?? null)
 
   const initials = companyName && companyName !== 'there' ? companyName.slice(0, 2).toUpperCase() : 'ME'
   const displayName = companyName !== 'there' ? companyName : 'Your business'
 
-  // Task title — derived once from initialPrompt, stable across renders
   const taskTitle = (() => {
     if (!isTaskMode.current || !initialPrompt) return ''
     const t = initialPrompt.trim()
     return t.length > 60 ? t.slice(0, 60) + '…' : t
   })()
 
-  const profile = {
+  const profileData = {
     companyName, businessType, idealCustomer, sellLocations,
     marketingBudget, topGoals, marketingChallenge, contentComfort,
     competitors, websiteUrl, instagramHandle,
@@ -218,14 +233,13 @@ export default function MayaShell({
     setSelectedOptionId(optId)
     const preview = content.length > 40 ? content.slice(0, 40) + '…' : content
     submitMessage(`I like ${label} — "${preview}"`)
-    // Fire-and-forget — save task completion to the campaign
-    const activeCampaignId = campaignId ?? recentCampaignId ?? null
-    console.log('Select clicked, calling task-complete with:', { campaignId: activeCampaignId, initialPrompt, selectedOption: content })
+    const targetCampaignId = activeCampaignIdRef.current
+    console.log('Saving task to campaign:', targetCampaignId)
     fetch('/api/maya/task-complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        campaignId: activeCampaignId,
+        campaignId: targetCampaignId,
         task: initialPrompt ?? '',
         selectedOption: content,
         messages,
@@ -244,12 +258,15 @@ export default function MayaShell({
       const res = await fetch('/api/maya/campaign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: simplified, profile }),
+        body: JSON.stringify({ messages: simplified, profile: profileData }),
       })
       const data = await res.json()
       if (data.plan) {
         setCampaignPlan(data.plan)
-        setCampaignId(data.campaign?.id ?? null)
+        if (data.campaign?.id) {
+          setCampaignId(data.campaign.id)
+          activeCampaignIdRef.current = data.campaign.id
+        }
       }
     } catch (err) {
       console.error('Campaign generation failed:', err)
@@ -261,7 +278,7 @@ export default function MayaShell({
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/maya/chat',
-      body: { profile },
+      body: { profile: profileData },
     }),
     onFinish: async ({ message }: { message: UIMessage }) => {
       const text = message.parts.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join('')
@@ -359,10 +376,13 @@ export default function MayaShell({
         const res = await fetch('/api/maya/campaign', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages, profile }),
+          body: JSON.stringify({ messages, profile: profileData }),
         })
         const data = await res.json()
-        if (data.campaign?.id) setCampaignId(data.campaign.id)
+        if (data.campaign?.id) {
+          setCampaignId(data.campaign.id)
+          activeCampaignIdRef.current = data.campaign.id
+        }
       }
     } catch (err) {
       console.error('savePlan failed:', err)
@@ -402,6 +422,7 @@ export default function MayaShell({
             initSent.current = false
             isTaskMode.current = false
             taskCanvasLocked.current = false
+            activeCampaignIdRef.current = null
           }}
           style={{ width: '100%', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontFamily: 'inherit' }}
         >
@@ -766,7 +787,7 @@ export default function MayaShell({
                           <p style={{ fontSize: 13, color: '#444', lineHeight: 1.5 }}>{win}</p>
                         </div>
                         <a
-                          href={`/maya?task=${encodeURIComponent(win)}`}
+                          href={`/maya?task=${encodeURIComponent(win)}${campaignId ? `&campaignId=${campaignId}` : ''}`}
                           style={{ flexShrink: 0, fontSize: 11, color: '#c8522a', fontWeight: 500, whiteSpace: 'nowrap', textDecoration: 'none', paddingTop: 2, marginLeft: 8 }}
                           onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline' }}
                           onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none' }}

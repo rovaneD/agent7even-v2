@@ -138,20 +138,31 @@ export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">Do this today</p>
                     <div className="flex flex-col gap-2">
-                      {plan.quick_wins.map((win, i) => (
-                        <div key={i} className="flex gap-2.5 items-start justify-between">
-                          <div className="flex gap-2.5 items-start flex-1 min-w-0">
-                            <span className="text-[#c8522a] text-sm mt-0.5 flex-shrink-0">→</span>
-                            <p className="text-sm text-gray-700 leading-relaxed">{win}</p>
+                      {plan.quick_wins.map((win, i) => {
+                        const isDone = c.tasks?.some(t => t.task === win) ?? false
+                        return (
+                          <div key={i} className="flex gap-2.5 items-start justify-between">
+                            <div className="flex gap-2.5 items-start flex-1 min-w-0">
+                              <span className={`text-sm mt-0.5 flex-shrink-0 ${isDone ? 'text-green-600' : 'text-[#c8522a]'}`}>
+                                {isDone ? '✓' : '→'}
+                              </span>
+                              <p className="text-sm text-gray-700 leading-relaxed">{win}</p>
+                            </div>
+                            {isDone ? (
+                              <span className="flex-shrink-0 text-xs font-medium text-green-600 whitespace-nowrap ml-3 mt-0.5">
+                                Done ✓
+                              </span>
+                            ) : (
+                              <a
+                                href={`/maya?task=${encodeURIComponent(win)}&campaignId=${c.id}`}
+                                className="flex-shrink-0 text-xs font-medium text-[#c8522a] hover:underline whitespace-nowrap ml-3 mt-0.5"
+                              >
+                                Do this with Maya →
+                              </a>
+                            )}
                           </div>
-                          <a
-                            href={`/maya?task=${encodeURIComponent(win)}`}
-                            className="flex-shrink-0 text-xs font-medium text-[#c8522a] hover:underline whitespace-nowrap ml-3 mt-0.5"
-                          >
-                            Do this with Maya →
-                          </a>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )}
