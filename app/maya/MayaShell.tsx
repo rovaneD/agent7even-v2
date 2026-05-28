@@ -37,7 +37,7 @@ interface Props {
   initialPrompt?: string
 }
 
-type CanvasState = 'default' | 'building' | 'plan'
+type CanvasState = 'default' | 'building' | 'plan' | 'task'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -76,6 +76,18 @@ function extractPlanSections(text: string): { title: string; body: string }[] {
   return sections.slice(0, 8)
 }
 
+// Splits "Option 1 / Option 2 / Option 3" style responses into cards
+function parseTaskOptions(text: string): { label: string; content: string }[] | null {
+  const parts = text.split(/(?=\*?\*?Option\s+[123]\b)/i).map(p => p.trim()).filter(Boolean)
+  if (parts.length < 2) return null
+  return parts.map(part => {
+    const lines = part.replace(/^\*+/, '').split('\n')
+    const label = lines[0].replace(/[*:]+/g, '').trim()
+    const content = lines.slice(1).join('\n').replace(/^\s*[-*]\s*/gm, '').trim()
+    return { label, content }
+  })
+}
+
 // ── Static nav ─────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
@@ -89,12 +101,6 @@ const NAV_ITEMS = [
   { icon: 'ti-shopping-bag', label: 'Services', id: 'services', href: null },
 ]
 
-const SUGGESTIONS = [
-  { icon: 'ti-sparkles', text: 'Build my 30-day campaign' },
-  { icon: 'ti-photo', text: 'What should I post this week?' },
-  { icon: 'ti-eye', text: 'Help me stand out from competitors' },
-]
-
 const MODES = [
   { id: 'Build a campaign', label: 'Build a campaign', description: 'Create a 30-day marketing plan', Icon: Rocket },
   { id: 'Create content', label: 'Create content', description: 'Generate captions, emails, or ad copy', Icon: PenLine },
@@ -102,7 +108,7 @@ const MODES = [
   { id: 'Just talk to Maya', label: 'Just talk to Maya', description: 'Open conversation, no agenda', Icon: MessageCircle },
 ]
 
-// ── ReactMarkdown plain components (no bubble styles, just text) ───────────
+// ── ReactMarkdown plain components ─────────────────────────────────────────
 
 const PLAIN_MD: Record<string, React.ComponentType<{ children?: React.ReactNode }>> = {
   p: ({ children }) => <p style={{ margin: '0 0 12px 0', fontSize: 14, lineHeight: 1.7, color: '#0a0a0a' }}>{children}</p>,
@@ -135,6 +141,8 @@ export default function MayaShell({
   const [planSaved, setPlanSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [mode, setMode] = useState<string | null>(null)
+  const [taskOutput, setTaskOutput] = useState<string>('')
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [knownFacts, setKnownFacts] = useState<string[]>(() => {
     const facts: string[] = []
     if (companyName && companyName !== 'there') facts.push(companyName)
@@ -148,8 +156,18 @@ export default function MayaShell({
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const initSent = useRef(false)
+  // True when this session was started from a ?task= URL param
+  const isTaskMode = useRef(!!(initialPrompt && !initialPrompt.startsWith('__')))
+
   const initials = companyName && companyName !== 'there' ? companyName.slice(0, 2).toUpperCase() : 'ME'
   const displayName = companyName !== 'there' ? companyName : 'Your business'
+
+  // Task title — derived once from initialPrompt, stable across renders
+  const taskTitle = (() => {
+    if (!isTaskMode.current || !initialPrompt) return ''
+    const t = initialPrompt.trim()
+    return t.length > 60 ? t.slice(0, 60) + '…' : t
+  })()
 
   const profile = {
     companyName, businessType, idealCustomer, sellLocations,
@@ -160,6 +178,16 @@ export default function MayaShell({
   const [chatInput, setChatInput] = useState('')
 
   const ORCHESTRATE_TRIGGER = "spinning up the campaign builder"
+
+  async function copyText(text: string, id: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 1500)
+    } catch {
+      // clipboard API not available
+    }
+  }
 
   async function generateCampaign(currentMessages: UIMessage[]) {
     setPlanLoading(true)
@@ -202,6 +230,11 @@ export default function MayaShell({
       if (text.toLowerCase().includes(ORCHESTRATE_TRIGGER)) {
         generateCampaign([...messages, message])
       }
+
+      // Capture first assistant response in task mode for the canvas
+      if (isTaskMode.current) {
+        setTaskOutput(text)
+      }
     },
   })
 
@@ -222,7 +255,7 @@ export default function MayaShell({
     const first = visibleMessages.find(m => m.role === 'user')
     if (!first) return ''
     const text = getMsgText(first)
-    return text.length > 40 ? text.slice(0, 40) + '\u2026' : text
+    return text.length > 40 ? text.slice(0, 40) + '…' : text
   })()
 
   useEffect(() => {
@@ -232,7 +265,7 @@ export default function MayaShell({
     if (canvasState === 'default') setCanvasState('building')
     const latest = userMsgs[userMsgs.length - 1]
     const latestText = getMsgText(latest)
-    const snippet = latestText.length > 22 ? latestText.slice(0, 22) + '\u2026' : latestText
+    const snippet = latestText.length > 22 ? latestText.slice(0, 22) + '…' : latestText
     setKnownFacts(prev => [...new Set([...prev, snippet])].slice(0, 8))
   }, [messages]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -243,6 +276,7 @@ export default function MayaShell({
       const content = initialPrompt.startsWith('__')
         ? initialPrompt
         : `__TASK__${initialPrompt}__`
+      if (isTaskMode.current) setCanvasState('task')
       sendMessage({ text: content })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -312,8 +346,10 @@ export default function MayaShell({
             setCampaignPlan(null)
             setCampaignId(null)
             setPlanSaved(false)
+            setTaskOutput('')
             setCanvasState('default')
             initSent.current = false
+            isTaskMode.current = false
           }}
           style={{ width: '100%', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontFamily: 'inherit' }}
         >
@@ -410,7 +446,7 @@ export default function MayaShell({
               </div>
             </div>
           ) : !chatStarted ? (
-            /* GREETING — shown briefly for new users while init message sends */
+            /* GREETING */
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: 48 }}>
               <div style={{ width: 64, height: 64, borderRadius: '50%', border: '0.5px solid #e5e5e5', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: 14 }}>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -434,14 +470,12 @@ export default function MayaShell({
                 return (
                   <div key={msg.id} style={{ marginBottom: msg.role === 'user' ? 28 : 32 }}>
                     {msg.role === 'user' ? (
-                      /* User bubble — dark, right aligned */
                       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <div style={{ background: '#0a0a0a', color: '#fff', borderRadius: '18px 18px 4px 18px', padding: '10px 14px', maxWidth: '72%', fontSize: 14, lineHeight: 1.55 }}>
                           {text}
                         </div>
                       </div>
                     ) : (
-                      /* Maya — plain text, no bubble */
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                         <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                           <span style={{ color: '#fff', fontSize: 12, fontWeight: 500 }}>M</span>
@@ -455,7 +489,6 @@ export default function MayaShell({
                 )
               })}
 
-              {/* Thinking state */}
               {showThinking && (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 28 }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
@@ -497,7 +530,7 @@ export default function MayaShell({
       {/* ═══ WORKING CANVAS ═══ */}
       <div style={{ flex: canvasOpen ? 45 : 0, minWidth: canvasOpen ? 360 : 0, overflow: 'hidden', transition: 'flex 0.3s ease, min-width 0.3s ease', display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
 
-        {/* DEFAULT: empty state */}
+        {/* DEFAULT */}
         {canvasState === 'default' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
             <i className="ti ti-layout-kanban" style={{ fontSize: 48, color: '#e0e0e0', marginBottom: 16 }} />
@@ -508,10 +541,9 @@ export default function MayaShell({
           </div>
         )}
 
-        {/* BUILDING: what Maya knows + competitors */}
+        {/* BUILDING */}
         {canvasState === 'building' && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* Known facts strip */}
             <div style={{ flexShrink: 0, borderBottom: '0.5px solid #f0f0f0', padding: '14px 20px', background: '#fafafa' }}>
               <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#ccc', marginBottom: 8 }}>What Maya knows</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -522,12 +554,8 @@ export default function MayaShell({
                 ))}
               </div>
             </div>
-
             <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-
-              {/* Competitor cards — pre-populated from profile or static fallback */}
               <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 12 }}>Competitors</p>
-
               {competitors.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                   {competitors.map((handle, i) => {
@@ -552,13 +580,9 @@ export default function MayaShell({
               ) : (
                 <div style={{ background: '#fff', border: '0.5px dashed #e0e0e0', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
                   <p style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>+ Add competitors</p>
-                  <p style={{ fontSize: 11, color: '#bbb', lineHeight: 1.5 }}>
-                    I can suggest competitors based on your industry — just ask me.
-                  </p>
+                  <p style={{ fontSize: 11, color: '#bbb', lineHeight: 1.5 }}>I can suggest competitors based on your industry — just ask me.</p>
                 </div>
               )}
-
-              {/* Campaign Builder running indicator */}
               {planLoading && (
                 <div style={{ background: '#0a0a0a', borderRadius: 10, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'dotPulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
@@ -568,8 +592,6 @@ export default function MayaShell({
                   </div>
                 </div>
               )}
-
-              {/* Maya insight card */}
               <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
                   <span style={{ fontSize: 11, color: '#bbb' }}>Maya</span>
@@ -578,6 +600,77 @@ export default function MayaShell({
                   Social proof is outperforming product posts 3:1 in most niches right now. One real customer story beats ten product photos.
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TASK: deliverable canvas */}
+        {canvasState === 'task' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ flexShrink: 0, borderBottom: '0.5px solid #f0f0f0', padding: '16px 20px', background: '#fafafa' }}>
+              <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#c8522a', marginBottom: 6 }}>Task</p>
+              <p style={{ fontSize: 14, fontWeight: 500, color: '#0a0a0a', lineHeight: 1.4 }}>{taskTitle}</p>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+              {isLoading && !taskOutput ? (
+                /* Loading */
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 48 }}>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                    {[0, 1, 2].map(i => (
+                      <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#ccc', animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.15}s` }} />
+                    ))}
+                  </div>
+                  <p style={{ fontSize: 13, color: '#aaa' }}>Maya is working on this...</p>
+                </div>
+              ) : taskOutput ? (
+                (() => {
+                  const options = parseTaskOptions(taskOutput)
+                  if (options && options.length >= 2) {
+                    // Multi-option cards
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {options.map((opt, i) => (
+                          <div key={i} style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: '14px 16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                              <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999' }}>{opt.label}</p>
+                              <button
+                                onClick={() => copyText(opt.content, `opt-${i}`)}
+                                style={{ fontSize: 11, color: copiedId === `opt-${i}` ? '#16a34a' : '#bbb', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0, fontWeight: 500 }}
+                              >
+                                {copiedId === `opt-${i}` ? 'Copied!' : 'Copy'}
+                              </button>
+                            </div>
+                            <p style={{ fontSize: 13, color: '#333', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{opt.content}</p>
+                          </div>
+                        ))}
+                        <p style={{ fontSize: 11, color: '#bbb', textAlign: 'center', paddingTop: 4 }}>
+                          Reply in the chat to refine any option
+                        </p>
+                      </div>
+                    )
+                  }
+                  // Single document view
+                  const clean = taskOutput.replace(/^\*+\s*/gm, '').replace(/#{1,3}\s*/g, '').trim()
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: '16px 18px' }}>
+                        <p style={{ fontSize: 13, color: '#333', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{clean}</p>
+                      </div>
+                      <button
+                        onClick={() => copyText(clean, 'all')}
+                        style={{ fontSize: 12, color: copiedId === 'all' ? '#16a34a' : '#0a0a0a', background: 'none', border: '0.5px solid #e0e0e0', borderRadius: 8, padding: '9px 0', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500, transition: 'color 0.15s' }}
+                      >
+                        {copiedId === 'all' ? 'Copied!' : 'Copy to clipboard'}
+                      </button>
+                      <p style={{ fontSize: 11, color: '#bbb', textAlign: 'center' }}>
+                        Reply in the chat to refine any option
+                      </p>
+                    </div>
+                  )
+                })()
+              ) : null}
             </div>
           </div>
         )}
@@ -598,13 +691,11 @@ export default function MayaShell({
 
             {campaignPlan && !planLoading && (
               <div style={{ padding: '28px 28px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {/* Header */}
                 <div>
                   <p style={{ fontSize: 17, fontWeight: 600, color: '#0a0a0a', letterSpacing: '-0.3px', marginBottom: 6 }}>{campaignPlan.title}</p>
                   <p style={{ fontSize: 13, color: '#777', lineHeight: 1.6 }}>{campaignPlan.summary}</p>
                 </div>
 
-                {/* Quick wins */}
                 <div>
                   <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 10 }}>Do this today</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -627,7 +718,6 @@ export default function MayaShell({
                   </div>
                 </div>
 
-                {/* Week by week */}
                 {campaignPlan.weeks?.map(week => (
                   <div key={week.week}>
                     <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 10 }}>
@@ -647,7 +737,6 @@ export default function MayaShell({
                   </div>
                 ))}
 
-                {/* Metrics */}
                 <div>
                   <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 10 }}>Track these</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -659,7 +748,6 @@ export default function MayaShell({
                   </div>
                 </div>
 
-                {/* Save button */}
                 <button
                   onClick={savePlan}
                   style={{ width: '100%', background: planSaved ? '#16a34a' : '#0a0a0a', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 0', fontSize: 13, fontWeight: 600, cursor: (planSaved || saving) ? 'default' : 'pointer', fontFamily: 'inherit', marginTop: 4, transition: 'background 0.2s', opacity: saving ? 0.7 : 1 }}
@@ -669,7 +757,6 @@ export default function MayaShell({
               </div>
             )}
 
-            {/* Fallback: old text-based plan sections */}
             {!campaignPlan && !planLoading && planSections.length > 0 && (
               <div style={{ padding: '28px 28px 40px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <p style={{ fontSize: 17, fontWeight: 600, color: '#0a0a0a', marginBottom: 8 }}>Your 30-day plan</p>
