@@ -22,6 +22,9 @@ export async function POST(req: Request) {
     'Just talk to Maya': 'The user wants an open conversation. Greet them warmly and ask what is on their mind today regarding their marketing.',
   }
 
+  // Extract mode from messages; replace __MODE__ sentinel with a neutral opener
+  // so the mode instruction goes into the system prompt, not the user turn.
+  let modeInstruction = ''
   const messages = converted.map(msg => {
     if (msg.role !== 'user') return msg
     const text = Array.isArray(msg.content)
@@ -29,8 +32,9 @@ export async function POST(req: Request) {
       : typeof msg.content === 'string' ? msg.content : ''
     if (!text.startsWith('__MODE__')) return msg
     const selectedMode = text.replace(/^__MODE__/, '').replace(/__$/, '')
-    const replacement = MODE_PROMPTS[selectedMode]
-    return replacement ? { ...msg, content: replacement } : msg
+    console.log('[maya/chat] Mode detected:', selectedMode)
+    modeInstruction = MODE_PROMPTS[selectedMode] ?? ''
+    return { ...msg, content: "Let's get started." }
   })
 
   const supabase = createServiceClient()
@@ -50,7 +54,6 @@ export async function POST(req: Request) {
 
   if (profileError) {
     console.error('[maya/chat] full profile fetch error:', profileError.code, profileError.message)
-    // Fall back to guaranteed-safe columns
     const { data: basicProfile, error: basicError } = await supabase
       .from('profiles')
       .select('id, company_name, business_type, website_url, instagram_handle')
@@ -62,25 +65,9 @@ export async function POST(req: Request) {
     profile = fullProfile
   }
 
-  console.log('[maya/chat] profile:', JSON.stringify({
-    id: profile?.id?.slice(0, 8),
-    company_name: profile?.company_name,
-    business_type: profile?.business_type,
-    ideal_customer: profile?.ideal_customer,
-    marketing_budget: profile?.marketing_budget,
-    top_goals: profile?.top_goals,
-  }))
+  console.log('[maya/chat] Profile found:', profile?.id, profile?.company_name)
 
   let brief = '', icp = '', positioning = '', voice = ''
-
-  console.log('[maya/chat] profile from DB:', JSON.stringify({
-    id: profile?.id,
-    company_name: profile?.company_name,
-    business_type: profile?.business_type,
-    ideal_customer: profile?.ideal_customer,
-    marketing_budget: profile?.marketing_budget,
-    top_goals: profile?.top_goals,
-  }))
 
   if (profile) {
     const { data: docs, error: docsError } = await supabase
@@ -88,8 +75,8 @@ export async function POST(req: Request) {
       .select('type, markdown')
       .eq('user_id', profile.id)
 
-    if (docsError) console.log('[maya/chat] foundation_documents error:', docsError.message)
-    console.log('[maya/chat] foundation docs found:', docs?.map(d => d.type))
+    if (docsError) console.error('[maya/chat] foundation_documents error:', docsError.message)
+    console.log('[maya/chat] Foundation docs found:', docs?.length, docs?.map(d => d.type))
 
     brief       = docs?.find(d => d.type === 'brief')?.markdown       ?? ''
     icp         = docs?.find(d => d.type === 'icp')?.markdown         ?? ''
@@ -98,18 +85,19 @@ export async function POST(req: Request) {
   }
 
   const hasFoundation = !!(brief || icp || positioning || voice)
+  console.log('[maya/chat] hasFoundation:', hasFoundation)
 
-  const companyName  = profile?.company_name    || 'this business'
-  const businessType = profile?.business_type   || 'not specified'
-  const idealCustomer= profile?.ideal_customer  || 'not specified'
-  const sellVia      = profile?.sell_locations?.length ? profile.sell_locations.join(', ') : 'not specified'
-  const budget       = profile?.marketing_budget || 'not specified'
-  const goals        = profile?.top_goals?.length ? profile.top_goals.join(', ') : 'not specified'
-  const challenge    = profile?.marketing_challenge || 'not specified'
-  const comfort      = profile?.content_comfort || 'not specified'
-  const watchList    = profile?.competitors?.length ? profile.competitors.map((c: string) => `@${c}`).join(', ') : 'none yet'
-  const website      = profile?.website_url || 'not provided'
-  const instagram    = profile?.instagram_handle ? `@${profile.instagram_handle}` : 'not provided'
+  const companyName   = profile?.company_name    || 'this business'
+  const businessType  = profile?.business_type   || 'not specified'
+  const idealCustomer = profile?.ideal_customer  || 'not specified'
+  const sellVia       = profile?.sell_locations?.length ? profile.sell_locations.join(', ') : 'not specified'
+  const budget        = profile?.marketing_budget || 'not specified'
+  const goals         = profile?.top_goals?.length ? profile.top_goals.join(', ') : 'not specified'
+  const challenge     = profile?.marketing_challenge || 'not specified'
+  const comfort       = profile?.content_comfort || 'not specified'
+  const watchList     = profile?.competitors?.length ? profile.competitors.map((c: string) => `@${c}`).join(', ') : 'none yet'
+  const website       = profile?.website_url || 'not provided'
+  const instagram     = profile?.instagram_handle ? `@${profile.instagram_handle}` : 'not provided'
 
   const contextSection = hasFoundation
     ? `You have already built this business's foundation. Here is everything you know:
@@ -142,6 +130,11 @@ Never ask for information covered above. Reference specific details in your open
 
 Reference these specifics in your opening. Never ask for information already listed above.`
 
+  // Mode instruction is appended to the system prompt — never replaces foundation context.
+  const modeSection = modeInstruction
+    ? `\nYOUR TASK FOR THIS SESSION:\n${modeInstruction}`
+    : ''
+
   const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
 
 ${contextSection}
@@ -151,6 +144,7 @@ Your very first message must demonstrate you already know their business. Refere
 
 Bad: "What kind of business do you run?"
 Good: "Okay — your goal this month is to get your first 10 customers. With Instagram as your main channel and a $200–$500 budget, here's where I'd start: what does your current content look like?"
+${modeSection}
 
 RESPONSE LENGTH — CRITICAL:
 Maximum 3 sentences per reply. Stop. Never output more than 4 sentences before pausing for a response.
