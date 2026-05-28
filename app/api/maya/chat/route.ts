@@ -30,11 +30,23 @@ export async function POST(req: Request) {
 
   let brief = '', icp = '', positioning = '', voice = ''
 
+  console.log('[maya/chat] profile from DB:', JSON.stringify({
+    id: profile?.id,
+    company_name: profile?.company_name,
+    business_type: profile?.business_type,
+    ideal_customer: profile?.ideal_customer,
+    marketing_budget: profile?.marketing_budget,
+    top_goals: profile?.top_goals,
+  }))
+
   if (profile) {
-    const { data: docs } = await supabase
+    const { data: docs, error: docsError } = await supabase
       .from('foundation_documents')
       .select('type, markdown')
       .eq('user_id', profile.id)
+
+    if (docsError) console.log('[maya/chat] foundation_documents error:', docsError.message)
+    console.log('[maya/chat] foundation docs found:', docs?.map(d => d.type))
 
     brief       = docs?.find(d => d.type === 'brief')?.markdown       ?? ''
     icp         = docs?.find(d => d.type === 'icp')?.markdown         ?? ''
