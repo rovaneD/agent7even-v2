@@ -169,6 +169,8 @@ export default function MayaShell({
   const initSent = useRef(false)
   // True when this session was started from a ?task= URL param
   const isTaskMode = useRef(!!(initialPrompt && !initialPrompt.startsWith('__')))
+  // Locks the task canvas after the first response so subsequent messages don't overwrite it
+  const taskCanvasLocked = useRef(false)
 
   const initials = companyName && companyName !== 'there' ? companyName.slice(0, 2).toUpperCase() : 'ME'
   const displayName = companyName !== 'there' ? companyName : 'Your business'
@@ -254,9 +256,10 @@ export default function MayaShell({
         generateCampaign([...messages, message])
       }
 
-      // Capture first assistant response in task mode for the canvas
-      if (isTaskMode.current) {
+      // Capture FIRST assistant response in task mode — then lock so subsequent replies don't overwrite
+      if (isTaskMode.current && !taskCanvasLocked.current) {
         setTaskOutput(text)
+        taskCanvasLocked.current = true
       }
     },
   })
@@ -374,6 +377,7 @@ export default function MayaShell({
             setCanvasState('default')
             initSent.current = false
             isTaskMode.current = false
+            taskCanvasLocked.current = false
           }}
           style={{ width: '100%', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontFamily: 'inherit' }}
         >
@@ -696,12 +700,6 @@ export default function MayaShell({
                       <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: '16px 18px' }}>
                         <p style={{ fontSize: 13, color: '#333', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>{clean}</p>
                       </div>
-                      <button
-                        onClick={() => copyToClipboard(clean, 'all')}
-                        style={{ fontSize: 12, color: copiedId === 'all' ? '#16a34a' : '#0a0a0a', background: 'none', border: '0.5px solid #e0e0e0', borderRadius: 8, padding: '9px 0', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}
-                      >
-                        {copiedId === 'all' ? 'Copied ✓' : 'Copy to clipboard'}
-                      </button>
                       <p style={{ fontSize: 11, color: '#bbb', textAlign: 'center' }}>
                         Reply in the chat to refine any option
                       </p>
