@@ -41,6 +41,7 @@ export default async function MayaPage({
 
   return (
     <MayaShell
+      profileId={profile?.id}
       companyName={profile?.company_name ?? profile?.full_name ?? 'there'}
       businessType={profile?.business_type ?? ''}
       plan={profile?.plan ?? ''}

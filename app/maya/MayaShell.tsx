@@ -2,15 +2,26 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { useRouter } from 'next/navigation'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+interface CampaignPlan {
+  title: string
+  summary: string
+  weeks: { week: number; theme: string; focus: string; tasks: { day: string; action: string; channel: string; time_required: string; priority: string }[] }[]
+  quick_wins: string[]
+  metrics_to_track: string[]
+  budget_allocation: Record<string, string>
+}
+
 interface Props {
+  profileId?: string
   companyName: string
   businessType: string
-  plan: string
+  plan?: string
   websiteUrl?: string
   instagramHandle?: string
   businessGoals?: string[]
@@ -100,15 +111,20 @@ const PLAIN_MD: Record<string, React.ComponentType<{ children?: React.ReactNode 
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function MayaShell({
-  companyName, businessType, websiteUrl, instagramHandle, businessGoals,
+  profileId, companyName, businessType, websiteUrl, instagramHandle, businessGoals,
   idealCustomer, sellLocations, marketingBudget, competitors = [],
   topGoals, marketingChallenge, contentComfort, pendingApprovalCount = 0,
   initialPrompt,
 }: Props) {
+  const router = useRouter()
   const [activeNav, setActiveNav] = useState('maya')
   const [canvasOpen, setCanvasOpen] = useState(true)
   const [canvasState, setCanvasState] = useState<CanvasState>('default')
   const [planSections, setPlanSections] = useState<{ title: string; body: string }[]>([])
+  const [campaignPlan, setCampaignPlan] = useState<CampaignPlan | null>(null)
+  const [campaignId, setCampaignId] = useState<string | null>(null)
+  const [planLoading, setPlanLoading] = useState(false)
+  const [planSaved, setPlanSaved] = useState(false)
   const [knownFacts, setKnownFacts] = useState<string[]>(() => {
     const facts: string[] = []
     if (companyName && companyName !== 'there') facts.push(companyName)
@@ -132,9 +148,33 @@ export default function MayaShell({
   }
 
   const [chatInput, setChatInput] = useState('')
-  const [agentRunning, setAgentRunning] = useState(false)
 
-  const ORCHESTRATE_TRIGGER = "i'm spinning up the campaign builder"
+  const ORCHESTRATE_TRIGGER = "spinning up the campaign builder"
+
+  async function generateCampaign(currentMessages: UIMessage[]) {
+    setPlanLoading(true)
+    setCanvasState('plan')
+    try {
+      const simplified = currentMessages.map(m => ({
+        role: m.role,
+        content: m.parts.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join(''),
+      }))
+      const res = await fetch('/api/maya/campaign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: simplified, profile }),
+      })
+      const data = await res.json()
+      if (data.plan) {
+        setCampaignPlan(data.plan)
+        setCampaignId(data.campaign?.id ?? null)
+      }
+    } catch (err) {
+      console.error('Campaign generation failed:', err)
+    } finally {
+      setPlanLoading(false)
+    }
+  }
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -149,30 +189,8 @@ export default function MayaShell({
         setCanvasState('plan')
       }
 
-      // Maya is orchestrating — fire the Campaign Builder
       if (text.toLowerCase().includes(ORCHESTRATE_TRIGGER)) {
-        setAgentRunning(true)
-        try {
-          await fetch('/api/agents/tasks/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              agent: 'campaign_builder',
-              input: {
-                company_name: companyName,
-                business_type: businessType,
-                ideal_customer: idealCustomer,
-                top_goals: topGoals,
-                marketing_budget: marketingBudget,
-                competitors,
-                sell_locations: sellLocations,
-              },
-              priority: 'high',
-            }),
-          })
-        } catch {
-          // task creation failure is non-critical
-        }
+        generateCampaign([...messages, message])
       }
     },
   })
@@ -224,6 +242,12 @@ export default function MayaShell({
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitMessage() }
+  }
+
+  async function savePlan() {
+    if (!campaignId) return
+    setPlanSaved(true)
+    setTimeout(() => router.push('/dashboard'), 1500)
   }
 
   const lastVisible = visibleMessages[visibleMessages.length - 1]
@@ -467,8 +491,8 @@ export default function MayaShell({
                 </div>
               )}
 
-              {/* Agent running indicator */}
-              {agentRunning && (
+              {/* Campaign Builder running indicator */}
+              {planLoading && (
                 <div style={{ background: '#0a0a0a', borderRadius: 10, padding: '12px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'dotPulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
                   <div>
@@ -491,24 +515,95 @@ export default function MayaShell({
           </div>
         )}
 
-        {/* PLAN: structured plan cards */}
+        {/* PLAN: loading + structured plan */}
         {canvasState === 'plan' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px' }}>
-            <p style={{ fontSize: 18, fontWeight: 500, color: '#0a0a0a', marginBottom: 4, letterSpacing: '-0.3px' }}>Your 30-day plan</p>
-            <p style={{ fontSize: 12, color: '#aaa', marginBottom: 24 }}>
-              {displayName} · {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {planSections.map((section, i) => (
-                <div key={i} style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: 16 }}>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: '#0a0a0a', marginBottom: section.body ? 8 : 0 }}>{section.title}</p>
-                  {section.body && <p style={{ fontSize: 13, color: '#666', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{section.body}</p>}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {planLoading && (
+              <div style={{ padding: 40, textAlign: 'center' }}>
+                <p style={{ fontSize: 13, color: '#aaa', marginBottom: 16 }}>Maya is building your plan...</p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#ccc', animation: 'dotPulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.15}s` }} />
+                  ))}
                 </div>
-              ))}
-            </div>
-            <button style={{ width: '100%', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, padding: 12, fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', marginTop: 20 }}>
-              Save plan
-            </button>
+              </div>
+            )}
+
+            {campaignPlan && !planLoading && (
+              <div style={{ padding: '28px 28px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Header */}
+                <div>
+                  <p style={{ fontSize: 17, fontWeight: 600, color: '#0a0a0a', letterSpacing: '-0.3px', marginBottom: 6 }}>{campaignPlan.title}</p>
+                  <p style={{ fontSize: 13, color: '#777', lineHeight: 1.6 }}>{campaignPlan.summary}</p>
+                </div>
+
+                {/* Quick wins */}
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 10 }}>Do this today</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {campaignPlan.quick_wins?.map((win, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                        <span style={{ color: '#c8522a', flexShrink: 0, marginTop: 1, fontSize: 13 }}>→</span>
+                        <p style={{ fontSize: 13, color: '#444', lineHeight: 1.5 }}>{win}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Week by week */}
+                {campaignPlan.weeks?.map(week => (
+                  <div key={week.week}>
+                    <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 10 }}>
+                      Week {week.week} — {week.theme}
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {week.tasks?.slice(0, 3).map((task, i) => (
+                        <div key={i} style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 8, padding: '10px 12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                            <span style={{ fontSize: 11, fontWeight: 500, color: '#555' }}>{task.day} · {task.channel}</span>
+                            <span style={{ fontSize: 10, color: '#bbb' }}>{task.time_required}</span>
+                          </div>
+                          <p style={{ fontSize: 12.5, color: '#333', lineHeight: 1.5 }}>{task.action}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Metrics */}
+                <div>
+                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 10 }}>Track these</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {campaignPlan.metrics_to_track?.map((metric, i) => (
+                      <span key={i} style={{ fontSize: 11, background: '#fff', border: '0.5px solid #e0e0e0', color: '#555', borderRadius: 20, padding: '4px 10px' }}>
+                        {metric}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Save button */}
+                <button
+                  onClick={savePlan}
+                  style={{ width: '100%', background: planSaved ? '#16a34a' : '#0a0a0a', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 0', fontSize: 13, fontWeight: 600, cursor: planSaved ? 'default' : 'pointer', fontFamily: 'inherit', marginTop: 4, transition: 'background 0.2s' }}
+                >
+                  {planSaved ? '✓ Saved — redirecting...' : 'Save plan'}
+                </button>
+              </div>
+            )}
+
+            {/* Fallback: old text-based plan sections */}
+            {!campaignPlan && !planLoading && planSections.length > 0 && (
+              <div style={{ padding: '28px 28px 40px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{ fontSize: 17, fontWeight: 600, color: '#0a0a0a', marginBottom: 8 }}>Your 30-day plan</p>
+                {planSections.map((section, i) => (
+                  <div key={i} style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: 16 }}>
+                    <p style={{ fontSize: 14, fontWeight: 500, color: '#0a0a0a', marginBottom: section.body ? 8 : 0 }}>{section.title}</p>
+                    {section.body && <p style={{ fontSize: 13, color: '#666', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{section.body}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
