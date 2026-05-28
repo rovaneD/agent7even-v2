@@ -5,6 +5,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+export const maxDuration = 120
+
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -19,6 +21,16 @@ export async function POST(req: Request) {
     .single()
 
   if (!profile) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  // Mark foundation complete FIRST — user can access Maya even if doc generation fails
+  await supabase
+    .from('profiles')
+    .update({
+      foundation_complete: true,
+      foundation_step: 5,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', profile.id)
 
   const context = `
 Business: ${companyName}
@@ -68,42 +80,40 @@ Monthly goal: ${answers.monthlyGoal}
     },
   ]
 
-  const generated: { type: string; title: string }[] = []
-
-  for (const doc of docsToGenerate) {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: `${doc.prompt}\n\nBUSINESS CONTEXT:\n${context}`,
-      }],
+  // Generate all 5 documents in parallel to stay within function timeout
+  const results = await Promise.allSettled(
+    docsToGenerate.map(async (doc) => {
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `${doc.prompt}\n\nBUSINESS CONTEXT:\n${context}`,
+        }],
+      })
+      const content = response.content[0].type === 'text' ? response.content[0].text : ''
+      return { ...doc, content }
     })
+  )
 
-    const content = response.content[0].type === 'text' ? response.content[0].text : ''
-
-    await supabase
-      .from('foundation_documents')
-      .upsert({
-        user_id: profile.id,
-        type: doc.type,
-        title: doc.title,
-        markdown: content,
-        version: 1,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,type' })
-
-    generated.push({ type: doc.type, title: doc.title })
+  // Save whichever docs succeeded
+  const saved: string[] = []
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      const { type, title, content } = result.value
+      await supabase
+        .from('foundation_documents')
+        .upsert({
+          user_id: profile.id,
+          type,
+          title,
+          markdown: content,
+          version: 1,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id,type' })
+      saved.push(type)
+    }
   }
 
-  await supabase
-    .from('profiles')
-    .update({
-      foundation_complete: true,
-      foundation_step: 5,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', profile.id)
-
-  return NextResponse.json({ success: true, generated })
+  return NextResponse.json({ success: true, generated: saved })
 }
