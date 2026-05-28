@@ -271,7 +271,12 @@ export default function MayaShell({
         setCanvasState('plan')
       }
 
-      if (text.toLowerCase().includes(ORCHESTRATE_TRIGGER)) {
+      if (
+        text.toLowerCase().includes(ORCHESTRATE_TRIGGER) &&
+        canvasState !== 'plan' &&
+        canvasState !== 'task' &&
+        !campaignPlan
+      ) {
         generateCampaign([...messages, message])
       }
 

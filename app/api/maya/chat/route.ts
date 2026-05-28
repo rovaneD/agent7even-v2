@@ -43,7 +43,9 @@ export async function POST(req: Request) {
 
 Execute it immediately. Do not ask clarifying questions unless absolutely necessary.
 Draft the actual deliverable — copy, content, or plan — based on what you know about their business.
-Show 2-3 variations if it's copy. Be specific to their brand voice and audience.`
+Show 2-3 variations if it's copy. Be specific to their brand voice and audience.
+
+You are completing a specific task, not building a new campaign. Never say "spinning up the Campaign Builder" during a task session. If the user asks to save or update the campaign, confirm it has been saved and continue refining the current task.`
       return { ...msg, content: "Let's do this." }
     }
     return msg
