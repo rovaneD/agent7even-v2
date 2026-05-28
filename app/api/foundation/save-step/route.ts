@@ -9,6 +9,12 @@ export async function POST(req: Request) {
   const { step, answers } = await req.json()
 
   const supabase = createServiceClient()
+
+  // Ensure profile row exists
+  await supabase
+    .from('profiles')
+    .upsert({ clerk_user_id: userId, role: 'client', status: 'onboarding' }, { onConflict: 'clerk_user_id', ignoreDuplicates: true })
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('id')

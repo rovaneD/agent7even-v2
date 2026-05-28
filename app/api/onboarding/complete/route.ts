@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
 
     const { error } = await supabase
       .from('profiles')
-      .update({
+      .upsert({
+        clerk_user_id: userId,
         company_name: companyName ?? null,
         business_type: businessType ?? null,
         ideal_customer: idealCustomer ?? null,
@@ -42,8 +43,7 @@ export async function POST(req: NextRequest) {
         onboarding_complete: true,
         status: 'active',
         updated_at: new Date().toISOString(),
-      })
-      .eq('clerk_user_id', userId)
+      }, { onConflict: 'clerk_user_id' })
 
     if (error) {
       console.error('Supabase update error:', error)
