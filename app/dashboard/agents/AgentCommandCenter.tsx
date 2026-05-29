@@ -104,7 +104,24 @@ export default function AgentCommandCenter({
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
+  // Constraints state
+  const [constraints, setConstraints] = useState('')
+  const [savedConstraints, setSavedConstraints] = useState('')
+  const [isCustomized, setIsCustomized] = useState(false)
+  const [constraintsLastUpdated, setConstraintsLastUpdated] = useState<string | null>(null)
+  const [savingConstraints, setSavingConstraints] = useState(false)
+  const [constraintsSaved, setConstraintsSaved] = useState(false)
+
   const agentList = Object.values(AGENTS)
+
+  const CONSTRAINT_TEMPLATES = [
+    { label: 'No discounting', text: 'Never offer discounts, promotions, or reduced pricing without explicit client approval.' },
+    { label: 'No delivery promises', text: 'Never promise specific delivery timelines, turnaround times, or completion dates.' },
+    { label: 'No competitor mentions', text: 'Never name or reference specific competitors by name.' },
+    { label: 'Route pricing to human', text: 'Always direct pricing and cost questions to a human team member.' },
+    { label: 'No guarantees', text: 'Never promise specific results, outcomes, rankings, or revenue figures.' },
+    { label: 'No sensitive topics', text: 'Never engage with political, religious, or controversial social topics.' },
+  ]
 
   // Realtime
   useEffect(() => {
@@ -151,6 +168,44 @@ export default function AgentCommandCenter({
 
     return () => { supabase.removeChannel(channel) }
   }, [profileId])
+
+  useEffect(() => {
+    if (!selectedAgent) return
+    setConstraints('')
+    setSavedConstraints('')
+    setIsCustomized(false)
+    setConstraintsLastUpdated(null)
+
+    fetch(`/api/agents/constraints?agentId=${selectedAgent}`)
+      .then(r => r.json())
+      .then(data => {
+        const value = data.constraints ?? ''
+        setConstraints(value)
+        setSavedConstraints(value)
+        setIsCustomized(!!data.constraints)
+        setConstraintsLastUpdated(data.updated_at ?? null)
+      })
+      .catch(() => {})
+  }, [selectedAgent])
+
+  async function handleSaveConstraints() {
+    if (!selectedAgent) return
+    setSavingConstraints(true)
+    try {
+      await fetch('/api/agents/constraints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId: selectedAgent, constraints }),
+      })
+      setSavedConstraints(constraints)
+      setIsCustomized(true)
+      setConstraintsLastUpdated(new Date().toISOString())
+      setConstraintsSaved(true)
+      setTimeout(() => setConstraintsSaved(false), 2500)
+    } finally {
+      setSavingConstraints(false)
+    }
+  }
 
   async function handleApprove(taskId: string, outputId: string) {
     setApproving(outputId)
@@ -485,6 +540,68 @@ export default function AgentCommandCenter({
               >
                 {submitted ? '✓ Task queued' : submitting ? 'Queuing…' : `Run ${AGENTS[selectedAgent].name}`}
               </button>
+            </div>
+
+            {/* Constraints section */}
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '0.5px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#888', margin: 0 }}>
+                    What this agent will never do
+                  </p>
+                  <p style={{ fontSize: 11.5, color: '#bbb', marginTop: 3 }}>
+                    Brand safety guardrails — applied to every run
+                  </p>
+                </div>
+                {isCustomized && (
+                  <span style={{ fontSize: 11, padding: '2px 8px', background: '#f0fdf4', color: '#16a34a', borderRadius: 20, fontWeight: 500, flexShrink: 0 }}>
+                    Customized
+                  </span>
+                )}
+              </div>
+
+              {/* Template quick-insert buttons */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                {CONSTRAINT_TEMPLATES.map(t => (
+                  <button
+                    key={t.label}
+                    onClick={() => setConstraints(prev => prev ? `${prev}\n${t.text}` : t.text)}
+                    style={{ padding: '3px 10px', borderRadius: 20, border: '0.5px solid #e0e0e0', background: '#fafafa', color: '#555', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#0a0a0a' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e0e0e0' }}
+                  >
+                    + {t.label}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={constraints}
+                onChange={e => setConstraints(e.target.value)}
+                rows={4}
+                placeholder={AGENTS[selectedAgent].defaultConstraints}
+                style={{ width: '100%', border: '0.5px solid #e0e0e0', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#0a0a0a', lineHeight: 1.6 }}
+              />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                {constraints !== savedConstraints && (
+                  <button
+                    onClick={handleSaveConstraints}
+                    disabled={savingConstraints}
+                    style={{ padding: '6px 16px', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: savingConstraints ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: savingConstraints ? 0.6 : 1 }}
+                  >
+                    {savingConstraints ? 'Saving…' : 'Save constraints'}
+                  </button>
+                )}
+                {constraintsSaved && (
+                  <span style={{ fontSize: 12, color: '#16a34a' }}>✓ Constraints saved</span>
+                )}
+                {constraintsLastUpdated && !constraintsSaved && (
+                  <span style={{ fontSize: 11, color: '#ccc' }}>
+                    Last updated {relativeTime(constraintsLastUpdated)}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -38,15 +38,38 @@ export async function getAgentSkill(agentId: string): Promise<{ skill_prompt: st
   return data ?? null
 }
 
-// Assembles full system prompt: brand context + agent skill playbook, joined with a divider.
-// Both fetches run in parallel. Either can be absent — the result is still usable.
+// Assembles full system prompt: brand context + agent skill + constraints.
+// All three fetches run in parallel. Per-user constraints take precedence over registry defaults.
 export async function buildSystemPrompt(userId: string, agentId: string): Promise<string> {
-  const [brandContext, skill] = await Promise.all([
+  const supabase = createServiceClient()
+
+  const [brandContext, skill, { data: userConstraintsRow }] = await Promise.all([
     buildAgentContext(userId),
     getAgentSkill(agentId),
+    supabase
+      .from('agent_constraints')
+      .select('constraints')
+      .eq('user_id', userId)
+      .eq('agent_id', agentId)
+      .single(),
   ])
+
+  const agentDef = AGENTS[agentId as AgentId]
+  const constraints = userConstraintsRow?.constraints ?? agentDef?.defaultConstraints ?? null
+
   const parts = [brandContext, skill?.skill_prompt].filter(Boolean)
-  return parts.join('\n\n---\n\n')
+  const base = parts.join('\n\n---\n\n')
+
+  if (!constraints) return base
+
+  return `${base}
+
+---
+
+CONSTRAINTS — YOU MUST NEVER DO THE FOLLOWING:
+${constraints}
+
+These constraints are non-negotiable and override any other instruction. If a user request conflicts with these constraints, explain that you cannot fulfill that specific request and offer an alternative.`
 }
 
 // ── Orchestration ──────────────────────────────
