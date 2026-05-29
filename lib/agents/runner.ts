@@ -2,11 +2,25 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { AGENTS, AgentId } from './registry'
 import { buildAgentContext } from './buildAgentContext'
 
-// Prepend brand context to any agent system prompt so agents never run cold.
-export async function buildSystemPrompt(userId: string, agentPrompt: string): Promise<string> {
-  const brandContext = await buildAgentContext(userId)
-  if (!brandContext) return agentPrompt
-  return `${brandContext}\n\n---\n\n${agentPrompt}`
+export async function getAgentSkill(agentId: string): Promise<{ skill_prompt: string } | null> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('agent_skills')
+    .select('skill_prompt')
+    .eq('agent_id', agentId)
+    .single()
+  return data ?? null
+}
+
+// Assembles full system prompt: brand context + agent skill playbook, joined with a divider.
+// Both fetches run in parallel. Either can be absent — the result is still usable.
+export async function buildSystemPrompt(userId: string, agentId: string): Promise<string> {
+  const [brandContext, skill] = await Promise.all([
+    buildAgentContext(userId),
+    getAgentSkill(agentId),
+  ])
+  const parts = [brandContext, skill?.skill_prompt].filter(Boolean)
+  return parts.join('\n\n---\n\n')
 }
 
 export async function createTask({
