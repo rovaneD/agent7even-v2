@@ -54,6 +54,18 @@ export default async function MayaPage({
         .single()
     : { data: null }
 
+  // Only restore session when NOT in task or edit mode
+  const shouldFetchSession = !taskParam && !isEdit
+  const { data: session } = shouldFetchSession && profile
+    ? await supabase
+        .from('chat_sessions')
+        .select('messages, mode')
+        .eq('user_id', profile.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single()
+    : { data: null }
+
   // Only gate on foundation if the column exists and is explicitly false
   if (profile && profile.foundation_complete === false) redirect('/foundation')
 
@@ -65,6 +77,8 @@ export default async function MayaPage({
       activeCampaignId={campaignIdParam ?? recentCampaign?.id ?? null}
       isEdit={isEdit}
       priorOption={priorOption}
+      initialMessages={session?.messages ?? []}
+      initialMode={session?.mode ?? null}
     />
   )
 }

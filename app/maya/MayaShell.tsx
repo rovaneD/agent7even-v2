@@ -44,6 +44,8 @@ interface Props {
   activeCampaignId?: string | null
   isEdit?: boolean
   priorOption?: string
+  initialMessages?: unknown[]
+  initialMode?: string | null
 }
 
 type CanvasState = 'default' | 'building' | 'plan' | 'task'
@@ -154,7 +156,11 @@ export default function MayaShell({
   activeCampaignId,
   isEdit = false,
   priorOption = '',
+  initialMessages = [],
+  initialMode = null,
 }: Props) {
+  // Restore session only when not in task or edit mode
+  const shouldRestore = !isEdit && !initialPrompt
   const companyName = profile?.company_name ?? profile?.full_name ?? 'there'
   const businessType = profile?.business_type ?? ''
   const websiteUrl = profile?.website_url ?? ''
@@ -177,7 +183,7 @@ export default function MayaShell({
   const [planLoading, setPlanLoading] = useState(false)
   const [planSaved, setPlanSaved] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [mode, setMode] = useState<string | null>(null)
+  const [mode, setMode] = useState<string | null>(() => shouldRestore ? (initialMode ?? null) : null)
   const [taskOutput, setTaskOutput] = useState<string>('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
@@ -197,6 +203,8 @@ export default function MayaShell({
   const isTaskMode = useRef(!!(initialPrompt && !initialPrompt.startsWith('__')))
   const taskCanvasLocked = useRef(false)
   const activeCampaignIdRef = useRef<string | null>(activeCampaignId ?? null)
+  const messagesRef = useRef<UIMessage[]>([])
+  const modeRef = useRef<string | null>(shouldRestore ? (initialMode ?? null) : null)
 
   const initials = companyName && companyName !== 'there' ? companyName.slice(0, 2).toUpperCase() : 'ME'
   const displayName = companyName !== 'there' ? companyName : 'Your business'
@@ -284,6 +292,7 @@ export default function MayaShell({
       api: '/api/maya/chat',
       body: { profile: profileData, isEdit, priorOption },
     }),
+    messages: shouldRestore && initialMessages.length ? (initialMessages as UIMessage[]) : undefined,
     onFinish: async ({ message }: { message: UIMessage }) => {
       const text = message.parts.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join('')
 
@@ -305,6 +314,19 @@ export default function MayaShell({
       if (isTaskMode.current && !taskCanvasLocked.current) {
         setTaskOutput(text)
         taskCanvasLocked.current = true
+      }
+
+      // Persist session (fire-and-forget) — skip for task/edit sessions
+      if (!isEdit && !initialPrompt && profile?.id) {
+        fetch('/api/maya/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: profile.id,
+            messages: [...messagesRef.current, message],
+            mode: modeRef.current,
+          }),
+        }).catch(err => console.error('[session] save failed:', err))
       }
     },
   })
@@ -372,6 +394,9 @@ export default function MayaShell({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  useEffect(() => { messagesRef.current = messages }, [messages])
+  useEffect(() => { modeRef.current = mode }, [mode])
 
   function selectMode(modeId: string) {
     setMode(modeId)
