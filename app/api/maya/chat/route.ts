@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messages: rawMessages, isEdit, priorOption } = await req.json()
+  const { messages: rawMessages, isEdit, priorOption, canvasContext } = await req.json()
   const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
   if (!converted?.length) {
@@ -153,10 +153,14 @@ Reference these specifics in your opening. Never ask for information already lis
     ? `\nEDIT MODE:\nThe user is revisiting a previously completed task to improve it. Do not start from scratch — acknowledge what they chose before and ask what they want to change. Be brief and direct.${priorOption ? `\nTheir previous selection: "${priorOption}"` : ''}`
     : ''
 
+  const canvasSection = canvasContext
+    ? `\nCANVAS CONTEXT:\nThe user is currently on the ${canvasContext} page. Tailor your responses to be relevant to what they're looking at.`
+    : ''
+
   const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
 
 ${contextSection}
-
+${canvasSection}
 HOW YOU OPEN:
 Your very first message must demonstrate you already know their business. Reference something specific — their goal, their challenge, their differentiator. Make them feel seen.
 
