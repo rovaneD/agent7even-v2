@@ -8,7 +8,7 @@ const NEW_USER_PROMPT = `__SYSTEM_INIT__ User just completed onboarding. Generat
 export default async function MayaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ new?: string; task?: string; campaignId?: string }>
+  searchParams: Promise<{ new?: string; task?: string; campaignId?: string; edit?: string; prior?: string }>
 }) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
@@ -17,6 +17,8 @@ export default async function MayaPage({
   const isNewUser = params?.new === 'true'
   const taskParam = params?.task ? decodeURIComponent(params.task) : undefined
   const campaignIdParam = params?.campaignId ?? null
+  const isEdit = params?.edit === 'true'
+  const priorOption = params?.prior ? decodeURIComponent(params.prior) : ''
 
   const supabase = createServiceClient()
 
@@ -61,6 +63,8 @@ export default async function MayaPage({
       pendingApprovalCount={pendingCount ?? 0}
       initialPrompt={taskParam ?? (isNewUser ? NEW_USER_PROMPT : undefined)}
       activeCampaignId={campaignIdParam ?? recentCampaign?.id ?? null}
+      isEdit={isEdit}
+      priorOption={priorOption}
     />
   )
 }

@@ -42,6 +42,8 @@ interface Props {
   pendingApprovalCount?: number
   initialPrompt?: string | null
   activeCampaignId?: string | null
+  isEdit?: boolean
+  priorOption?: string
 }
 
 type CanvasState = 'default' | 'building' | 'plan' | 'task'
@@ -150,6 +152,8 @@ export default function MayaShell({
   pendingApprovalCount = 0,
   initialPrompt,
   activeCampaignId,
+  isEdit = false,
+  priorOption = '',
 }: Props) {
   const companyName = profile?.company_name ?? profile?.full_name ?? 'there'
   const businessType = profile?.business_type ?? ''
@@ -278,7 +282,7 @@ export default function MayaShell({
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/maya/chat',
-      body: { profile: profileData },
+      body: { profile: profileData, isEdit, priorOption },
     }),
     onFinish: async ({ message }: { message: UIMessage }) => {
       const text = message.parts.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join('')
@@ -337,15 +341,32 @@ export default function MayaShell({
   }, [messages]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (initialPrompt && !initSent.current) {
-      initSent.current = true
-      // Internal prompts already have __ prefix; plain task text gets wrapped
-      const content = initialPrompt.startsWith('__')
-        ? initialPrompt
-        : `__TASK__${initialPrompt}__`
-      if (isTaskMode.current) setCanvasState('task')
-      sendMessage({ text: content })
+    if (!initialPrompt || initSent.current) return
+    initSent.current = true
+
+    if (isEdit) {
+      // Edit mode: inject a pre-written Maya message; don't trigger a model call yet
+      const intro = `Looks like you want to revisit this one: **"${initialPrompt}"**${
+        priorOption
+          ? `\n\nLast time you went with:\n\n*"${priorOption.slice(0, 80)}..."*\n\nWhat felt off about it? Or do you want me to generate fresh options in a different direction?`
+          : '\n\nWhat would you like to change or improve?'
+      }`
+      setMessages([{
+        id: 'edit-intro',
+        role: 'assistant',
+        parts: [{ type: 'text', text: intro }],
+        createdAt: new Date(),
+      } as UIMessage])
+      setCanvasState('task')
+      return
     }
+
+    // Normal task / system-init flow
+    const content = initialPrompt.startsWith('__')
+      ? initialPrompt
+      : `__TASK__${initialPrompt}__`
+    if (isTaskMode.current) setCanvasState('task')
+    sendMessage({ text: content })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

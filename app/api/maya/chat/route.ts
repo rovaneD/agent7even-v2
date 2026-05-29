@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messages: rawMessages } = await req.json()
+  const { messages: rawMessages, isEdit, priorOption } = await req.json()
   const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
   if (!converted?.length) {
@@ -149,6 +149,10 @@ Reference these specifics in your opening. Never ask for information already lis
     ? `\nYOUR TASK FOR THIS SESSION:\n${modeInstruction}`
     : ''
 
+  const editSection = isEdit
+    ? `\nEDIT MODE:\nThe user is revisiting a previously completed task to improve it. Do not start from scratch — acknowledge what they chose before and ask what they want to change. Be brief and direct.${priorOption ? `\nTheir previous selection: "${priorOption}"` : ''}`
+    : ''
+
   const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
 
 ${contextSection}
@@ -158,7 +162,7 @@ Your very first message must demonstrate you already know their business. Refere
 
 Bad: "What kind of business do you run?"
 Good: "Okay — your goal this month is to get your first 10 customers. With Instagram as your main channel and a $200–$500 budget, here's where I'd start: what does your current content look like?"
-${modeSection}
+${modeSection}${editSection}
 
 RESPONSE LENGTH — CRITICAL:
 Maximum 3 sentences per reply. Stop. Never output more than 4 sentences before pausing for a response.

@@ -152,7 +152,11 @@ export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
                               <div className="flex items-center gap-2 flex-shrink-0 ml-3 mt-0.5">
                                 <span className="text-emerald-600 text-xs font-medium whitespace-nowrap">Done ✓</span>
                                 <a
-                                  href={`/maya?task=${encodeURIComponent(win)}&campaignId=${c.id}`}
+                                  href={`/maya?task=${encodeURIComponent(win)}&campaignId=${c.id}&edit=true&prior=${encodeURIComponent(
+                                    (c.tasks ?? []).find(t =>
+                                      t.task.toLowerCase().includes(win.toLowerCase().slice(0, 30))
+                                    )?.selected_option?.slice(0, 120) ?? ''
+                                  )}`}
                                   className="text-gray-300 hover:text-gray-500 transition-colors"
                                   title="Redo with Maya"
                                 >
