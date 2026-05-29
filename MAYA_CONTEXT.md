@@ -319,10 +319,13 @@ The old production dashboard layout (`app/dashboard/layout.tsx` with the white s
 
 ## What's NOT Built Yet (Priority Order)
 
-### ✅ MayaShell — DONE (May 29, 2026)
-See "MayaShell — Built Status Update" section below.
+### 1. MayaShell replacement — HIGH (next session)
+- Delete old `/dashboard` layout
+- Build unified MayaShell with correct nav (icons + labels per Figma reference)
+- All existing pages re-mounted under new shell
+- Maya chat accessible from any page with canvas context
 
-### 1. Dashboard canvas (My campaigns) — HIGH
+### 2. Dashboard canvas (My campaigns) — HIGH
 - Campaign list with status, last activity
 - Three-panel campaign detail view
 - Edit mode for campaign sections
@@ -572,4 +575,62 @@ MayaShell has been built by Claude Code. Status:
 
 ### Known gap — needs wiring ⚠️
 - `/api/maya/chat/route.ts` receives `canvasContext` in the request body but does not yet use it in the system prompt. Small addition — Maya should explicitly reference the current page/module context when responding.
+
+
+---
+
+## Known Gaps — Prioritized Work Queue
+*Updated: May 29, 2026*
+
+These are confirmed gaps validated against SAASTR_LESSONS.md. Work in this order.
+
+### 1. canvasContext in Maya system prompt ⚡ 15 min
+**File:** `app/api/maya/chat/route.ts`
+**What:** `canvasContext` (current page name) already arrives in the request body from MayChatPanel but is not injected into the system prompt. Maya responds without knowing what page the user is on.
+**Fix:** Read `canvasContext` from request body, append to system prompt: "The user is currently on the [page] page."
+**Why now:** This is what makes Maya contextually relevant vs. generic. Every interaction until this is fixed is a degraded experience.
+
+### 2. Agent Constraints field — Agent Command Center 🔴 Brand safety
+**File:** Agent registry + Agent Command Center UI
+**What:** Each agent card currently has goals/instructions but no "what NOT to do" field. Agents are goal-seeking and will improvise to hit targets.
+**Fix:** Add `constraints` field to agent registry schema. Add "What NOT to do" section to each agent card in the UI. Maya should prompt for constraints during agent setup.
+**Constraint templates to offer:** no discounting, no delivery promises, no competitor mentions, always route pricing to human, never make guarantees.
+**Why now:** SaaStr went through 47 iterations to stop one agent from being too aggressive on pricing. Every client running agents without constraints is exposed to this.
+
+### 3. Foundation answer validation 🔴 Quality gate
+**File:** `app/foundation/FoundationFlow.tsx` + `/api/foundation/generate`
+**What:** Foundation currently accepts any input before generating the 5 documents. Vague answers (e.g. "small businesses" as customer description) produce weak documents that degrade all downstream agent output.
+**Fix:** Before calling `/api/foundation/generate`, send answers to Maya for a specificity check. Maya flags vague fields and asks follow-up questions. Only proceeds to generation when answers meet a minimum specificity threshold.
+**Example pushback:** "You said your customer is 'small businesses' — can you be more specific? What industry, what size, what specific problem are they trying to solve?"
+**Why now:** Foundation documents are the playbook every agent runs. Bad input here multiplies downstream.
+
+### 4. Stealth churn tracking — Admin panel 🟡 Retention
+**What:** No `last_active_at` or engagement score tracked per client. Clients can go completely dark and it's invisible until they cancel.
+**Fix:** 
+- Add `last_active_at` timestamptz to `profiles` — updated on every authenticated page load
+- Add `engagement_score` integer to `profiles` — calculated weekly based on: logins, agent runs, Maya conversations, approvals completed
+- Surface both in admin client list with visual indicator (green/yellow/red)
+- Maya sends in-app notification if client hasn't logged in for 48hrs
+**Why:** SaaStr Lesson 6 — stealth churn. Clients disengage silently before they cancel. This is a retention tool, not an analytics feature.
+
+### 5. Segment-first campaign creation 🟡 Campaign quality
+**What:** Current campaign creation starts with channel or content type. Should start with "who specifically are you reaching?"
+**Fix:** Campaign creation flow first step is audience segment selection: Past customers / Warm leads gone quiet / Engaged non-converters / Current customers / Cold audience. Channel becomes a detail after segment is defined.
+**Maya should flag:** If client tries to run one campaign to entire list, Maya pushes back and offers to split into segments.
+
+### 6. Morning digest on Dashboard 🟡 Daily review habit
+**What:** Dashboard currently shows static state. Should function as a daily review hub.
+**Fix:** Dashboard top section shows overnight agent activity: outputs produced, flagged items, approval queue count, anything needing attention. Quick-approve flow without opening full editor. One-click "off-brand / too aggressive / wrong tone" correction that feeds back to Maya as training signal.
+
+### 7. Agent names audit 🟢 Quick win
+**Current names to check against Lesson 7 principle** (lead with workflow replaced, not AI capability):
+- Competitor Watcher → probably fine
+- Content Writer → borderline ("Weekly Social — drafts your posts so you don't have to")
+- Campaign Builder → borderline
+- Analytics Reader → rename candidate
+- Trend Spotter → probably fine
+- Email Sequence Builder → probably fine
+- Ad Copy Generator → rename candidate ("Ad Variations — creates multiple ad options so you can test without writing each one")
+- SEO Scanner → probably fine
+- Brand Voice Guardian → probably fine
 
