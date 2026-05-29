@@ -584,13 +584,13 @@ MayaShell has been built by Claude Code. Status:
 
 These are confirmed gaps validated against SAASTR_LESSONS.md. Work in this order.
 
-### 1. canvasContext in Maya system prompt ⚡ 15 min
+### 1. canvasContext in Maya system prompt ✅ DONE
 **File:** `app/api/maya/chat/route.ts`
 **What:** `canvasContext` (current page name) already arrives in the request body from MayChatPanel but is not injected into the system prompt. Maya responds without knowing what page the user is on.
 **Fix:** Read `canvasContext` from request body, append to system prompt: "The user is currently on the [page] page."
 **Why now:** This is what makes Maya contextually relevant vs. generic. Every interaction until this is fixed is a degraded experience.
 
-### 2. Agent Constraints field — Agent Command Center 🔴 Brand safety
+### 2. Agent Constraints field — Agent Command Center ✅ DONE — committed 6665539
 **File:** Agent registry + Agent Command Center UI
 **What:** Each agent card currently has goals/instructions but no "what NOT to do" field. Agents are goal-seeking and will improvise to hit targets.
 **Fix:** Add `constraints` field to agent registry schema. Add "What NOT to do" section to each agent card in the UI. Maya should prompt for constraints during agent setup.
