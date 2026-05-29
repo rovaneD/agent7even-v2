@@ -1,5 +1,13 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { AGENTS, AgentId } from './registry'
+import { buildAgentContext } from './buildAgentContext'
+
+// Prepend brand context to any agent system prompt so agents never run cold.
+export async function buildSystemPrompt(userId: string, agentPrompt: string): Promise<string> {
+  const brandContext = await buildAgentContext(userId)
+  if (!brandContext) return agentPrompt
+  return `${brandContext}\n\n---\n\n${agentPrompt}`
+}
 
 export async function createTask({
   userId,
