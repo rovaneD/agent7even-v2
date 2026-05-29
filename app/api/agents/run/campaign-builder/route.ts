@@ -60,11 +60,11 @@ export async function POST(req: Request) {
       content: { raw: text, parsed: parseCampaignSections(text) },
     })
 
-    await updateTaskStatus(taskId, 'complete', { outputSaved: true })
+    await updateTaskStatus(taskId, 'completed')
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('Campaign builder error:', err)
-    await updateTaskStatus(taskId, 'failed', {}, String(err))
+    await updateTaskStatus(taskId, 'failed')
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

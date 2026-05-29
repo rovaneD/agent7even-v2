@@ -11,6 +11,14 @@
     {
       "path": "/api/cron/run-scheduled-agents",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/allocate-credits",
+      "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/cron/refresh-pricing",
+      "schedule": "0 */6 * * *"
     }
   ]
 }
