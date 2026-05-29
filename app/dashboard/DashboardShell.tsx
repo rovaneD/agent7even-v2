@@ -6,21 +6,25 @@ import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import {
   LayoutDashboard,
-  Zap,
+  Bot,
   ShoppingBag,
+  Calendar,
+  BookOpen,
   BarChart2,
   FileText,
   Headphones,
+  Bell,
+  Users,
   CreditCard,
   Settings,
-  ChevronRight,
   Menu,
   X,
   Sparkles,
-  Bell,
-  Users,
 } from 'lucide-react'
 import NotificationBell from '@/components/NotificationBell'
+import MayChatPanel, { type Profile } from '@/components/maya/MayChatPanel'
+
+// ── Types ─────────────────────────────────────────────────────────────────
 
 interface Notification {
   id: string
@@ -34,9 +38,14 @@ interface Notification {
 
 interface Props {
   children: React.ReactNode
+  profile?: Profile | null
   profileId: string
   initialNotifications: Notification[]
+  initialMessages?: unknown[]
+  initialMode?: string | null
 }
+
+// ── Nav ───────────────────────────────────────────────────────────────────
 
 const NAV = [
   {
@@ -48,133 +57,195 @@ const NAV = [
   {
     section: 'Your workspace',
     items: [
-      { href: '/dashboard/services', label: 'Services', icon: ShoppingBag },
-      { href: '/dashboard/ai-toolkit', label: 'AI Toolkit', icon: Zap },
-      { href: '/dashboard/brand-kit', label: 'Brand Kit', icon: Sparkles },
-      { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart2 },
-      { href: '/dashboard/deliverables', label: 'Deliverables', icon: FileText },
+      { href: '/dashboard/agents',       label: 'Agents',           icon: Bot       },
+      { href: '/dashboard/services',     label: 'Services',         icon: ShoppingBag },
+      { href: '/dashboard/calendar',     label: 'Content Calendar', icon: Calendar  },
+      { href: '/dashboard/brand-kit',    label: 'Brand Kit',        icon: BookOpen  },
+      { href: '/dashboard/analytics',    label: 'Analytics',        icon: BarChart2 },
+      { href: '/dashboard/deliverables', label: 'Deliverables',     icon: FileText  },
     ],
   },
   {
     section: 'Account',
     items: [
-      { href: '/dashboard/support', label: 'Support', icon: Headphones },
-      { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
-      { href: '/dashboard/team', label: 'Team', icon: Users },
-      { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
-      { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+      { href: '/dashboard/support',       label: 'Support',       icon: Headphones },
+      { href: '/dashboard/notifications', label: 'Notifications', icon: Bell       },
+      { href: '/dashboard/team',          label: 'Team',          icon: Users      },
+      { href: '/dashboard/billing',       label: 'Billing',       icon: CreditCard },
+      { href: '/dashboard/settings',      label: 'Settings',      icon: Settings   },
     ],
   },
 ]
 
-export default function DashboardShell({ children, profileId, initialNotifications }: Props) {
-  const pathname = usePathname()
+// ── Component ─────────────────────────────────────────────────────────────
+
+export default function DashboardShell({
+  children,
+  profile,
+  profileId,
+  initialNotifications,
+  initialMessages = [],
+  initialMode = null,
+}: Props) {
+  const pathname     = usePathname()
+  const [mayaOpen, setMayaOpen]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex">
+  // Pass the current page as context to Maya so she knows what you're looking at
+  const canvasContext = NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
+    ?? (pathname === '/dashboard' ? 'Dashboard' : undefined)
 
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-40 w-60 bg-white border-r border-gray-100
-          flex flex-col transition-transform duration-200
-          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 lg:static lg:flex
-        `}
+  const sidebarStyle: React.CSSProperties = {
+    width: 200,
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    background: '#fff',
+    borderRight: '0.5px solid #ebebeb',
+    height: '100%',
+    overflow: 'hidden',
+  }
+
+  function NavLink({ item }: { item: typeof NAV[0]['items'][0] }) {
+    const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+    const Icon = item.icon
+    return (
+      <Link
+        href={item.href}
+        onClick={() => setMobileOpen(false)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px',
+          borderRadius: 7, textDecoration: 'none', fontSize: 12.5, fontWeight: active ? 500 : 400,
+          color: active ? '#0a0a0a' : '#999', background: active ? '#f2f2f2' : 'transparent',
+          transition: 'background 0.12s, color 0.12s', marginBottom: 1,
+        }}
+        onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#f7f7f7'; (e.currentTarget as HTMLAnchorElement).style.color = '#555' } }}
+        onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#999' } }}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-gray-100">
-          <span className="font-bold text-sm tracking-wide text-gray-900">
-            AGENT<span className="text-[#c8522a]">7</span>EVEN
-          </span>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="lg:hidden text-gray-400 hover:text-gray-600"
-          >
-            <X size={16} />
-          </button>
-        </div>
+        <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#0a0a0a' : '#bbb'} />
+        {item.label}
+      </Link>
+    )
+  }
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
-          {NAV.map((group) => (
-            <div key={group.section} className="mb-6">
-              <p className="text-[10px] font-semibold tracking-widest uppercase text-gray-400 px-2 mb-2">
-                {group.section}
-              </p>
-              {group.items.map((item) => {
-                const active = pathname === item.href
-                const Icon = item.icon
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`
-                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all mb-0.5
-                      ${active
-                        ? 'bg-[#c8522a]/8 text-[#c8522a] font-medium'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    <Icon size={15} className={active ? 'text-[#c8522a]' : 'text-gray-400'} />
-                    {item.label}
-                    {active && (
-                      <ChevronRight size={12} className="ml-auto text-[#c8522a]" />
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-          ))}
-        </nav>
-
-        {/* User */}
-        <div className="px-5 py-4 border-t border-gray-100 flex items-center gap-3">
-          <UserButton />
-          <span className="text-xs text-gray-400 truncate">My account</span>
-        </div>
-
-        {/* Legal links */}
-        <div className="px-5 pb-4 flex items-center gap-3">
-          <a href="/privacy" target="_blank" className="text-[10px] text-gray-300 hover:text-gray-500 transition-colors">Privacy</a>
-          <span className="text-gray-200 text-[10px]">·</span>
-          <a href="/terms" target="_blank" className="text-[10px] text-gray-300 hover:text-gray-500 transition-colors">Terms</a>
-        </div>
-      </aside>
-
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/20 lg:hidden"
+  const sidebar = (
+    <aside style={sidebarStyle}>
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 14px 12px', borderBottom: '0.5px solid #f5f5f5' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em', color: '#0a0a0a' }}>
+          AGENT<span style={{ color: '#c8522a' }}>7</span>EVEN
+        </span>
+        <button
           onClick={() => setMobileOpen(false)}
-        />
+          className="lg:hidden"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', padding: 2, display: 'flex' }}
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Maya button */}
+      <div style={{ padding: '10px 10px 6px' }}>
+        <button
+          onClick={() => setMayaOpen(o => !o)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px',
+            borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5,
+            fontWeight: 500, color: mayaOpen ? '#fff' : '#0a0a0a',
+            background: mayaOpen ? '#0a0a0a' : '#f2f2f2',
+            transition: 'background 0.12s, color 0.12s',
+          }}
+          onMouseEnter={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = '#e8e8e8' }}
+          onMouseLeave={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = '#f2f2f2' }}
+        >
+          <Sparkles size={13} strokeWidth={1.75} color={mayaOpen ? '#fff' : '#555'} />
+          Maya
+          {mayaOpen && (
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#888', fontWeight: 400 }}>open</span>
+          )}
+        </button>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 10px' }}>
+        {NAV.map((group) => (
+          <div key={group.section} style={{ marginBottom: 18 }}>
+            <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#ccc', padding: '0 3px', marginBottom: 4 }}>
+              {group.section}
+            </p>
+            {group.items.map(item => <NavLink key={item.href} item={item} />)}
+          </div>
+        ))}
+      </nav>
+
+      {/* User */}
+      <div style={{ borderTop: '0.5px solid #f0f0f0', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 9 }}>
+        <UserButton />
+        <span style={{ fontSize: 11.5, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
+      </div>
+    </aside>
+  )
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'var(--font-geist), system-ui, sans-serif', background: '#f8f8f8' }}>
+
+      {/* Sidebar — desktop always visible */}
+      <div className="hidden lg:flex" style={{ height: '100%' }}>
+        {sidebar}
+      </div>
+
+      {/* Sidebar — mobile drawer */}
+      {mobileOpen && (
+        <>
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.18)', zIndex: 39 }}
+            onClick={() => setMobileOpen(false)}
+          />
+          <div style={{ position: 'fixed', inset: '0 auto 0 0', zIndex: 40, height: '100%' }}>
+            {sidebar}
+          </div>
+        </>
       )}
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Maya panel */}
+      {mayaOpen && (
+        <div
+          className="hidden lg:flex"
+          style={{ width: 380, flexShrink: 0, borderRight: '0.5px solid #ebebeb', overflow: 'hidden', height: '100%' }}
+        >
+          <MayChatPanel
+            profile={profile}
+            initialMessages={initialMessages}
+            initialMode={initialMode}
+            canvasContext={canvasContext}
+            onClose={() => setMayaOpen(false)}
+          />
+        </div>
+      )}
 
-        {/* Top bar (mobile) */}
-        <header className="lg:hidden bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
-          <button onClick={() => setMobileOpen(true)} className="text-gray-500">
-            <Menu size={20} />
+      {/* Main content */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+
+        {/* Mobile top bar */}
+        <header
+          className="lg:hidden"
+          style={{ flexShrink: 0, background: '#fff', borderBottom: '0.5px solid #ebebeb', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+        >
+          <button onClick={() => setMobileOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', display: 'flex' }}>
+            <Menu size={18} />
           </button>
-          <span className="font-bold text-sm tracking-wide">
-            AGENT<span className="text-[#c8522a]">7</span>EVEN
+          <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em', color: '#0a0a0a' }}>
+            AGENT<span style={{ color: '#c8522a' }}>7</span>EVEN
           </span>
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <NotificationBell profileId={profileId} initialNotifications={initialNotifications} />
             <UserButton />
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}
         </main>
-
       </div>
     </div>
   )
