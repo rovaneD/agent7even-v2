@@ -21,6 +21,9 @@ import {
   X,
   Sparkles,
   Layers,
+  TrendingUp,
+  Inbox,
+  Shield,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
@@ -46,6 +49,7 @@ interface Props {
   initialMessages?: unknown[]
   initialMode?: string | null
   foundationScore?: number | null
+  role?: string | null
 }
 
 // ── Nav ───────────────────────────────────────────────────────────────────
@@ -91,11 +95,14 @@ export default function DashboardShell({
   initialMessages = [],
   initialMode = null,
   foundationScore: initialFoundationScore = null,
+  role = null,
 }: Props) {
   const pathname     = usePathname()
   const [mayaOpen, setMayaOpen]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
+
+  const isAdmin = role === 'admin' || role === 'owner'
 
   // Listen for score updates dispatched by FoundationEditor after a successful rescore
   useEffect(() => {
@@ -228,6 +235,20 @@ export default function DashboardShell({
             {group.items.map(item => <NavLink key={item.href} item={item} />)}
           </div>
         ))}
+        {isAdmin && (
+          <div style={{ marginBottom: 18 }}>
+            <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#ccc', padding: '0 3px', marginBottom: 4 }}>
+              Admin
+            </p>
+            {[
+              { href: '/admin/clients',  label: 'Clients',         icon: Users       },
+              { href: '/admin/revenue',  label: 'Revenue',         icon: TrendingUp  },
+              { href: '/admin/orders',   label: 'Orders',          icon: ShoppingBag },
+              { href: '/admin/inquiries', label: 'Inquiries',      icon: Inbox       },
+              { href: '/admin/settings', label: 'Admin Settings',  icon: Shield      },
+            ].map(item => <NavLink key={item.href} item={item} />)}
+          </div>
+        )}
       </nav>
 
       {/* User */}

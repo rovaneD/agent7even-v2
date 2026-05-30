@@ -29,7 +29,7 @@ export default async function DashboardLayout({
     const { data: p } = await supabase
       .from('profiles')
       .select(`
-        id, company_name, full_name, business_type, plan,
+        id, company_name, full_name, business_type, plan, role,
         website_url, instagram_handle, ideal_customer,
         sell_locations, marketing_budget, competitors,
         top_goals, marketing_challenge, content_comfort,
@@ -75,6 +75,7 @@ export default async function DashboardLayout({
       initialMessages={initialMessages}
       initialMode={initialMode}
       foundationScore={(profile as { foundation_score?: number | null } | null)?.foundation_score ?? null}
+      role={(profile as any)?.role ?? null}
     >
       {children}
     </DashboardShell>
