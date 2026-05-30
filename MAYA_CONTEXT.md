@@ -597,7 +597,7 @@ These are confirmed gaps validated against SAASTR_LESSONS.md. Work in this order
 **Constraint templates to offer:** no discounting, no delivery promises, no competitor mentions, always route pricing to human, never make guarantees.
 **Why now:** SaaStr went through 47 iterations to stop one agent from being too aggressive on pricing. Every client running agents without constraints is exposed to this.
 
-### 3. Foundation answer validation 🔴 Quality gate
+### 3. Foundation answer validation ✅ DONE
 **File:** `app/foundation/FoundationFlow.tsx` + `/api/foundation/generate`
 **What:** Foundation currently accepts any input before generating the 5 documents. Vague answers (e.g. "small businesses" as customer description) produce weak documents that degrade all downstream agent output.
 **Fix:** Before calling `/api/foundation/generate`, send answers to Maya for a specificity check. Maya flags vague fields and asks follow-up questions. Only proceeds to generation when answers meet a minimum specificity threshold.
