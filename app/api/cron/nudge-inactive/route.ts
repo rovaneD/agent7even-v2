@@ -14,8 +14,7 @@ export async function GET(req: Request) {
   const { data: inactive } = await supabase
     .from('profiles')
     .select('id, full_name')
-    .in('plan', ['starter', 'growth', 'proagent'])
-    .eq('status', 'active')
+    .eq('role', 'client')
     .lt('last_active_at', fortyEightHoursAgo)
     .or(`last_nudged_at.is.null,last_nudged_at.lt.${sevenDaysAgo}`)
 

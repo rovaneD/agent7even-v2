@@ -26,8 +26,7 @@ export async function GET(req: Request) {
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id')
-    .eq('status', 'active')
-    .in('plan', ['starter', 'growth', 'proagent'])
+    .eq('role', 'client')
 
   if (!profiles?.length) return NextResponse.json({ updated: 0 })
 

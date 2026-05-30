@@ -34,7 +34,7 @@ export async function GET(req: Request) {
       last_active_at, engagement_score, foundation_score,
       created_at, last_nudged_at
     `)
-    .in('plan', ['starter', 'growth', 'proagent'])
+    .eq('role', 'client')
     .order(sort as any, { ascending: order, nullsFirst: false })
 
   if (filter === 'at_risk') {
