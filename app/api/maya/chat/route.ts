@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { convertToModelMessages, streamText } from 'ai'
 import { createServiceClient } from '@/lib/supabase/server'
 import { models } from '@/lib/ai/client'
@@ -241,13 +241,15 @@ Never use markdown in conversation. Save structure for the plan.`
     const taskId         = task.id
     const currentBalance = bal?.balance ?? 0
 
-    // Fire-and-forget: runs after the stream finishes, does not block the response
-    // Wrap in Promise.resolve so we can call .catch() — AI SDK returns PromiseLike
-    Promise.resolve(result.usage).then(async (usage) => {
+    // after() runs after the response is sent; on Vercel it wraps waitUntil so
+    // the function is guaranteed alive until this async work completes.
+    // This is the safe alternative to fire-and-forget for serverless environments.
+    after(async () => {
       try {
+        const usage        = await Promise.resolve(result.usage)
         const inputTokens  = usage.inputTokens  ?? 0
         const outputTokens = usage.outputTokens ?? 0
-        const costUsd = await calculateCost(MAYA_MODEL, inputTokens, outputTokens)
+        const costUsd      = await calculateCost(MAYA_MODEL, inputTokens, outputTokens)
 
         await supabase
           .from('agent_tasks')
@@ -267,12 +269,12 @@ Never use markdown in conversation. Save structure for the plan.`
           .eq('user_id', profileId)
 
         await supabase.from('credit_ledger').insert({
-          user_id:      profileId,
-          type:         'usage',
-          credits:      -CHAT_CREDITS,
+          user_id:       profileId,
+          type:          'usage',
+          credits:       -CHAT_CREDITS,
           balance_after: newBalance,
-          description:  `Maya chat — task ${taskId}`,
-          task_id:      taskId,
+          description:   `Maya chat — task ${taskId}`,
+          task_id:       taskId,
         })
       } catch (err) {
         console.error('[maya/chat] post-stream recording failed:', err)
@@ -281,12 +283,6 @@ Never use markdown in conversation. Save structure for the plan.`
           .update({ status: 'failed', updated_at: new Date().toISOString() })
           .eq('id', taskId)
       }
-    }).catch(() => {
-      // Stream error — mark task failed, do not charge
-      void supabase
-        .from('agent_tasks')
-        .update({ status: 'failed', updated_at: new Date().toISOString() })
-        .eq('id', taskId)
     })
 
     return result.toUIMessageStreamResponse()
