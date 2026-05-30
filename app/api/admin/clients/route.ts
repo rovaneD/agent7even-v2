@@ -26,11 +26,16 @@ export async function GET(req: Request) {
   const filter = searchParams.get('filter')
   const sort = searchParams.get('sort') ?? 'last_active_at'
   const order = searchParams.get('order') === 'asc'
+  const search = searchParams.get('search')
+  const planFilter = searchParams.get('plan')
+  const statusFilter = searchParams.get('status')
 
   let query = supabase
     .from('profiles')
     .select(`
-      id, full_name, email, avatar_url, plan, status,
+      id, full_name, email, avatar_url,
+      company_name, website_url, instagram_handle,
+      plan, status, role,
       last_active_at, engagement_score, foundation_score,
       created_at
     `)
@@ -40,6 +45,18 @@ export async function GET(req: Request) {
   if (filter === 'at_risk') {
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
     query = query.or(`last_active_at.lt.${fortyEightHoursAgo},engagement_score.lt.30`)
+  }
+
+  if (search) {
+    query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`)
+  }
+
+  if (planFilter && planFilter !== 'all') {
+    query = query.eq('plan', planFilter)
+  }
+
+  if (statusFilter && statusFilter !== 'all') {
+    query = query.eq('status', statusFilter)
   }
 
   const { data, error } = await query
@@ -81,11 +98,6 @@ export async function POST(req: Request) {
     link:    '/dashboard',
     read:    false,
   })
-
-  await supabase
-    .from('profiles')
-    .update({ last_nudged_at: new Date().toISOString() })
-    .eq('id', client.id)
 
   return NextResponse.json({ success: true })
 }

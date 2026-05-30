@@ -1,15 +1,30 @@
-import { requireAdmin } from '@/lib/requireAdmin'
+import { auth } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
-import ClientDetail from './ClientDetail'
 
-export default async function AdminClientDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+async function getAdminProfile(userId: string) {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, role')
+    .eq('clerk_user_id', userId)
+    .single()
+  return data
+}
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const admin = await getAdminProfile(userId)
+  if (!admin || !['admin', 'owner'].includes(admin.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { id } = await params
-  await requireAdmin()
   const supabase = createServiceClient()
 
   const [
@@ -34,13 +49,13 @@ export default async function AdminClientDetailPage({
       .eq('user_id', id)
       .order('created_at', { ascending: false })
       .limit(50),
-    supabase.from('foundation_field_scores').select('field_name, score').eq('user_id', id),
+    supabase.from('foundation_field_scores').select('*').eq('user_id', id),
     supabase
       .from('admin_notes')
-      .select('id, body, created_at, profiles!admin_notes_admin_id_fkey(full_name, avatar_url)')
+      .select('*, profiles!admin_notes_admin_id_fkey(full_name, avatar_url)')
       .eq('user_id', id)
       .order('created_at', { ascending: false })
-      .limit(20),
+      .limit(5),
     supabase
       .from('support_tickets')
       .select('id, subject, status, priority, created_at')
@@ -49,9 +64,9 @@ export default async function AdminClientDetailPage({
       .limit(10),
   ])
 
-  if (!profileResult.data) notFound()
+  if (!profileResult.data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // Duplicate check
+  // Check for duplicate accounts (same email, different id)
   let duplicateAccount = null
   if (profileResult.data.email) {
     const { data: dupes } = await supabase
@@ -63,17 +78,14 @@ export default async function AdminClientDetailPage({
     if (dupes && dupes.length > 0) duplicateAccount = dupes[0]
   }
 
-  return (
-    <ClientDetail
-      clientId={id}
-      initialProfile={profileResult.data as any}
-      initialCreditBalance={creditResult.data?.balance ?? 0}
-      initialNotes={(notesResult.data ?? []) as any}
-      initialActivity={(activityResult.data ?? []) as any}
-      initialTeamMembers={(teamResult.data ?? []) as any}
-      initialTickets={(ticketsResult.data ?? []) as any}
-      fieldScores={(fieldScoresResult.data ?? []) as any}
-      duplicateAccount={duplicateAccount}
-    />
-  )
+  return NextResponse.json({
+    profile: profileResult.data,
+    creditBalance: creditResult.data?.balance ?? 0,
+    teamMembers: teamResult.data ?? [],
+    activity: activityResult.data ?? [],
+    fieldScores: fieldScoresResult.data ?? [],
+    notes: notesResult.data ?? [],
+    tickets: ticketsResult.data ?? [],
+    duplicateAccount,
+  })
 }
