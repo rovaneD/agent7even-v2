@@ -13,6 +13,7 @@ const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
+  console.log('[maya-chat] route hit, userId:', userId)
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { messages: rawMessages, isEdit, priorOption, canvasContext, isOpenCanvas } = await req.json()
@@ -216,14 +217,19 @@ Never use markdown in conversation. Save structure for the plan.`
   // ── Cost-tracked streaming ─────────────────────
   // Check balance → create task → stream → record cost + deduct after stream
 
+  console.log('[maya-chat] profile?.id:', profile?.id ?? 'NONE — will skip cost tracking')
+
   if (profile?.id) {
-    const { data: bal } = await supabase
+    const { data: bal, error: balError } = await supabase
       .from('credit_balances')
       .select('balance')
       .eq('user_id', profile.id)
       .single()
 
+    console.log('[maya-chat] balance check:', bal?.balance ?? 'NO ROW', balError?.message ?? 'ok')
+
     if ((bal?.balance ?? 0) < CHAT_CREDITS) {
+      console.log('[maya-chat] INSUFFICIENT_CREDITS — returning 402')
       return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
     }
 
@@ -233,25 +239,31 @@ Never use markdown in conversation. Save structure for the plan.`
       model:  MAYA_MODEL,
       input:  { messageCount: messages.length },
     })
+    console.log('[maya-chat] task created:', task.id)
     await updateTaskStatus(task.id, 'running')
 
     const result = await streamText({ model: models.maya, system, messages, maxOutputTokens: 2000 })
+    console.log('[maya-chat] streamText called, starting response')
 
     // Capture these before the async closure — profile/task may be GC'd
     const profileId      = profile.id
     const taskId         = task.id
     const currentBalance = bal?.balance ?? 0
 
-    // waitUntil() keeps the Vercel function alive until the promise resolves —
-    // guaranteed to complete even after the HTTP response is sent.
+    // waitUntil() keeps the Vercel function alive until the promise resolves.
+    // result.usage resolves only after the stream body is fully consumed by the client.
     waitUntil((async () => {
+      console.log('[maya-chat] waitUntil fired, awaiting usage for task:', taskId)
       try {
-        const usage        = await Promise.resolve(result.usage)
+        const usage        = await result.usage
         const inputTokens  = usage.inputTokens  ?? 0
         const outputTokens = usage.outputTokens ?? 0
-        const costUsd      = await calculateCost(MAYA_MODEL, inputTokens, outputTokens)
+        console.log('[maya-chat] stream complete, tokens:', inputTokens, outputTokens)
 
-        await supabase
+        const costUsd = await calculateCost(MAYA_MODEL, inputTokens, outputTokens)
+        console.log('[maya-chat] cost calculated:', costUsd)
+
+        const { error: taskErr } = await supabase
           .from('agent_tasks')
           .update({
             status:        'completed',
@@ -261,14 +273,16 @@ Never use markdown in conversation. Save structure for the plan.`
             updated_at:    new Date().toISOString(),
           })
           .eq('id', taskId)
+        console.log('[maya-chat] agent_tasks updated:', taskErr?.message ?? 'ok')
 
         const newBalance = currentBalance - CHAT_CREDITS
-        await supabase
+        const { error: balErr } = await supabase
           .from('credit_balances')
           .update({ balance: newBalance, updated_at: new Date().toISOString() })
           .eq('user_id', profileId)
+        console.log('[maya-chat] credit_balances updated:', balErr?.message ?? 'ok', 'new balance:', newBalance)
 
-        await supabase.from('credit_ledger').insert({
+        const { error: ledgerErr } = await supabase.from('credit_ledger').insert({
           user_id:       profileId,
           type:          'usage',
           credits:       -CHAT_CREDITS,
@@ -276,8 +290,10 @@ Never use markdown in conversation. Save structure for the plan.`
           description:   `Maya chat — task ${taskId}`,
           task_id:       taskId,
         })
+        console.log('[maya-chat] credit_ledger inserted:', ledgerErr?.message ?? 'ok')
+        console.log('[maya-chat] cost recording complete for task:', taskId)
       } catch (err) {
-        console.error('[maya/chat] post-stream recording failed:', err)
+        console.error('[maya-chat] post-stream recording failed:', err)
         void supabase
           .from('agent_tasks')
           .update({ status: 'failed', updated_at: new Date().toISOString() })
@@ -289,6 +305,7 @@ Never use markdown in conversation. Save structure for the plan.`
   }
 
   // Fallback: no profile resolved — stream without cost tracking (should not happen)
+  console.log('[maya-chat] WARNING: falling through to no-profile path — cost not tracked')
   const fallback = await streamText({ model: models.maya, system, messages, maxOutputTokens: 2000 })
   return fallback.toUIMessageStreamResponse()
 }
