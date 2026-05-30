@@ -76,6 +76,7 @@ export default async function DashboardLayout({
       initialMode={initialMode}
       foundationScore={(profile as { foundation_score?: number | null } | null)?.foundation_score ?? null}
       role={(profile as any)?.role ?? null}
+      isAdmin={['admin', 'owner'].includes((profile as any)?.role ?? '')}
     >
       {children}
     </DashboardShell>

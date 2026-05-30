@@ -50,6 +50,7 @@ interface Props {
   initialMode?: string | null
   foundationScore?: number | null
   role?: string | null
+  isAdmin?: boolean
 }
 
 // ── Nav ───────────────────────────────────────────────────────────────────
@@ -96,13 +97,14 @@ export default function DashboardShell({
   initialMode = null,
   foundationScore: initialFoundationScore = null,
   role = null,
+  isAdmin: isAdminProp = false,
 }: Props) {
   const pathname     = usePathname()
   const [mayaOpen, setMayaOpen]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
 
-  const isAdmin = role === 'admin' || role === 'owner'
+  const isAdmin = isAdminProp || role === 'admin' || role === 'owner'
 
   // Listen for score updates dispatched by FoundationEditor after a successful rescore
   useEffect(() => {

@@ -44,6 +44,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       initialMode={initialMode}
       foundationScore={(p as any)?.foundation_score ?? null}
       role={(p as any)?.role ?? null}
+      isAdmin={true}
     >
       {children}
     </DashboardShell>
