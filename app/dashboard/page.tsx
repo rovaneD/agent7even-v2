@@ -29,11 +29,7 @@ export default async function DashboardPage() {
     redirect('/admin')
   }
 
-  if (!profile?.onboarding_complete) {
-    redirect('/onboarding')
-  }
-
-  if (profile && profile.foundation_complete === false) {
+  if (!profile?.foundation_complete) {
     redirect('/foundation')
   }
 
