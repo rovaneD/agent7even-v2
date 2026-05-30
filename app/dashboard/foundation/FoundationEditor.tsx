@@ -173,6 +173,7 @@ export default function FoundationEditor({
       setWeakFields(data.topWeakFields ?? [])
       setLastUpdatedAt(new Date().toISOString())
       setRescored(true)
+      window.dispatchEvent(new CustomEvent('foundation:rescored', { detail: { score: data.overallScore } }))
       setTimeout(() => setRescored(false), 3000)
     } finally {
       setRescoring(false)

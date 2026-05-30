@@ -97,7 +97,17 @@ export default function DashboardShell({
   const [mobileOpen, setMobileOpen] = useState(false)
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
 
-  // Realtime: update foundation score when profile changes (e.g. after rescore on Foundation page)
+  // Listen for score updates dispatched by FoundationEditor after a successful rescore
+  useEffect(() => {
+    function onRescored(e: Event) {
+      const score = (e as CustomEvent<{ score: number }>).detail.score
+      setFoundationScore(score)
+    }
+    window.addEventListener('foundation:rescored', onRescored)
+    return () => window.removeEventListener('foundation:rescored', onRescored)
+  }, [])
+
+  // Realtime: cross-tab fallback — update score when profiles row changes
   useEffect(() => {
     if (!profileId) return
     const supabase = createClient()
