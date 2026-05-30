@@ -143,6 +143,12 @@ export default function DashboardShell({
     overflow: 'hidden',
   }
 
+  function foundationBarColor(score: number): string {
+    if (score >= 80) return '#16a34a'
+    if (score >= 60) return '#ca8a04'
+    return '#c8522a'
+  }
+
   function NavLink({ item }: { item: typeof NAV[0]['items'][0] }) {
     const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
     const Icon = item.icon
@@ -165,9 +171,9 @@ export default function DashboardShell({
         {isFoundation && foundationScore !== null && (
           <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
             <span style={{ width: 28, height: 3, background: '#f0f0f0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
-              <span style={{ display: 'block', width: `${foundationScore}%`, height: '100%', background: active ? '#0a0a0a' : '#bbb', borderRadius: 2, transition: 'width 0.4s' }} />
+              <span style={{ display: 'block', width: `${foundationScore}%`, height: '100%', background: foundationBarColor(foundationScore), borderRadius: 2, transition: 'width 0.4s' }} />
             </span>
-            <span style={{ fontSize: 9.5, color: active ? '#666' : '#ccc' }}>{foundationScore}%</span>
+            <span style={{ fontSize: 9.5, color: foundationBarColor(foundationScore) }}>{foundationScore}%</span>
           </span>
         )}
       </Link>
