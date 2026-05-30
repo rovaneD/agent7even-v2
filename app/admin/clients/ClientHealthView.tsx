@@ -79,13 +79,20 @@ export default function ClientHealthView() {
   const [sortAsc, setSortAsc] = useState(false)
   const [nudging, setNudging] = useState<string | null>(null)
   const [nudged, setNudged] = useState<Set<string>>(new Set())
+  const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(null)
     const filter = tab === 'at_risk' ? '&filter=at_risk' : ''
     const res = await fetch(`/api/admin/clients?sort=${sortKey}&order=${sortAsc ? 'asc' : 'desc'}${filter}`)
     const json = await res.json()
-    setClients(json.clients ?? [])
+    if (!res.ok) {
+      setError(`${res.status}: ${json.error ?? 'Unknown error'}`)
+      setClients([])
+    } else {
+      setClients(json.clients ?? [])
+    }
     setLoading(false)
   }, [tab, sortKey, sortAsc])
 
@@ -196,6 +203,10 @@ export default function ClientHealthView() {
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="w-5 h-5 border-2 border-gray-200 border-t-[#c8522a] rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <p className="text-sm text-red-500 font-mono">{error}</p>
           </div>
         ) : !allWithStatus.length ? (
           <div className="text-center py-16">

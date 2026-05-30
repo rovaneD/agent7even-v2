@@ -35,7 +35,7 @@ export async function GET(req: Request) {
       created_at, last_nudged_at
     `)
     .eq('role', 'client')
-    .order(sort as any, { ascending: order, nullsFirst: false })
+    .order(sort as any, { ascending: order })
 
   if (filter === 'at_risk') {
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
