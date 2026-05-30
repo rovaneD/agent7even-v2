@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import {
-  Zap,
   ShoppingBag,
   BarChart2,
   ArrowRight,
@@ -41,14 +40,14 @@ export default async function DashboardPage() {
       </div>
 
       {!hasPlan && (
-        <div className="bg-[#0d0d0d] rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div>
-            <p className="text-white font-semibold text-sm mb-1">You don&apos;t have an active plan yet</p>
-            <p className="text-gray-500 text-xs">Choose a plan to unlock your full workspace.</p>
-          </div>
-          <Link href="/pricing" className="sm:ml-auto flex-shrink-0 bg-[#c8522a] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-[#b04623] transition-colors flex items-center gap-2 w-fit">
-            Choose a plan <ArrowRight size={14} />
-          </Link>
+        <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-6">
+          <p className="text-sm text-gray-600">
+            You&apos;re on a free account —{' '}
+            <Link href="/dashboard/billing" className="font-medium text-black underline">
+              choose a plan
+            </Link>
+            {' '}to unlock agents and campaigns.
+          </p>
         </div>
       )}
 
@@ -90,10 +89,9 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
           { href: '/dashboard/services', icon: ShoppingBag, label: 'Services', desc: 'Request and track your marketing services', cta: 'View services' },
-          { href: '/dashboard/ai-toolkit', icon: Zap, label: 'AI Toolkit', desc: 'Generate content, captions, emails, and more', cta: 'Open toolkit' },
           { href: '/dashboard/analytics', icon: BarChart2, label: 'Analytics', desc: 'Connect your accounts and track performance', cta: 'View analytics' },
         ].map((card) => (
           <Link key={card.href} href={card.href} className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-sm transition-all group">
