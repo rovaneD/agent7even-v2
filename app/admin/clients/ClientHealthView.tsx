@@ -231,9 +231,17 @@ export default function ClientHealthView() {
                 <tr key={client.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0 text-[#c8522a] text-xs font-bold">
-                        {(client.full_name || client.email || 'U')[0].toUpperCase()}
-                      </div>
+                      {client.avatar_url ? (
+                        <img
+                          src={client.avatar_url}
+                          alt=""
+                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0 text-[#c8522a] text-xs font-bold">
+                          {(client.full_name || client.email || 'U')[0].toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <p className="text-sm font-medium text-gray-900">{client.full_name || '—'}</p>
                         <p className="text-xs text-gray-400">{client.email}</p>
