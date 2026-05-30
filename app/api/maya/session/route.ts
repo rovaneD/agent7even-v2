@@ -18,7 +18,7 @@ export async function GET() {
   if (!profile) return NextResponse.json({ session: null })
 
   const { data: session } = await supabase
-    .from('chat_sessions')
+    .from('maya_sessions')
     .select('messages, mode')
     .eq('user_id', profile.id)
     .order('updated_at', { ascending: false })
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   const supabase = createServiceClient()
 
   const { error } = await supabase
-    .from('chat_sessions')
+    .from('maya_sessions')
     .upsert(
       {
         user_id: profileId,
