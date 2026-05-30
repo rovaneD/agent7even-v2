@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createTask } from '@/lib/agents/runner'
 import { AgentId } from '@/lib/agents/registry'
+import { logActivity } from '@/lib/activity'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
       }).catch(err => console.error('Agent fire error:', err))
     }
 
+    logActivity(profile.id, 'agent_run', { agent }).catch(() => {})
     return NextResponse.json({ taskId: task.id, status: task.status })
   } catch (err) {
     console.error('Create task error:', err)

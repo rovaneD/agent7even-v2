@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { logActivity } from '@/lib/activity'
 
 export async function POST(
   req: Request,
@@ -40,5 +41,6 @@ export async function POST(
   if (outputRes.error) return NextResponse.json({ error: outputRes.error.message }, { status: 500 })
   if (taskRes.error) return NextResponse.json({ error: taskRes.error.message }, { status: 500 })
 
+  logActivity(profile.id, 'agent_approved', { taskId }).catch(() => {})
   return NextResponse.json({ success: true })
 }

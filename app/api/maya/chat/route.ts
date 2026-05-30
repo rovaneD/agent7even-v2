@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { convertToModelMessages } from 'ai'
 import { createServiceClient } from '@/lib/supabase/server'
 import { runAgent } from '@/lib/ai/runAgent'
+import { logActivity } from '@/lib/activity'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -80,6 +81,7 @@ You are completing a specific task, not building a new campaign. Never say "spin
   }
 
   console.log('[maya/chat] Profile found:', profile?.id, profile?.company_name)
+  if (profile?.id) logActivity(profile.id, 'maya_message').catch(() => {})
 
   let brief = '', icp = '', positioning = '', voice = ''
 

@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import { logActivity } from '@/lib/activity'
 
 export const maxDuration = 30
 
@@ -117,6 +118,8 @@ Return format exactly:
       foundation_updated_at: new Date().toISOString(),
     })
     .eq('id', profile.id)
+
+  logActivity(profile.id, 'foundation_updated', { score: parsed.overallScore }).catch(() => {})
 
   // Congratulations notification when score crosses 80%
   const prevScore = profile.foundation_score ?? 0

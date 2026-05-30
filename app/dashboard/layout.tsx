@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { logActivity } from '@/lib/activity'
 import DashboardShell from './DashboardShell'
 
 export default async function DashboardLayout({
@@ -56,6 +57,8 @@ export default async function DashboardLayout({
           .order('updated_at', { ascending: false })
           .limit(1)
           .single(),
+
+        logActivity(p.id, 'page_view'),
       ])
 
       notifications     = notifs    ?? []
