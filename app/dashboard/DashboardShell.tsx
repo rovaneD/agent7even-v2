@@ -24,10 +24,13 @@ import {
   TrendingUp,
   Inbox,
   Shield,
+  Megaphone,
+  Plus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
 import MayChatPanel, { type Profile } from '@/components/maya/MayChatPanel'
+import NewCampaignModal from '@/components/campaigns/NewCampaignModal'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -66,6 +69,7 @@ const NAV = [
     section: 'Your workspace',
     items: [
       { href: '/dashboard/agents',       label: 'Agents',           icon: Bot       },
+      { href: '/dashboard/campaigns',    label: 'Campaigns',        icon: Megaphone },
       { href: '/dashboard/services',     label: 'Services',         icon: ShoppingBag },
       { href: '/dashboard/calendar',     label: 'Content Calendar', icon: Calendar  },
       { href: '/dashboard/foundation',   label: 'Foundation',       icon: Layers    },
@@ -100,9 +104,11 @@ export default function DashboardShell({
   isAdmin: isAdminProp = false,
 }: Props) {
   const pathname     = usePathname()
-  const [mayaOpen, setMayaOpen]   = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [mayaOpen, setMayaOpen]       = useState(false)
+  const [mobileOpen, setMobileOpen]   = useState(false)
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
+  const [showNewCampaign, setShowNewCampaign] = useState(false)
+  const [mayaPendingTask, setMayaPendingTask] = useState<string | null>(null)
 
   const isAdmin = isAdminProp || role === 'admin' || role === 'owner'
 
@@ -136,6 +142,17 @@ export default function DashboardShell({
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [profileId])
+
+  // Listen for "Do this with Maya →" events dispatched from campaign detail
+  useEffect(() => {
+    function onOpenTask(e: Event) {
+      const { task } = (e as CustomEvent<{ task: string }>).detail
+      setMayaOpen(true)
+      setMayaPendingTask(task)
+    }
+    window.addEventListener('maya:open-task', onOpenTask)
+    return () => window.removeEventListener('maya:open-task', onOpenTask)
+  }, [])
 
   // Pass the current page as context to Maya so she knows what you're looking at
   const canvasContext = NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
@@ -205,8 +222,8 @@ export default function DashboardShell({
         </button>
       </div>
 
-      {/* Maya button */}
-      <div style={{ padding: '10px 10px 6px' }}>
+      {/* Maya + New campaign buttons */}
+      <div style={{ padding: '10px 10px 6px', display: 'flex', flexDirection: 'column', gap: 5 }}>
         <button
           onClick={() => setMayaOpen(o => !o)}
           style={{
@@ -224,6 +241,20 @@ export default function DashboardShell({
           {mayaOpen && (
             <span style={{ marginLeft: 'auto', fontSize: 10, color: '#888', fontWeight: 400 }}>open</span>
           )}
+        </button>
+        <button
+          onClick={() => setShowNewCampaign(true)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px',
+            borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5,
+            fontWeight: 500, color: '#0a0a0a', background: '#f2f2f2',
+            transition: 'background 0.12s',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#e8e8e8' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#f2f2f2' }}
+        >
+          <Plus size={13} strokeWidth={1.75} color="#555" />
+          New campaign
         </button>
       </div>
 
@@ -263,6 +294,7 @@ export default function DashboardShell({
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'var(--font-geist), system-ui, sans-serif', background: '#f8f8f8' }}>
+      <NewCampaignModal open={showNewCampaign} onClose={() => setShowNewCampaign(false)} />
 
       {/* Sidebar — desktop always visible */}
       <div className="hidden lg:flex" style={{ height: '100%' }}>
@@ -293,6 +325,8 @@ export default function DashboardShell({
             initialMessages={initialMessages}
             initialMode={initialMode}
             canvasContext={canvasContext}
+            pendingTask={mayaPendingTask}
+            onTaskConsumed={() => setMayaPendingTask(null)}
             onClose={() => setMayaOpen(false)}
           />
         </div>

@@ -31,6 +31,8 @@ interface Props {
   initialMessages?: unknown[]
   initialMode?: string | null
   canvasContext?: string
+  pendingTask?: string | null
+  onTaskConsumed?: () => void
   onClose?: () => void
 }
 
@@ -64,6 +66,8 @@ export default function MayChatPanel({
   initialMessages = [],
   initialMode = null,
   canvasContext,
+  pendingTask = null,
+  onTaskConsumed,
   onClose,
 }: Props) {
   const companyName = profile?.company_name ?? profile?.full_name ?? 'there'
@@ -133,6 +137,14 @@ export default function MayChatPanel({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  // Inject task from campaign "Do this with Maya →" button
+  useEffect(() => {
+    if (!pendingTask) return
+    setMode('task')
+    sendMessage({ text: `__TASK__${pendingTask}__` })
+    onTaskConsumed?.()
+  }, [pendingTask]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectMode(modeId: string) {
     setMode(modeId)

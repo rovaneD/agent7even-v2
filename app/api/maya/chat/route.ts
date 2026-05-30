@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messages: rawMessages, isEdit, priorOption, canvasContext } = await req.json()
+  const { messages: rawMessages, isEdit, priorOption, canvasContext, isOpenCanvas } = await req.json()
   const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
   if (!converted?.length) {
@@ -168,6 +168,23 @@ Reference these specifics in your opening. Never ask for information already lis
       }`
     : ''
 
+  const openCanvasSection = isOpenCanvas
+    ? `
+OPEN CANVAS MODE:
+The user is building a custom campaign from scratch. They have a specific situation, idea, or problem.
+Your job:
+1. Ask smart questions to understand their situation — one question at a time
+2. Help them think through the problem and opportunity
+3. Propose a campaign approach that fits their unique case
+4. When you have gathered enough detail, offer to build the full plan
+
+When you have enough information to generate the campaign, say EXACTLY:
+"I have what I need to build this. Want me to generate the full plan?"
+
+Do NOT say this until you have: what they're promoting, who the audience is, and what success looks like.
+`
+    : ''
+
   const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
 
 ${contextSection}
@@ -177,16 +194,16 @@ Your very first message must demonstrate you already know their business. Refere
 
 Bad: "What kind of business do you run?"
 Good: "Okay — your goal this month is to get your first 10 customers. With Instagram as your main channel and a $200–$500 budget, here's where I'd start: what does your current content look like?"
-${modeSection}${editSection}
+${modeSection}${editSection}${openCanvasSection}
 
 RESPONSE LENGTH — CRITICAL:
 Maximum 3 sentences per reply. Stop. Never output more than 4 sentences before pausing for a response.
 
-WHEN TO ORCHESTRATE — after 4–6 meaningful exchanges:
+${isOpenCanvas ? '' : `WHEN TO ORCHESTRATE — after 4–6 meaningful exchanges:
 Say exactly: "Got everything I need. I'm spinning up the Campaign Builder now — it'll have your full 30-day plan ready in about a minute."
 This exact phrase triggers the Campaign Builder. Only use it when you genuinely have enough context.
 
-PERSONALITY:
+`}PERSONALITY:
 Direct. Warm. A little energetic. Never say "Great!" or "Absolutely!" Just respond and move.
 Never use markdown in conversation. Save structure for the plan.`
 
