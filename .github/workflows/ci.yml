@@ -47,3 +47,14 @@ jobs:
           STRIPE_GROWTH_ANNUAL_PRICE_ID: price_placeholder
           STRIPE_PROAGENT_MONTHLY_PRICE_ID: price_placeholder
           STRIPE_PROAGENT_ANNUAL_PRICE_ID: price_placeholder
+          RESEND_API_KEY: re_placeholder
+          CRON_SECRET: placeholder
+          OPENROUTER_API_KEY: placeholder
+          ANTHROPIC_API_KEY: sk-ant-placeholder
+          GOOGLE_OAUTH_CLIENT_ID: placeholder
+          GOOGLE_OAUTH_CLIENT_SECRET: placeholder
+          GOOGLE_SA_CLIENT_EMAIL: placeholder@placeholder.iam.gserviceaccount.com
+          GOOGLE_SA_PRIVATE_KEY: placeholder
+          META_APP_ID: placeholder
+          META_APP_SECRET: placeholder
+          NOTIFY_EMAIL: hello@agent7even.com
