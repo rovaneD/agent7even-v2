@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
@@ -93,11 +93,15 @@ export default function MayChatPanel({
   const messagesRef    = useRef<UIMessage[]>([])
   const modeRef        = useRef<string | null>(initialMode)
 
+  // Memoize so the transport object is stable across re-renders.
+  // A new DefaultChatTransport on every render causes useChat to re-initialize
+  // and can fire duplicate requests. profile is fetched server-side from auth;
+  // canvasContext is captured at mount — acceptable staleness for page awareness.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const transport = useMemo(() => new DefaultChatTransport({ api: '/api/maya/chat', body: { canvasContext } }), [])
+
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api:  '/api/maya/chat',
-      body: { profile: profileData, canvasContext },
-    }),
+    transport,
     messages: initialMessages.length ? (initialMessages as UIMessage[]) : undefined,
     onFinish: async ({ message }: { message: UIMessage }) => {
       if (profile?.id) {

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
-import { NextResponse, after } from 'next/server'
+import { NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { convertToModelMessages, streamText } from 'ai'
 import { createServiceClient } from '@/lib/supabase/server'
 import { models } from '@/lib/ai/client'
@@ -241,10 +242,9 @@ Never use markdown in conversation. Save structure for the plan.`
     const taskId         = task.id
     const currentBalance = bal?.balance ?? 0
 
-    // after() runs after the response is sent; on Vercel it wraps waitUntil so
-    // the function is guaranteed alive until this async work completes.
-    // This is the safe alternative to fire-and-forget for serverless environments.
-    after(async () => {
+    // waitUntil() keeps the Vercel function alive until the promise resolves —
+    // guaranteed to complete even after the HTTP response is sent.
+    waitUntil((async () => {
       try {
         const usage        = await Promise.resolve(result.usage)
         const inputTokens  = usage.inputTokens  ?? 0
@@ -283,7 +283,7 @@ Never use markdown in conversation. Save structure for the plan.`
           .update({ status: 'failed', updated_at: new Date().toISOString() })
           .eq('id', taskId)
       }
-    })
+    })())
 
     return result.toUIMessageStreamResponse()
   }
