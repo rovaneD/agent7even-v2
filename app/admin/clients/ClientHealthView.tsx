@@ -14,7 +14,6 @@ type Client = {
   engagement_score: number | null
   foundation_score: number | null
   created_at: string
-  last_nudged_at: string | null
 }
 
 type SortKey = 'last_active_at' | 'engagement_score' | 'foundation_score' | 'plan' | 'created_at'
