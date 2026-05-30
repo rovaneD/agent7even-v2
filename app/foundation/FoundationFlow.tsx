@@ -195,7 +195,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
     })
     if (!res.ok) throw new Error('Generation failed: ' + res.status)
     setGenerationProgress(ALL_DOCS)
-    router.push('/maya?new=true')
+    router.push('/dashboard')
   }
 
   async function handleGenerate() {
