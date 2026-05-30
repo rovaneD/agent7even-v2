@@ -2,7 +2,44 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Loader2, Check, AlertCircle } from 'lucide-react'
+
+type GenerationStage = 'scoring' | 'generating'
+
+interface FieldScore {
+  score: number
+  feedback: string | null
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  businessDescription:   'Business description',
+  problemSolved:         'Problem solved',
+  transformation:        'Customer transformation',
+  customerWho:           'Customer description',
+  customerFrustration:   'Customer frustration',
+  customerTriedBefore:   'What they tried before',
+  customerBuyingTrigger: 'Buying trigger',
+  differentiator:        'Differentiator',
+  differentiatorOwn:     'Differentiator (own words)',
+  toneTraits:            'Tone traits',
+  brandsAdmired:         'Brands admired',
+  neverSoundLike:        'Never sound like',
+  marketingBudget:       'Marketing budget',
+  channels:              'Channels',
+  monthlyGoal:           'Monthly goal',
+  competitors:           'Competitors',
+}
+
+function getStepForField(fieldKey: string): number {
+  const stepMap: Record<string, number> = {
+    businessDescription: 0, problemSolved: 0, transformation: 0,
+    customerWho: 1, customerFrustration: 1, customerTriedBefore: 1, customerBuyingTrigger: 1,
+    competitors: 2, differentiator: 2, differentiatorOwn: 2,
+    toneTraits: 3, brandsAdmired: 3, neverSoundLike: 3,
+    marketingBudget: 4, channels: 4, monthlyGoal: 4,
+  }
+  return stepMap[fieldKey] ?? 0
+}
 
 interface Props {
   profileId: string
@@ -84,7 +121,12 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
   const router = useRouter()
   const [step, setStep] = useState(initialStep)
   const [generating, setGenerating] = useState(false)
+  const [generationStage, setGenerationStage] = useState<GenerationStage>('scoring')
   const [generationProgress, setGenerationProgress] = useState<string[]>([])
+  const [showWeakFieldsWarning, setShowWeakFieldsWarning] = useState(false)
+  const [foundationScore, setFoundationScore] = useState<number | null>(null)
+  const [weakFields, setWeakFields] = useState<string[]>([])
+  const [fieldScores, setFieldScores] = useState<Record<string, FieldScore>>({})
   const [answers, setAnswers] = useState<StepAnswers>({
     businessDescription: '',
     problemSolved: '',
@@ -145,21 +187,123 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
     }
   }
 
+  async function callGenerate() {
+    const res = await fetch('/api/foundation/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers, companyName }),
+    })
+    if (!res.ok) throw new Error('Generation failed: ' + res.status)
+    setGenerationProgress(ALL_DOCS)
+    router.push('/maya?new=true')
+  }
+
   async function handleGenerate() {
     setGenerating(true)
+    setGenerationStage('scoring')
 
     try {
-      const res = await fetch('/api/foundation/generate', {
+      const scoreRes = await fetch('/api/foundation/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers, companyName }),
+        body: JSON.stringify({ answers }),
       })
-      if (!res.ok) throw new Error('Generation failed: ' + res.status)
-      setGenerationProgress(ALL_DOCS)
-      router.push('/maya?new=true')
+      const scoreData = await scoreRes.json()
+
+      if (scoreData.overallScore < 50) {
+        setFoundationScore(scoreData.overallScore)
+        setWeakFields(scoreData.topWeakFields ?? [])
+        setFieldScores(scoreData.fieldScores ?? {})
+        setGenerating(false)
+        setShowWeakFieldsWarning(true)
+        return
+      }
+
+      setGenerationStage('generating')
+      await callGenerate()
     } catch {
       setGenerating(false)
     }
+  }
+
+  async function handleGenerateAnyway() {
+    setShowWeakFieldsWarning(false)
+    setGenerating(true)
+    setGenerationStage('generating')
+    try {
+      await callGenerate()
+    } catch {
+      setGenerating(false)
+    }
+  }
+
+  // ── Weak fields warning ────────────────────────────────────────────────────
+
+  if (showWeakFieldsWarning) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="max-w-lg w-full">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold">M</span>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">Maya</p>
+              <p className="text-xs text-gray-400">Foundation review</p>
+            </div>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            A few answers could be stronger
+          </h3>
+          <p className="text-sm text-gray-500 mb-6">
+            Your foundation is {foundationScore}% complete. Stronger answers help me
+            create better content — but you can always improve this later.
+          </p>
+          <div className="space-y-3 mb-8">
+            {weakFields.map(fieldKey => (
+              <div key={fieldKey} className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={14} className="text-orange-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800">
+                      {FIELD_LABELS[fieldKey] ?? fieldKey}
+                    </p>
+                    {fieldScores[fieldKey]?.feedback && (
+                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                        {fieldScores[fieldKey].feedback}
+                      </p>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowWeakFieldsWarning(false)
+                        setStep(getStepForField(fieldKey))
+                      }}
+                      className="text-xs font-medium text-black underline mt-2 block"
+                    >
+                      Improve this answer →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowWeakFieldsWarning(false)}
+              className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:border-gray-400 transition-colors"
+            >
+              Go back and improve
+            </button>
+            <button
+              onClick={handleGenerateAnyway}
+              className="flex-1 py-3 bg-black text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+            >
+              Generate anyway
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // ── Generation screen ──────────────────────────────────────────────────────
@@ -171,30 +315,46 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
           <div className="w-14 h-14 rounded-2xl bg-black flex items-center justify-center mx-auto mb-6">
             <span className="text-white font-bold text-xl">M</span>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Building your foundation...
-          </h2>
-          <p className="text-sm text-gray-400 mb-8">
-            Maya is reviewing your answers and generating your documents.
-          </p>
-          <div className="space-y-3 text-left">
-            {ALL_DOCS.map(doc => (
-              <div key={doc} className="flex items-center gap-3">
-                {generationProgress.includes(doc) ? (
-                  <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center flex-shrink-0">
-                    <Check size={11} className="text-white" />
-                  </div>
-                ) : (
-                  <div className="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center flex-shrink-0">
-                    <Loader2 size={11} className="text-gray-300 animate-spin" />
-                  </div>
-                )}
-                <span className={`text-sm ${generationProgress.includes(doc) ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
-                  {doc}
-                </span>
+          {generationStage === 'scoring' ? (
+            <>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Evaluating your answers...
+              </h2>
+              <p className="text-sm text-gray-400 mb-8">
+                Maya is reviewing each answer for specificity.
+              </p>
+              <div className="flex justify-center">
+                <Loader2 size={24} className="text-gray-300 animate-spin" />
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Building your foundation...
+              </h2>
+              <p className="text-sm text-gray-400 mb-8">
+                Maya is reviewing your answers and generating your documents.
+              </p>
+              <div className="space-y-3 text-left">
+                {ALL_DOCS.map(doc => (
+                  <div key={doc} className="flex items-center gap-3">
+                    {generationProgress.includes(doc) ? (
+                      <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center flex-shrink-0">
+                        <Check size={11} className="text-white" />
+                      </div>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center flex-shrink-0">
+                        <Loader2 size={11} className="text-gray-300 animate-spin" />
+                      </div>
+                    )}
+                    <span className={`text-sm ${generationProgress.includes(doc) ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+                      {doc}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     )

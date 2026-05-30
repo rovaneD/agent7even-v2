@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
@@ -20,7 +20,9 @@ import {
   Menu,
   X,
   Sparkles,
+  Layers,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
 import MayChatPanel, { type Profile } from '@/components/maya/MayChatPanel'
 
@@ -43,6 +45,7 @@ interface Props {
   initialNotifications: Notification[]
   initialMessages?: unknown[]
   initialMode?: string | null
+  foundationScore?: number | null
 }
 
 // ── Nav ───────────────────────────────────────────────────────────────────
@@ -60,6 +63,7 @@ const NAV = [
       { href: '/dashboard/agents',       label: 'Agents',           icon: Bot       },
       { href: '/dashboard/services',     label: 'Services',         icon: ShoppingBag },
       { href: '/dashboard/calendar',     label: 'Content Calendar', icon: Calendar  },
+      { href: '/dashboard/foundation',   label: 'Foundation',       icon: Layers    },
       { href: '/dashboard/brand-kit',    label: 'Brand Kit',        icon: BookOpen  },
       { href: '/dashboard/analytics',    label: 'Analytics',        icon: BarChart2 },
       { href: '/dashboard/deliverables', label: 'Deliverables',     icon: FileText  },
@@ -86,10 +90,33 @@ export default function DashboardShell({
   initialNotifications,
   initialMessages = [],
   initialMode = null,
+  foundationScore: initialFoundationScore = null,
 }: Props) {
   const pathname     = usePathname()
   const [mayaOpen, setMayaOpen]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
+
+  // Realtime: update foundation score when profile changes (e.g. after rescore on Foundation page)
+  useEffect(() => {
+    if (!profileId) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`profile_foundation:${profileId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: `id=eq.${profileId}`,
+      }, (payload) => {
+        const updated = payload.new as { foundation_score?: number | null }
+        if (updated.foundation_score !== undefined) {
+          setFoundationScore(updated.foundation_score ?? null)
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [profileId])
 
   // Pass the current page as context to Maya so she knows what you're looking at
   const canvasContext = NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
@@ -109,6 +136,7 @@ export default function DashboardShell({
   function NavLink({ item }: { item: typeof NAV[0]['items'][0] }) {
     const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
     const Icon = item.icon
+    const isFoundation = item.href === '/dashboard/foundation'
     return (
       <Link
         href={item.href}
@@ -124,6 +152,14 @@ export default function DashboardShell({
       >
         <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#0a0a0a' : '#bbb'} />
         {item.label}
+        {isFoundation && foundationScore !== null && (
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ width: 28, height: 3, background: '#f0f0f0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
+              <span style={{ display: 'block', width: `${foundationScore}%`, height: '100%', background: active ? '#0a0a0a' : '#bbb', borderRadius: 2, transition: 'width 0.4s' }} />
+            </span>
+            <span style={{ fontSize: 9.5, color: active ? '#666' : '#ccc' }}>{foundationScore}%</span>
+          </span>
+        )}
       </Link>
     )
   }

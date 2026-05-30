@@ -61,7 +61,7 @@ You are completing a specific task, not building a new campaign. Never say "spin
       id, company_name, business_type,
       ideal_customer, sell_locations, marketing_budget,
       competitors, top_goals, marketing_challenge, content_comfort,
-      website_url, instagram_handle
+      website_url, instagram_handle, foundation_score
     `)
     .eq('clerk_user_id', userId)
     .single()
@@ -157,10 +157,19 @@ Reference these specifics in your opening. Never ask for information already lis
     ? `\nCANVAS CONTEXT:\nThe user is currently on the ${canvasContext} page. Tailor your responses to be relevant to what they're looking at.`
     : ''
 
+  const foundationScore = (profile as { foundation_score?: number | null } | null)?.foundation_score ?? null
+  const foundationSection = foundationScore !== null
+    ? `\nFOUNDATION SCORE: ${foundationScore}%${
+        foundationScore < 70
+          ? `\nThe user's foundation answers are ${foundationScore}% complete. If it's relevant to the conversation and hasn't been mentioned recently, gently note that improving their Foundation answers would improve everything you create for them — they can edit at /dashboard/foundation.`
+          : ''
+      }`
+    : ''
+
   const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
 
 ${contextSection}
-${canvasSection}
+${canvasSection}${foundationSection}
 HOW YOU OPEN:
 Your very first message must demonstrate you already know their business. Reference something specific — their goal, their challenge, their differentiator. Make them feel seen.
 

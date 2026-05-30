@@ -32,7 +32,7 @@ export default async function DashboardLayout({
         website_url, instagram_handle, ideal_customer,
         sell_locations, marketing_budget, competitors,
         top_goals, marketing_challenge, content_comfort,
-        foundation_complete
+        foundation_complete, foundation_score
       `)
       .eq('clerk_user_id', userId)
       .single()
@@ -71,6 +71,7 @@ export default async function DashboardLayout({
       initialNotifications={notifications}
       initialMessages={initialMessages}
       initialMode={initialMode}
+      foundationScore={(profile as { foundation_score?: number | null } | null)?.foundation_score ?? null}
     >
       {children}
     </DashboardShell>
