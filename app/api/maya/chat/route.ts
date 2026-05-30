@@ -1,9 +1,14 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import { convertToModelMessages } from 'ai'
+import { convertToModelMessages, streamText } from 'ai'
 import { createServiceClient } from '@/lib/supabase/server'
-import { runAgent } from '@/lib/ai/runAgent'
+import { models } from '@/lib/ai/client'
 import { logActivity } from '@/lib/activity'
+import { createTask, updateTaskStatus } from '@/lib/agents/runner'
+import { calculateCost, CREDIT_COST } from '@/lib/agents/cost'
+
+const CHAT_CREDITS = CREDIT_COST.light  // 2 credits per turn
+const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -207,5 +212,87 @@ This exact phrase triggers the Campaign Builder. Only use it when you genuinely 
 Direct. Warm. A little energetic. Never say "Great!" or "Absolutely!" Just respond and move.
 Never use markdown in conversation. Save structure for the plan.`
 
-  return runAgent({ agent: 'maya', system, messages })
+  // ── Cost-tracked streaming ─────────────────────
+  // Check balance → create task → stream → record cost + deduct after stream
+
+  if (profile?.id) {
+    const { data: bal } = await supabase
+      .from('credit_balances')
+      .select('balance')
+      .eq('user_id', profile.id)
+      .single()
+
+    if ((bal?.balance ?? 0) < CHAT_CREDITS) {
+      return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
+    }
+
+    const task = await createTask({
+      userId: profile.id,
+      agent:  'maya',
+      model:  MAYA_MODEL,
+      input:  { messageCount: messages.length },
+    })
+    await updateTaskStatus(task.id, 'running')
+
+    const result = await streamText({ model: models.maya, system, messages, maxOutputTokens: 2000 })
+
+    // Capture these before the async closure — profile/task may be GC'd
+    const profileId      = profile.id
+    const taskId         = task.id
+    const currentBalance = bal?.balance ?? 0
+
+    // Fire-and-forget: runs after the stream finishes, does not block the response
+    // Wrap in Promise.resolve so we can call .catch() — AI SDK returns PromiseLike
+    Promise.resolve(result.usage).then(async (usage) => {
+      try {
+        const inputTokens  = usage.inputTokens  ?? 0
+        const outputTokens = usage.outputTokens ?? 0
+        const costUsd = await calculateCost(MAYA_MODEL, inputTokens, outputTokens)
+
+        await supabase
+          .from('agent_tasks')
+          .update({
+            status:        'completed',
+            input_tokens:  inputTokens,
+            output_tokens: outputTokens,
+            cost_usd:      costUsd,
+            updated_at:    new Date().toISOString(),
+          })
+          .eq('id', taskId)
+
+        const newBalance = currentBalance - CHAT_CREDITS
+        await supabase
+          .from('credit_balances')
+          .update({ balance: newBalance, updated_at: new Date().toISOString() })
+          .eq('user_id', profileId)
+
+        await supabase.from('credit_ledger').insert({
+          user_id:      profileId,
+          type:         'usage',
+          credits:      -CHAT_CREDITS,
+          balance_after: newBalance,
+          description:  `Maya chat — task ${taskId}`,
+          task_id:      taskId,
+        })
+      } catch (err) {
+        console.error('[maya/chat] post-stream recording failed:', err)
+        void supabase
+          .from('agent_tasks')
+          .update({ status: 'failed', updated_at: new Date().toISOString() })
+          .eq('id', taskId)
+      }
+    }).catch(() => {
+      // Stream error — mark task failed, do not charge
+      void supabase
+        .from('agent_tasks')
+        .update({ status: 'failed', updated_at: new Date().toISOString() })
+        .eq('id', taskId)
+    })
+
+    return result.toUIMessageStreamResponse()
+  }
+
+  // Fallback: no profile resolved — stream without cost tracking (should not happen)
+  const fallback = await streamText({ model: models.maya, system, messages, maxOutputTokens: 2000 })
+  return fallback.toUIMessageStreamResponse()
 }
