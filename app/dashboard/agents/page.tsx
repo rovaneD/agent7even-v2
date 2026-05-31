@@ -10,11 +10,13 @@ export default async function AgentsPage() {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
+  const { data: profileRows } = await supabase
     .from('profiles')
     .select('id, company_name, plan')
     .eq('clerk_user_id', userId)
-    .single()
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const profile = profileRows?.[0] ?? null
 
   if (!profile) redirect('/onboarding')
 

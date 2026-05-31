@@ -11,24 +11,39 @@ export async function POST(
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id: taskId } = await params
-  const { outputId } = await req.json()
+  const { outputId, editedContent } = await req.json()
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
+  const { data: profileRows } = await supabase
     .from('profiles')
     .select('id')
     .eq('clerk_user_id', userId)
-    .single()
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const profile = profileRows?.[0] ?? null
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
   const now = new Date().toISOString()
 
+  const outputUpdate: Record<string, unknown> = { status: 'approved', approved_at: now }
+  if (typeof editedContent === 'string') {
+    // Fetch existing content to preserve parsed fields, only replace raw
+    const { data: existing } = await supabase
+      .from('agent_outputs')
+      .select('content')
+      .eq('id', outputId)
+      .eq('user_id', profile.id)
+      .single()
+    const prev = (existing?.content ?? {}) as Record<string, unknown>
+    outputUpdate.content = { ...prev, raw: editedContent }
+  }
+
   const [outputRes, taskRes] = await Promise.all([
     supabase
       .from('agent_outputs')
-      .update({ status: 'approved', approved_at: now })
+      .update(outputUpdate)
       .eq('id', outputId)
       .eq('user_id', profile.id),
     supabase
