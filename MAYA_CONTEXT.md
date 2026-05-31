@@ -845,9 +845,94 @@ Pages dispatch this on mount (and on significant state changes like rescore). `D
 
 ### Work queue status
 1–9: All ✅ DONE (see CONTEXTV8.md §10 for full list)
-10. Morning digest on Dashboard 🟡 NEXT
-11. Agent names audit 🟢 Quick win
-12. Credit top-up (Stripe checkout) 🟡
-13. Orchestration progress UI 🟡
-14. Approval queue UI 🟡
+10. Morning digest on Dashboard ✅ DONE (May 31, 2026)
+11. Agent names audit ✅ DONE (May 31, 2026)
+12. Brand Kit — full 6-section system ✅ DONE (May 31, 2026)
+13. Maya conversation history in sidebar ✅ DONE (May 31, 2026)
+14. Credit top-up (Stripe checkout) 🟡
+15. Orchestration progress UI 🟡
+16. Approval queue UI 🟡 NEXT
+
+---
+
+## Session Summary — May 31, 2026 (continued)
+
+### What shipped this session
+
+**Morning Digest:**
+- `daily_digests` table — `UNIQUE(user_id, date)`, `dismissed`, `email_sent` columns
+- `GET /api/digest/[id]` — ownership-checked fetch of a specific digest
+- `POST /api/digest/generate` — creates or returns today's digest for a user
+- `GET/api/cron/morning-digest` — Bearer-auth cron, iterates paid accounts with `email_digest=true`, generates digests, sends via Resend from `maya@agent7even.com`, marks `email_sent=true`
+- `MorningDigest` component on Dashboard — dismissable card, "Do this with Maya →" dispatches `maya:open-task`
+- Settings page — Email preferences section with `PreferenceToggle` auto-save pattern (builds full payload at call time to avoid stale React state)
+- `POST /api/settings/update` — selective update: only includes email pref fields if present in body
+- 6th cron in `vercel.json`: `/api/cron/morning-digest` at `0 12 * * *`
+- `formatAgentName()` in digest route maps all 9 agent IDs to display names
+
+**Brand Kit — full 6-section brand identity system:**
+- SQL migration: `brand_kit_sections`, `brand_kit_colors`, `brand_kit_fonts`, `brand_kit_assets` tables + `brand-assets` Storage bucket
+- 9 API routes: `GET /api/brand-kit`, `POST /colors`, `DELETE /colors/[id]`, `POST /fonts`, `POST /assets`, `DELETE /assets/[id]`, `POST /documents`, `POST /sections/complete`, `POST /regenerate`
+- `app/dashboard/brand-kit/page.tsx` — server component, parallel fetches, signed Storage URLs (3600s TTL)
+- `BrandKitView.tsx` — 6-tab layout: Identity / Colors / Typography / Imagery / Voice / Templates
+  - Identity: 3 logo slots (primary, alternate, icon), file upload + URL link
+  - Colors: color picker + HEX/RGB/role fields, auto-save on blur
+  - Typography: 4 font role cards (heading, subheading, body, accent), explicit save button
+  - Imagery: photography style textarea + asset grid upload zone
+  - Voice: Foundation docs (brief/icp/positioning/voice) with Edit + Regenerate, plus 4 additional messaging blocks (tagline, elevator_pitch, about_us, mission)
+  - Templates: Canva/Google Slides/Figma/other URL links + file upload
+- Completion dots per section tab + `X/6` progress counter in header
+- Maya canvas context dispatched on every state change via `maya:canvas-context`
+
+**Generate with Maya — Colors and Typography:**
+- `POST /api/brand-kit/generate-colors` — Haiku generates 5-color palette from `foundation_answers`, returns JSON, deducts 2 credits. Strips markdown fences before `JSON.parse`.
+- `POST /api/brand-kit/generate-fonts` — Haiku returns 2 distinct Google Font pairings (heading + body, with name, rationale, weights, size guide). Same fence-stripping pattern.
+- ColorsSection: empty-state "Generate with Maya" button → color swatch preview → Accept/Try again/Dismiss. "Regenerate palette" when colors exist.
+- TypographySection: empty-state "Generate with Maya" → 2 selectable pairing cards → "Use this pairing" pre-fills heading/body fields without saving. User still clicks "Save font".
+
+**Brand Kit progress bar in nav:**
+- `layout.tsx` fetches `brand_kit_sections` completed count on every page load
+- `DashboardShell` listens for `brandkit:progress` custom event (dispatched by `BrandKitView` on every section change)
+- Mini bar + `%` label next to Brand Kit nav item — identical style to Foundation bar. Rust until 6/6, then green. Hidden at 0%.
+
+**Maya conversation history in sidebar:**
+- `maya_sessions` schema migration: dropped `UNIQUE(user_id)` constraint, added `title` and `canvas_context` columns
+- `GET /api/maya/sessions` — returns last 20 sessions (id, title, canvas_context, updated_at)
+- `GET /api/maya/session?id=` — returns specific session with messages, ownership-checked
+- `POST /api/maya/session` — INSERT on new session, UPDATE on existing. First save calls Haiku with max_tokens:12 to generate a 4-word title from the first user message.
+- `DashboardShell`: sessions grouped by Today / Yesterday / date. Click opens full session history. Maya button always starts fresh panel (panelKey increment).
+- `sessionIdRef` pattern in `MayChatPanel` — tracks session ID without recreating the stable transport
+
+**"Do this with Maya" fix:**
+- Button was opening old conversation. Fixed with `panelKey` counter — incrementing key forces fresh `MayChatPanel` mount with empty messages and no sessionId.
+
+**Agent names audit (3 renames):**
+- `content_writer` → `weekly_content` / "Weekly Content" / "Drafts your social posts and emails so you don't have to"
+- `analytics_reader` → `performance_digest` / "Performance Digest" / "Surfaces what's working and what to do about it"
+- `ad_copy_generator` → `ad_variations` / "Ad Variations" / "Creates multiple ad options so you can test without writing each one"
+- Updated in: `lib/agents/registry.ts` (AgentId union, AGENTS keys/ids/names/descriptions) and `app/api/digest/generate/route.ts` (`formatAgentName()` map)
+
+### New Supabase tables
+- `daily_digests` — `UNIQUE(user_id, date)`, dismissed, email_sent
+- `brand_kit_sections` — section completion tracking
+- `brand_kit_colors` — colors with hex/rgb/role/sort_order
+- `brand_kit_fonts` — fonts with role/family/weight/size_guide/source_url
+- `brand_kit_assets` — files and external URLs, Storage-backed
+
+### New Storage bucket
+- `brand-assets` — logo files, imagery uploads, template files. Signed URLs generated server-side (3600s TTL).
+
+### New email preferences on profiles (via settings)
+- `email_digest` boolean — morning digest opt-in
+- `email_approvals` boolean — approval notification opt-in
+- `email_weekly` boolean — weekly summary opt-in
+
+### Work queue status
+10. Morning digest ✅ DONE
+11. Agent names audit ✅ DONE
+12. Brand Kit 6-section system ✅ DONE
+13. Maya conversation history ✅ DONE
+14. Credit top-up (Stripe checkout) 🟡
+15. Orchestration progress UI 🟡
+16. Approval queue UI 🟡 NEXT
 
