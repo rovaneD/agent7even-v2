@@ -123,6 +123,21 @@ export default function AgentCommandCenter({
     { label: 'No sensitive topics', text: 'Never engage with political, religious, or controversial social topics.' },
   ]
 
+  // Canvas context for Maya
+  useEffect(() => {
+    const scorecardLines = scorecard
+      .map(e => `- ${e.name}: last run ${e.lastRunAt ?? 'never'}, ${e.totalOutputs} output(s), ${e.isScheduled ? 'scheduled/active' : 'idle'}`)
+      .join('\n')
+    const context = `AGENT COMMAND CENTER PAGE
+Company: ${companyName}
+Active tasks: ${activeTasks.length}
+Pending approvals: ${pendingApprovals.length}
+Agents:
+${scorecardLines || '- No agent activity yet'}
+The user can run agents, approve/reject pending outputs, and manage agent constraints.`
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Realtime
   useEffect(() => {
     const supabase = createClient()

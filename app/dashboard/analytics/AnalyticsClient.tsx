@@ -730,6 +730,15 @@ export default function AnalyticsClient({
   const [metaLoading, setMetaLoading] = useState(false)
   const [metaError, setMetaError] = useState<string | null>(null)
 
+  useEffect(() => {
+    const context = `ANALYTICS PAGE
+Company: ${companyName}
+Google Analytics: ${gaOAuthConnected ? `Connected (OAuth) — property ID: ${gaMeasurementId ?? 'not selected'}` : gaMeasurementId ? `Property ID set (${gaMeasurementId}), awaiting team connection` : 'Not connected'}
+Instagram/Meta: ${initialMetaConnected ? `Connected${initialIgHandle ? ` — @${initialIgHandle}` : ''}` : 'Not connected'}
+The user can connect Google Analytics and Meta/Instagram to view live performance data.`
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Handle GA OAuth redirect params
   useEffect(() => {
     const oauthStatus = searchParams.get('ga_oauth')

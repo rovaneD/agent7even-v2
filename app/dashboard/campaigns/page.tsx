@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
 import { Plus } from 'lucide-react'
+import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 
 type Campaign = {
   id: string
@@ -54,8 +55,19 @@ export default async function CampaignsPage() {
 
   if (error) console.error('[campaigns] fetch error:', error.message)
 
+  const campaignLines = campaigns?.length
+    ? (campaigns as Campaign[]).map(c => `- ${c.title} (mode: ${c.mode}, status: ${c.status})`).join('\n')
+    : '- No campaigns yet'
+
+  const contextString = `CAMPAIGNS PAGE
+Total campaigns: ${campaigns?.length ?? 0}
+Campaigns:
+${campaignLines}
+The user can create new campaigns or view existing ones.`
+
   return (
     <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-4xl">
+      <CanvasContextDispatcher context={contextString} />
       <div className="mb-8 flex items-start justify-between">
         <div>
           <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Campaigns</p>

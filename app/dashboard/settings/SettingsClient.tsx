@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
 import { Save, Loader2, CheckCircle, AlertCircle, User, Building, Globe, Hash } from 'lucide-react'
@@ -42,6 +42,20 @@ export default function SettingsClient({ profile }: Props) {
   const [companyName, setCompanyName] = useState(profile.company_name ?? '')
   const [websiteUrl, setWebsiteUrl] = useState(profile.website_url ?? '')
   const [instagramHandle, setInstagramHandle] = useState(profile.instagram_handle ?? '')
+
+  useEffect(() => {
+    const context = `SETTINGS PAGE
+Full name: ${profile.full_name ?? 'not set'}
+Email: ${profile.email ?? 'not set'}
+Company name: ${profile.company_name ?? 'not set'}
+Website URL: ${profile.website_url ?? 'not set'}
+Instagram handle: ${profile.instagram_handle ? `@${profile.instagram_handle}` : 'not set'}
+Business type: ${profile.business_type ?? 'not set'}
+Plan: ${profile.plan ?? 'none'}
+Account status: ${profile.status ?? 'unknown'}
+The user can update their company name, website URL, and Instagram handle. Name and email are managed via Clerk.`
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)

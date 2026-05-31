@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   MessageSquare, Plus, ChevronRight, ChevronLeft,
   Loader2, AlertCircle, X, CheckCircle,
@@ -74,6 +74,20 @@ export default function SupportClient({
 }: Props) {
   const [tickets, setTickets] = useState<Ticket[]>(initial)
   const [view, setView] = useState<'list' | 'new' | 'thread'>('list')
+
+  useEffect(() => {
+    const openTickets = initial.filter(t => t.status === 'open')
+    const ticketLines = initial.length
+      ? initial.map(t => `- "${t.subject}" (status: ${t.status}, priority: ${t.priority ?? 'low'})`).join('\n')
+      : '- No support tickets yet'
+    const context = `SUPPORT PAGE
+Company: ${companyName}
+Open tickets: ${openTickets.length}
+All tickets (${initial.length}):
+${ticketLines}
+The user can view existing tickets or open a new support ticket with the Agent7even team.`
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null)
 
   const [subject, setSubject] = useState('')

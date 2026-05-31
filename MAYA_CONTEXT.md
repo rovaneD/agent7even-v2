@@ -604,7 +604,7 @@ These are confirmed gaps validated against SAASTR_LESSONS.md. Work in this order
 **Example pushback:** "You said your customer is 'small businesses' — can you be more specific? What industry, what size, what specific problem are they trying to solve?"
 **Why now:** Foundation documents are the playbook every agent runs. Bad input here multiplies downstream.
 
-### 4. Stealth churn tracking — Admin panel 🟡 Retention
+### 4. Stealth churn tracking — Admin panel ✅ DONE
 **What:** No `last_active_at` or engagement score tracked per client. Clients can go completely dark and it's invisible until they cancel.
 **Fix:** 
 - Add `last_active_at` timestamptz to `profiles` — updated on every authenticated page load
@@ -633,4 +633,147 @@ These are confirmed gaps validated against SAASTR_LESSONS.md. Work in this order
 - Ad Copy Generator → rename candidate ("Ad Variations — creates multiple ad options so you can test without writing each one")
 - SEO Scanner → probably fine
 - Brand Voice Guardian → probably fine
+
+
+---
+
+## Session Summary — May 29, 2026
+
+### What shipped this session
+
+**Infrastructure:**
+- OpenRouter client (`lib/agents/openrouter.ts`) — all model calls unified
+- Cost tracking — live pricing from OpenRouter, `orchestration_sessions`, `credit_balances`, `credit_ledger` tables
+- Agent runner — `runAgent()` + `runOrchestration()` with budget caps
+- 5 cron jobs total in `vercel.json`: run-scheduled-agents, allocate-credits, refresh-pricing, calculate-engagement, nudge-inactive
+- Activity tracking — `lib/activity.ts` wired in 5 locations
+
+**Product features:**
+- MayaShell — unified nav, old dashboard layout replaced
+- canvasContext in Maya system prompt ✅
+- Agent Constraints — per-user brand safety guardrails, all 9 agents with defaults ✅
+- Foundation validation — soft gate, living document, sidebar progress bar, Maya nudge ✅
+- Stealth churn tracking — engagement score, at-risk admin view, automated nudges ✅
+
+**Documentation:**
+- MAYA_CONTEXT.md — north star product document created and maintained
+- SAASTR_LESSONS.md — strategic principles added to project
+- agent_constraints_handoff.md — Claude Code handoff
+- foundation_validation_handoff.md — Claude Code handoff
+- stealth_churn_handoff.md — Claude Code handoff
+- Session handoff protocol established — two-document system
+
+### Work queue status
+1. canvasContext ✅ DONE
+2. Agent Constraints ✅ DONE
+3. Foundation validation ✅ DONE
+4. Stealth churn tracking ✅ DONE
+5. Segment-first campaign creation 🟡 NEXT
+6. Morning digest on Dashboard 🟡
+7. Agent names audit 🟢 Quick win
+
+### New Supabase tables added this session
+- `orchestration_sessions`
+- `credit_balances`
+- `credit_ledger`
+- `agent_constraints`
+- `foundation_field_scores`
+- `client_activity_log`
+
+### New columns added to `profiles`
+- `foundation_score` integer
+- `foundation_answers` jsonb
+- `foundation_updated_at` timestamptz
+- `last_active_at` timestamptz
+- `engagement_score` integer
+- `engagement_updated_at` timestamptz
+- `last_nudged_at` timestamptz
+
+
+---
+
+## Session Summary — May 30, 2026
+
+### What shipped this session
+
+**Bug fixes:**
+- Foundation redirect — `null` and `false` both now caught correctly
+- Old `/onboarding` route deleted (517 lines removed)
+- Old admin redirect removed from `dashboard/page.tsx`
+- Old `/maya` route fixed — no longer uses stale layout
+- Foundation 0% empty state — shows "Score my foundation" when complete but unscored
+- Foundation score realtime sync in sidebar via Supabase realtime on profiles table
+
+**Admin experience:**
+- MayaShell now renders for admin accounts — no separate redirect
+- ADMIN section added to sidebar — conditionally visible for role = admin or owner
+- Admin nav: Clients, Revenue, Orders, Inquiries, Admin Settings
+- Old dark admin sidebar layout removed — all admin pages inside MayaShell
+
+**Admin client 360:**
+- `/admin/clients` — search (debounced), plan + status filters, company/Instagram column, ••• hover menu, duplicate email banner
+- `/admin/clients/[id]` — two-panel layout
+  - Left: identity card, health scores (engagement/foundation/credits), 6 action buttons
+  - Right: 6 tabs — Activity, Billing, Team, Foundation (read-only), Notes, Support
+  - All modals: send email (Resend + logged), change plan, change role, suspend/reactivate, reset Foundation, deactivate duplicate
+- 7 new API routes under `/api/admin/clients/[id]/` — all protected by `requireAdmin()`
+- `admin_email_log` table created
+
+### New Supabase tables
+- `admin_email_log` — tracks admin-initiated emails to clients
+
+### Known issues to address
+- Foundation page shows 0% for users who completed Foundation before scoring feature was built — fix: "Score my foundation" CTA on empty state
+- Old `/maya` route still needs verification that it's fully inside MayaShell
+
+### Work queue status
+1. canvasContext ✅ DONE
+2. Agent Constraints ✅ DONE
+3. Foundation validation ✅ DONE
+4. Stealth churn tracking ✅ DONE
+5. Admin sidebar + client 360 ✅ DONE
+6. Segment-first campaign creation 🟡 NEXT
+7. Morning digest on Dashboard 🟡
+8. Agent names audit 🟢 Quick win
+9. Fix old /maya route layout ⚠️ Pending verification
+
+
+---
+
+## Campaign Creation System — Built May 30, 2026
+
+### What shipped
+Full campaign creation system — two modes, same artifact output.
+
+### New files
+- `lib/credits.ts` — `deductCredits()` utility with balance check + ledger insert
+- `app/api/campaigns/generate/route.ts` — guided + open canvas generation via OpenRouter, DB save, credit deduction
+- `components/campaigns/NewCampaignModal.tsx` — two-card mode picker
+- `components/campaigns/GuidedCampaignFlow.tsx` — 3-step: segment → adaptive goals → timeline/budget/model selector + generation animation
+- `components/campaigns/OpenCanvasFlow.tsx` — Maya chat with trigger-phrase detection, model selector, generation flow
+- `app/dashboard/campaigns/page.tsx` — campaign list with status badges
+- `app/dashboard/campaigns/new/page.tsx` — routes by `?mode` param
+- `app/dashboard/campaigns/[id]/page.tsx` + `CampaignDetail.tsx` — detail with Do This Today + collapsible week accordions
+
+### Updated files
+- `DashboardShell.tsx` — Campaigns nav item, "New campaign" button, `maya:open-task` event listener
+- `MayChatPanel.tsx` — `pendingTask` prop injects `__TASK__` sentinel when user clicks "Do this with Maya →"
+- `app/api/maya/chat/route.ts` — `isOpenCanvas` mode with custom system prompt + trigger phrase detection
+- `app/my-campaigns/page.tsx` — redirects to `/dashboard/campaigns`
+
+### Key architectural patterns
+- `maya:open-task` custom event — canvas fires it, DashboardShell listens, opens Maya chat with task context. No prop drilling.
+- `__TASK__` sentinel — injected into Maya chat input when "Do this with Maya →" is clicked, tells Maya which specific task to help with
+- Trigger phrase detection in Open Canvas — Maya says "I have what I need to build this. Want me to generate the full plan?" → UI detects phrase → shows generate button
+- Model selection — Claude Sonnet (8cr) or Claude Opus (25cr) — explicit model names shown to user, not marketing labels
+
+### Campaign DB schema
+- `campaigns` table — `id, user_id, title, status, mode, segment, goal, timeline_days, strategy_summary, do_this_today (jsonb), week_plan (jsonb), model_used, chat_session_id, created_at, updated_at`
+- `campaign_copy_options` table — copy A/B/C options per campaign field
+
+### Work queue update
+5. Segment-first campaign creation ✅ DONE
+6. Morning digest on Dashboard 🟡 NEXT
+7. Agent names audit 🟢 Quick win
+8. Maya cost tracking — Maya chat not yet wired into runner (tokens not logged) ⚠️
 

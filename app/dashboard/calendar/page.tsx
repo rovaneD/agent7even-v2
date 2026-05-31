@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 
 export default async function CalendarPage() {
   const { userId } = await auth()
@@ -7,6 +8,9 @@ export default async function CalendarPage() {
 
   return (
     <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl">
+      <CanvasContextDispatcher context="CONTENT CALENDAR PAGE
+This feature is coming soon — the content calendar is not yet active.
+When available, it will show a week-by-week view of all planned content across campaigns." />
       <div className="mb-8">
         <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Content Calendar</p>
         <h1 className="text-2xl font-bold text-gray-900">Your content schedule</h1>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Globe, Hash, Camera, Mail, Search,
@@ -212,6 +212,22 @@ export default function ServicesClient({
 }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'browse' | 'orders'>('browse')
+
+  useEffect(() => {
+    const activeOrders = orders.filter(o => !['approved', 'cancelled'].includes(o.status))
+    const activeOrderLines = activeOrders.length
+      ? activeOrders.map(o => `- ${o.title} (status: ${o.status})`).join('\n')
+      : '- No active orders'
+    const serviceLines = SERVICES.map(s => `- ${s.name}: ${s.price} (${s.type})`).join('\n')
+    const context = `SERVICES PAGE
+Plan: ${profile?.plan ?? 'none'}
+Active orders (${activeOrders.length}):
+${activeOrderLines}
+Available services:
+${serviceLines}
+The user can request new marketing services or track existing orders.`
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [requestingService, setRequestingService] = useState<typeof SERVICES[0] | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')

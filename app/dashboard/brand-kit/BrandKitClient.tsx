@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sparkles, FileText, RefreshCw, ChevronRight } from 'lucide-react'
 import BrandFlow from './BrandFlow'
 import BrandDocument from './BrandDocument'
@@ -38,6 +38,20 @@ export default function BrandKitClient({
   const [activeDoc, setActiveDoc] = useState<BrandDoc | null>(null)
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const docLines = initialDocuments.length
+      ? initialDocuments.map(d => `- ${d.title} (type: ${d.type}, version: ${d.version})`).join('\n')
+      : '- No brand documents generated yet'
+    const context = `BRAND KIT PAGE
+Company: ${companyName}
+Brand questionnaire complete: ${answersComplete ? 'Yes' : 'No'}
+Documents generated (${initialDocuments.length}):
+${docLines}
+${!answersComplete ? 'User needs to complete the brand questionnaire to generate their brand documents.' : 'User can view and edit their brand documents.'}
+${generating ? 'Brand documents are currently being generated.' : ''}`
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasDocuments = documents.length > 0
 

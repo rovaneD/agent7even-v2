@@ -11,6 +11,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import PlanBanner from './PlanBanner'
+import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -31,8 +32,15 @@ export default async function DashboardPage() {
   const displayName = profile?.company_name || profile?.full_name || 'there'
   const hasPlan = !!profile?.plan
 
+  const contextString = `DASHBOARD PAGE
+Company: ${displayName}
+Plan: ${profile?.plan ?? 'none'}
+The user is on their main dashboard overview.
+${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents and campaigns.' : `Plan is active: ${profile.plan}.`}`
+
   return (
     <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl">
+      <CanvasContextDispatcher context={contextString} />
       <div className="mb-8">
         <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Dashboard</p>
         <h1 className="text-2xl font-bold text-gray-900">Welcome back, {displayName}.</h1>
