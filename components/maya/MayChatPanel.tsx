@@ -31,6 +31,7 @@ interface Props {
   initialMessages?: unknown[]
   initialMode?: string | null
   canvasContext?: string
+  canvasData?: string
   pendingTask?: string | null
   onTaskConsumed?: () => void
   onClose?: () => void
@@ -66,6 +67,7 @@ export default function MayChatPanel({
   initialMessages = [],
   initialMode = null,
   canvasContext,
+  canvasData,
   pendingTask = null,
   onTaskConsumed,
   onClose,
@@ -93,12 +95,22 @@ export default function MayChatPanel({
   const messagesRef    = useRef<UIMessage[]>([])
   const modeRef        = useRef<string | null>(initialMode)
 
-  // Memoize so the transport object is stable across re-renders.
-  // A new DefaultChatTransport on every render causes useChat to re-initialize
-  // and can fire duplicate requests. profile is fetched server-side from auth;
-  // canvasContext is captured at mount — acceptable staleness for page awareness.
+  // canvasData changes as the user navigates — keep it in a ref so the custom
+  // fetch interceptor always reads the latest value without recreating the transport.
+  const canvasDataRef = useRef(canvasData)
+  useEffect(() => { canvasDataRef.current = canvasData }, [canvasData])
+
+  // Stable transport — never recreated so useChat never resets mid-conversation.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const transport = useMemo(() => new DefaultChatTransport({ api: '/api/maya/chat', body: { canvasContext } }), [])
+  const transport = useMemo(() => new DefaultChatTransport({
+    api: '/api/maya/chat',
+    body: { canvasContext },
+    fetch: async (url, init) => {
+      const body = JSON.parse((init?.body as string) ?? '{}')
+      if (canvasDataRef.current) body.canvasData = canvasDataRef.current
+      return fetch(url, { ...init, body: JSON.stringify(body) })
+    },
+  }), [])
 
   const { messages, sendMessage, status } = useChat({
     transport,

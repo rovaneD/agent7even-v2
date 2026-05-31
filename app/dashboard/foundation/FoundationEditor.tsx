@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Loader2, Check } from 'lucide-react'
 
@@ -156,6 +156,29 @@ export default function FoundationEditor({
 
   const hasChanges = JSON.stringify(answers) !== JSON.stringify(savedAnswers)
 
+  function dispatchCanvasContext(currentAnswers: Answers, currentScore: number, currentWeakFields: string[]) {
+    const filled = (v: string) => v?.trim() ? v.trim() : '(not filled in)'
+    const lines = [
+      `FOUNDATION PAGE`,
+      `Score: ${currentScore}%`,
+      ``,
+      `CURRENT ANSWERS:`,
+      ...Object.entries(FIELD_LABELS).map(([k, label]) =>
+        `${label}: ${filled(currentAnswers[k as keyof Answers])}`
+      ),
+    ]
+    if (currentWeakFields.length > 0) {
+      lines.push(``, `WEAK AREAS (below 70%):`)
+      currentWeakFields.forEach(f => lines.push(`- ${FIELD_LABELS[f]}`))
+    }
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
+  }
+
+  // Dispatch on mount so Maya knows the page state when the panel opens
+  useEffect(() => {
+    dispatchCanvasContext(answers, score, weakFields)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   function updateField(key: keyof Answers, value: string) {
     setAnswers(prev => ({ ...prev, [key]: value }))
   }
@@ -175,6 +198,7 @@ export default function FoundationEditor({
       setLastUpdatedAt(new Date().toISOString())
       setRescored(true)
       window.dispatchEvent(new CustomEvent('foundation:rescored', { detail: { score: data.overallScore } }))
+      dispatchCanvasContext(answers, data.overallScore, data.topWeakFields ?? [])
       setTimeout(() => setRescored(false), 3000)
 
       // Regenerate foundation documents in background

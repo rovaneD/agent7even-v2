@@ -109,6 +109,7 @@ export default function DashboardShell({
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
   const [showNewCampaign, setShowNewCampaign] = useState(false)
   const [mayaPendingTask, setMayaPendingTask] = useState<string | null>(null)
+  const [canvasData, setCanvasData] = useState<string>('')
 
   const isAdmin = isAdminProp || role === 'admin' || role === 'owner'
 
@@ -121,6 +122,18 @@ export default function DashboardShell({
     window.addEventListener('foundation:rescored', onRescored)
     return () => window.removeEventListener('foundation:rescored', onRescored)
   }, [])
+
+  // Listen for page-level context dispatched by page components
+  useEffect(() => {
+    function onCanvasContext(e: Event) {
+      setCanvasData((e as CustomEvent<{ context: string }>).detail.context)
+    }
+    window.addEventListener('maya:canvas-context', onCanvasContext)
+    return () => window.removeEventListener('maya:canvas-context', onCanvasContext)
+  }, [])
+
+  // Clear page context when navigating away
+  useEffect(() => { setCanvasData('') }, [pathname])
 
   // Realtime: cross-tab fallback — update score when profiles row changes
   useEffect(() => {
@@ -326,6 +339,7 @@ export default function DashboardShell({
             initialMessages={initialMessages}
             initialMode={initialMode}
             canvasContext={canvasContext}
+            canvasData={canvasData}
             pendingTask={mayaPendingTask}
             onTaskConsumed={() => setMayaPendingTask(null)}
             onClose={() => setMayaOpen(false)}

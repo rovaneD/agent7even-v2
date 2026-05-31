@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messages: rawMessages, isEdit, priorOption, canvasContext, isOpenCanvas } = await req.json()
+  const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas } = await req.json()
   const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
   if (!converted?.length) {
@@ -177,9 +177,11 @@ Reference these specifics in your opening. Never ask for information already lis
       ? `\nEDIT MODE:\nThe user is revisiting a previously completed task to improve it. Do not start from scratch — acknowledge what they chose before and ask what they want to change. Be brief and direct.${priorOption ? `\nTheir previous selection: "${priorOption}"` : ''}`
       : ''
 
-    const canvasSection = canvasContext
-      ? `\nCANVAS CONTEXT:\nThe user is currently on the ${canvasContext} page. Tailor your responses to be relevant to what they're looking at.`
-      : ''
+    const canvasSection = canvasData
+      ? `\nPAGE CONTEXT — what the user is currently looking at:\n${canvasData}`
+      : canvasContext
+        ? `\nCANVAS CONTEXT:\nThe user is currently on the ${canvasContext} page. Tailor your responses to be relevant to what they're looking at.`
+        : ''
 
     const foundationScore = (profile as { foundation_score?: number | null } | null)?.foundation_score ?? null
     const foundationSection = foundationScore !== null
