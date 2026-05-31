@@ -35,8 +35,9 @@ export async function POST(
       .select('content')
       .eq('id', outputId)
       .eq('user_id', profile.id)
-      .single()
-    const prev = (existing?.content ?? {}) as Record<string, unknown>
+      .order('created_at', { ascending: false })
+      .limit(1)
+    const prev = (existing?.[0]?.content ?? {}) as Record<string, unknown>
     outputUpdate.content = { ...prev, raw: editedContent }
   }
 
@@ -48,7 +49,7 @@ export async function POST(
       .eq('user_id', profile.id),
     supabase
       .from('agent_tasks')
-      .update({ approved_at: now })
+      .update({ approved_at: now, reviewed_at: now, reviewed_by: profile.id })
       .eq('id', taskId)
       .eq('user_id', profile.id),
   ])

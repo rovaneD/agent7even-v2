@@ -24,6 +24,7 @@ export default async function DashboardLayout({
   }[] = []
   let initialSessions: { id: string; title: string | null; canvas_context: string | null; updated_at: string }[] = []
   let brandKitCompleted = 0
+  let pendingApprovalsCount = 0
 
   if (userId) {
     const { data: profileRows } = await supabase
@@ -45,7 +46,7 @@ export default async function DashboardLayout({
       profile = p
       profileId = p.id
 
-      const [{ data: notifs }, { data: sessionRows }, { data: brandKitRows }] = await Promise.all([
+      const [{ data: notifs }, { data: sessionRows }, { data: brandKitRows }, { count: approvalsCount }] = await Promise.all([
         supabase
           .from('notifications')
           .select('*')
@@ -65,12 +66,22 @@ export default async function DashboardLayout({
           .select('completed')
           .eq('user_id', p.id),
 
+        supabase
+          .from('agent_tasks')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', p.id)
+          .eq('requires_approval', true)
+          .eq('status', 'complete')
+          .is('approved_at', null)
+          .is('rejected_at', null),
+
         logActivity(p.id, 'page_view'),
       ])
 
-      notifications    = notifs ?? []
-      initialSessions  = (sessionRows ?? []) as typeof initialSessions
-      brandKitCompleted = (brandKitRows ?? []).filter((r: { completed: boolean }) => r.completed).length
+      notifications         = notifs ?? []
+      initialSessions       = (sessionRows ?? []) as typeof initialSessions
+      brandKitCompleted     = (brandKitRows ?? []).filter((r: { completed: boolean }) => r.completed).length
+      pendingApprovalsCount = approvalsCount ?? 0
     }
   }
 
@@ -82,6 +93,7 @@ export default async function DashboardLayout({
       initialSessions={initialSessions}
       foundationScore={(profile as { foundation_score?: number | null } | null)?.foundation_score ?? null}
       brandKitCompleted={brandKitCompleted}
+      pendingApprovalsCount={pendingApprovalsCount}
       role={(profile as any)?.role ?? null}
       isAdmin={['admin', 'owner'].includes((profile as any)?.role ?? '')}
     >

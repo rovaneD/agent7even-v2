@@ -109,6 +109,7 @@ Return only the sentence, nothing else.`,
     agentName: formatAgentName(task.agent),
     preview:   (outputByTask[task.id] ?? '').slice(0, 150),
     createdAt: task.created_at,
+    reviewUrl: `/dashboard/agents/approvals?task=${task.id}`,
   }))
 
   const { data: digest, error } = await supabase

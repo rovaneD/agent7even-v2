@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { AGENTS, AgentId, AgentDefinition } from '@/lib/agents/registry'
 
@@ -92,13 +93,6 @@ export default function AgentCommandCenter({
   const [activeTasks, setActiveTasks] = useState(initActiveTasks)
   const [pendingApprovals, setPendingApprovals] = useState(initPendingApprovals)
   const [recentTasks] = useState(initRecent)
-  const [approving,    setApproving]    = useState<string | null>(null)
-  const [rejecting,    setRejecting]    = useState<string | null>(null)
-  const [rejectNote,   setRejectNote]   = useState('')
-  const [rejectTarget, setRejectTarget] = useState<{ taskId: string; outputId: string } | null>(null)
-  const [expanded,     setExpanded]     = useState<Set<string>>(new Set())
-  const [editingId,    setEditingId]    = useState<string | null>(null)
-  const [editContent,  setEditContent]  = useState<Record<string, string>>({})
 
   // New task form state
   const [selectedAgent, setSelectedAgent] = useState<AgentId | null>(null)
@@ -225,55 +219,6 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
     }
   }
 
-  function toggleExpanded(id: string) {
-    setExpanded(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  function startEdit(taskId: string, raw: string) {
-    setEditingId(taskId)
-    setEditContent(prev => ({ ...prev, [taskId]: raw }))
-    setExpanded(prev => new Set([...prev, taskId]))
-  }
-
-  async function handleApprove(taskId: string, outputId: string, edited?: string) {
-    setApproving(outputId)
-    try {
-      const body: Record<string, unknown> = { outputId }
-      if (edited !== undefined) body.editedContent = edited
-      await fetch(`/api/agents/tasks/${taskId}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      setPendingApprovals(prev => prev.filter(t => t.id !== taskId))
-      setEditingId(null)
-    } finally {
-      setApproving(null)
-    }
-  }
-
-  async function handleReject() {
-    if (!rejectTarget) return
-    setRejecting(rejectTarget.outputId)
-    try {
-      await fetch(`/api/agents/tasks/${rejectTarget.taskId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ outputId: rejectTarget.outputId, note: rejectNote }),
-      })
-      setPendingApprovals(prev => prev.filter(t => t.id !== rejectTarget.taskId))
-      setRejectTarget(null)
-      setRejectNote('')
-    } finally {
-      setRejecting(null)
-    }
-  }
-
   async function handleCreateTask() {
     if (!selectedAgent) return
     setSubmitting(true)
@@ -317,187 +262,39 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         </p>
       </div>
 
-      {/* ═══ ZONE 1: Approval Queue ═══ */}
-      <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: 20, marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: pendingApprovals.length > 0 ? 16 : 0 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb' }}>
-            Approval queue
-          </span>
-          {pendingApprovals.length > 0 && (
-            <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>{pendingApprovals.length}</span>
+      {/* ═══ ZONE 1: Approval Queue Banner ═══ */}
+      {pendingApprovals.length > 0 ? (
+        <Link
+          href="/dashboard/agents/approvals"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: '#fff5f2', border: '0.5px solid #f0c8b8', borderRadius: 12,
+            padding: '14px 20px', marginBottom: 24, textDecoration: 'none',
+            transition: 'border-color 0.12s',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#c8522a' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#f0c8b8' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#c8522a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{pendingApprovals.length}</span>
             </div>
-          )}
-        </div>
-
-        {pendingApprovals.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <i className="ti ti-circle-check" style={{ fontSize: 28, color: '#e0e0e0', display: 'block', marginBottom: 8 }} />
-            <p style={{ fontSize: 13, color: '#ccc', margin: 0 }}>Nothing waiting for review</p>
-            <p style={{ fontSize: 12, color: '#ddd', marginTop: 4 }}>Outputs from approval-required agents will appear here</p>
-          </div>
-        )}
-
-        {pendingApprovals.map((task, i) => {
-          const agentDef  = AGENTS[task.agent as AgentId]
-          const outputs   = task.agent_outputs ?? []
-          const output    = outputs[0]
-          const isOpen    = expanded.has(task.id)
-          const isEditing = editingId === task.id
-          const raw       = output?.content?.raw ?? ''
-          const editVal   = editContent[task.id] ?? raw
-
-          return (
-            <div key={task.id}>
-              {i > 0 && <div style={{ height: '0.5px', background: '#f0f0f0', margin: '16px 0' }} />}
-
-              {/* Header row */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <i className={`ti ${agentDef?.icon ?? 'ti-robot'}`} style={{ fontSize: 15, color: '#888', marginTop: 2, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-
-                  {/* Agent + time */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: '#0a0a0a' }}>{agentDef?.name}</span>
-                    <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(task.completed_at)}</span>
-                  </div>
-
-                  {/* Output title */}
-                  {output?.title && (
-                    <p style={{ fontSize: 13.5, fontWeight: 500, color: '#0a0a0a', marginBottom: 6 }}>{output.title}</p>
-                  )}
-
-                  {/* Collapsed preview */}
-                  {!isOpen && raw && (
-                    <p style={{ fontSize: 13, color: '#666', lineHeight: 1.55, marginBottom: 10 }}>
-                      {raw.length > 160 ? raw.slice(0, 160) + '…' : raw}
-                    </p>
-                  )}
-
-                  {/* Expanded: full content or inline editor */}
-                  {isOpen && (
-                    <div style={{ marginBottom: 10 }}>
-                      {isEditing ? (
-                        <textarea
-                          value={editVal}
-                          onChange={e => setEditContent(prev => ({ ...prev, [task.id]: e.target.value }))}
-                          rows={8}
-                          style={{ width: '100%', border: '0.5px solid #0a0a0a', borderRadius: 8, padding: '10px 12px', fontSize: 13, lineHeight: 1.6, resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#0a0a0a' }}
-                        />
-                      ) : (
-                        <div style={{ background: '#fafafa', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#333', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
-                          {raw || <span style={{ color: '#ccc', fontStyle: 'italic' }}>No content</span>}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Expand / collapse toggle */}
-                  {raw && raw.length > 160 && (
-                    <button
-                      onClick={() => { toggleExpanded(task.id); if (isEditing) setEditingId(null) }}
-                      style={{ fontSize: 12, color: '#888', background: 'none', border: 'none', padding: '0 0 10px', cursor: 'pointer', fontFamily: 'inherit' }}
-                    >
-                      {isOpen ? '↑ Collapse' : '↓ Read full output'}
-                    </button>
-                  )}
-
-                  {/* Quick feedback chips — for reject flow */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                    {[
-                      { label: 'Off-brand',     note: 'This doesn\'t match our brand voice. Rewrite to feel more on-brand.' },
-                      { label: 'Too aggressive', note: 'Tone is too aggressive / pushy. Make it more conversational and helpful.' },
-                      { label: 'Wrong tone',     note: 'The tone is off. Refer to our Brand Voice Guide and rewrite.' },
-                      { label: 'Needs editing',  note: 'Content needs significant editing before it\'s usable.' },
-                    ].map(chip => (
-                      <button
-                        key={chip.label}
-                        onClick={() => {
-                          if (output) setRejectTarget({ taskId: task.id, outputId: output.id })
-                          setRejectNote(chip.note)
-                        }}
-                        style={{ padding: '3px 10px', borderRadius: 20, border: '0.5px solid #e0e0e0', background: '#f8f8f8', color: '#666', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#c8522a'; (e.currentTarget as HTMLButtonElement).style.color = '#c8522a' }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e0e0e0'; (e.currentTarget as HTMLButtonElement).style.color = '#666' }}
-                      >
-                        {chip.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Action buttons */}
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {isEditing ? (
-                      <>
-                        <button
-                          onClick={() => output && handleApprove(task.id, output.id, editContent[task.id] ?? raw)}
-                          disabled={approving === output?.id}
-                          style={{ padding: '6px 16px', borderRadius: 7, background: '#0a0a0a', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: approving === output?.id ? 0.6 : 1, fontFamily: 'inherit' }}
-                        >
-                          {approving === output?.id ? 'Saving…' : 'Save edits & approve'}
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#888', border: '0.5px solid #ddd', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => output && handleApprove(task.id, output.id)}
-                          disabled={approving === output?.id}
-                          style={{ padding: '6px 16px', borderRadius: 7, background: '#0a0a0a', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: approving === output?.id ? 0.6 : 1, fontFamily: 'inherit' }}
-                        >
-                          {approving === output?.id ? 'Approving…' : 'Approve'}
-                        </button>
-                        <button
-                          onClick={() => output && startEdit(task.id, raw)}
-                          style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#0a0a0a', border: '0.5px solid #ddd', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
-                        >
-                          Edit &amp; approve
-                        </button>
-                        <button
-                          onClick={() => { if (output) setRejectTarget({ taskId: task.id, outputId: output.id }) }}
-                          style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#bbb', border: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                        >
-                          Reject &amp; redo
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Reject modal */}
-      {rejectTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 420, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
-            <p style={{ fontSize: 15, fontWeight: 500, color: '#0a0a0a', marginBottom: 8 }}>Reject and re-run?</p>
-            <p style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>Tell the agent what to do differently. It'll re-run with your feedback.</p>
-            <textarea
-              value={rejectNote}
-              onChange={e => setRejectNote(e.target.value)}
-              placeholder="What should the agent change? (optional)"
-              rows={3}
-              style={{ width: '100%', border: '0.5px solid #e0e0e0', borderRadius: 8, padding: 10, fontSize: 13, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-            />
-            <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-              <button onClick={handleReject} disabled={!!rejecting}
-                style={{ flex: 1, padding: '8px 0', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {rejecting ? 'Rejecting…' : 'Reject & re-run'}
-              </button>
-              <button onClick={() => { setRejectTarget(null); setRejectNote('') }}
-                style={{ padding: '8px 16px', background: 'transparent', color: '#888', border: '0.5px solid #ddd', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cancel
-              </button>
+            <div>
+              <p style={{ fontSize: 13.5, fontWeight: 600, color: '#0a0a0a', margin: 0 }}>
+                {pendingApprovals.length} output{pendingApprovals.length !== 1 ? 's' : ''} waiting for your review
+              </p>
+              <p style={{ fontSize: 12, color: '#888', margin: '2px 0 0' }}>
+                {[...new Set(pendingApprovals.map(t => AGENTS[t.agent as AgentId]?.name ?? t.agent))].slice(0, 3).join(', ')}
+                {pendingApprovals.length > 3 ? ` +${pendingApprovals.length - 3} more` : ''}
+              </p>
             </div>
           </div>
+          <span style={{ fontSize: 12.5, color: '#c8522a', fontWeight: 500 }}>Review →</span>
+        </Link>
+      ) : (
+        <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <i className="ti ti-circle-check" style={{ fontSize: 16, color: '#d0d0d0' }} />
+          <span style={{ fontSize: 13, color: '#ccc' }}>Queue is clear — nothing waiting for review</span>
         </div>
       )}
 

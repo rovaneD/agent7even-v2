@@ -59,6 +59,7 @@ interface Props {
   initialSessions?: Session[]
   foundationScore?: number | null
   brandKitCompleted?: number
+  pendingApprovalsCount?: number
   role?: string | null
   isAdmin?: boolean
 }
@@ -127,6 +128,7 @@ export default function DashboardShell({
   initialSessions = [],
   foundationScore: initialFoundationScore = null,
   brandKitCompleted: initialBrandKitCompleted = 0,
+  pendingApprovalsCount: initialPendingApprovalsCount = 0,
   role = null,
   isAdmin: isAdminProp = false,
 }: Props) {
@@ -135,6 +137,7 @@ export default function DashboardShell({
   const [mobileOpen, setMobileOpen]   = useState(false)
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
   const [brandKitCompleted, setBrandKitCompleted] = useState(initialBrandKitCompleted)
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(initialPendingApprovalsCount)
   const [showNewCampaign, setShowNewCampaign] = useState(false)
   const [mayaPendingTask, setMayaPendingTask] = useState<string | null>(null)
   const [panelKey, setPanelKey]       = useState(0)
@@ -281,39 +284,67 @@ export default function DashboardShell({
     const Icon = item.icon
     const isFoundation = item.href === '/dashboard/foundation'
     const isBrandKit   = item.href === '/dashboard/brand-kit'
+    const isAgents     = item.href === '/dashboard/agents'
     const brandKitPct  = Math.round((brandKitCompleted / 6) * 100)
+    const approvalsActive = pathname.startsWith('/dashboard/agents/approvals')
     return (
-      <Link
-        href={item.href}
-        onClick={() => setMobileOpen(false)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px',
-          borderRadius: 7, textDecoration: 'none', fontSize: 12.5, fontWeight: active ? 500 : 400,
-          color: active ? '#0a0a0a' : '#999', background: active ? '#f2f2f2' : 'transparent',
-          transition: 'background 0.12s, color 0.12s', marginBottom: 1,
-        }}
-        onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#f7f7f7'; (e.currentTarget as HTMLAnchorElement).style.color = '#555' } }}
-        onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#999' } }}
-      >
-        <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#0a0a0a' : '#bbb'} />
-        {item.label}
-        {isFoundation && foundationScore !== null && (
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ width: 28, height: 3, background: '#f0f0f0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
-              <span style={{ display: 'block', width: `${foundationScore}%`, height: '100%', background: foundationBarColor(foundationScore), borderRadius: 2, transition: 'width 0.4s' }} />
+      <>
+        <Link
+          href={item.href}
+          onClick={() => setMobileOpen(false)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px',
+            borderRadius: 7, textDecoration: 'none', fontSize: 12.5, fontWeight: active ? 500 : 400,
+            color: active ? '#0a0a0a' : '#999', background: active ? '#f2f2f2' : 'transparent',
+            transition: 'background 0.12s, color 0.12s', marginBottom: 1,
+          }}
+          onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#f7f7f7'; (e.currentTarget as HTMLAnchorElement).style.color = '#555' } }}
+          onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#999' } }}
+        >
+          <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#0a0a0a' : '#bbb'} />
+          {item.label}
+          {isFoundation && foundationScore !== null && (
+            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <span style={{ width: 28, height: 3, background: '#f0f0f0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
+                <span style={{ display: 'block', width: `${foundationScore}%`, height: '100%', background: foundationBarColor(foundationScore), borderRadius: 2, transition: 'width 0.4s' }} />
+              </span>
+              <span style={{ fontSize: 9.5, color: foundationBarColor(foundationScore) }}>{foundationScore}%</span>
             </span>
-            <span style={{ fontSize: 9.5, color: foundationBarColor(foundationScore) }}>{foundationScore}%</span>
-          </span>
-        )}
-        {isBrandKit && brandKitCompleted > 0 && (
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ width: 28, height: 3, background: '#f0f0f0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
-              <span style={{ display: 'block', width: `${brandKitPct}%`, height: '100%', background: brandKitCompleted === 6 ? '#16a34a' : '#c8522a', borderRadius: 2, transition: 'width 0.4s' }} />
+          )}
+          {isBrandKit && brandKitCompleted > 0 && (
+            <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <span style={{ width: 28, height: 3, background: '#f0f0f0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
+                <span style={{ display: 'block', width: `${brandKitPct}%`, height: '100%', background: brandKitCompleted === 6 ? '#16a34a' : '#c8522a', borderRadius: 2, transition: 'width 0.4s' }} />
+              </span>
+              <span style={{ fontSize: 9.5, color: brandKitCompleted === 6 ? '#16a34a' : '#c8522a' }}>{brandKitPct}%</span>
             </span>
-            <span style={{ fontSize: 9.5, color: brandKitCompleted === 6 ? '#16a34a' : '#c8522a' }}>{brandKitPct}%</span>
-          </span>
+          )}
+          {isAgents && pendingApprovalsCount > 0 && (
+            <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, borderRadius: 9, background: '#c8522a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+              <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>{pendingApprovalsCount}</span>
+            </span>
+          )}
+        </Link>
+        {/* Approvals sub-item */}
+        {isAgents && pendingApprovalsCount > 0 && (
+          <Link
+            href="/dashboard/agents/approvals"
+            onClick={() => setMobileOpen(false)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px 5px 32px',
+              borderRadius: 7, textDecoration: 'none', fontSize: 12, fontWeight: approvalsActive ? 500 : 400,
+              color: approvalsActive ? '#c8522a' : '#bbb', background: approvalsActive ? '#fff5f2' : 'transparent',
+              transition: 'background 0.12s, color 0.12s', marginBottom: 1,
+            }}
+            onMouseEnter={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = '#fdf5f2'; (e.currentTarget as HTMLAnchorElement).style.color = '#c8522a' } }}
+            onMouseLeave={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#bbb' } }}
+          >
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#c8522a', flexShrink: 0 }} />
+            Approvals
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#c8522a', fontWeight: 600 }}>{pendingApprovalsCount}</span>
+          </Link>
         )}
-      </Link>
+      </>
     )
   }
 
