@@ -23,6 +23,7 @@ export default async function DashboardLayout({
     created_at: string
   }[] = []
   let initialSessions: { id: string; title: string | null; canvas_context: string | null; updated_at: string }[] = []
+  let brandKitCompleted = 0
 
   if (userId) {
     const { data: profileRows } = await supabase
@@ -44,7 +45,7 @@ export default async function DashboardLayout({
       profile = p
       profileId = p.id
 
-      const [{ data: notifs }, { data: sessionRows }] = await Promise.all([
+      const [{ data: notifs }, { data: sessionRows }, { data: brandKitRows }] = await Promise.all([
         supabase
           .from('notifications')
           .select('*')
@@ -59,11 +60,17 @@ export default async function DashboardLayout({
           .order('updated_at', { ascending: false })
           .limit(20),
 
+        supabase
+          .from('brand_kit_sections')
+          .select('completed')
+          .eq('user_id', p.id),
+
         logActivity(p.id, 'page_view'),
       ])
 
       notifications    = notifs ?? []
       initialSessions  = (sessionRows ?? []) as typeof initialSessions
+      brandKitCompleted = (brandKitRows ?? []).filter((r: { completed: boolean }) => r.completed).length
     }
   }
 
@@ -74,6 +81,7 @@ export default async function DashboardLayout({
       initialNotifications={notifications}
       initialSessions={initialSessions}
       foundationScore={(profile as { foundation_score?: number | null } | null)?.foundation_score ?? null}
+      brandKitCompleted={brandKitCompleted}
       role={(profile as any)?.role ?? null}
       isAdmin={['admin', 'owner'].includes((profile as any)?.role ?? '')}
     >

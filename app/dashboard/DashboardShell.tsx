@@ -58,6 +58,7 @@ interface Props {
   initialNotifications: Notification[]
   initialSessions?: Session[]
   foundationScore?: number | null
+  brandKitCompleted?: number
   role?: string | null
   isAdmin?: boolean
 }
@@ -125,6 +126,7 @@ export default function DashboardShell({
   initialNotifications,
   initialSessions = [],
   foundationScore: initialFoundationScore = null,
+  brandKitCompleted: initialBrandKitCompleted = 0,
   role = null,
   isAdmin: isAdminProp = false,
 }: Props) {
@@ -132,6 +134,7 @@ export default function DashboardShell({
   const [mayaOpen, setMayaOpen]       = useState(false)
   const [mobileOpen, setMobileOpen]   = useState(false)
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
+  const [brandKitCompleted, setBrandKitCompleted] = useState(initialBrandKitCompleted)
   const [showNewCampaign, setShowNewCampaign] = useState(false)
   const [mayaPendingTask, setMayaPendingTask] = useState<string | null>(null)
   const [panelKey, setPanelKey]       = useState(0)
@@ -152,6 +155,16 @@ export default function DashboardShell({
     }
     window.addEventListener('foundation:rescored', onRescored)
     return () => window.removeEventListener('foundation:rescored', onRescored)
+  }, [])
+
+  // Listen for brand kit section completions dispatched by BrandKitView
+  useEffect(() => {
+    function onBrandKitProgress(e: Event) {
+      const { completed } = (e as CustomEvent<{ completed: number }>).detail
+      setBrandKitCompleted(completed)
+    }
+    window.addEventListener('brandkit:progress', onBrandKitProgress)
+    return () => window.removeEventListener('brandkit:progress', onBrandKitProgress)
   }, [])
 
   // Listen for page-level context dispatched by page components
@@ -267,6 +280,8 @@ export default function DashboardShell({
     const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
     const Icon = item.icon
     const isFoundation = item.href === '/dashboard/foundation'
+    const isBrandKit   = item.href === '/dashboard/brand-kit'
+    const brandKitPct  = Math.round((brandKitCompleted / 6) * 100)
     return (
       <Link
         href={item.href}
@@ -288,6 +303,14 @@ export default function DashboardShell({
               <span style={{ display: 'block', width: `${foundationScore}%`, height: '100%', background: foundationBarColor(foundationScore), borderRadius: 2, transition: 'width 0.4s' }} />
             </span>
             <span style={{ fontSize: 9.5, color: foundationBarColor(foundationScore) }}>{foundationScore}%</span>
+          </span>
+        )}
+        {isBrandKit && brandKitCompleted > 0 && (
+          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ width: 28, height: 3, background: '#f0f0f0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
+              <span style={{ display: 'block', width: `${brandKitPct}%`, height: '100%', background: brandKitCompleted === 6 ? '#16a34a' : '#c8522a', borderRadius: 2, transition: 'width 0.4s' }} />
+            </span>
+            <span style={{ fontSize: 9.5, color: brandKitCompleted === 6 ? '#16a34a' : '#c8522a' }}>{brandKitPct}%</span>
           </span>
         )}
       </Link>
