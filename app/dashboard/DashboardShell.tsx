@@ -109,6 +109,7 @@ export default function DashboardShell({
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
   const [showNewCampaign, setShowNewCampaign] = useState(false)
   const [mayaPendingTask, setMayaPendingTask] = useState<string | null>(null)
+  const [taskVersion, setTaskVersion] = useState(0)
   const [canvasData, setCanvasData] = useState<string>('')
 
   const isAdmin = isAdminProp || role === 'admin' || role === 'owner'
@@ -156,12 +157,13 @@ export default function DashboardShell({
     return () => { supabase.removeChannel(channel) }
   }, [profileId])
 
-  // Listen for "Do this with Maya →" events dispatched from campaign detail
+  // Listen for "Do this with Maya →" events — remount panel fresh so old conversation doesn't bleed in
   useEffect(() => {
     function onOpenTask(e: Event) {
       const { task } = (e as CustomEvent<{ task: string }>).detail
       setMayaOpen(true)
       setMayaPendingTask(task)
+      setTaskVersion(v => v + 1)
     }
     window.addEventListener('maya:open-task', onOpenTask)
     return () => window.removeEventListener('maya:open-task', onOpenTask)
@@ -332,12 +334,13 @@ export default function DashboardShell({
       {mayaOpen && (
         <div
           className="hidden lg:flex"
-          style={{ width: 380, flexShrink: 0, borderRight: '0.5px solid #ebebeb', overflow: 'hidden', height: '100%' }}
+          style={{ width: 460, flexShrink: 0, borderRight: '0.5px solid #ebebeb', overflow: 'hidden', height: '100%' }}
         >
           <MayChatPanel
+            key={taskVersion > 0 ? `task-${taskVersion}` : 'default'}
             profile={profile}
-            initialMessages={initialMessages}
-            initialMode={initialMode}
+            initialMessages={taskVersion > 0 ? [] : initialMessages}
+            initialMode={taskVersion > 0 ? null : initialMode}
             canvasContext={canvasContext}
             canvasData={canvasData}
             pendingTask={mayaPendingTask}
