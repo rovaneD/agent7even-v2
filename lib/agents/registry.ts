@@ -1,11 +1,11 @@
 export type AgentId =
   | 'competitor_watcher'
-  | 'content_writer'
+  | 'weekly_content'
   | 'campaign_builder'
-  | 'analytics_reader'
+  | 'performance_digest'
   | 'trend_spotter'
   | 'email_sequence_builder'
-  | 'ad_copy_generator'
+  | 'ad_variations'
   | 'seo_scanner'
   | 'brand_voice_guardian'
 
@@ -39,10 +39,10 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     model: 'google/gemini-2.5-flash',
     defaultConstraints: `Never disparage competitors by name. Never make claims about competitor products that aren't publicly verifiable. Never suggest illegal or unethical competitive tactics.`,
   },
-  content_writer: {
-    id: 'content_writer',
-    name: 'Content Writer',
-    description: 'Writes captions, emails, and ad copy in your brand voice',
+  weekly_content: {
+    id: 'weekly_content',
+    name: 'Weekly Content',
+    description: 'Drafts your social posts and emails so you don\'t have to',
     icon: 'ti-pencil',
     autonomyLevel: 'approval_required',
     outputType: 'content',
@@ -59,10 +59,10 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     model: 'anthropic/claude-sonnet-4',
     defaultConstraints: `Never promise specific ROI or revenue outcomes. Never recommend ad spend above the client's stated marketing budget. Never build campaigns targeting demographics that conflict with the client's stated audience. Always flag if a campaign strategy requires budget the client hasn't confirmed.`,
   },
-  analytics_reader: {
-    id: 'analytics_reader',
-    name: 'Analytics Reader',
-    description: 'Reads your GA and Meta data and surfaces actionable insights',
+  performance_digest: {
+    id: 'performance_digest',
+    name: 'Performance Digest',
+    description: 'Surfaces what\'s working and what to do about it',
     icon: 'ti-chart-bar',
     autonomyLevel: 'autonomous',
     defaultSchedule: { frequency: 'daily', hourOfDay: 7 },
@@ -91,10 +91,10 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     model: 'anthropic/claude-sonnet-4',
     defaultConstraints: `Never include discount offers or pricing without explicit client approval. Never make delivery or timeline promises. Never send to unsubscribed contacts. Always include an unsubscribe mechanism. Never use deceptive subject lines.`,
   },
-  ad_copy_generator: {
-    id: 'ad_copy_generator',
-    name: 'Ad Copy Generator',
-    description: 'Creates multiple ad variations optimized for your audience',
+  ad_variations: {
+    id: 'ad_variations',
+    name: 'Ad Variations',
+    description: 'Creates multiple ad options so you can test without writing each one',
     icon: 'ti-speakerphone',
     autonomyLevel: 'approval_required',
     outputType: 'ad_copy',

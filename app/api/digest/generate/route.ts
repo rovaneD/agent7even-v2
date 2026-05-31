@@ -131,12 +131,12 @@ Return only the sentence, nothing else.`,
 function formatAgentName(agentId: string): string {
   const names: Record<string, string> = {
     competitor_watcher:     'Competitor Watcher',
-    content_writer:         'Content Writer',
+    weekly_content:         'Weekly Content',
     campaign_builder:       'Campaign Builder',
-    analytics_reader:       'Analytics Reader',
+    performance_digest:     'Performance Digest',
     trend_spotter:          'Trend Spotter',
     email_sequence_builder: 'Email Sequence Builder',
-    ad_copy_generator:      'Ad Copy Generator',
+    ad_variations:          'Ad Variations',
     seo_scanner:            'SEO Scanner',
     brand_voice_guardian:   'Brand Voice Guardian',
   }
