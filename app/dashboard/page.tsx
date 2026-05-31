@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import PlanBanner from './PlanBanner'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import MorningDigest from '@/components/dashboard/MorningDigest'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -19,17 +20,31 @@ export default async function DashboardPage() {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
+  const { data: profileRows } = await supabase
     .from('profiles')
     .select('*')
     .eq('clerk_user_id', userId)
-    .single()
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const profile = profileRows?.[0] ?? null
 
   if (!profile?.foundation_complete) {
     redirect('/foundation')
   }
 
+  const today = new Date().toISOString().split('T')[0]
+  const { data: digestRows } = profile
+    ? await supabase
+        .from('daily_digests')
+        .select('id, agent_runs, approvals, today_actions, dismissed')
+        .eq('user_id', profile.id)
+        .eq('date', today)
+        .limit(1)
+    : { data: null }
+  const digest = digestRows?.[0] ?? null
+
   const displayName = profile?.company_name || profile?.full_name || 'there'
+  const firstName   = profile?.full_name?.split(' ')[0] ?? undefined
   const hasPlan = !!profile?.plan
 
   const contextString = `DASHBOARD PAGE
@@ -41,6 +56,15 @@ ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents an
   return (
     <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl">
       <CanvasContextDispatcher context={contextString} />
+
+      {profile && (
+        <MorningDigest
+          digest={digest}
+          profileId={profile.id}
+          firstName={firstName}
+        />
+      )}
+
       <div className="mb-8">
         <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Dashboard</p>
         <h1 className="text-2xl font-bold text-gray-900">Welcome back, {displayName}.</h1>

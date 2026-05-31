@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
-import { Save, Loader2, CheckCircle, AlertCircle, User, Building, Globe, Hash } from 'lucide-react'
+import { Save, Loader2, CheckCircle, AlertCircle, User, Building, Globe, Hash, Bell } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -15,6 +15,45 @@ interface Profile {
   business_type: string | null
   plan: string | null
   status: string | null
+  email_digest: boolean | null
+  email_approvals: boolean | null
+  email_weekly: boolean | null
+}
+
+function PreferenceToggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string
+  description: string
+  checked: boolean
+  onChange: (val: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+      <div>
+        <p className="text-sm font-medium text-gray-800">{label}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${
+          checked ? 'bg-[#c8522a]' : 'bg-gray-200'
+        }`}
+      >
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 mt-0.5 ${
+            checked ? 'translate-x-4' : 'translate-x-0.5'
+          }`}
+        />
+      </button>
+    </div>
+  )
 }
 
 interface Props {
@@ -42,6 +81,9 @@ export default function SettingsClient({ profile }: Props) {
   const [companyName, setCompanyName] = useState(profile.company_name ?? '')
   const [websiteUrl, setWebsiteUrl] = useState(profile.website_url ?? '')
   const [instagramHandle, setInstagramHandle] = useState(profile.instagram_handle ?? '')
+  const [emailDigest, setEmailDigest]       = useState(profile.email_digest    ?? true)
+  const [emailApprovals, setEmailApprovals] = useState(profile.email_approvals ?? true)
+  const [emailWeekly, setEmailWeekly]       = useState(profile.email_weekly    ?? true)
 
   useEffect(() => {
     const context = `SETTINGS PAGE
@@ -63,7 +105,26 @@ The user can update their company name, website URL, and Instagram handle. Name 
   const isDirty =
     companyName !== (profile.company_name ?? '') ||
     websiteUrl !== (profile.website_url ?? '') ||
-    instagramHandle !== (profile.instagram_handle ?? '')
+    instagramHandle !== (profile.instagram_handle ?? '') ||
+    emailDigest    !== (profile.email_digest    ?? true) ||
+    emailApprovals !== (profile.email_approvals ?? true) ||
+    emailWeekly    !== (profile.email_weekly    ?? true)
+
+  async function updateEmailPref(field: 'emailDigest' | 'emailApprovals' | 'emailWeekly', val: boolean) {
+    const next = {
+      emailDigest:    field === 'emailDigest'    ? val : emailDigest,
+      emailApprovals: field === 'emailApprovals' ? val : emailApprovals,
+      emailWeekly:    field === 'emailWeekly'    ? val : emailWeekly,
+    }
+    if (field === 'emailDigest')    setEmailDigest(val)
+    if (field === 'emailApprovals') setEmailApprovals(val)
+    if (field === 'emailWeekly')    setEmailWeekly(val)
+    await fetch('/api/settings/update', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ companyName, websiteUrl, instagramHandle, ...next }),
+    })
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -73,7 +134,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
       const res = await fetch('/api/settings/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyName, websiteUrl, instagramHandle }),
+        body: JSON.stringify({ companyName, websiteUrl, instagramHandle, emailDigest, emailApprovals, emailWeekly }),
       })
       if (!res.ok) throw new Error('Failed to save')
       setSaved(true)
@@ -228,6 +289,36 @@ The user can update their company name, website URL, and Instagram handle. Name 
           </button>
         </div>
       </div>
+
+      {/* Email preferences */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <Bell size={14} className="text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-700">Email notifications</h2>
+        </div>
+        <div>
+          <PreferenceToggle
+            label="Morning digest"
+            description="Daily summary of agent activity and today's plan"
+            checked={emailDigest}
+            onChange={val => updateEmailPref('emailDigest', val)}
+          />
+          <PreferenceToggle
+            label="Approval alerts"
+            description="Notified when an agent output needs your review"
+            checked={emailApprovals}
+            onChange={val => updateEmailPref('emailApprovals', val)}
+          />
+          <PreferenceToggle
+            label="Weekly summary"
+            description="What Maya accomplished this week"
+            checked={emailWeekly}
+            onChange={val => updateEmailPref('emailWeekly', val)}
+          />
+        </div>
+        <p className="text-xs text-gray-400 mt-4">Changes save automatically when you toggle.</p>
+      </div>
+
     </div>
   )
 }

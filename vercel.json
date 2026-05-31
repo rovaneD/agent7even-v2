@@ -27,6 +27,10 @@
     {
       "path": "/api/cron/nudge-inactive",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/morning-digest",
+      "schedule": "0 12 * * *"
     }
   ]
 }
