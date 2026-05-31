@@ -1,0 +1,108 @@
+import { auth } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/server'
+import { openRouterComplete } from '@/lib/agents/openrouter'
+import { deductCredits } from '@/lib/credits'
+
+const COST = 2
+
+export async function POST() {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const supabase = createServiceClient()
+
+  const { data: profileRows } = await supabase
+    .from('profiles')
+    .select('id, company_name, foundation_answers')
+    .eq('clerk_user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const profile = profileRows?.[0] ?? null
+  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+  // Check credits before calling model
+  const { data: bal } = await supabase
+    .from('credit_balances')
+    .select('balance')
+    .eq('user_id', profile.id)
+    .single()
+  if ((bal?.balance ?? 0) < COST) {
+    return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
+  }
+
+  const answers = (profile.foundation_answers ?? {}) as Record<string, unknown>
+  const companyName = (profile.company_name as string | null) ?? 'this business'
+
+  const context = buildContext(companyName, answers)
+
+  const prompt = `You are a brand identity designer. Based on the business context below, suggest a brand color palette of exactly 5 colors.
+
+Return ONLY valid JSON — no markdown fences, no explanation, no other text:
+{
+  "colors": [
+    { "name": "Color Name", "hex": "#RRGGBB", "rgb": "R, G, B", "role": "primary" }
+  ]
+}
+
+Rules:
+- Roles must be from: primary, secondary, accent, neutral
+- Include exactly 1 primary, 1 secondary, 1–2 accents, 1–2 neutrals (5 total)
+- Hex values must be valid 6-digit hex codes with # prefix
+- RGB values must correctly match the hex
+- Color names must be evocative and brand-appropriate (e.g. "Ember Orange" not just "Orange")
+- Palette should feel cohesive and reflect the brand's tone and personality
+
+BUSINESS CONTEXT:
+${context}`
+
+  let raw = ''
+  try {
+    const result = await openRouterComplete({
+      model: 'anthropic/claude-haiku-4-5',
+      max_tokens: 600,
+      temperature: 0.7,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    raw = result.content.trim()
+  } catch (err) {
+    console.error('[generate-colors] openRouterComplete error:', err)
+    return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
+  }
+
+  // Parse JSON — strip any accidental markdown fences
+  let parsed: { colors: Array<{ name: string; hex: string; rgb: string; role: string }> }
+  try {
+    const cleaned = raw.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim()
+    parsed = JSON.parse(cleaned)
+    if (!Array.isArray(parsed.colors) || parsed.colors.length === 0) throw new Error('Empty colors array')
+  } catch (err) {
+    console.error('[generate-colors] JSON parse error:', err, '\nRaw:', raw)
+    return NextResponse.json({ error: 'Failed to parse color suggestions' }, { status: 500 })
+  }
+
+  // Deduct after successful generation
+  try {
+    await deductCredits(profile.id, COST, 'Brand Kit — generate color palette')
+  } catch {
+    // Non-fatal — generation succeeded, just log
+    console.warn('[generate-colors] credit deduction failed')
+  }
+
+  return NextResponse.json({ colors: parsed.colors })
+}
+
+function buildContext(companyName: string, a: Record<string, unknown>): string {
+  const arr = (v: unknown) => Array.isArray(v) ? (v as string[]).join(', ') : String(v ?? '')
+  return [
+    `Business: ${companyName}`,
+    `What they do: ${a.businessDescription ?? ''}`,
+    `Problem solved: ${a.problemSolved ?? ''}`,
+    `Transformation: ${a.transformation ?? ''}`,
+    `Ideal customer: ${a.customerWho ?? ''}`,
+    `Differentiator: ${a.differentiator ?? ''} — ${a.differentiatorOwn ?? ''}`,
+    `Tone traits: ${arr(a.toneTraits)}`,
+    `Brands admired: ${a.brandsAdmired ?? ''}`,
+    `Never sound like: ${a.neverSoundLike ?? ''}`,
+  ].join('\n')
+}

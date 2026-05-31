@@ -12,6 +12,9 @@ import {
 interface SectionCompletion { section_key: string; completed: boolean }
 interface BrandColor { id: string; role: string; name: string | null; hex: string; rgb: string | null; notes: string | null; sort_order: number }
 interface BrandFont  { id: string; role: string; family: string; weight: string | null; size_guide: string | null; source_url: string | null; notes: string | null }
+interface GeneratedColor { name: string; hex: string; rgb: string; role: string }
+interface GeneratedFontDef { family: string; weight: string; size_guide: string }
+interface GeneratedPairing { name: string; rationale: string; heading: GeneratedFontDef; body: GeneratedFontDef }
 interface BrandAsset { id: string; section_key: string; asset_type: string; name: string; file_url: string | null; external_url: string | null; thumbnail_url: string | null; signed_url?: string; metadata: Record<string, unknown> | null; sort_order: number }
 interface FoundationDoc { id: string; type: string; title: string | null; markdown: string | null; version: number | null }
 
@@ -330,8 +333,12 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
   onMarkComplete: (v: boolean) => void
   completed: boolean
 }) {
-  const [savingId, setSavingId] = useState<string | null>(null)
+  const [savingId,    setSavingId]    = useState<string | null>(null)
   const [localColors, setLocalColors] = useState<BrandColor[]>(colors)
+  const [generating,  setGenerating]  = useState(false)
+  const [preview,     setPreview]     = useState<GeneratedColor[] | null>(null)
+  const [accepting,   setAccepting]   = useState(false)
+  const [genError,    setGenError]    = useState<string | null>(null)
 
   useEffect(() => { setLocalColors(colors) }, [colors])
 
@@ -385,6 +392,47 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
     setLocalColors(prev => [...prev, newColor])
   }
 
+  async function generatePalette() {
+    setGenerating(true)
+    setGenError(null)
+    setPreview(null)
+    try {
+      const res  = await fetch('/api/brand-kit/generate-colors', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setGenError(data.error === 'INSUFFICIENT_CREDITS' ? 'Not enough credits (2 required).' : (data.error ?? 'Generation failed'))
+        return
+      }
+      setPreview(data.colors)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function acceptPalette() {
+    if (!preview) return
+    setAccepting(true)
+    try {
+      const saved: BrandColor[] = []
+      for (let i = 0; i < preview.length; i++) {
+        const c = preview[i]
+        const res  = await fetch('/api/brand-kit/colors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: c.role, name: c.name, hex: c.hex, rgb: c.rgb, notes: null, sort_order: localColors.length + i }),
+        })
+        const data = await res.json()
+        if (data.color) saved.push(data.color)
+      }
+      const updated = [...localColors, ...saved]
+      setLocalColors(updated)
+      onColorsChange(updated)
+      setPreview(null)
+    } finally {
+      setAccepting(false)
+    }
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-5">
@@ -394,17 +442,99 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
         </button>
       </div>
 
-      {localColors.length === 0 && (
-        <div className="text-center py-10">
-          <Palette size={24} className="text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">No colors yet. Add your first brand color.</p>
+      {/* Empty state with generate option */}
+      {localColors.length === 0 && !preview && (
+        <div className="border border-dashed border-gray-200 rounded-2xl p-8 text-center mb-5">
+          <Palette size={24} className="text-gray-200 mx-auto mb-3" />
+          <p className="text-sm text-gray-500 mb-1">No colors yet.</p>
+          <p className="text-xs text-gray-400 mb-5">Generate a palette based on your brand or add colors manually.</p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={generatePalette}
+              disabled={generating}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#0a0a0a] text-white text-sm font-medium rounded-xl hover:bg-gray-800 disabled:opacity-60 transition-colors"
+            >
+              {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+              {generating ? 'Generating…' : 'Generate with Maya'}
+            </button>
+            <button
+              onClick={addColor}
+              className="px-4 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:border-gray-400 transition-colors"
+            >
+              Add manually
+            </button>
+          </div>
+          {genError && <p className="text-xs text-red-500 mt-3">{genError}</p>}
         </div>
       )}
+
+      {/* Palette preview */}
+      {preview && (
+        <div className="mb-5 rounded-2xl border border-[#c8522a]/20 bg-[#c8522a]/4 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Suggested palette</p>
+            <span className="text-xs text-gray-400">2 credits used</span>
+          </div>
+
+          <div className="flex gap-2 mb-4">
+            {preview.map((c, i) => (
+              <div key={i} className="flex-1 text-center">
+                <div
+                  className="h-14 rounded-xl mb-1.5 border border-white shadow-sm"
+                  style={{ backgroundColor: c.hex }}
+                />
+                <p className="text-xs font-medium text-gray-700 truncate">{c.name}</p>
+                <p className="text-[10px] font-mono text-gray-400">{c.hex}</p>
+                <p className="text-[10px] text-gray-400 capitalize">{c.role}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={acceptPalette}
+              disabled={accepting}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#0a0a0a] text-white text-sm font-medium rounded-xl hover:bg-gray-800 disabled:opacity-60 transition-colors"
+            >
+              {accepting ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+              {accepting ? 'Saving…' : 'Accept palette'}
+            </button>
+            <button
+              onClick={generatePalette}
+              disabled={generating}
+              className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:border-gray-400 disabled:opacity-50 transition-colors"
+            >
+              {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+              {generating ? 'Generating…' : 'Try again'}
+            </button>
+            <button
+              onClick={() => setPreview(null)}
+              className="px-4 py-2 border border-gray-200 text-gray-400 text-sm rounded-xl hover:border-gray-400 transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Generate button when colors exist */}
+      {localColors.length > 0 && !preview && (
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={generatePalette}
+            disabled={generating}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#0a0a0a] border border-gray-200 rounded-xl px-3 py-1.5 disabled:opacity-50 transition-colors"
+          >
+            {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+            {generating ? 'Generating…' : 'Regenerate palette'}
+          </button>
+        </div>
+      )}
+      {localColors.length > 0 && genError && <p className="text-xs text-red-500 mb-3">{genError}</p>}
 
       <div className="space-y-1">
         {localColors.map(color => (
           <div key={color.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
-            {/* Color swatch + picker */}
             <div className="relative flex-shrink-0">
               <div
                 className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer overflow-hidden"
@@ -447,7 +577,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
               />
               <select
                 value={color.role}
-                onChange={e => { updateLocal(color.id, 'role', e.target.value); }}
+                onChange={e => { updateLocal(color.id, 'role', e.target.value) }}
                 onBlur={() => saveColor(color)}
                 className="text-sm border border-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#c8522a] bg-gray-50"
               >
@@ -477,9 +607,12 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
   onMarkComplete: (v: boolean) => void
   completed: boolean
 }) {
-  const [localFonts, setLocalFonts] = useState<BrandFont[]>(fonts)
-  const [saving, setSaving] = useState<Record<string, boolean>>({})
-  const [saved,  setSaved]  = useState<Record<string, boolean>>({})
+  const [localFonts,  setLocalFonts]  = useState<BrandFont[]>(fonts)
+  const [saving,      setSaving]      = useState<Record<string, boolean>>({})
+  const [saved,       setSaved]       = useState<Record<string, boolean>>({})
+  const [generating,  setGenerating]  = useState(false)
+  const [pairings,    setPairings]    = useState<GeneratedPairing[] | null>(null)
+  const [genError,    setGenError]    = useState<string | null>(null)
 
   useEffect(() => { setLocalFonts(fonts) }, [fonts])
 
@@ -489,6 +622,8 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
     const done = hasHeading && hasBody
     if (done !== completed) onMarkComplete(done)
   }, [localFonts]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const hasFontsSet = localFonts.some(f => f.family?.trim())
 
   function getFont(role: string) {
     return localFonts.find(f => f.role === role) ?? null
@@ -520,62 +655,187 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
     }
   }
 
+  async function generateFonts() {
+    setGenerating(true)
+    setGenError(null)
+    setPairings(null)
+    try {
+      const res  = await fetch('/api/brand-kit/generate-fonts', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setGenError(data.error === 'INSUFFICIENT_CREDITS' ? 'Not enough credits (2 required).' : (data.error ?? 'Generation failed'))
+        return
+      }
+      setPairings(data.pairings)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  function applyPairing(pairing: GeneratedPairing) {
+    setLocalFonts(prev => {
+      const next = [...prev]
+      const applyRole = (role: string, def: GeneratedFontDef) => {
+        const idx = next.findIndex(f => f.role === role)
+        const updated = { id: idx >= 0 ? next[idx].id : '', role, family: def.family, weight: def.weight, size_guide: def.size_guide, source_url: null, notes: null }
+        if (idx >= 0) next[idx] = updated
+        else next.push(updated)
+      }
+      applyRole('heading', pairing.heading)
+      applyRole('body', pairing.body)
+      return next
+    })
+    setPairings(null)
+  }
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {FONT_ROLES.map(({ role, label, desc }) => {
-        const font   = getFont(role)
-        const isSaving = saving[role]
-        const isSaved  = saved[role]
-        return (
-          <div key={role} className="bg-white rounded-2xl border border-gray-100 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">{label}</p>
-                <p className="text-xs text-gray-400">{desc}</p>
-              </div>
-              {font?.family && (
-                <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Set</span>
-              )}
-            </div>
-            <div className="space-y-2.5">
-              <input
-                value={font?.family ?? ''}
-                onChange={e => updateFont(role, 'family', e.target.value)}
-                placeholder="Font family (e.g. Geist, Inter)"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#c8522a]"
-              />
-              <input
-                value={font?.weight ?? ''}
-                onChange={e => updateFont(role, 'weight', e.target.value)}
-                placeholder="Weights (e.g. 400, 600, 700)"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#c8522a]"
-              />
-              <input
-                value={font?.source_url ?? ''}
-                onChange={e => updateFont(role, 'source_url', e.target.value)}
-                placeholder="Source URL (Google Fonts, etc.)"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#c8522a]"
-              />
-              <textarea
-                value={font?.size_guide ?? ''}
-                onChange={e => updateFont(role, 'size_guide', e.target.value)}
-                placeholder="Size guide (e.g. H1: 48px, H2: 32px)"
-                rows={2}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-[#c8522a]"
-              />
-              <button
-                onClick={() => saveFont(role)}
-                disabled={!font?.family || isSaving}
-                className={`w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-xl transition-colors ${
-                  isSaved ? 'bg-green-50 text-green-700' : 'bg-[#0a0a0a] text-white hover:bg-gray-800 disabled:opacity-40'
-                }`}
-              >
-                {isSaving ? <Loader2 size={13} className="animate-spin" /> : isSaved ? <><Check size={13} /> Saved</> : <><Save size={13} /> Save font</>}
-              </button>
-            </div>
+    <div className="space-y-5">
+      {/* Empty state */}
+      {!hasFontsSet && !pairings && (
+        <div className="border border-dashed border-gray-200 rounded-2xl p-8 text-center">
+          <Type size={24} className="text-gray-200 mx-auto mb-3" />
+          <p className="text-sm text-gray-500 mb-1">No fonts set yet.</p>
+          <p className="text-xs text-gray-400 mb-5">Generate a pairing based on your brand or fill in the fields below.</p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={generateFonts}
+              disabled={generating}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#0a0a0a] text-white text-sm font-medium rounded-xl hover:bg-gray-800 disabled:opacity-60 transition-colors"
+            >
+              {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+              {generating ? 'Generating…' : 'Generate with Maya'}
+            </button>
           </div>
-        )
-      })}
+          {genError && <p className="text-xs text-red-500 mt-3">{genError}</p>}
+        </div>
+      )}
+
+      {/* Pairing suggestions */}
+      {pairings && (
+        <div className="rounded-2xl border border-[#c8522a]/20 bg-[#c8522a]/4 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Suggested pairings</p>
+            <span className="text-xs text-gray-400">2 credits used</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            {pairings.map((pairing, i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 flex flex-col gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{pairing.name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{pairing.rationale}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 w-16 flex-shrink-0">Heading</span>
+                    <span className="text-sm font-medium text-gray-800">{pairing.heading.family}</span>
+                    <span className="text-xs text-gray-400">{pairing.heading.weight}</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 w-16 flex-shrink-0">Body</span>
+                    <span className="text-sm text-gray-700">{pairing.body.family}</span>
+                    <span className="text-xs text-gray-400">{pairing.body.weight}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => applyPairing(pairing)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium bg-[#0a0a0a] text-white rounded-xl hover:bg-gray-800 transition-colors"
+                >
+                  <Check size={13} /> Use this pairing
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={generateFonts}
+              disabled={generating}
+              className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:border-gray-400 disabled:opacity-50 transition-colors"
+            >
+              {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+              {generating ? 'Generating…' : 'Try again'}
+            </button>
+            <button
+              onClick={() => setPairings(null)}
+              className="px-4 py-2 border border-gray-200 text-gray-400 text-sm rounded-xl hover:border-gray-400 transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Regenerate button when fonts exist */}
+      {hasFontsSet && !pairings && (
+        <div className="flex justify-end">
+          <button
+            onClick={generateFonts}
+            disabled={generating}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#0a0a0a] border border-gray-200 rounded-xl px-3 py-1.5 disabled:opacity-50 transition-colors"
+          >
+            {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+            {generating ? 'Generating…' : 'Suggest pairings'}
+          </button>
+        </div>
+      )}
+      {hasFontsSet && genError && <p className="text-xs text-red-500 mb-1">{genError}</p>}
+
+      {/* Font role cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {FONT_ROLES.map(({ role, label, desc }) => {
+          const font     = getFont(role)
+          const isSaving = saving[role]
+          const isSaved  = saved[role]
+          return (
+            <div key={role} className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{label}</p>
+                  <p className="text-xs text-gray-400">{desc}</p>
+                </div>
+                {font?.family && (
+                  <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Set</span>
+                )}
+              </div>
+              <div className="space-y-2.5">
+                <input
+                  value={font?.family ?? ''}
+                  onChange={e => updateFont(role, 'family', e.target.value)}
+                  placeholder="Font family (e.g. Geist, Inter)"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#c8522a]"
+                />
+                <input
+                  value={font?.weight ?? ''}
+                  onChange={e => updateFont(role, 'weight', e.target.value)}
+                  placeholder="Weights (e.g. 400, 600, 700)"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#c8522a]"
+                />
+                <input
+                  value={font?.source_url ?? ''}
+                  onChange={e => updateFont(role, 'source_url', e.target.value)}
+                  placeholder="Source URL (Google Fonts, etc.)"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#c8522a]"
+                />
+                <textarea
+                  value={font?.size_guide ?? ''}
+                  onChange={e => updateFont(role, 'size_guide', e.target.value)}
+                  placeholder="Size guide (e.g. H1: 48px, H2: 32px)"
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-[#c8522a]"
+                />
+                <button
+                  onClick={() => saveFont(role)}
+                  disabled={!font?.family || isSaving}
+                  className={`w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-xl transition-colors ${
+                    isSaved ? 'bg-green-50 text-green-700' : 'bg-[#0a0a0a] text-white hover:bg-gray-800 disabled:opacity-40'
+                  }`}
+                >
+                  {isSaving ? <Loader2 size={13} className="animate-spin" /> : isSaved ? <><Check size={13} /> Saved</> : <><Save size={13} /> Save font</>}
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
