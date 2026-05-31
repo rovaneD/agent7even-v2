@@ -470,8 +470,8 @@ Built May 29, 2026. Full technical detail in CONTEXTV7.md. Summary for session a
 - `/api/cron/allocate-credits` — 1st of month, midnight
 - `/api/cron/refresh-pricing` — every 6 hours
 
-### Known gap
-Maya chat (`/api/maya/chat`) currently bypasses the runner — tokens not logged, credits not deducted. Needs to be wired into `runAgent()`.
+### Maya chat cost tracking ✅ DONE (May 31, 2026)
+`waitUntil` from `@vercel/functions` keeps the function alive after the HTTP response. Tokens, cost, and credits are recorded in `agent_tasks` + `credit_ledger` after every turn. `job_type = 'maya_chat'` for wedge analysis.
 
 ---
 
@@ -493,7 +493,7 @@ Maya chat (`/api/maya/chat`) currently bypasses the runner — tokens not logged
 - Any change to how Maya accesses or modifies canvas data
 - Any architectural decision made
 
-**When to update CONTEXTV7.md:**
+**When to update CONTEXTV8.md:**
 - New environment variables added
 - New API routes added
 - New Supabase tables or columns
@@ -502,7 +502,7 @@ Maya chat (`/api/maya/chat`) currently bypasses the runner — tokens not logged
 
 **The two documents are complementary:**
 - `MAYA_CONTEXT.md` = product vision, architecture, what everything does and why
-- `CONTEXTV7.md` = technical infrastructure, env vars, schema, file paths
+- `CONTEXTV8.md` = technical infrastructure, env vars, schema, file paths — current version
 
 Both must stay current. If something is built and not documented in both relevant places, it doesn't exist as far as the next session is concerned.
 
@@ -573,8 +573,8 @@ MayaShell has been built by Claude Code. Status:
 - `canvasContext` (current page name) passed to chat route
 - `MayChatPanel` component at `components/maya/MayChatPanel.tsx` — works in panel and standalone modes via `onClose` prop
 
-### Known gap — needs wiring ⚠️
-- `/api/maya/chat/route.ts` receives `canvasContext` in the request body but does not yet use it in the system prompt. Small addition — Maya should explicitly reference the current page/module context when responding.
+### Canvas context — fully wired ✅
+Maya receives full page content on every message, not just the page name. See §Maya Canvas Context System below for full architecture.
 
 
 ---
@@ -584,7 +584,7 @@ MayaShell has been built by Claude Code. Status:
 
 These are confirmed gaps validated against SAASTR_LESSONS.md. Work in this order.
 
-### 1. canvasContext in Maya system prompt ✅ DONE
+### 1. canvasContext + full page content in Maya system prompt ✅ DONE
 **File:** `app/api/maya/chat/route.ts`
 **What:** `canvasContext` (current page name) already arrives in the request body from MayChatPanel but is not injected into the system prompt. Maya responds without knowing what page the user is on.
 **Fix:** Read `canvasContext` from request body, append to system prompt: "The user is currently on the [page] page."
@@ -773,7 +773,81 @@ Full campaign creation system — two modes, same artifact output.
 
 ### Work queue update
 5. Segment-first campaign creation ✅ DONE
-6. Morning digest on Dashboard 🟡 NEXT
-7. Agent names audit 🟢 Quick win
-8. Maya cost tracking — Maya chat not yet wired into runner (tokens not logged) ⚠️
+6. Maya cost tracking ✅ DONE (May 31, 2026)
+7. Admin Cost & Usage screen ✅ DONE (May 31, 2026)
+8. Maya full page context — all pages ✅ DONE (May 31, 2026)
+9. Morning digest on Dashboard 🟡 NEXT
+10. Agent names audit 🟢 Quick win
+
+---
+
+## Maya Canvas Context System
+*Built: May 31, 2026*
+
+Maya receives full page content on every message — not just the page name. Every page broadcasts its current state via a custom event that Maya reads before responding.
+
+### The bidirectional relationship (now real)
+
+Previously Maya knew she was "on the Foundation page." Now she knows the foundation score is 0%, which fields are filled, which fields are weak, and what feedback each field has. Same for every other page.
+
+### How it works
+
+**Event:** `window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: string } }))`
+
+Pages dispatch this on mount (and on significant state changes like rescore). `DashboardShell` listens, stores in `canvasData` state, clears on navigation. `MayChatPanel` receives `canvasData` as a prop, stores in a `useRef`, and a custom `fetch` interceptor on `DefaultChatTransport` injects the current ref value into every request body. The maya/chat route uses it as a full `PAGE CONTEXT` section in the system prompt.
+
+**Transport is never recreated** — canvasData changes don't reset chat history. The ref pattern decouples prop updates from the memoized transport.
+
+### Shared component for server pages
+`components/maya/CanvasContextDispatcher.tsx` — renders null, fires the event on mount. Used by server-only pages (Dashboard, Campaigns, Calendar, etc.).
+
+### Coverage
+- All 13 dashboard pages: Dashboard, Agents, Campaigns, Services, Calendar, Brand Kit, Analytics, Deliverables, Support, Notifications, Team, Billing, Settings, Foundation
+- All 12 admin pages: Clients list, Client detail, Cost & Usage, Inquiries, Inquiry detail, Orders, Revenue, Agent Costs, Admin Settings, Support list, Support thread, Admin home
+
+---
+
+## Session Summary — May 31, 2026
+
+### What shipped this session
+
+**Maya cost tracking (closed V7 known gap):**
+- `waitUntil` from `@vercel/functions` replaces `after()` — function stays alive after response
+- Profile fetch fixed: `.single()` → `.limit(1)` in maya/chat, dashboard layout, admin layout
+- `job_type = 'maya_chat'` field for wedge analysis
+- `agent_tasks.updated_at` column added (was missing)
+- Session table corrected everywhere: `chat_sessions` → `maya_sessions`
+
+**Admin Cost & Usage screen (`/admin/cost`):**
+- `v_account_month_cost` SQL view — per-account monthly rollup with MRR, AI cost, margins
+- `01_cost_instrumentation.sql` — `cached_tokens`, `job_type`, `updated_at` columns + 6 indexes
+- Account overview tab: summary cards (MRR, AI cost, gross margin, active accounts) + sortable account table
+- Run log tab: last 100 tasks with job type, model, token counts, cost, status filter
+- "Cost & Usage" added to admin sidebar
+
+**Maya full page context (all pages):**
+- Custom event system: `maya:canvas-context`
+- `CanvasContextDispatcher` shared component for server pages
+- All 13 dashboard pages wired
+- All 12 admin pages wired
+- Foundation page re-dispatches after every rescore
+- Transport-stable implementation via `useRef` + custom fetch interceptor
+
+**Foundation document recovery flow:**
+- Foundation rescore now triggers `POST /api/foundation/generate` in background
+- "Updating Maya's context…" indicator while 5 documents regenerate (~20–30s)
+- String → array conversion for `competitors`, `toneTraits`, `channels` fields
+
+### Data issues (pending manual action)
+- Both accounts still have 2 profile rows each — run dedup SQL
+- Foundation answers lost in prior dedup — both accounts need to re-fill form + rescore
+- Until rebuilt: Maya falls back to basic profile fields (company, goals, etc.)
+
+### Work queue status
+1–9: All ✅ DONE (see CONTEXTV8.md §10 for full list)
+10. Morning digest on Dashboard 🟡 NEXT
+11. Agent names audit 🟢 Quick win
+12. Credit top-up (Stripe checkout) 🟡
+13. Orchestration progress UI 🟡
+14. Approval queue UI 🟡
 
