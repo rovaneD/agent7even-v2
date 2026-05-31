@@ -15,11 +15,13 @@ export default async function BillingPage() {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
+  const { data: profileRows } = await supabase
     .from('profiles')
     .select('id, plan, status, stripe_customer_id, stripe_subscription_id')
     .eq('clerk_user_id', userId)
-    .single()
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const profile = profileRows?.[0] ?? null
 
   if (profile?.id) {
     const teamPerms = await getTeamPermissions(profile.id)
@@ -38,6 +40,17 @@ export default async function BillingPage() {
   }[] = []
 
   let portalUrl: string | null = null
+  let creditBalance = 0
+
+  if (profile?.id) {
+    const { data: balRow } = await supabase
+      .from('credit_balances')
+      .select('balance')
+      .eq('user_id', profile.id)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+    creditBalance = balRow?.[0]?.balance ?? 0
+  }
 
   if (profile?.stripe_customer_id) {
     try {
@@ -71,6 +84,7 @@ export default async function BillingPage() {
       subscriptionId={profile?.stripe_subscription_id ?? null}
       invoices={invoices}
       portalUrl={portalUrl}
+      creditBalance={creditBalance}
     />
   )
 }

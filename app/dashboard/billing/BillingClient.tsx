@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Check, ExternalLink, Zap, TrendingUp, Star, AlertCircle } from 'lucide-react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Check, ExternalLink, Zap, TrendingUp, Star, AlertCircle, CheckCircle2 } from 'lucide-react'
+import CreditTopUp from '@/components/billing/CreditTopUp'
 
 interface Invoice {
   id: string
@@ -18,6 +20,7 @@ interface Props {
   subscriptionId: string | null
   invoices: Invoice[]
   portalUrl?: string | null
+  creditBalance?: number
 }
 
 const PLANS = {
@@ -93,7 +96,9 @@ function formatAmount(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
 }
 
-export default function BillingClient({ plan, status, subscriptionId, invoices, portalUrl }: Props) {
+function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, creditBalance = 0 }: Props) {
+  const searchParams   = useSearchParams()
+  const topupStatus    = searchParams.get('topup')
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
   const [billingAnnual, setBillingAnnual] = useState(false)
 
@@ -139,6 +144,22 @@ The user can view their current plan, upgrade to a higher tier, and access the S
         <h1 className="text-xl font-semibold text-gray-900">Billing</h1>
         <p className="text-sm text-gray-400 mt-0.5">Manage your plan and payment history</p>
       </div>
+
+      {topupStatus === 'success' && (
+        <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+          <CheckCircle2 size={15} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-emerald-800">Credits added successfully</p>
+            <p className="text-xs text-emerald-600 mt-0.5">Your new credits are available immediately.</p>
+          </div>
+        </div>
+      )}
+
+      {topupStatus === 'cancelled' && (
+        <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
+          <p className="text-sm text-gray-500">Purchase cancelled — no charge was made.</p>
+        </div>
+      )}
 
       {status === 'paused' && (
         <div className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
@@ -215,6 +236,9 @@ The user can view their current plan, upgrade to a higher tier, and access the S
           </a>
         )}
       </div>
+
+      {/* Credit top-up */}
+      <CreditTopUp currentBalance={creditBalance} />
 
       {/* Upgrade section */}
       {upgradeTo.length > 0 && (
@@ -361,5 +385,13 @@ The user can view their current plan, upgrade to a higher tier, and access the S
       )}
 
     </div>
+  )
+}
+
+export default function BillingClient(props: Props) {
+  return (
+    <Suspense>
+      <BillingInner {...props} />
+    </Suspense>
   )
 }
