@@ -1,80 +1,78 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Check, Zap, TrendingUp, Star } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 
-function trackEvent(action: string, params?: Record<string, string>) {
-  if (typeof window === 'undefined' || !window.gtag) return
-  window.gtag('event', action, params)
-}
+// ── Plan data ──────────────────────────────────────────────────────────────
 
-const plans = [
+const PLANS = [
   {
     key: 'starter',
     name: 'Starter',
-    icon: Zap,
+    Icon: Zap,
     monthlyPrice: 49,
     annualPrice: 490,
-    description: 'Everything you need to get started with smart marketing automation.',
-    color: 'gray',
     trial: true,
-    trialDays: 3,
     billingNote: '3 days free — cancel anytime before being charged',
     cta: 'Start your free trial',
     popular: false,
+    description: 'Everything you need to start building your brand and running your first campaigns.',
     features: [
-      'Full client dashboard & portal',
-      'AI Toolkit — 15 runs/month',
-      'Analytics & reporting',
-      'Deliverables hub',
-      '1 active service request',
+      'Maya chat',
+      'Foundation',
+      'Brand Kit',
+      '3 active campaigns',
+      '100 credits / month',
+      'All 9 agents',
+      'Morning digest',
+      'Basic analytics',
+      '1 service request',
+      '1 team seat',
       'Email support',
-      'Add-on services available',
     ],
   },
   {
     key: 'growth',
     name: 'Growth',
-    icon: TrendingUp,
+    Icon: TrendingUp,
     monthlyPrice: 89,
     annualPrice: 890,
-    description: 'Unlimited AI, more active projects, and priority support for growing businesses.',
-    color: 'orange',
     trial: false,
-    trialDays: 0,
     billingNote: 'Billed immediately — cancel anytime',
     cta: 'Get started',
     popular: true,
+    description: 'Unlimited campaigns, more credits, and priority support for growing businesses.',
     features: [
       'Everything in Starter',
-      'AI Toolkit — unlimited runs',
-      'Brand Kit — full access',
-      '3 active service requests',
-      'Priority email support',
-      '10% discount on add-on services',
-      'Advanced analytics',
+      'Unlimited campaigns',
+      '350 credits / month',
+      'Full analytics',
+      '3 service requests',
+      '3 team seats',
+      'Priority support',
+      '10% add-on discount',
       'Early access to new features',
     ],
   },
   {
     key: 'proagent',
     name: 'ProAgent',
-    icon: Star,
+    Icon: Star,
     monthlyPrice: 149,
     annualPrice: 1490,
-    description: 'Unlimited everything, dedicated support, and maximum add-on savings.',
-    color: 'dark',
     trial: false,
-    trialDays: 0,
     billingNote: 'Billed immediately — cancel anytime',
     cta: 'Get started',
     popular: false,
+    description: 'Maximum credits, dedicated support, and white-glove onboarding for serious operators.',
     features: [
       'Everything in Growth',
-      'Unlimited active service requests',
-      'Dedicated account support',
-      '15% discount on add-on services',
+      '1,000 credits / month',
+      'Unlimited service requests',
+      '5 team seats (+$15/mo per extra)',
+      'Dedicated support',
+      '15% add-on discount',
       'Quarterly strategy review',
       'White-glove onboarding',
       'First access to beta features',
@@ -82,302 +80,32 @@ const plans = [
   },
 ]
 
-export default function PricingPage() {
-  const [annual, setAnnual] = useState(false)
-  const [loading, setLoading] = useState<string | null>(null)
-  const { isSignedIn } = useUser()
+// ── Compare table ──────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    trackEvent('pricing_view', { page: 'pricing' })
-  }, [])
+type CellVal = boolean | string
 
-  async function handleCheckout(planKey: string) {
-    trackEvent('plan_selected', { plan: planKey, billing: annual ? 'annual' : 'monthly' })
-    setLoading(planKey)
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planKey, annual }),
-      })
+const COMPARE_ROWS: { feature: string; starter: CellVal; growth: CellVal; proagent: CellVal }[] = [
+  { feature: 'Maya chat',               starter: true,          growth: true,          proagent: true          },
+  { feature: 'Foundation',              starter: true,          growth: true,          proagent: true          },
+  { feature: 'Brand Kit',               starter: true,          growth: true,          proagent: true          },
+  { feature: 'Campaigns',               starter: '3 active',    growth: 'Unlimited',   proagent: 'Unlimited'   },
+  { feature: 'Credits / month',         starter: '100',         growth: '350',         proagent: '1,000'       },
+  { feature: 'Agents',                  starter: 'All 9',       growth: 'All 9',       proagent: 'All 9'       },
+  { feature: 'Morning digest',          starter: true,          growth: true,          proagent: true          },
+  { feature: 'Analytics',               starter: 'Basic',       growth: 'Full',        proagent: 'Full'        },
+  { feature: 'Service requests',        starter: '1',           growth: '3',           proagent: 'Unlimited'   },
+  { feature: 'Team seats',              starter: '1',           growth: '3',           proagent: '5 (+$15/mo)' },
+  { feature: 'Support',                 starter: 'Email',       growth: 'Priority',    proagent: 'Dedicated'   },
+  { feature: 'Add-on discount',         starter: false,         growth: '10% off',     proagent: '15% off'     },
+  { feature: 'Quarterly strategy review', starter: false,       growth: false,         proagent: true          },
+  { feature: 'White-glove onboarding',  starter: false,         growth: false,         proagent: true          },
+  { feature: '3-day free trial',        starter: true,          growth: false,         proagent: false         },
+  { feature: 'Annual billing',          starter: true,          growth: true,          proagent: true          },
+]
 
-      if (res.status === 401) {
-        window.location.href = `/sign-up?plan=${planKey}`
-        return
-      }
+// ── Cell renderer ──────────────────────────────────────────────────────────
 
-      const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        setLoading(null)
-      }
-    } catch {
-      setLoading(null)
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#0d0d0d] text-[#f5f4f0]">
-
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
-        <a href="/" className="text-sm font-semibold tracking-widest uppercase text-[#c8522a]">
-          Agent7even
-        </a>
-        <div className="flex items-center gap-6">
-          {isSignedIn ? (
-            <a
-              href="/dashboard"
-              className="text-sm font-medium bg-white/10 hover:bg-white/15 px-4 py-2 rounded-lg transition-colors"
-            >
-              Go to dashboard →
-            </a>
-          ) : (
-            <>
-              <a href="/sign-in" className="text-sm text-white/40 hover:text-white/70 transition-colors">
-                Sign in
-              </a>
-              <a
-                href="/sign-up"
-                className="text-sm font-medium bg-white/10 hover:bg-white/15 px-4 py-2 rounded-lg transition-colors"
-              >
-                Sign up
-              </a>
-            </>
-          )}
-        </div>
-      </nav>
-
-      {/* Header */}
-      <div className="max-w-4xl mx-auto px-6 pt-20 pb-12 text-center">
-        <p className="text-xs font-semibold tracking-widest uppercase text-[#c8522a] mb-4">
-          Pricing
-        </p>
-        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-5">
-          Simple, transparent pricing
-        </h1>
-        <p className="text-lg text-white/40 max-w-xl mx-auto mb-10">
-          One platform for your marketing dashboard, AI tools, and managed services.
-          No contracts. Cancel anytime.
-        </p>
-
-        {/* Toggle */}
-        <div className="inline-flex items-center gap-3 bg-white/5 rounded-xl p-1">
-          <button
-            onClick={() => setAnnual(false)}
-            className={`text-sm font-medium px-5 py-2 rounded-lg transition-all ${
-              !annual ? 'bg-white text-[#0d0d0d]' : 'text-white/50 hover:text-white/70'
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setAnnual(true)}
-            className={`text-sm font-medium px-5 py-2 rounded-lg transition-all flex items-center gap-2 ${
-              annual ? 'bg-white text-[#0d0d0d]' : 'text-white/50 hover:text-white/70'
-            }`}
-          >
-            Annual
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full transition-colors ${
-              annual ? 'bg-[#c8522a] text-white' : 'bg-white/10 text-white/50'
-            }`}>
-              2 months free
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Plans */}
-      <div className="max-w-6xl mx-auto px-6 pb-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan) => {
-            const Icon = plan.icon
-            const isLoading = loading === plan.key
-
-            return (
-              <div key={plan.key} className="relative pt-3">
-                {/* Trial badge — sits above the card */}
-                {plan.trial && (
-                  <div className="absolute -top-0 left-1/2 -translate-x-1/2 z-10">
-                    <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/70 inline-block" />
-                      {plan.trialDays}-day free trial
-                    </span>
-                  </div>
-                )}
-
-                <div
-                  className={`relative rounded-2xl border flex flex-col h-full ${
-                    plan.popular
-                      ? 'bg-[#c8522a] border-[#c8522a]'
-                      : 'bg-white/[0.03] border-white/10 hover:border-white/20'
-                  } transition-all`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                      <span className="bg-[#f5f4f0] text-[#0d0d0d] text-xs font-bold px-4 py-1.5 rounded-full tracking-wide uppercase">
-                        Most popular
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="p-8 flex flex-col flex-1">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                        plan.popular ? 'bg-white/20' : 'bg-white/5'
-                      }`}>
-                        <Icon size={17} className={plan.popular ? 'text-white' : 'text-white/60'} />
-                      </div>
-                      <h3 className={`text-lg font-semibold ${plan.popular ? 'text-white' : 'text-[#f5f4f0]'}`}>
-                        {plan.name}
-                      </h3>
-                    </div>
-
-                    <div className="mb-2">
-                      <div className="flex items-end gap-1.5">
-                        <span className={`text-4xl font-semibold tracking-tight ${plan.popular ? 'text-white' : 'text-[#f5f4f0]'}`}>
-                          ${annual ? Math.round(plan.annualPrice / 12) : plan.monthlyPrice}
-                        </span>
-                        <span className={`text-sm mb-1.5 ${plan.popular ? 'text-white/60' : 'text-white/30'}`}>
-                          /mo
-                        </span>
-                      </div>
-                      {annual && (
-                        <p className={`text-xs mt-1 ${plan.popular ? 'text-white/70' : 'text-white/30'}`}>
-                          ${plan.annualPrice} billed annually
-                        </p>
-                      )}
-                      <p className={`text-xs mt-1.5 font-medium ${
-                        plan.trial
-                          ? 'text-emerald-400'
-                          : plan.popular ? 'text-white/60' : 'text-white/30'
-                      }`}>
-                        {plan.billingNote}
-                      </p>
-                    </div>
-
-                    <p className={`text-sm mt-4 mb-8 leading-relaxed ${plan.popular ? 'text-white/70' : 'text-white/40'}`}>
-                      {plan.description}
-                    </p>
-
-                    <ul className="space-y-3 flex-1 mb-8">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-3">
-                          <div className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center mt-0.5 ${
-                            plan.popular ? 'bg-white/20' : 'bg-white/10'
-                          }`}>
-                            <Check size={10} className={plan.popular ? 'text-white' : 'text-white/60'} />
-                          </div>
-                          <span className={`text-sm leading-snug ${plan.popular ? 'text-white/80' : 'text-white/50'}`}>
-                            {feature}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <button
-                      onClick={() => handleCheckout(plan.key)}
-                      disabled={isLoading}
-                      className={`w-full py-3.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
-                        plan.trial
-                          ? 'bg-emerald-500 hover:bg-emerald-400 text-white'
-                          : plan.popular
-                          ? 'bg-white text-[#c8522a] hover:bg-[#f5f4f0]'
-                          : 'bg-white/10 text-[#f5f4f0] hover:bg-white/15 border border-white/10'
-                      }`}
-                    >
-                      {isLoading ? 'Redirecting...' : plan.cta}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <p className="text-center text-sm text-white/20 mt-10">
-          Starter includes a 3-day free trial — card required, no charge until day 4.
-          Growth and ProAgent are charged immediately.{' '}
-          Questions?{' '}
-          <a href="mailto:hello@agent7even.com" className="text-white/40 hover:text-white/60 underline underline-offset-2">
-            hello@agent7even.com
-          </a>
-        </p>
-
-        {/* Comparison table */}
-        <div className="mt-20">
-          <h2 className="text-center text-2xl font-semibold text-[#f5f4f0] tracking-tight mb-2">
-            Compare plans
-          </h2>
-          <p className="text-center text-sm text-white/30 mb-10">
-            Everything included in each tier, side by side.
-          </p>
-
-          <div className="overflow-x-auto rounded-2xl border border-white/8">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/8">
-                  <th className="text-left px-6 py-4 text-white/30 font-medium w-1/2">Feature</th>
-                  <th className="text-center px-6 py-4 text-[#f5f4f0] font-semibold">Starter</th>
-                  <th className="text-center px-6 py-4 text-[#c8522a] font-semibold bg-[#c8522a]/5">Growth</th>
-                  <th className="text-center px-6 py-4 text-[#f5f4f0] font-semibold">ProAgent</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { feature: 'Dashboard & client portal', starter: true, growth: true, proagent: true },
-                  { feature: 'AI Toolkit', starter: '15 runs/mo', growth: 'Unlimited', proagent: 'Unlimited' },
-                  { feature: 'Brand Kit', starter: false, growth: true, proagent: true },
-                  { feature: 'Analytics', starter: 'Basic', growth: 'Full', proagent: 'Full' },
-                  { feature: 'Deliverables hub', starter: true, growth: true, proagent: true },
-                  { feature: 'Active service requests', starter: '1', growth: '3', proagent: 'Unlimited' },
-                  { feature: 'Add-on discount', starter: '—', growth: '10% off', proagent: '15% off' },
-                  { feature: 'Support', starter: 'Email', growth: 'Priority email', proagent: 'Dedicated' },
-                  { feature: 'Quarterly strategy review', starter: false, growth: false, proagent: true },
-                  { feature: 'White-glove onboarding', starter: false, growth: false, proagent: true },
-                  { feature: '3-day free trial', starter: true, growth: false, proagent: false },
-                  { feature: 'Annual billing option', starter: true, growth: true, proagent: true },
-                ].map((row, i) => (
-                  <tr
-                    key={row.feature}
-                    className={`border-b border-white/5 last:border-0 ${i % 2 === 0 ? 'bg-white/[0.01]' : ''}`}
-                  >
-                    <td className="px-6 py-4 text-white/50">{row.feature}</td>
-                    <td className="px-6 py-4 text-center">
-                      <Cell value={row.starter} />
-                    </td>
-                    <td className="px-6 py-4 text-center bg-[#c8522a]/5">
-                      <Cell value={row.growth} highlight />
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <Cell value={row.proagent} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="border-t border-white/5 mt-4">
-        <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col md:flex-row items-center gap-6 text-sm text-white/30">
-            <span className="font-semibold tracking-widest uppercase text-[#c8522a] text-xs">Agent7even</span>
-            <a href="/privacy" className="hover:text-white/60 transition-colors">Privacy Policy</a>
-            <a href="/terms" className="hover:text-white/60 transition-colors">Terms of Service</a>
-            <a href="mailto:hello@agent7even.com" className="hover:text-white/60 transition-colors">hello@agent7even.com</a>
-          </div>
-          <p className="text-xs text-white/20">© {new Date().getFullYear()} Agent7even. All rights reserved.</p>
-        </div>
-      </footer>
-    </div>
-  )
-}
-
-function Cell({ value, highlight = false }: { value: boolean | string; highlight?: boolean }) {
+function Cell({ value, highlight = false }: { value: CellVal; highlight?: boolean }) {
   if (value === true) {
     return (
       <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${
@@ -391,8 +119,300 @@ function Cell({ value, highlight = false }: { value: boolean | string; highlight
     return <span className="text-white/15">—</span>
   }
   return (
-    <span className={`font-medium ${highlight ? 'text-[#c8522a]' : 'text-white/60'}`}>
+    <span className={`text-sm font-medium ${highlight ? 'text-[#c8522a]' : 'text-white/60'}`}>
       {value}
     </span>
+  )
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────
+
+export default function PricingPage() {
+  const [annual, setAnnual] = useState(false)
+  const [loading, setLoading] = useState<string | null>(null)
+  const { isSignedIn, isLoaded } = useUser()
+
+  async function handleCta(planKey: string) {
+    if (!isSignedIn) {
+      window.location.href = `/sign-up?plan=${planKey}`
+      return
+    }
+    setLoading(planKey)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planKey, annual }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0d0d0d] text-[#f5f4f0]">
+
+      {/* Nav */}
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+        <a href="/" className="text-xs font-bold tracking-widest uppercase">
+          AGENT<span className="text-[#c8522a]">7</span>EVEN
+        </a>
+        <div className="flex items-center gap-5">
+          {isLoaded && (
+            isSignedIn ? (
+              <a
+                href="/dashboard"
+                className="text-sm font-medium bg-white/8 hover:bg-white/12 px-4 py-2 rounded-lg transition-colors"
+              >
+                Go to dashboard →
+              </a>
+            ) : (
+              <>
+                <a href="/sign-in" className="text-sm text-white/40 hover:text-white/70 transition-colors">
+                  Sign in
+                </a>
+                <a
+                  href="/sign-up"
+                  className="text-sm font-medium bg-white/8 hover:bg-white/12 px-4 py-2 rounded-lg transition-colors"
+                >
+                  Sign up free
+                </a>
+              </>
+            )
+          )}
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <div className="max-w-4xl mx-auto px-6 pt-20 pb-14 text-center">
+        <p className="text-[11px] font-semibold tracking-widest uppercase text-[#c8522a] mb-4">
+          Pricing
+        </p>
+        <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-5">
+          Simple, transparent pricing
+        </h1>
+        <p className="text-lg text-white/40 max-w-xl mx-auto mb-10">
+          One platform for your marketing dashboard, AI tools, and managed
+          services. No contracts. Cancel anytime.
+        </p>
+
+        {/* Monthly / Annual toggle */}
+        <div className="inline-flex items-center gap-1 bg-white/5 rounded-xl p-1">
+          <button
+            onClick={() => setAnnual(false)}
+            className={`text-sm font-medium px-5 py-2 rounded-lg transition-all ${
+              !annual ? 'bg-white text-[#0d0d0d]' : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setAnnual(true)}
+            className={`flex items-center gap-2 text-sm font-medium px-5 py-2 rounded-lg transition-all ${
+              annual ? 'bg-white text-[#0d0d0d]' : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            Annual
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
+              annual ? 'bg-[#c8522a] text-white' : 'bg-white/10 text-white/40'
+            }`}>
+              2 months free
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Plan cards */}
+      <div className="max-w-6xl mx-auto px-6 pb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          {PLANS.map((plan) => {
+            const { Icon } = plan
+            const isLoading = loading === plan.key
+            const displayPrice = annual ? Math.round(plan.annualPrice / 12) : plan.monthlyPrice
+
+            return (
+              <div key={plan.key} className="relative" style={{ paddingTop: plan.trial || plan.popular ? 14 : 0 }}>
+
+                {/* Trial badge */}
+                {plan.trial && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2">
+                    <span className="bg-emerald-500 text-white text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/60 inline-block" />
+                      3-day free trial
+                    </span>
+                  </div>
+                )}
+
+                {/* Most popular badge */}
+                {plan.popular && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
+                    <span className="bg-[#f5f4f0] text-[#0d0d0d] text-[11px] font-bold px-4 py-1 rounded-full tracking-wide uppercase whitespace-nowrap">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+
+                <div className={`rounded-2xl border flex flex-col h-full transition-all ${
+                  plan.popular
+                    ? 'bg-[#c8522a] border-[#c8522a]'
+                    : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+                }`}>
+                  <div className="p-8 flex flex-col flex-1">
+
+                    {/* Icon + name */}
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                        plan.popular ? 'bg-white/20' : 'bg-white/6'
+                      }`}>
+                        <Icon size={17} className={plan.popular ? 'text-white' : 'text-white/60'} />
+                      </div>
+                      <h3 className={`text-lg font-semibold ${plan.popular ? 'text-white' : 'text-[#f5f4f0]'}`}>
+                        {plan.name}
+                      </h3>
+                    </div>
+
+                    {/* Price */}
+                    <div className="mb-1">
+                      <div className="flex items-end gap-1.5">
+                        <span className={`text-5xl font-semibold tracking-tight leading-none ${
+                          plan.popular ? 'text-white' : 'text-[#f5f4f0]'
+                        }`}>
+                          ${displayPrice}
+                        </span>
+                        <span className={`text-sm mb-1.5 ${plan.popular ? 'text-white/60' : 'text-white/30'}`}>
+                          /mo
+                        </span>
+                      </div>
+                      {annual && (
+                        <p className={`text-xs mt-1.5 ${plan.popular ? 'text-white/60' : 'text-white/30'}`}>
+                          ${plan.annualPrice} billed annually
+                        </p>
+                      )}
+                      <p className={`text-xs mt-2 font-medium ${
+                        plan.trial ? 'text-emerald-400' : plan.popular ? 'text-white/55' : 'text-white/25'
+                      }`}>
+                        {plan.billingNote}
+                      </p>
+                    </div>
+
+                    {/* Description */}
+                    <p className={`text-sm mt-5 mb-7 leading-relaxed ${
+                      plan.popular ? 'text-white/70' : 'text-white/35'
+                    }`}>
+                      {plan.description}
+                    </p>
+
+                    {/* Feature list */}
+                    <ul className="space-y-2.5 flex-1 mb-8">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-start gap-3">
+                          <div className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center mt-0.5 ${
+                            plan.popular ? 'bg-white/20' : 'bg-white/8'
+                          }`}>
+                            <Check size={10} className={plan.popular ? 'text-white' : 'text-white/55'} />
+                          </div>
+                          <span className={`text-sm leading-snug ${
+                            plan.popular ? 'text-white/85' : 'text-white/50'
+                          }`}>
+                            {f}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* CTA */}
+                    <button
+                      onClick={() => handleCta(plan.key)}
+                      disabled={isLoading}
+                      className={`w-full py-3.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                        plan.trial
+                          ? 'bg-emerald-500 hover:bg-emerald-400 text-white'
+                          : plan.popular
+                          ? 'bg-white text-[#c8522a] hover:bg-[#f5f4f0]'
+                          : 'bg-white/8 text-[#f5f4f0] hover:bg-white/12 border border-white/10'
+                      }`}
+                    >
+                      {isLoading ? 'Redirecting…' : plan.cta}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Fine print */}
+        <p className="text-center text-sm text-white/20 mt-10">
+          Starter includes a 3-day free trial — card required, no charge until day 4.
+          Growth and ProAgent are charged immediately.{' '}
+          Questions?{' '}
+          <a href="mailto:hello@agent7even.com" className="text-white/40 hover:text-white/60 underline underline-offset-2 transition-colors">
+            hello@agent7even.com
+          </a>
+        </p>
+      </div>
+
+      {/* Compare plans */}
+      <div className="max-w-6xl mx-auto px-6 pb-24 mt-16">
+        <h2 className="text-center text-2xl font-semibold tracking-tight mb-2">
+          Compare plans
+        </h2>
+        <p className="text-center text-sm text-white/30 mb-10">
+          Everything included in each tier, side by side.
+        </p>
+
+        <div className="overflow-x-auto rounded-2xl border border-white/[0.08]">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-white/[0.08]">
+                <th className="text-left px-6 py-4 text-white/30 font-medium w-[38%]">Feature</th>
+                <th className="text-center px-5 py-4 text-[#f5f4f0] font-semibold w-[20%]">Starter</th>
+                <th className="text-center px-5 py-4 text-[#c8522a] font-semibold w-[20%] bg-[#c8522a]/[0.06]">Growth</th>
+                <th className="text-center px-5 py-4 text-[#f5f4f0] font-semibold w-[22%]">ProAgent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE_ROWS.map((row, i) => (
+                <tr
+                  key={row.feature}
+                  className={`border-b border-white/[0.05] last:border-0 ${i % 2 === 0 ? 'bg-white/[0.01]' : ''}`}
+                >
+                  <td className="px-6 py-4 text-white/45">{row.feature}</td>
+                  <td className="px-5 py-4 text-center">
+                    <Cell value={row.starter} />
+                  </td>
+                  <td className="px-5 py-4 text-center bg-[#c8522a]/[0.04]">
+                    <Cell value={row.growth} highlight />
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <Cell value={row.proagent} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-white/5">
+        <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-5">
+          <div className="flex flex-col md:flex-row items-center gap-6 text-sm text-white/30">
+            <span className="text-xs font-bold tracking-widest uppercase">
+              AGENT<span className="text-[#c8522a]">7</span>EVEN
+            </span>
+            <a href="/privacy" className="hover:text-white/60 transition-colors">Privacy Policy</a>
+            <a href="/terms"   className="hover:text-white/60 transition-colors">Terms of Service</a>
+            <a href="mailto:hello@agent7even.com" className="hover:text-white/60 transition-colors">
+              hello@agent7even.com
+            </a>
+          </div>
+          <p className="text-xs text-white/20">© {new Date().getFullYear()} Agent7even. All rights reserved.</p>
+        </div>
+      </footer>
+
+    </div>
   )
 }
