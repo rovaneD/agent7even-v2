@@ -148,6 +148,7 @@ export async function createTask(opts: {
   userId: string
   agent?: AgentId | string     // used by external route callers
   agentId?: string             // used by runAgent internally
+  jobType?: string             // finer-grained job label for wedge analysis
   model?: string
   input: Record<string, unknown>
   orchestrationId?: string
@@ -164,6 +165,7 @@ export async function createTask(opts: {
     .insert({
       user_id:          opts.userId,
       agent:            agentValue,
+      job_type:         opts.jobType ?? null,
       model:            opts.model ?? null,
       input:            opts.input,
       status:           opts.scheduledFor ? 'scheduled' : 'pending',

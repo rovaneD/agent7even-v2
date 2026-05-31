@@ -231,10 +231,11 @@ Never use markdown in conversation. Save structure for the plan.`
 
     // ── 5. Create task, stream, record cost ────────────────────────────────
     const task = await createTask({
-      userId: profile.id,
-      agent:  'maya',      // inserts agent='maya' into agent_tasks
-      model:  MAYA_MODEL,
-      input:  { messageCount: messages.length },
+      userId:  profile.id,
+      agent:   'maya',
+      jobType: 'maya_chat',
+      model:   MAYA_MODEL,
+      input:   { messageCount: messages.length },
     })
     console.log('[maya/chat] 4. task created:', task.id)
     await updateTaskStatus(task.id, 'running')
