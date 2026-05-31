@@ -60,8 +60,10 @@ You are completing a specific task, not building a new campaign. Never say "spin
   const supabase = createServiceClient()
 
   // ── 1. Fetch profile ───────────────────────────────────────────────────────
+  // Use .limit(1) + array index instead of .single() so duplicate rows (PGRST116)
+  // don't cause both fetches to fail and drop the request to the no-profile path.
   let profile: Record<string, any> | null = null
-  const { data: fullProfile, error: profileError } = await supabase
+  const { data: fullRows, error: profileError } = await supabase
     .from('profiles')
     .select(`
       id, company_name, business_type,
@@ -70,19 +72,21 @@ You are completing a specific task, not building a new campaign. Never say "spin
       website_url, instagram_handle, foundation_score
     `)
     .eq('clerk_user_id', userId)
-    .single()
+    .order('created_at', { ascending: false })
+    .limit(1)
 
   if (profileError) {
     console.error('[maya/chat] full profile fetch error:', profileError.code, profileError.message)
-    const { data: basicProfile, error: basicError } = await supabase
+    const { data: basicRows, error: basicError } = await supabase
       .from('profiles')
       .select('id, company_name, business_type, website_url, instagram_handle')
       .eq('clerk_user_id', userId)
-      .single()
+      .order('created_at', { ascending: false })
+      .limit(1)
     if (basicError) console.error('[maya/chat] basic profile fetch error:', basicError.code, basicError.message)
-    profile = basicProfile
+    profile = basicRows?.[0] ?? null
   } else {
-    profile = fullProfile
+    profile = fullRows?.[0] ?? null
   }
 
   console.log('[maya/chat] 2. profile id:', profile?.id ?? 'NONE')
