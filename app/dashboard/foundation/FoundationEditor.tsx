@@ -151,6 +151,7 @@ export default function FoundationEditor({
   )
   const [rescoring, setRescoring] = useState(false)
   const [rescored, setRescored] = useState(false)
+  const [generating, setGenerating] = useState(false)
   const [lastUpdatedAt, setLastUpdatedAt] = useState(lastUpdated)
 
   const hasChanges = JSON.stringify(answers) !== JSON.stringify(savedAnswers)
@@ -175,6 +176,23 @@ export default function FoundationEditor({
       setRescored(true)
       window.dispatchEvent(new CustomEvent('foundation:rescored', { detail: { score: data.overallScore } }))
       setTimeout(() => setRescored(false), 3000)
+
+      // Regenerate foundation documents in background
+      const splitToArray = (s: string) => s ? s.split(',').map(x => x.trim()).filter(Boolean) : []
+      const adaptedAnswers = {
+        ...answers,
+        competitors: splitToArray(answers.competitors),
+        toneTraits:  splitToArray(answers.toneTraits),
+        channels:    splitToArray(answers.channels),
+      }
+      setGenerating(true)
+      fetch('/api/foundation/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: adaptedAnswers, companyName }),
+      })
+        .catch(err => console.error('[foundation] doc generation failed:', err))
+        .finally(() => setGenerating(false))
     } finally {
       setRescoring(false)
     }
@@ -346,7 +364,13 @@ export default function FoundationEditor({
               )}
             </button>
 
-            {lastUpdatedAt && (
+            {generating && (
+              <p className="text-xs text-gray-400 text-center mt-2 flex items-center justify-center gap-1.5">
+                <Loader2 size={10} className="animate-spin" />
+                Updating Maya&apos;s context…
+              </p>
+            )}
+            {!generating && lastUpdatedAt && (
               <p className="text-xs text-gray-400 text-center mt-2">
                 Last scored {relativeTime(lastUpdatedAt)}
               </p>
