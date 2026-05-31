@@ -25,12 +25,17 @@ const PLANS = {
     name: 'Starter',
     icon: Zap,
     monthlyPrice: 49,
+    annualPrice: 490,
+    trial: true,
+    highlight: 'Maya chat · Foundation · Brand Kit',
     features: [
-      'Full client dashboard & portal',
-      'AI Toolkit — 15 runs/month',
-      'Analytics & reporting',
-      'Deliverables hub',
-      '1 active service request',
+      '3 active campaigns',
+      '100 credits / month',
+      'All 9 agents',
+      'Morning digest',
+      'Basic analytics',
+      '1 service request',
+      '1 team seat',
       'Email support',
     ],
   },
@@ -38,26 +43,36 @@ const PLANS = {
     name: 'Growth',
     icon: TrendingUp,
     monthlyPrice: 89,
+    annualPrice: 890,
+    trial: false,
+    highlight: 'Everything in Starter, plus:',
     features: [
-      'Everything in Starter',
-      'AI Toolkit — unlimited runs',
-      '3 active service requests',
-      'Priority email support',
-      '10% discount on add-ons',
-      'Advanced analytics',
+      'Unlimited campaigns',
+      '350 credits / month',
+      'Full analytics',
+      '3 service requests',
+      '3 team seats',
+      'Priority support',
+      '10% add-on discount',
+      'Early access to new features',
     ],
   },
   proagent: {
     name: 'ProAgent',
     icon: Star,
     monthlyPrice: 149,
+    annualPrice: 1490,
+    trial: false,
+    highlight: 'Everything in Growth, plus:',
     features: [
-      'Everything in Growth',
+      '1,000 credits / month',
       'Unlimited service requests',
-      'Dedicated account support',
-      '15% discount on add-ons',
+      '5 team seats (+$15/mo extra)',
+      'Dedicated support',
+      '15% add-on discount',
       'Quarterly strategy review',
       'White-glove onboarding',
+      'First access to beta features',
     ],
   },
 }
@@ -173,15 +188,18 @@ The user can view their current plan, upgrade to a higher tier, and access the S
         </div>
 
         {currentPlan && (
-          <div className="grid grid-cols-2 gap-2 mb-6">
-            {currentPlan.features.map((f) => (
-              <div key={f} className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0">
-                  <Check size={9} className="text-[#c8522a]" />
+          <div className="mb-6">
+            <p className="text-xs text-gray-400 mb-3">{currentPlan.highlight}</p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              {currentPlan.features.map((f) => (
+                <div key={f} className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0">
+                    <Check size={9} className="text-[#c8522a]" />
+                  </div>
+                  <span className="text-sm text-gray-600">{f}</span>
                 </div>
-                <span className="text-sm text-gray-600">{f}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
@@ -243,26 +261,51 @@ The user can view their current plan, upgrade to a higher tier, and access the S
               return (
                 <div
                   key={planKey}
-                  className="border border-gray-100 rounded-xl p-5 hover:border-[#c8522a]/30 transition-colors"
+                  className="border border-gray-100 rounded-xl p-5 hover:border-[#c8522a]/30 transition-colors flex flex-col"
                 >
+                  {/* Header */}
                   <div className="flex items-center gap-2 mb-3">
                     <Icon size={15} className="text-[#c8522a]" />
                     <span className="text-sm font-semibold text-gray-900">{p.name}</span>
+                    {p.trial && (
+                      <span className="ml-auto text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        3-day trial
+                      </span>
+                    )}
                   </div>
-                  <p className="text-2xl font-semibold text-gray-900 mb-1">
+
+                  {/* Price */}
+                  <p className="text-2xl font-semibold text-gray-900 mb-0.5">
                     ${price}<span className="text-sm font-normal text-gray-400">/mo</span>
                   </p>
-                  {billingAnnual && (
-                    <p className="text-xs text-gray-400 mb-4">
-                      ${p.monthlyPrice * 10}/yr — 2 months free
-                    </p>
+                  {billingAnnual ? (
+                    <p className="text-xs text-gray-400 mb-3">${p.annualPrice}/yr — 2 months free</p>
+                  ) : (
+                    <div className="mb-3" />
                   )}
+
+                  {/* Feature highlight line */}
+                  <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">{p.highlight}</p>
+
+                  {/* Feature list */}
+                  <ul className="space-y-1.5 mb-5 flex-1">
+                    {p.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <div className="w-3.5 h-3.5 rounded-full bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check size={8} className="text-[#c8522a]" />
+                        </div>
+                        <span className="text-xs text-gray-500 leading-snug">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
                   <button
                     onClick={() => handleUpgrade(planKey)}
                     disabled={upgradeLoading === planKey}
-                    className="w-full mt-3 py-2.5 rounded-lg text-sm font-semibold bg-[#c8522a] text-white hover:bg-[#b8471f] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full py-2.5 rounded-lg text-sm font-semibold bg-[#c8522a] text-white hover:bg-[#b8471f] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {upgradeLoading === planKey ? 'Redirecting...' : `Upgrade to ${p.name}`}
+                    {upgradeLoading === planKey ? 'Redirecting…' : `Upgrade to ${p.name}`}
                   </button>
                 </div>
               )
