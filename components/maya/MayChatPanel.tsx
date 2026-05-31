@@ -35,6 +35,8 @@ interface Props {
   pendingTask?: string | null
   onTaskConsumed?: () => void
   onClose?: () => void
+  sessionId?: string | null
+  onSessionCreated?: (id: string, title: string) => void
 }
 
 // ── Markdown components ───────────────────────────────────────────────────
@@ -71,6 +73,8 @@ export default function MayChatPanel({
   pendingTask = null,
   onTaskConsumed,
   onClose,
+  sessionId: initialSessionId = null,
+  onSessionCreated,
 }: Props) {
   const companyName = profile?.company_name ?? profile?.full_name ?? 'there'
 
@@ -100,6 +104,9 @@ export default function MayChatPanel({
   const canvasDataRef = useRef(canvasData)
   useEffect(() => { canvasDataRef.current = canvasData }, [canvasData])
 
+  // sessionId — starts from prop, updated after first save (new session created)
+  const sessionIdRef = useRef<string | null>(initialSessionId)
+
   // Stable transport — never recreated so useChat never resets mid-conversation.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const transport = useMemo(() => new DefaultChatTransport({
@@ -116,16 +123,27 @@ export default function MayChatPanel({
     transport,
     messages: initialMessages.length ? (initialMessages as UIMessage[]) : undefined,
     onFinish: async ({ message }: { message: UIMessage }) => {
-      if (profile?.id) {
-        fetch('/api/maya/session', {
+      if (!profile?.id) return
+      const allMessages = [...messagesRef.current, message]
+      try {
+        const res = await fetch('/api/maya/session', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
-            userId:   profile.id,
-            messages: [...messagesRef.current, message],
-            mode:     modeRef.current,
+            userId:        profile.id,
+            sessionId:     sessionIdRef.current,
+            messages:      allMessages,
+            mode:          modeRef.current,
+            canvasContext: canvasContext ?? null,
           }),
-        }).catch(() => {})
+        })
+        const data = await res.json()
+        if (data.sessionId && !sessionIdRef.current) {
+          sessionIdRef.current = data.sessionId
+          onSessionCreated?.(data.sessionId, data.title ?? 'New conversation')
+        }
+      } catch {
+        // non-fatal
       }
     },
   })

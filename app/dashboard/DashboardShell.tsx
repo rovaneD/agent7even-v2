@@ -44,13 +44,19 @@ interface Notification {
   created_at: string
 }
 
+interface Session {
+  id: string
+  title: string | null
+  canvas_context: string | null
+  updated_at: string
+}
+
 interface Props {
   children: React.ReactNode
   profile?: Profile | null
   profileId: string
   initialNotifications: Notification[]
-  initialMessages?: unknown[]
-  initialMode?: string | null
+  initialSessions?: Session[]
   foundationScore?: number | null
   role?: string | null
   isAdmin?: boolean
@@ -92,13 +98,32 @@ const NAV = [
 
 // ── Component ─────────────────────────────────────────────────────────────
 
+function groupSessionsByDate(sessions: Session[]): { label: string; sessions: Session[] }[] {
+  const todayStart     = new Date(); todayStart.setHours(0, 0, 0, 0)
+  const yesterdayStart = new Date(todayStart.getTime() - 86_400_000)
+
+  const buckets: Record<string, Session[]> = {}
+
+  sessions.forEach(s => {
+    const d = new Date(s.updated_at); d.setHours(0, 0, 0, 0)
+    let label: string
+    if (d.getTime() === todayStart.getTime())     label = 'Today'
+    else if (d.getTime() === yesterdayStart.getTime()) label = 'Yesterday'
+    else label = new Date(s.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    if (!buckets[label]) buckets[label] = []
+    buckets[label].push(s)
+  })
+
+  const order = ['Today', 'Yesterday', ...Object.keys(buckets).filter(k => k !== 'Today' && k !== 'Yesterday')]
+  return order.filter(l => buckets[l]).map(label => ({ label, sessions: buckets[label] }))
+}
+
 export default function DashboardShell({
   children,
   profile,
   profileId,
   initialNotifications,
-  initialMessages = [],
-  initialMode = null,
+  initialSessions = [],
   foundationScore: initialFoundationScore = null,
   role = null,
   isAdmin: isAdminProp = false,
@@ -109,8 +134,13 @@ export default function DashboardShell({
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
   const [showNewCampaign, setShowNewCampaign] = useState(false)
   const [mayaPendingTask, setMayaPendingTask] = useState<string | null>(null)
-  const [taskVersion, setTaskVersion] = useState(0)
-  const [canvasData, setCanvasData] = useState<string>('')
+  const [panelKey, setPanelKey]       = useState(0)
+  const [canvasData, setCanvasData]   = useState<string>('')
+  const [sessions, setSessions]       = useState<Session[]>(initialSessions)
+  const [activeSessionId, setActiveSessionId]   = useState<string | null>(null)
+  const [activeMessages, setActiveMessages]     = useState<unknown[]>([])
+  const [activeMode, setActiveMode]             = useState<string | null>(null)
+  const [loadingSession, setLoadingSession]     = useState<string | null>(null)
 
   const isAdmin = isAdminProp || role === 'admin' || role === 'owner'
 
@@ -157,13 +187,16 @@ export default function DashboardShell({
     return () => { supabase.removeChannel(channel) }
   }, [profileId])
 
-  // Listen for "Do this with Maya →" events — remount panel fresh so old conversation doesn't bleed in
+  // Listen for "Do this with Maya →" — always fresh panel, no prior session
   useEffect(() => {
     function onOpenTask(e: Event) {
       const { task } = (e as CustomEvent<{ task: string }>).detail
       setMayaOpen(true)
       setMayaPendingTask(task)
-      setTaskVersion(v => v + 1)
+      setActiveSessionId(null)
+      setActiveMessages([])
+      setActiveMode(null)
+      setPanelKey(k => k + 1)
     }
     window.addEventListener('maya:open-task', onOpenTask)
     return () => window.removeEventListener('maya:open-task', onOpenTask)
@@ -172,6 +205,46 @@ export default function DashboardShell({
   // Pass the current page as context to Maya so she knows what you're looking at
   const canvasContext = NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
     ?? (pathname === '/dashboard' ? 'Dashboard' : undefined)
+
+  async function openNewConversation() {
+    if (mayaOpen && activeSessionId === null && activeMessages.length === 0) {
+      setMayaOpen(false)
+      return
+    }
+    setMayaOpen(true)
+    setActiveSessionId(null)
+    setActiveMessages([])
+    setActiveMode(null)
+    setMayaPendingTask(null)
+    setPanelKey(k => k + 1)
+  }
+
+  async function loadSession(sessionId: string) {
+    setLoadingSession(sessionId)
+    try {
+      const res = await fetch(`/api/maya/session?id=${sessionId}`)
+      const { session } = await res.json()
+      setActiveMessages(session?.messages ?? [])
+      setActiveMode(session?.mode ?? null)
+      setActiveSessionId(sessionId)
+      setMayaOpen(true)
+      setMayaPendingTask(null)
+      setPanelKey(k => k + 1)
+    } finally {
+      setLoadingSession(null)
+    }
+  }
+
+  function handleSessionCreated(id: string, title: string) {
+    setActiveSessionId(id)
+    setSessions(prev => {
+      const exists = prev.some(s => s.id === id)
+      if (exists) return prev
+      return [{ id, title, canvas_context: canvasContext ?? null, updated_at: new Date().toISOString() }, ...prev]
+    })
+  }
+
+  const sessionGroups = groupSessionsByDate(sessions)
 
   const sidebarStyle: React.CSSProperties = {
     width: 200,
@@ -240,7 +313,7 @@ export default function DashboardShell({
       {/* Maya + New campaign buttons */}
       <div style={{ padding: '10px 10px 6px', display: 'flex', flexDirection: 'column', gap: 5 }}>
         <button
-          onClick={() => setMayaOpen(o => !o)}
+          onClick={openNewConversation}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px',
             borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5,
@@ -253,10 +326,54 @@ export default function DashboardShell({
         >
           <Sparkles size={13} strokeWidth={1.75} color={mayaOpen ? '#fff' : '#555'} />
           Maya
-          {mayaOpen && (
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#888', fontWeight: 400 }}>open</span>
+          {mayaOpen && activeSessionId === null && (
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#888', fontWeight: 400 }}>new</span>
           )}
         </button>
+
+        {/* Session history — visible while Maya panel is open */}
+        {mayaOpen && sessionGroups.length > 0 && (
+          <div style={{ marginTop: 2, marginLeft: 2, marginBottom: 2 }}>
+            {sessionGroups.map(group => (
+              <div key={group.label} style={{ marginBottom: 6 }}>
+                <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#d0d0d0', padding: '0 4px', marginBottom: 2 }}>
+                  {group.label}
+                </p>
+                {group.sessions.map(session => {
+                  const isActive  = session.id === activeSessionId
+                  const isLoading = session.id === loadingSession
+                  return (
+                    <button
+                      key={session.id}
+                      onClick={() => loadSession(session.id)}
+                      style={{
+                        width: '100%', display: 'block', textAlign: 'left', padding: '4px 6px 4px 10px',
+                        borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                        fontSize: 11.5, color: isActive ? '#0a0a0a' : '#888',
+                        background: isActive ? '#f0f0f0' : 'transparent',
+                        opacity: isLoading ? 0.5 : 1,
+                        transition: 'background 0.1s, color 0.1s',
+                        marginBottom: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                      }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#f7f7f7' }}
+                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                      title={session.title ?? 'Untitled'}
+                    >
+                      <span style={{ color: '#d0d0d0', marginRight: 5, fontSize: 10 }}>›</span>
+                      {session.canvas_context && (
+                        <span style={{ fontSize: 9.5, color: '#c8522a', marginRight: 4, fontWeight: 500 }}>
+                          {session.canvas_context} ·{' '}
+                        </span>
+                      )}
+                      {session.title ?? 'Untitled'}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+
         <button
           onClick={() => setShowNewCampaign(true)}
           style={{
@@ -337,15 +454,17 @@ export default function DashboardShell({
           style={{ width: 460, flexShrink: 0, borderRight: '0.5px solid #ebebeb', overflow: 'hidden', height: '100%' }}
         >
           <MayChatPanel
-            key={taskVersion > 0 ? `task-${taskVersion}` : 'default'}
+            key={`panel-${panelKey}`}
             profile={profile}
-            initialMessages={taskVersion > 0 ? [] : initialMessages}
-            initialMode={taskVersion > 0 ? null : initialMode}
+            initialMessages={activeMessages}
+            initialMode={activeMode}
             canvasContext={canvasContext}
             canvasData={canvasData}
             pendingTask={mayaPendingTask}
             onTaskConsumed={() => setMayaPendingTask(null)}
-            onClose={() => setMayaOpen(false)}
+            onClose={() => { setMayaOpen(false) }}
+            sessionId={activeSessionId}
+            onSessionCreated={handleSessionCreated}
           />
         </div>
       )}

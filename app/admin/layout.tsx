@@ -24,19 +24,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const p = profileRows?.[0] ?? null
 
   let notifications: { id: string; title: string; body: string; type: string; link: string | null; read: boolean; created_at: string }[] = []
-  let initialMessages: unknown[] = []
-  let initialMode: string | null = null
+  let initialSessions: { id: string; title: string | null; canvas_context: string | null; updated_at: string }[] = []
 
   if (p?.id) {
     const [{ data: notifs }, { data: sessionRows }] = await Promise.all([
       supabase.from('notifications').select('*').eq('user_id', p.id).order('created_at', { ascending: false }).limit(20),
-      supabase.from('maya_sessions').select('messages, mode').eq('user_id', p.id).order('updated_at', { ascending: false }).limit(1),
+      supabase.from('maya_sessions').select('id, title, canvas_context, updated_at').eq('user_id', p.id).order('updated_at', { ascending: false }).limit(20),
       logActivity(p.id, 'page_view'),
     ])
-    const session = sessionRows?.[0] ?? null
-    notifications = notifs ?? []
-    initialMessages = (session?.messages as unknown[]) ?? []
-    initialMode = session?.mode ?? null
+    notifications   = notifs ?? []
+    initialSessions = (sessionRows ?? []) as typeof initialSessions
   }
 
   return (
@@ -44,8 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       profile={p as Profile | null}
       profileId={p?.id ?? ''}
       initialNotifications={notifications}
-      initialMessages={initialMessages}
-      initialMode={initialMode}
+      initialSessions={initialSessions}
       foundationScore={(p as any)?.foundation_score ?? null}
       role={(p as any)?.role ?? null}
       isAdmin={true}

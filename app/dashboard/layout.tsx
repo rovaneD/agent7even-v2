@@ -22,8 +22,7 @@ export default async function DashboardLayout({
     read: boolean
     created_at: string
   }[] = []
-  let initialMessages: unknown[] = []
-  let initialMode: string | null = null
+  let initialSessions: { id: string; title: string | null; canvas_context: string | null; updated_at: string }[] = []
 
   if (userId) {
     const { data: profileRows } = await supabase
@@ -55,18 +54,16 @@ export default async function DashboardLayout({
 
         supabase
           .from('maya_sessions')
-          .select('messages, mode')
+          .select('id, title, canvas_context, updated_at')
           .eq('user_id', p.id)
           .order('updated_at', { ascending: false })
-          .limit(1),
+          .limit(20),
 
         logActivity(p.id, 'page_view'),
       ])
 
-      const session = sessionRows?.[0] ?? null
-      notifications   = notifs ?? []
-      initialMessages = (session?.messages as unknown[]) ?? []
-      initialMode     = session?.mode ?? null
+      notifications    = notifs ?? []
+      initialSessions  = (sessionRows ?? []) as typeof initialSessions
     }
   }
 
@@ -75,8 +72,7 @@ export default async function DashboardLayout({
       profile={profile}
       profileId={profileId}
       initialNotifications={notifications}
-      initialMessages={initialMessages}
-      initialMode={initialMode}
+      initialSessions={initialSessions}
       foundationScore={(profile as { foundation_score?: number | null } | null)?.foundation_score ?? null}
       role={(profile as any)?.role ?? null}
       isAdmin={['admin', 'owner'].includes((profile as any)?.role ?? '')}
