@@ -480,7 +480,7 @@ Built May 29, 2026. Full technical detail in CONTEXTV7.md. Summary for session a
 **Every new session — Claude Code or otherwise — must:**
 
 1. Read `MAYA_CONTEXT.md` fully before writing any code
-2. Read `CONTEXTV7.md` for full technical infrastructure detail
+2. Read `CONTEXTV9.md` for the latest technical infrastructure detail
 3. Run `git remote -v` — confirm output shows `agent7even-v2`, never `agent7even-app`
 4. Confirm the feature being built fits the Maya architecture in this document
 
@@ -932,7 +932,56 @@ Pages dispatch this on mount (and on significant state changes like rescore). `D
 11. Agent names audit ✅ DONE
 12. Brand Kit 6-section system ✅ DONE
 13. Maya conversation history ✅ DONE
-14. Credit top-up (Stripe checkout) 🟡
-15. Orchestration progress UI 🟡
-16. Approval queue UI 🟡 NEXT
+14. Public pricing page ✅ DONE (May 31, session 3)
+15. Billing page feature descriptions ✅ DONE (May 31, session 3)
+16. Approval queue UI ✅ DONE (May 31, session 3)
+17. Credit top-up (Stripe checkout) 🟡
+18. Orchestration progress UI 🟡
+
+---
+
+## Session Summary — May 31, 2026 (session 3)
+
+### What shipped this session
+
+**Approval Queue — full build:**
+- `02_approval_queue.sql` — adds `rejection_reason`, `reviewed_at`, `reviewed_by` to `agent_tasks`; adds `feedback`, `feedback_note`, `feedback_at` to `agent_outputs`
+- `GET /api/agents/approvals` — returns pending tasks with outputs for authenticated user
+- `POST /api/agents/approvals/bulk` — bulk approve or reject with optional rejection note + re-queue
+- `app/dashboard/agents/approvals/` — dedicated review page with `hasReviewedOne` bulk-unlock mechanic, 6 quick rejection chips, expand/edit/approve/reject per item, agent filter, sort, select-all
+- `?task={id}` query param auto-expands + scrolls to that item — used for morning digest deep-links
+- `DashboardShell` — `#c8522a` badge on Agents nav item + "Approvals" sub-item when pending count > 0
+- `layout.tsx` — pending approvals count fetched server-side, passed to DashboardShell
+- `AgentCommandCenter` Zone 1 — old inline review queue replaced with banner card linking to `/approvals`
+- Approve route — added `reviewed_at`, `reviewed_by`; fixed `.single()` on content fetch
+- Reject route — full rewrite: `.limit(1)`, new `rejection_reason`, `reviewed_at`, `reviewed_by`, `feedback`/`feedback_note`/`feedback_at` on outputs
+- Morning digest `approvalItems` — each item now includes `reviewUrl: /dashboard/agents/approvals?task={id}`
+
+**Public pricing page (`/pricing`):**
+- Dark theme (`#0d0d0d`), three-column plan cards, monthly/annual toggle
+- 16-row compare table, 8-item FAQ accordion
+- Unauthenticated CTAs → `/sign-up?plan=X` (direct nav, no API call)
+- Authenticated → Stripe checkout
+- `isLoaded` guard prevents hydration flash on Clerk auth state
+
+**Billing page feature descriptions:**
+- `PLANS` in `BillingClient.tsx` updated with full Maya feature lists for all 3 plans
+- Upgrade cards now show highlight label + full feature list before CTA button
+- "3-day trial" badge on Starter
+
+**Typography font suggestions UI (TypographySection):**
+- `generating`, `pairings`, `genError` state
+- 2 selectable pairing cards with name, rationale, heading/body font + weight
+- `applyPairing()` pre-fills heading/body fields without saving
+
+### New SQL migration
+- `02_approval_queue.sql` — run in Supabase SQL editor
+
+### Work queue status
+1–13: All ✅ DONE (see CONTEXTV8.md §10)
+14. Public pricing page ✅ DONE
+15. Billing page features ✅ DONE
+16. Approval queue UI ✅ DONE
+17. Credit top-up (Stripe checkout) 🟡
+18. Orchestration progress UI 🟡
 
