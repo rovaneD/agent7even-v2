@@ -275,6 +275,7 @@ export default function DashboardShell({
             </p>
             {[
               { href: '/admin/clients',  label: 'Clients',         icon: Users       },
+              { href: '/admin/cost',     label: 'Cost & Usage',    icon: BarChart2   },
               { href: '/admin/revenue',  label: 'Revenue',         icon: TrendingUp  },
               { href: '/admin/orders',   label: 'Orders',          icon: ShoppingBag },
               { href: '/admin/inquiries', label: 'Inquiries',      icon: Inbox       },
