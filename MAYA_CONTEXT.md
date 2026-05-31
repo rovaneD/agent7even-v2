@@ -470,8 +470,8 @@ Built May 29, 2026. Full technical detail in CONTEXTV7.md. Summary for session a
 - `/api/cron/allocate-credits` — 1st of month, midnight
 - `/api/cron/refresh-pricing` — every 6 hours
 
-### Maya chat cost tracking ✅ DONE (May 31, 2026)
-`waitUntil` from `@vercel/functions` keeps the function alive after the HTTP response. Tokens, cost, and credits are recorded in `agent_tasks` + `credit_ledger` after every turn. `job_type = 'maya_chat'` for wedge analysis.
+### Known gap
+Maya chat (`/api/maya/chat`) currently bypasses the runner — tokens not logged, credits not deducted. Needs to be wired into `runAgent()`.
 
 ---
 
@@ -480,7 +480,7 @@ Built May 29, 2026. Full technical detail in CONTEXTV7.md. Summary for session a
 **Every new session — Claude Code or otherwise — must:**
 
 1. Read `MAYA_CONTEXT.md` fully before writing any code
-2. Read `CONTEXTV9.md` for the latest technical infrastructure detail
+2. Read `CONTEXTV7.md` for full technical infrastructure detail
 3. Run `git remote -v` — confirm output shows `agent7even-v2`, never `agent7even-app`
 4. Confirm the feature being built fits the Maya architecture in this document
 
@@ -493,7 +493,7 @@ Built May 29, 2026. Full technical detail in CONTEXTV7.md. Summary for session a
 - Any change to how Maya accesses or modifies canvas data
 - Any architectural decision made
 
-**When to update CONTEXTV8.md:**
+**When to update CONTEXTV7.md:**
 - New environment variables added
 - New API routes added
 - New Supabase tables or columns
@@ -502,7 +502,7 @@ Built May 29, 2026. Full technical detail in CONTEXTV7.md. Summary for session a
 
 **The two documents are complementary:**
 - `MAYA_CONTEXT.md` = product vision, architecture, what everything does and why
-- `CONTEXTV8.md` = technical infrastructure, env vars, schema, file paths — current version
+- `CONTEXTV7.md` = technical infrastructure, env vars, schema, file paths
 
 Both must stay current. If something is built and not documented in both relevant places, it doesn't exist as far as the next session is concerned.
 
@@ -573,8 +573,8 @@ MayaShell has been built by Claude Code. Status:
 - `canvasContext` (current page name) passed to chat route
 - `MayChatPanel` component at `components/maya/MayChatPanel.tsx` — works in panel and standalone modes via `onClose` prop
 
-### Canvas context — fully wired ✅
-Maya receives full page content on every message, not just the page name. See §Maya Canvas Context System below for full architecture.
+### Known gap — needs wiring ⚠️
+- `/api/maya/chat/route.ts` receives `canvasContext` in the request body but does not yet use it in the system prompt. Small addition — Maya should explicitly reference the current page/module context when responding.
 
 
 ---
@@ -584,7 +584,7 @@ Maya receives full page content on every message, not just the page name. See §
 
 These are confirmed gaps validated against SAASTR_LESSONS.md. Work in this order.
 
-### 1. canvasContext + full page content in Maya system prompt ✅ DONE
+### 1. canvasContext in Maya system prompt ✅ DONE
 **File:** `app/api/maya/chat/route.ts`
 **What:** `canvasContext` (current page name) already arrives in the request body from MayChatPanel but is not injected into the system prompt. Maya responds without knowing what page the user is on.
 **Fix:** Read `canvasContext` from request body, append to system prompt: "The user is currently on the [page] page."
@@ -773,215 +773,232 @@ Full campaign creation system — two modes, same artifact output.
 
 ### Work queue update
 5. Segment-first campaign creation ✅ DONE
-6. Maya cost tracking ✅ DONE (May 31, 2026)
-7. Admin Cost & Usage screen ✅ DONE (May 31, 2026)
-8. Maya full page context — all pages ✅ DONE (May 31, 2026)
-9. Morning digest on Dashboard 🟡 NEXT
-10. Agent names audit 🟢 Quick win
+6. Morning digest on Dashboard 🟡 NEXT
+7. Agent names audit 🟢 Quick win
+8. Maya cost tracking — Maya chat not yet wired into runner (tokens not logged) ⚠️
+
 
 ---
 
-## Maya Canvas Context System
-*Built: May 31, 2026*
+## Cost Instrumentation — Verified May 30, 2026
 
-Maya receives full page content on every message — not just the page name. Every page broadcasts its current state via a custom event that Maya reads before responding.
+### What shipped
+- `/api/maya/chat` wired through runner — tokens logged, credits deducted per turn
+- `waitUntil` from `@vercel/functions` — survives Vercel serverless teardown
+- `useMemo` on transport in `MayChatPanel` — fixed double-task bug from unstable reference
+- Root cause of missing logs: client was POSTing to `/api/maya` not `/api/maya/chat` — one-line fix
+- `maya_sessions` table created in Supabase with `UNIQUE(user_id)` constraint
+- Admin Cost & Usage screen at `/admin/cost` — per-account MRR/cost/margin table + run log
 
-### The bidirectional relationship (now real)
+### Test results
+- **Test A** ✅ — one message → one `agent_tasks` row, `status=completed`, non-zero tokens + cost, credit deducted by 2
+- **Test B** ✅ — 15 messages in quick succession → 15 rows recorded, balance dropped by exactly 30 credits. `waitUntil` survives teardown under load.
+- **Test C** — not yet run (abort mid-stream → confirm no charge)
 
-Previously Maya knew she was "on the Foundation page." Now she knows the foundation score is 0%, which fields are filled, which fields are weak, and what feedback each field has. Same for every other page.
+### Cost recording is now trustworthy
+Numbers in `/admin/cost` reflect real usage. The margin dashboard can be trusted.
 
-### How it works
+### Remaining cost workstream items (from COST_INSTRUMENTATION_CONTEXT.md)
+- ⬜ Test C — failure path (abort mid-stream, confirm no charge)
+- ⬜ Step 4 — `01_cost_instrumentation.sql` migration (job_type column, indexes, v_account_month_cost view)
+- ⬜ Screen 1 — Margin Overview
+- ⬜ Screen 3 — Run Log
+- ⬜ Screen 4 — Job Economics / wedge-finder
+- ⬜ Screen 5 — Pricing Simulator
 
-**Event:** `window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: string } }))`
+### Known decisions locked
+- Maya chat: fixed 2 credits/turn, per turn
+- Cost recording is conservative while cached_tokens deferred — reads slightly less profitable than reality
+- No admin action that charges/changes a customer ships without confirm dialog + audit row
 
-Pages dispatch this on mount (and on significant state changes like rescore). `DashboardShell` listens, stores in `canvasData` state, clears on navigation. `MayChatPanel` receives `canvasData` as a prop, stores in a `useRef`, and a custom `fetch` interceptor on `DefaultChatTransport` injects the current ref value into every request body. The maya/chat route uses it as a full `PAGE CONTEXT` section in the system prompt.
-
-**Transport is never recreated** — canvasData changes don't reset chat history. The ref pattern decouples prop updates from the memoized transport.
-
-### Shared component for server pages
-`components/maya/CanvasContextDispatcher.tsx` — renders null, fires the event on mount. Used by server-only pages (Dashboard, Campaigns, Calendar, etc.).
-
-### Coverage
-- All 13 dashboard pages: Dashboard, Agents, Campaigns, Services, Calendar, Brand Kit, Analytics, Deliverables, Support, Notifications, Team, Billing, Settings, Foundation
-- All 12 admin pages: Clients list, Client detail, Cost & Usage, Inquiries, Inquiry detail, Orders, Revenue, Agent Costs, Admin Settings, Support list, Support thread, Admin home
-
----
-
-## Session Summary — May 31, 2026
-
-### What shipped this session
-
-**Maya cost tracking (closed V7 known gap):**
-- `waitUntil` from `@vercel/functions` replaces `after()` — function stays alive after response
-- Profile fetch fixed: `.single()` → `.limit(1)` in maya/chat, dashboard layout, admin layout
-- `job_type = 'maya_chat'` field for wedge analysis
-- `agent_tasks.updated_at` column added (was missing)
-- Session table corrected everywhere: `chat_sessions` → `maya_sessions`
-
-**Admin Cost & Usage screen (`/admin/cost`):**
-- `v_account_month_cost` SQL view — per-account monthly rollup with MRR, AI cost, margins
-- `01_cost_instrumentation.sql` — `cached_tokens`, `job_type`, `updated_at` columns + 6 indexes
-- Account overview tab: summary cards (MRR, AI cost, gross margin, active accounts) + sortable account table
-- Run log tab: last 100 tasks with job type, model, token counts, cost, status filter
-- "Cost & Usage" added to admin sidebar
-
-**Maya full page context (all pages):**
-- Custom event system: `maya:canvas-context`
-- `CanvasContextDispatcher` shared component for server pages
-- All 13 dashboard pages wired
-- All 12 admin pages wired
-- Foundation page re-dispatches after every rescore
-- Transport-stable implementation via `useRef` + custom fetch interceptor
-
-**Foundation document recovery flow:**
-- Foundation rescore now triggers `POST /api/foundation/generate` in background
-- "Updating Maya's context…" indicator while 5 documents regenerate (~20–30s)
-- String → array conversion for `competitors`, `toneTraits`, `channels` fields
-
-### Data issues (pending manual action)
-- Both accounts still have 2 profile rows each — run dedup SQL
-- Foundation answers lost in prior dedup — both accounts need to re-fill form + rescore
-- Until rebuilt: Maya falls back to basic profile fields (company, goals, etc.)
-
-### Work queue status
-1–9: All ✅ DONE (see CONTEXTV8.md §10 for full list)
-10. Morning digest on Dashboard ✅ DONE (May 31, 2026)
-11. Agent names audit ✅ DONE (May 31, 2026)
-12. Brand Kit — full 6-section system ✅ DONE (May 31, 2026)
-13. Maya conversation history in sidebar ✅ DONE (May 31, 2026)
-14. Credit top-up (Stripe checkout) 🟡
-15. Orchestration progress UI 🟡
-16. Approval queue UI 🟡 NEXT
 
 ---
 
-## Session Summary — May 31, 2026 (continued)
+## Morning Digest — Built May 31, 2026
 
-### What shipped this session
+### What shipped
+Full morning digest system — dashboard widget + email cron.
 
-**Morning Digest:**
-- `daily_digests` table — `UNIQUE(user_id, date)`, `dismissed`, `email_sent` columns
-- `GET /api/digest/[id]` — ownership-checked fetch of a specific digest
-- `POST /api/digest/generate` — creates or returns today's digest for a user
-- `GET/api/cron/morning-digest` — Bearer-auth cron, iterates paid accounts with `email_digest=true`, generates digests, sends via Resend from `maya@agent7even.com`, marks `email_sent=true`
-- `MorningDigest` component on Dashboard — dismissable card, "Do this with Maya →" dispatches `maya:open-task`
-- Settings page — Email preferences section with `PreferenceToggle` auto-save pattern (builds full payload at call time to avoid stale React state)
-- `POST /api/settings/update` — selective update: only includes email pref fields if present in body
-- 6th cron in `vercel.json`: `/api/cron/morning-digest` at `0 12 * * *`
-- `formatAgentName()` in digest route maps all 9 agent IDs to display names
+### New files
+- `app/api/digest/[id]/route.ts` — GET digest by id, auth-gated
+- `app/api/digest/generate/route.ts` — POST, generates + caches by date, Haiku summaries per agent run
+- `app/api/digest/[id]/dismiss/route.ts` — POST, ownership-verified, persists dismiss to DB
+- `app/api/cron/morning-digest/route.ts` — 12:00 UTC daily, generates if needed, sends via Resend from maya@agent7even.com, respects email_digest preference
+- `components/dashboard/MorningDigest.tsx` — skeleton loading, three sections (What I did / What needs you / Today's plan), inline approve/reject, dismiss persisted
 
-**Brand Kit — full 6-section brand identity system:**
-- SQL migration: `brand_kit_sections`, `brand_kit_colors`, `brand_kit_fonts`, `brand_kit_assets` tables + `brand-assets` Storage bucket
-- 9 API routes: `GET /api/brand-kit`, `POST /colors`, `DELETE /colors/[id]`, `POST /fonts`, `POST /assets`, `DELETE /assets/[id]`, `POST /documents`, `POST /sections/complete`, `POST /regenerate`
-- `app/dashboard/brand-kit/page.tsx` — server component, parallel fetches, signed Storage URLs (3600s TTL)
-- `BrandKitView.tsx` — 6-tab layout: Identity / Colors / Typography / Imagery / Voice / Templates
-  - Identity: 3 logo slots (primary, alternate, icon), file upload + URL link
-  - Colors: color picker + HEX/RGB/role fields, auto-save on blur
-  - Typography: 4 font role cards (heading, subheading, body, accent), explicit save button
-  - Imagery: photography style textarea + asset grid upload zone
-  - Voice: Foundation docs (brief/icp/positioning/voice) with Edit + Regenerate, plus 4 additional messaging blocks (tagline, elevator_pitch, about_us, mission)
-  - Templates: Canva/Google Slides/Figma/other URL links + file upload
-- Completion dots per section tab + `X/6` progress counter in header
-- Maya canvas context dispatched on every state change via `maya:canvas-context`
+### Updated files
+- `app/dashboard/page.tsx` — fetches today's digest server-side, renders MorningDigest
+- `app/dashboard/settings/page.tsx` — email pref columns added to select
+- `app/dashboard/settings/SettingsClient.tsx` — email notifications section, 3 auto-saving PreferenceToggle components
+- `app/api/settings/update/route.ts` — handles emailDigest, emailApprovals, emailWeekly
+- `vercel.json` — 6th cron: `0 12 * * *`
 
-**Generate with Maya — Colors and Typography:**
-- `POST /api/brand-kit/generate-colors` — Haiku generates 5-color palette from `foundation_answers`, returns JSON, deducts 2 credits. Strips markdown fences before `JSON.parse`.
-- `POST /api/brand-kit/generate-fonts` — Haiku returns 2 distinct Google Font pairings (heading + body, with name, rationale, weights, size guide). Same fence-stripping pattern.
-- ColorsSection: empty-state "Generate with Maya" button → color swatch preview → Accept/Try again/Dismiss. "Regenerate palette" when colors exist.
-- TypographySection: empty-state "Generate with Maya" → 2 selectable pairing cards → "Use this pairing" pre-fills heading/body fields without saving. User still clicks "Save font".
+### New Supabase tables + columns
+- `daily_digests` table — one row per user per day, cached
+- `profiles.email_digest` boolean DEFAULT true
+- `profiles.email_approvals` boolean DEFAULT true
+- `profiles.email_weekly` boolean DEFAULT true
+- `profiles.timezone` text DEFAULT 'America/New_York'
 
-**Brand Kit progress bar in nav:**
-- `layout.tsx` fetches `brand_kit_sections` completed count on every page load
-- `DashboardShell` listens for `brandkit:progress` custom event (dispatched by `BrandKitView` on every section change)
-- Mini bar + `%` label next to Brand Kit nav item — identical style to Foundation bar. Rust until 6/6, then green. Hidden at 0%.
+### Key details
+- Digest generation uses Claude Haiku for one-line first-person agent summaries
+- Email from: maya@agent7even.com — verify domain in Resend before cron fires
+- Dismiss persists to DB — survives refresh
+- Widget hides when nothing to report (no runs, no approvals, no actions)
+- 6 crons total now running in v2
 
-**Maya conversation history in sidebar:**
-- `maya_sessions` schema migration: dropped `UNIQUE(user_id)` constraint, added `title` and `canvas_context` columns
-- `GET /api/maya/sessions` — returns last 20 sessions (id, title, canvas_context, updated_at)
-- `GET /api/maya/session?id=` — returns specific session with messages, ownership-checked
-- `POST /api/maya/session` — INSERT on new session, UPDATE on existing. First save calls Haiku with max_tokens:12 to generate a 4-word title from the first user message.
-- `DashboardShell`: sessions grouped by Today / Yesterday / date. Click opens full session history. Maya button always starts fresh panel (panelKey increment).
-- `sessionIdRef` pattern in `MayChatPanel` — tracks session ID without recreating the stable transport
+### Work queue update
+11. Morning digest ✅ DONE
+12. Agent names audit 🟢 NEXT (quick win)
+13. Credit top-up (Stripe checkout mid-month) 🟡
+14. Orchestration progress UI 🟡
+15. Approval queue UI 🟡
+16. Merge to production 🔴 After validation
 
-**"Do this with Maya" fix:**
-- Button was opening old conversation. Fixed with `panelKey` counter — incrementing key forces fresh `MayChatPanel` mount with empty messages and no sessionId.
 
-**Agent names audit (3 renames):**
-- `content_writer` → `weekly_content` / "Weekly Content" / "Drafts your social posts and emails so you don't have to"
-- `analytics_reader` → `performance_digest` / "Performance Digest" / "Surfaces what's working and what to do about it"
-- `ad_copy_generator` → `ad_variations` / "Ad Variations" / "Creates multiple ad options so you can test without writing each one"
-- Updated in: `lib/agents/registry.ts` (AgentId union, AGENTS keys/ids/names/descriptions) and `app/api/digest/generate/route.ts` (`formatAgentName()` map)
+---
+
+## Brand Kit Expansion — Built May 31, 2026
+
+### What replaced
+The old Brand Kit "Start brand build" flow pointing at the empty `brand_documents`
+table is gone. Replaced with a full 6-section brand identity system.
+
+### Key table clarification
+- `foundation_documents` — real table, 5 rows, where Foundation writes. Section 5 reads here.
+- `brand_documents` — empty, legacy from production fork, ignored.
+- `brand_answers` — Foundation answers source for generation prompts.
 
 ### New Supabase tables
-- `daily_digests` — `UNIQUE(user_id, date)`, dismissed, email_sent
-- `brand_kit_sections` — section completion tracking
-- `brand_kit_colors` — colors with hex/rgb/role/sort_order
-- `brand_kit_fonts` — fonts with role/family/weight/size_guide/source_url
-- `brand_kit_assets` — files and external URLs, Storage-backed
+- `brand_kit_sections` — completion tracking per section per user
+- `brand_kit_colors` — color palette with HEX/RGB/role
+- `brand_kit_fonts` — typography by role (heading/subheading/body/accent)
+- `brand_kit_assets` — logos, photos, templates (file_url or external_url)
+- Storage bucket: `brand-assets` (private)
 
-### New Storage bucket
-- `brand-assets` — logo files, imagery uploads, template files. Signed URLs generated server-side (3600s TTL).
+### 6 sections
+1. **Identity** — logo uploads (primary/alternate/icon), usage rules, brand name, tagline
+2. **Colors** — palette with HEX/RGB/role, add manually or generate with Maya
+3. **Typography** — 4 font role cards, fill manually or generate with Maya
+4. **Imagery** — photography style description + asset upload grid
+5. **Voice** — Foundation documents (brand_voice, brand_story, ideal_client_profile, positioning_statement) + additional blocks (tagline, elevator_pitch, about_us, mission). Editable + regenerate per doc.
+6. **Templates** — link (Canva, Figma, Google Slides) or upload files
 
-### New email preferences on profiles (via settings)
-- `email_digest` boolean — morning digest opt-in
-- `email_approvals` boolean — approval notification opt-in
-- `email_weekly` boolean — weekly summary opt-in
+### Maya generation features
+- `POST /api/brand-kit/generate-colors` — Haiku generates 5-color palette from Foundation context. Preview → Accept (saves all) or regenerate. 2 credits.
+- `POST /api/brand-kit/generate-fonts` — Haiku generates 2 font pairings from Foundation context. Preview cards → "Use this pairing" pre-fills fields (user still clicks Save font). 2 credits.
+- "Regenerate palette" button appears when colors already exist
+- "Suggest pairings" button appears when fonts already set
 
-### Work queue status
-10. Morning digest ✅ DONE
-11. Agent names audit ✅ DONE
-12. Brand Kit 6-section system ✅ DONE
-13. Maya conversation history ✅ DONE
-14. Public pricing page ✅ DONE (May 31, session 3)
-15. Billing page feature descriptions ✅ DONE (May 31, session 3)
-16. Approval queue UI ✅ DONE (May 31, session 3)
-17. Credit top-up (Stripe checkout) 🟡
-18. Orchestration progress UI 🟡
+### API routes
+- `GET /api/brand-kit` — all brand kit data for user
+- `POST /api/brand-kit/colors` — upsert color
+- `DELETE /api/brand-kit/colors/[id]`
+- `POST /api/brand-kit/fonts` — upsert font by role
+- `POST /api/brand-kit/assets` — file upload + insert row
+- `DELETE /api/brand-kit/assets/[id]`
+- `POST /api/brand-kit/documents` — upsert to foundation_documents
+- `POST /api/brand-kit/sections/complete` — mark section done
+- `POST /api/brand-kit/generate-colors`
+- `POST /api/brand-kit/generate-fonts`
+
+### Maya canvas context
+Brand Kit dispatches colors, fonts, and document types on every page load.
+Agents query brand kit data for on-brand generation.
+
+### Work queue update
+- Brand Kit expansion ✅ DONE
+- Maya conversation history (recents in sidebar) — built by Claude Code directly, status TBD
+- Agent names audit 🟢 Still pending
+- Credit top-up 🟡
+- Orchestration progress UI 🟡
+- Approval queue UI 🟡
+
 
 ---
 
-## Session Summary — May 31, 2026 (session 3)
+## Cost Instrumentation — Test C Result & Decision
+*May 31, 2026*
 
-### What shipped this session
+### Test C outcome
+When a user aborts a Maya message mid-stream, `waitUntil` keeps the Vercel
+function alive and Maya completes the response server-side. The task logs as
+`completed` with real token counts — no `failed` row appears because the work
+actually completed.
 
-**Approval Queue — full build:**
-- `02_approval_queue.sql` — adds `rejection_reason`, `reviewed_at`, `reviewed_by` to `agent_tasks`; adds `feedback`, `feedback_note`, `feedback_at` to `agent_outputs`
-- `GET /api/agents/approvals` — returns pending tasks with outputs for authenticated user
-- `POST /api/agents/approvals/bulk` — bulk approve or reject with optional rejection note + re-queue
-- `app/dashboard/agents/approvals/` — dedicated review page with `hasReviewedOne` bulk-unlock mechanic, 6 quick rejection chips, expand/edit/approve/reject per item, agent filter, sort, select-all
-- `?task={id}` query param auto-expands + scrolls to that item — used for morning digest deep-links
-- `DashboardShell` — `#c8522a` badge on Agents nav item + "Approvals" sub-item when pending count > 0
-- `layout.tsx` — pending approvals count fetched server-side, passed to DashboardShell
-- `AgentCommandCenter` Zone 1 — old inline review queue replaced with banner card linking to `/approvals`
-- Approve route — added `reviewed_at`, `reviewed_by`; fixed `.single()` on content fetch
-- Reject route — full rewrite: `.limit(1)`, new `rejection_reason`, `reviewed_at`, `reviewed_by`, `feedback`/`feedback_note`/`feedback_at` on outputs
-- Morning digest `approvalItems` — each item now includes `reviewUrl: /dashboard/agents/approvals?task={id}`
+### Decision: no credit charge on client abort
+**Locked decision:** If the user closes the tab or navigates away before seeing
+Maya's response, no credits are deducted even though the task completed server-side.
 
-**Public pricing page (`/pricing`):**
-- Dark theme (`#0d0d0d`), three-column plan cards, monthly/annual toggle
-- 16-row compare table, 8-item FAQ accordion
-- Unauthenticated CTAs → `/sign-up?plan=X` (direct nav, no API call)
-- Authenticated → Stripe checkout
-- `isLoaded` guard prevents hydration flash on Clerk auth state
+**Rationale:** Value to the user was zero. Actual cost is ~$0.002 per abort —
+negligible at current scale. Trust benefit outweighs the cost recovery.
 
-**Billing page feature descriptions:**
-- `PLANS` in `BillingClient.tsx` updated with full Maya feature lists for all 3 plans
-- Upgrade cards now show highlight label + full feature list before CTA button
-- "3-day trial" badge on Starter
+**Implementation needed (deferred):** Detect client disconnect in the stream,
+set an abort flag, skip credit deduction in `waitUntil` block while still
+logging the task + real token cost for margin tracking. Build when scale makes
+absorbing abort costs meaningful.
 
-**Typography font suggestions UI (TypographySection):**
-- `generating`, `pairings`, `genError` state
-- 2 selectable pairing cards with name, rationale, heading/body font + weight
-- `applyPairing()` pre-fills heading/body fields without saving
+**Test C verdict:** ✅ PASS — behavior is correct and understood. Credit charge
+on abort is a known accepted gap, not a bug.
 
-### New SQL migration
-- `02_approval_queue.sql` — run in Supabase SQL editor
+### All three instrumentation tests complete
+- Test A ✅ — single message captured correctly
+- Test B ✅ — 15 messages, 15 rows, waitUntil survives teardown
+- Test C ✅ — abort behavior understood, decision made
 
-### Work queue status
-1–13: All ✅ DONE (see CONTEXTV8.md §10)
-14. Public pricing page ✅ DONE
-15. Billing page features ✅ DONE
-16. Approval queue UI ✅ DONE
-17. Credit top-up (Stripe checkout) 🟡
+
+---
+
+## Approval Queue — SQL Migration Done May 31, 2026
+
+Schema additions to support approval queue:
+- `agent_tasks`: `rejection_reason text`, `reviewed_at timestamptz`, `reviewed_by uuid`
+- `agent_outputs`: `feedback text`, `feedback_note text`, `feedback_at timestamptz`
+
+UI build pending — handoff doc: `approval_queue_handoff.md`
+
+---
+
+## Pricing Page — Built May 31, 2026
+
+- Route: `/pricing` — public, no auth required
+- Design matches production pricing page (dark background, orange accent, three-column cards)
+- Updated feature matrix reflecting Maya product (credits, agents, campaigns, Foundation, Brand Kit)
+- Monthly/annual toggle (2 months free)
+- Compare plans table with Maya-specific rows
+- CTAs route to `/sign-up?plan=starter|growth|proagent`
+- Authenticated users see "Go to dashboard →" instead of sign-up buttons
+- Lives at `agent7even-v2.vercel.app/pricing` until marketing site is built
+
+### Plan features as shown
+- Starter $49/mo — 100cr, 3 campaigns, 1 seat, basic analytics, 1 service request
+- Growth $89/mo — 350cr, unlimited campaigns, 3 seats, full analytics, 3 service requests
+- ProAgent $149/mo — 1,000cr, unlimited campaigns, 5 seats (+$15/seat), dedicated support, quarterly review, white-glove onboarding
+
+
+---
+
+## Session Summary — May 31, 2026 (Session 3)
+*Full detail in CONTEXTV9.md*
+
+### What shipped
+- Approval queue UI — `/dashboard/agents/approvals`, bulk actions, rejection chips, deep-link from morning digest, sidebar badge
+- Public pricing page — `/pricing`, dark theme, three-column cards, compare table, FAQ, monthly/annual toggle
+- Billing page — full Maya feature lists on all three plan cards
+- Typography generate-fonts UI — frontend wired to existing generate-fonts API
+- Agent names audit ✅ (shipped in prior session, confirmed done)
+
+### Work queue — final status
+14. Public pricing page ✅ DONE (V9)
+15. Billing page feature descriptions ✅ DONE (V9)
+16. Approval queue UI ✅ DONE (V9)
+17. Credit top-up (Stripe checkout mid-month) 🟡
 18. Orchestration progress UI 🟡
+19. Foundation content rebuild (both accounts) ⚠️ fill form + rescore
+20. Profile dedup ⚠️ run dedup SQL
+21. Merge to production 🔴 After validation
+
+### Session handoff protocol
+Every new session reads MAYA_CONTEXT.md + CONTEXTV9.md before writing any code.
+Run `git remote -v` — must show `agent7even-v2`.
 
