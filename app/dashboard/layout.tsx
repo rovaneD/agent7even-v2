@@ -26,7 +26,7 @@ export default async function DashboardLayout({
   let initialMode: string | null = null
 
   if (userId) {
-    const { data: p } = await supabase
+    const { data: profileRows } = await supabase
       .from('profiles')
       .select(`
         id, company_name, full_name, business_type, plan, role,
@@ -36,13 +36,16 @@ export default async function DashboardLayout({
         foundation_complete, foundation_score
       `)
       .eq('clerk_user_id', userId)
-      .single()
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    const p = profileRows?.[0] ?? null
 
     if (p?.id) {
       profile = p
       profileId = p.id
 
-      const [{ data: notifs }, { data: session }] = await Promise.all([
+      const [{ data: notifs }, { data: sessionRows }] = await Promise.all([
         supabase
           .from('notifications')
           .select('*')
@@ -51,19 +54,19 @@ export default async function DashboardLayout({
           .limit(20),
 
         supabase
-          .from('chat_sessions')
+          .from('maya_sessions')
           .select('messages, mode')
           .eq('user_id', p.id)
           .order('updated_at', { ascending: false })
-          .limit(1)
-          .single(),
+          .limit(1),
 
         logActivity(p.id, 'page_view'),
       ])
 
-      notifications     = notifs    ?? []
-      initialMessages   = (session?.messages as unknown[]) ?? []
-      initialMode       = session?.mode ?? null
+      const session = sessionRows?.[0] ?? null
+      notifications   = notifs ?? []
+      initialMessages = (session?.messages as unknown[]) ?? []
+      initialMode     = session?.mode ?? null
     }
   }
 
