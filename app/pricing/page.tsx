@@ -1,8 +1,45 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Zap, TrendingUp, Star } from 'lucide-react'
+import { Check, Zap, TrendingUp, Star, Plus, Minus } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
+
+// ── FAQ data ───────────────────────────────────────────────────────────────
+
+const FAQS = [
+  {
+    q: "What's a credit, and what uses them?",
+    a: "Credits are the fuel for Maya's AI work. Each agent run, campaign generation, or Generate with Maya action costs credits — typically 2–25 depending on the task. Maya chat is separate and doesn't consume credits. Your credits reset on the 1st of every month. Starter gets 100, Growth gets 350, ProAgent gets 1,000.",
+  },
+  {
+    q: "How does the 3-day free trial work?",
+    a: "Starter only. Your card is collected at sign-up but not charged for 3 days. If you cancel before day 4, you pay nothing. After 3 days your card is charged and the subscription begins. Growth and ProAgent are charged immediately — no trial.",
+  },
+  {
+    q: "Can I cancel or change plans anytime?",
+    a: "Yes, always. You can upgrade, downgrade, or cancel from your billing page or through the Stripe customer portal. Cancellations take effect at the end of your current billing period — you keep full access until then.",
+  },
+  {
+    q: "What's a service request?",
+    a: "Service requests are how you engage the Agent7even team for done-for-you work — design, content production, ad strategy, and more. Starter gets 1 active request at a time, Growth gets 3, ProAgent gets unlimited. Add-on services (like photography or custom builds) are scoped separately.",
+  },
+  {
+    q: "Do unused credits roll over?",
+    a: "No — credits reset on the 1st of each month and don't roll over. If you consistently hit your limit, it's a good signal to upgrade. You can also top up with additional credit packs from the billing page.",
+  },
+  {
+    q: "What's included in annual billing?",
+    a: "Annual billing gives you 2 months free — effectively paying for 10 months and getting 12. Starter is $490/yr ($49/mo value), Growth is $890/yr ($89/mo value), ProAgent is $1,490/yr ($149/mo value). Annual plans are billed upfront and are non-refundable after 14 days.",
+  },
+  {
+    q: "What are team seats?",
+    a: "Team seats let you invite team members — a VA, social media manager, copywriter, or anyone who needs access to the platform. Starter includes 1 seat, Growth includes 3, ProAgent includes 5. Additional seats are $15/mo each on ProAgent.",
+  },
+  {
+    q: "Is there a setup fee or contract?",
+    a: "No setup fee, no contract. All plans are month-to-month unless you choose annual billing. Cancel anytime from your account settings.",
+  },
+]
 
 // ── Plan data ──────────────────────────────────────────────────────────────
 
@@ -128,8 +165,9 @@ function Cell({ value, highlight = false }: { value: CellVal; highlight?: boolea
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
-  const [annual, setAnnual] = useState(false)
+  const [annual,  setAnnual]  = useState(false)
   const [loading, setLoading] = useState<string | null>(null)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
   const { isSignedIn, isLoaded } = useUser()
 
   async function handleCta(planKey: string) {
@@ -394,6 +432,59 @@ export default function PricingPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="max-w-3xl mx-auto px-6 pb-24">
+        <h2 className="text-center text-2xl font-semibold tracking-tight mb-2">
+          Frequently asked questions
+        </h2>
+        <p className="text-center text-sm text-white/30 mb-10">
+          Everything you need to know before signing up.
+        </p>
+
+        <div className="space-y-2">
+          {FAQS.map((faq, i) => {
+            const isOpen = openFaq === i
+            return (
+              <div
+                key={i}
+                className={`rounded-xl border transition-colors ${
+                  isOpen ? 'border-white/15 bg-white/[0.04]' : 'border-white/[0.07] bg-white/[0.02]'
+                }`}
+              >
+                <button
+                  onClick={() => setOpenFaq(isOpen ? null : i)}
+                  className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
+                >
+                  <span className={`text-sm font-medium leading-snug transition-colors ${
+                    isOpen ? 'text-[#f5f4f0]' : 'text-white/70'
+                  }`}>
+                    {faq.q}
+                  </span>
+                  <span className="flex-shrink-0 text-white/30">
+                    {isOpen
+                      ? <Minus size={15} className="text-[#c8522a]" />
+                      : <Plus size={15} />
+                    }
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="px-6 pb-5">
+                    <p className="text-sm text-white/45 leading-relaxed">{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <p className="text-center text-sm text-white/25 mt-10">
+          Still have questions?{' '}
+          <a href="mailto:hello@agent7even.com" className="text-white/45 hover:text-white/70 underline underline-offset-2 transition-colors">
+            hello@agent7even.com
+          </a>
+        </p>
       </div>
 
       {/* Footer */}
