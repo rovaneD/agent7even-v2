@@ -2,6 +2,7 @@ import { requireAdmin } from '@/lib/requireAdmin'
 import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ChevronRight, Inbox } from 'lucide-react'
+import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-blue-50 text-blue-600',
@@ -36,8 +37,17 @@ export default async function AdminInquiriesPage() {
   const active = inquiries?.filter(i => !['accepted', 'declined'].includes(i.status)) ?? []
   const closed = inquiries?.filter(i => ['accepted', 'declined'].includes(i.status)) ?? []
 
+  const contextStr = [
+    'ADMIN — PROJECT INQUIRIES',
+    `Total: ${inquiries?.length ?? 0} (${active.length} active, ${closed.length} closed)`,
+    active.length > 0
+      ? `Active: ${active.map((i: any) => `${i.project_name} [${i.status}] from ${i.profiles?.company_name || i.profiles?.full_name || '—'}`).join(' | ')}`
+      : 'No active inquiries',
+  ].join('\n')
+
   return (
     <div className="px-8 py-8 max-w-6xl">
+      <CanvasContextDispatcher context={contextStr} />
       <div className="mb-8">
         <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Project Inquiries</h1>

@@ -146,6 +146,23 @@ export default function CostActivityView() {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    if (loading || !summary) return
+    const topAccounts = [...accounts]
+      .sort((a, b) => (b.cost_usd ?? 0) - (a.cost_usd ?? 0))
+      .slice(0, 5)
+    const lines = [
+      'ADMIN — COST & USAGE',
+      `MRR: $${summary.total_mrr} | AI cost this month: $${summary.total_cost.toFixed(4)}`,
+      `Active accounts: ${summary.active_accounts} | Total tasks: ${summary.total_tasks}`,
+      `Gross margin: $${((summary.total_mrr) - (summary.total_cost)).toFixed(2)}`,
+      topAccounts.length > 0
+        ? `Top accounts by cost: ${topAccounts.map(a => `${a.company_name || a.user_id.slice(-6)} (${a.plan ?? '—'}) MRR $${a.mrr_usd} cost $${Number(a.cost_usd).toFixed(4)}`).join(' | ')}`
+        : 'No account data',
+    ]
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
+  }, [accounts, summary, loading])
+
   function toggleSort(k: AccountSortKey) {
     if (sortKey === k) setSortAsc(v => !v)
     else { setSortKey(k); setSortAsc(k === 'company_name') }

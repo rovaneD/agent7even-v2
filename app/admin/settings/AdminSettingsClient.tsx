@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Bell, Zap, ShoppingBag, Users, Megaphone,
   CreditCard, Save, Loader2, CheckCircle, AlertCircle,
@@ -120,6 +120,19 @@ export default function AdminSettingsClient({
   users: initialUsers,
 }: Props) {
   const [activeTab, setActiveTab] = useState('notifications')
+
+  useEffect(() => {
+    const lines = [
+      'ADMIN — SETTINGS',
+      `Notification email: ${initialEmail}`,
+      `Starter AI run limit: ${initialLimit} runs/month`,
+      `Platform banner: ${initialBanner.enabled ? `ACTIVE — "${initialBanner.message}" (${initialBanner.type})` : 'disabled'}`,
+      `Prompt library: ${initialPrompts.length} prompts (${initialPrompts.filter(p => p.is_active).length} active)`,
+      `Service catalogue: ${initialServices.length} services (${initialServices.filter(s => s.is_active).length} active)`,
+      `Total users: ${initialUsers.length} (${initialUsers.filter(u => u.role === 'client').length} clients, ${initialUsers.filter(u => u.role === 'admin' || u.role === 'owner').length} admins)`,
+    ]
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
+  }, [])
 
   const tabs = [
     { id: 'notifications', label: 'Notifications', icon: Bell },

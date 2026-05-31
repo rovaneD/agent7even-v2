@@ -121,6 +121,19 @@ export default function ClientHealthView() {
 
   useEffect(() => { load() }, [load])
 
+  // Dispatch Maya canvas context after clients load
+  useEffect(() => {
+    if (loading) return
+    const lines = [
+      'ADMIN — CLIENTS PAGE',
+      `${clients.length} clients`,
+      ...clients.map(c =>
+        `${c.full_name || c.email || '—'} | ${c.company_name || '—'} | plan: ${c.plan ?? 'none'} | foundation: ${c.foundation_score ?? 0} | engagement: ${c.engagement_score ?? 0} | last active: ${c.last_active_at ?? 'never'}`
+      ),
+    ]
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
+  }, [clients, loading])
+
   // Debounce search
   function handleSearchChange(val: string) {
     setSearch(val)

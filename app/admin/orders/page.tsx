@@ -2,6 +2,7 @@ import { requireAdmin } from '@/lib/requireAdmin'
 import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ChevronRight, ShoppingBag } from 'lucide-react'
+import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 
 const STATUS_COLORS: Record<string, string> = {
   submitted: 'bg-blue-50 text-blue-600',
@@ -31,8 +32,17 @@ export default async function AdminOrdersPage() {
   const active = orders?.filter(o => !['approved', 'cancelled'].includes(o.status)) ?? []
   const completed = orders?.filter(o => ['approved', 'cancelled'].includes(o.status)) ?? []
 
+  const contextStr = [
+    'ADMIN — ORDERS',
+    `Total: ${orders?.length ?? 0} (${active.length} active, ${completed.length} completed)`,
+    active.length > 0
+      ? `Active orders: ${active.map((o: any) => `${o.title} [${o.status}] — ${o.profiles?.company_name || o.profiles?.full_name || o.profiles?.email || '—'}`).join(' | ')}`
+      : 'No active orders',
+  ].join('\n')
+
   return (
     <div className="px-8 py-8 max-w-6xl">
+      <CanvasContextDispatcher context={contextStr} />
       <div className="mb-8">
         <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Orders</h1>

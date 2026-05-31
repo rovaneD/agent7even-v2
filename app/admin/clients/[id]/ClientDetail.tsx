@@ -201,6 +201,25 @@ export default function ClientDetail({
     }
   }, [tab, clientId, billingData, billingLoading])
 
+  useEffect(() => {
+    const lines = [
+      `ADMIN — CLIENT DETAIL: ${profile.full_name || profile.company_name || profile.email || clientId}`,
+      `Company: ${profile.company_name ?? '—'}`,
+      `Email: ${profile.email ?? '—'}`,
+      `Plan: ${profile.plan ?? 'none'} | Status: ${profile.status ?? '—'}`,
+      `Foundation score: ${profile.foundation_score ?? 0} | Engagement score: ${profile.engagement_score ?? 0}`,
+      `Foundation complete: ${profile.foundation_complete ? 'yes' : 'no'}`,
+      `Last active: ${profile.last_active_at ?? 'never'}`,
+      initialActivity.length > 0
+        ? `Recent activity: ${initialActivity.slice(0, 5).map(e => e.event_type.replace(/_/g, ' ')).join(', ')}`
+        : 'No activity recorded',
+      initialTickets.length > 0
+        ? `Support tickets: ${initialTickets.map(t => `"${t.subject}" [${t.status}]`).join(', ')}`
+        : 'No support tickets',
+    ]
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
+  }, [])
+
   // ── Actions ──────────────────────────────────────────────────────────────
 
   async function handleNudge() {

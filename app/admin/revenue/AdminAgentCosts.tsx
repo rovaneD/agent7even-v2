@@ -45,6 +45,7 @@ export default function AdminAgentCosts() {
         .eq('status', 'completed')
         .gte('created_at', startOfMonth.toISOString())
 
+      let modelRows: CostRow[] = []
       if (tasks) {
         const grouped: Record<string, CostRow> = {}
         for (const t of tasks) {
@@ -61,12 +62,12 @@ export default function AdminAgentCosts() {
           grouped[t.model].total_output_tokens += t.output_tokens ?? 0
           grouped[t.model].total_cost_usd      += t.cost_usd      ?? 0
         }
-        const rows = Object.values(grouped).map(r => ({
+        modelRows = Object.values(grouped).map(r => ({
           ...r,
           avg_cost_usd: r.runs > 0 ? r.total_cost_usd / r.runs : 0
         }))
-        setCostByModel(rows)
-        setTotalThisMonth(rows.reduce((s, r) => s + r.total_cost_usd, 0))
+        setCostByModel(modelRows)
+        setTotalThisMonth(modelRows.reduce((s, r) => s + r.total_cost_usd, 0))
       }
 
       // Recent orchestrations
@@ -77,6 +78,19 @@ export default function AdminAgentCosts() {
         .limit(10)
 
       if (orchs) setRecentOrchestrations(orchs)
+
+      const totalCost = modelRows.reduce((s, r) => s + r.total_cost_usd, 0)
+      const lines = [
+        'ADMIN — REVENUE: AGENT COSTS',
+        `Total agent API cost this month: $${totalCost.toFixed(4)}`,
+        modelRows.length > 0
+          ? `Cost by model: ${modelRows.map(r => `${r.model} — ${r.runs} runs, $${r.total_cost_usd.toFixed(4)}`).join(' | ')}`
+          : 'No model data',
+        orchs && orchs.length > 0
+          ? `Recent orchestrations: ${orchs.slice(0, 5).map((o: OrchestrationRow) => `${o.triggered_by} [${o.status}] $${(o.total_cost_usd ?? 0).toFixed(4)}`).join(' | ')}`
+          : 'No recent orchestrations',
+      ]
+      window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
     }
     load()
   }, [])

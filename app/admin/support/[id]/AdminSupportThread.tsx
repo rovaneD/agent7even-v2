@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ChevronLeft, Send, Loader2, CheckCircle,
   AlertCircle, X,
@@ -50,6 +50,19 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   const client = ticket.profiles
+
+  useEffect(() => {
+    const lines = [
+      `ADMIN — SUPPORT THREAD: "${initial.subject}"`,
+      `Client: ${initial.profiles.company_name ?? initial.profiles.full_name} (${initial.profiles.email})`,
+      `Status: ${initial.status} | Priority: ${initial.priority ?? 'low'}`,
+      `Messages: ${initial.support_messages.length}`,
+      initial.support_messages.length > 0
+        ? `Latest message (${initial.support_messages[initial.support_messages.length - 1].sender_role}): ${initial.support_messages[initial.support_messages.length - 1].body.slice(0, 120)}`
+        : 'No messages yet',
+    ]
+    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
+  }, [])
 
   async function handleReply() {
     if (!replyBody.trim()) return

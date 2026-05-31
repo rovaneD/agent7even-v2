@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/requireAdmin'
 import Stripe from 'stripe'
 import { TrendingUp, Users, DollarSign, ArrowUpRight } from 'lucide-react'
+import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-04-22.dahlia' as any })
@@ -101,8 +102,20 @@ export default async function AdminRevenuePage() {
     },
   ]
 
+  const contextStr = [
+    'ADMIN — REVENUE',
+    `MRR: $${mrr.toLocaleString()} / ARR: $${(mrr * 12).toLocaleString()}`,
+    `Active clients: ${activeClients.length} | Paused: ${pausedClients.length}`,
+    `Plan breakdown — Starter: ${planCounts['starter'] ?? 0}, Growth: ${planCounts['growth'] ?? 0}, ProAgent: ${planCounts['proagent'] ?? 0}`,
+    `Recent Stripe charges (20): ${formatCurrency(totalFromCharges)} across ${recentCharges.length} payments`,
+    activeClients.length > 0
+      ? `Active subscribers: ${activeClients.map(c => `${c.company_name ?? c.full_name ?? c.email} (${c.plan})`).join(', ')}`
+      : 'No active subscribers',
+  ].join('\n')
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <CanvasContextDispatcher context={contextStr} />
 
       {/* Header */}
       <div>
