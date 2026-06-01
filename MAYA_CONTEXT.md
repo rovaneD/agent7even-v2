@@ -1002,3 +1002,40 @@ UI build pending — handoff doc: `approval_queue_handoff.md`
 Every new session reads MAYA_CONTEXT.md + CONTEXTV9.md before writing any code.
 Run `git remote -v` — must show `agent7even-v2`.
 
+
+---
+
+## Credit Top-Up — Built & Verified May 31, 2026
+
+### What shipped
+Full Stripe one-time payment flow for mid-month credit purchases.
+
+### Key fix during testing
+Webhook route was at `app/api/stripe/webhook/route.ts` — blocked by Clerk middleware (404 on unauthenticated Stripe POST). Fixed by merging into `app/api/webhooks/stripe/route.ts` which is explicitly public in `proxy.ts`.
+
+### Stripe webhook
+- URL: `https://agent7even-v2.vercel.app/api/webhooks/stripe`
+- Events: `checkout.session.completed`, `customer.subscription.created/updated/deleted`, `invoice.payment_failed`
+- Env var: `STRIPE_WEBHOOK_SECRET` (independent from production — separate Vercel project)
+
+### Three credit packages
+| Package | Credits | Price | Env var |
+|---|---|---|---|
+| Small | 100 | $5 | `STRIPE_CREDITS_SMALL_PRICE_ID` |
+| Medium | 350 | $15 | `STRIPE_CREDITS_MEDIUM_PRICE_ID` |
+| Large | 1,000 | $40 | `STRIPE_CREDITS_LARGE_PRICE_ID` |
+
+### Verified end to end ✅
+- `credit_topups` row created `pending` on checkout initiation
+- Webhook fires → `status = completed`, `completed_at` set
+- `credit_balances` increases by correct amount
+- `credit_ledger` gets `type = topup` row
+- Success banner shows on `/dashboard/billing?topup=success`
+- Low balance modal triggers at ≤20% plan max, dismisses for session
+
+### Work queue final status
+17. Credit top-up ✅ DONE
+18. Orchestration progress UI 🟡 — only remaining feature item
+19. Foundation rebuild (both accounts) ⚠️ manual — fill form + rescore
+21. Merge to production 🔴 after validation
+
