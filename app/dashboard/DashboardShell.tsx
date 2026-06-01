@@ -28,6 +28,8 @@ import {
   Plus,
   HelpCircle,
   MoreHorizontal,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
@@ -231,6 +233,10 @@ export default function DashboardShell({
   const pathname     = usePathname()
   const [mayaOpen, setMayaOpen]       = useState(false)
   const [mobileOpen, setMobileOpen]   = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('sidebar-collapsed') === 'true'
+  })
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
   const [brandKitCompleted, setBrandKitCompleted] = useState(initialBrandKitCompleted)
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(initialPendingApprovalsCount)
@@ -244,6 +250,12 @@ export default function DashboardShell({
   const [activeMessages, setActiveMessages]     = useState<unknown[]>([])
   const [activeMode, setActiveMode]             = useState<string | null>(null)
   const [loadingSession, setLoadingSession]     = useState<string | null>(null)
+
+  function toggleSidebar() {
+    const next = !sidebarCollapsed
+    setSidebarCollapsed(next)
+    localStorage.setItem('sidebar-collapsed', String(next))
+  }
 
   const isAdmin = isAdminProp || role === 'admin' || role === 'owner'
 
@@ -297,6 +309,8 @@ export default function DashboardShell({
     function onOpenTask(e: Event) {
       const { task } = (e as CustomEvent<{ task: string }>).detail
       setMayaOpen(true)
+      setSidebarCollapsed(true)
+      localStorage.setItem('sidebar-collapsed', 'true')
       setMayaPendingTask(task)
       setActiveSessionId(null)
       setActiveMessages([])
@@ -322,6 +336,8 @@ export default function DashboardShell({
   function openHelpMode() {
     setHelpMode(true)
     setMayaOpen(true)
+    setSidebarCollapsed(true)
+    localStorage.setItem('sidebar-collapsed', 'true')
     setActiveSessionId(null)
     setActiveMessages([])
     setActiveMode(null)
@@ -337,6 +353,8 @@ export default function DashboardShell({
     }
     setHelpMode(false)
     setMayaOpen(true)
+    setSidebarCollapsed(true)
+    localStorage.setItem('sidebar-collapsed', 'true')
     setActiveSessionId(null)
     setActiveMessages([])
     setActiveMode(null)
@@ -353,6 +371,8 @@ export default function DashboardShell({
       setActiveMode(session?.mode ?? null)
       setActiveSessionId(sessionId)
       setMayaOpen(true)
+      setSidebarCollapsed(true)
+      localStorage.setItem('sidebar-collapsed', 'true')
       setMayaPendingTask(null)
       setPanelKey(k => k + 1)
     } finally {
@@ -387,6 +407,38 @@ export default function DashboardShell({
     const isAgents     = item.href === '/dashboard/agents'
     const brandKitPct  = Math.round((brandKitCompleted / 6) * 100)
     const approvalsActive = pathname.startsWith('/dashboard/agents/approvals')
+
+    if (sidebarCollapsed) {
+      return (
+        <>
+          <Link
+            href={item.href}
+            onClick={() => setMobileOpen(false)}
+            title={item.label}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '10px 0', margin: '1px 4px', borderRadius: 8,
+              textDecoration: 'none', color: active ? '#2D3748' : '#64748B',
+              background: active ? '#F1F5F9' : 'transparent',
+              transition: 'background 0.12s, color 0.12s', position: 'relative',
+            }}
+            onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#F1F5F9'; (e.currentTarget as HTMLAnchorElement).style.color = '#2D3748' } }}
+            onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#64748B' } }}
+          >
+            <Icon size={16} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : 'currentColor'} />
+            {isAgents && pendingApprovalsCount > 0 && (
+              <span style={{ position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: '50%', background: '#3B82F6' }} />
+            )}
+            {isFoundation && foundationScore !== null && (
+              <span style={{
+                position: 'absolute', bottom: 5, right: 6, width: 6, height: 6, borderRadius: '50%',
+                background: foundationBarColor(foundationScore),
+              }} />
+            )}
+          </Link>
+        </>
+      )
+    }
 
     return (
       <>
@@ -456,24 +508,41 @@ export default function DashboardShell({
 
   const sidebar = (
     <aside style={{
-      width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column',
-      background: '#fff', borderRight: '1px solid #E2E8F0', height: '100%', overflow: 'hidden',
+      width: sidebarCollapsed ? 56 : 220,
+      flexShrink: 0, display: 'flex', flexDirection: 'column',
+      background: '#fff', borderRight: '1px solid #E2E8F0',
+      height: '100%', overflow: 'hidden',
+      transition: 'width 0.2s ease',
     }}>
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 14px 12px', borderBottom: '1px solid #E2E8F0' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: '#2D3748' }}>
-          AGENT<span style={{ color: '#c8522a' }}>7</span>EVEN
-        </span>
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="lg:hidden"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: 2, display: 'flex' }}
-        >
-          <X size={14} />
-        </button>
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        justifyContent: sidebarCollapsed ? 'center' : 'space-between',
+        padding: sidebarCollapsed ? '16px 0' : '16px 14px 12px',
+        borderBottom: '1px solid #E2E8F0',
+      }}>
+        {sidebarCollapsed ? (
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#2D3748' }}>
+            <span style={{ color: '#c8522a' }}>7</span>
+          </span>
+        ) : (
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: '#2D3748' }}>
+            AGENT<span style={{ color: '#c8522a' }}>7</span>EVEN
+          </span>
+        )}
+        {!sidebarCollapsed && (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="lg:hidden"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: 2, display: 'flex' }}
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
-      {/* Maya + New campaign buttons */}
+      {/* Maya + New campaign buttons — expanded only */}
+      {!sidebarCollapsed && (
       <div style={{ padding: '10px 10px 6px', display: 'flex', flexDirection: 'column', gap: 5 }}>
         <button
           onClick={openNewConversation}
@@ -553,22 +622,60 @@ export default function DashboardShell({
           New campaign
         </button>
       </div>
+      )}
+
+      {/* Collapsed: icon-only Maya + New Campaign */}
+      {sidebarCollapsed && (
+        <div style={{ padding: '8px 4px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <button
+            onClick={openNewConversation}
+            title="Maya"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '10px 0', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+              background: mayaOpen ? '#2D3748' : 'transparent', border: 'none',
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9' }}
+            onMouseLeave={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+          >
+            <Sparkles size={16} strokeWidth={1.75} color={mayaOpen ? '#fff' : '#64748B'} />
+          </button>
+          <button
+            onClick={() => setShowNewCampaign(true)}
+            title="New campaign"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '10px 0', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+              background: 'transparent', border: 'none', transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+          >
+            <Plus size={16} strokeWidth={1.75} color="#64748B" />
+          </button>
+        </div>
+      )}
 
       {/* Nav */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 10px' }}>
+      <nav style={{ flex: 1, overflowY: 'auto', padding: sidebarCollapsed ? '4px 0' : '4px 10px' }}>
         {NAV.map((group) => (
-          <div key={group.section} style={{ marginBottom: 18 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 3px', marginBottom: 4 }}>
-              {group.section}
-            </p>
+          <div key={group.section} style={{ marginBottom: sidebarCollapsed ? 8 : 18 }}>
+            {!sidebarCollapsed && (
+              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 3px', marginBottom: 4 }}>
+                {group.section}
+              </p>
+            )}
             {group.items.map(item => <NavLink key={item.href} item={item} />)}
           </div>
         ))}
         {isAdmin && (
-          <div style={{ marginBottom: 18 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 3px', marginBottom: 4 }}>
-              Admin
-            </p>
+          <div style={{ marginBottom: sidebarCollapsed ? 8 : 18 }}>
+            {!sidebarCollapsed && (
+              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 3px', marginBottom: 4 }}>
+                Admin
+              </p>
+            )}
             {[
               { href: '/admin/clients',   label: 'Clients',       icon: Users       },
               { href: '/admin/cost',      label: 'Cost & Usage',  icon: BarChart2   },
@@ -581,24 +688,55 @@ export default function DashboardShell({
         )}
       </nav>
 
-      {/* Help + User */}
+      {/* Collapse toggle + Help + User */}
       <div style={{ borderTop: '1px solid #E2E8F0' }}>
+        {/* Collapse toggle */}
+        <button
+          onClick={toggleSidebar}
+          title={sidebarCollapsed ? 'Expand' : 'Collapse'}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center',
+            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+            gap: 8, padding: sidebarCollapsed ? '9px 0' : '9px 14px',
+            background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: 14, color: '#94A3B8', transition: 'color 0.12s',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#94A3B8' }}
+        >
+          {sidebarCollapsed ? <ChevronRight size={14} strokeWidth={1.75} /> : <ChevronLeft size={14} strokeWidth={1.75} />}
+          {!sidebarCollapsed && <span>Collapse</span>}
+        </button>
+
+        {/* Help */}
         <button
           onClick={openHelpMode}
+          title={sidebarCollapsed ? 'Help' : undefined}
           style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px',
+            width: '100%', display: 'flex', alignItems: 'center',
+            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+            gap: 8, padding: sidebarCollapsed ? '9px 0' : '9px 14px',
             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             fontSize: 14, color: '#64748B', transition: 'color 0.12s',
           }}
           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748' }}
           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B' }}
         >
-          <HelpCircle size={14} strokeWidth={1.75} />
-          Help
+          <HelpCircle size={sidebarCollapsed ? 16 : 14} strokeWidth={1.75} />
+          {!sidebarCollapsed && 'Help'}
         </button>
-        <div style={{ padding: '6px 14px 12px', display: 'flex', alignItems: 'center', gap: 9 }}>
+
+        {/* User */}
+        <div style={{
+          padding: sidebarCollapsed ? '6px 0 12px' : '6px 14px 12px',
+          display: 'flex', alignItems: 'center',
+          justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+          gap: 9,
+        }}>
           <UserButton />
-          <span style={{ fontSize: 13, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
+          {!sidebarCollapsed && (
+            <span style={{ fontSize: 13, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
+          )}
         </div>
       </div>
     </aside>
