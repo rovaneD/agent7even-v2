@@ -13,6 +13,7 @@ export type NotificationType =
   | 'brand_kit_generated'
   | 'plan_activated'
   | 'trial_ending'
+  | 'credit_topup'
 
 interface CreateNotificationParams {
   userId: string          // profiles.id of recipient

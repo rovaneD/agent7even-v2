@@ -42,6 +42,56 @@ export async function POST(req: Request) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
 
+    // ── Credit top-up (mode: payment + credits in metadata) ────────────────
+    if (session.mode === 'payment' && session.metadata?.credits && session.metadata?.user_id) {
+      const credits  = parseInt(session.metadata.credits, 10)
+      const userId   = session.metadata.user_id
+      const now      = new Date().toISOString()
+
+      await supabase
+        .from('credit_topups')
+        .update({
+          status:            'completed',
+          stripe_payment_id: session.payment_intent as string ?? null,
+          completed_at:      now,
+        })
+        .eq('stripe_session_id', session.id)
+
+      const { data: balRows } = await supabase
+        .from('credit_balances')
+        .select('balance')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+
+      const prevBalance = balRows?.[0]?.balance ?? 0
+      const newBalance  = prevBalance + credits
+
+      await supabase
+        .from('credit_balances')
+        .upsert({ user_id: userId, balance: newBalance, updated_at: now })
+
+      await supabase.from('credit_ledger').insert({
+        user_id:       userId,
+        type:          'topup',
+        credits,
+        balance_after: newBalance,
+        description:   `Credit top-up — ${credits} credits ($${(session.amount_total ?? 0) / 100})`,
+      })
+
+      await createNotification({
+        userId,
+        title: `${credits} credits added`,
+        body:  `Your credit top-up is complete. You now have ${newBalance} credits available.`,
+        type:  'credit_topup',
+        link:  '/dashboard/billing',
+        sendEmail: false,
+      })
+
+      return NextResponse.json({ received: true })
+    }
+
+    // ── Subscription activation ─────────────────────────────────────────────
     if (session.mode !== 'subscription') return NextResponse.json({ received: true })
 
     const subscriptionId = session.subscription as string
@@ -75,7 +125,6 @@ export async function POST(req: Request) {
     if (error) {
       console.error('Supabase update error (checkout.session.completed):', error)
     } else {
-      // Notify client — plan is now active
       const { data: newProfile } = await supabase
         .from('profiles')
         .select('id')
@@ -89,7 +138,7 @@ export async function POST(req: Request) {
           body: `Your ${plan} plan is now active. You have full access to your dashboard.`,
           type: 'plan_activated',
           link: '/dashboard',
-          sendEmail: false, // welcome email already sent via Clerk webhook
+          sendEmail: false,
         })
       }
     }
