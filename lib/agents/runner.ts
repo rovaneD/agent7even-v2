@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────
 
 import { createServiceClient } from '@/lib/supabase/server'
-import { calculateCost, classifyRunTier, BUDGET_CAPS_USD, type RunTier } from './cost'
+import { calculateCost, classifyRunTier, BUDGET_CAPS_USD, CREDIT_COST, type RunTier } from './cost'
 import { openRouterComplete, openRouterCompleteWithFallback, type OpenRouterMessage } from './openrouter'
 import { buildAgentContext } from './buildAgentContext'
 import { AGENTS, type AgentId } from './registry'
@@ -432,9 +432,62 @@ export async function runOrchestration(opts: {
   return { orchestrationId, results, totalCostUsd, budgetExceeded }
 }
 
+// ── Cost billing for pre-created tasks ────────
+// Call after generateText() to log tokens + deduct credits.
+// Use this when a task already exists (created by tasks/create) so we
+// don't create a duplicate row the way runAgent() would.
+
+export async function chargeAgentRun(opts: {
+  taskId:       string
+  userId:       string
+  inputTokens:  number
+  outputTokens: number
+  model:        string
+}): Promise<{ costUsd: number; creditsDeducted: number }> {
+  const supabase = createServiceClient()
+  const tier = classifyRunTier(1)        // single agent run = light
+  const creditsNeeded = CREDIT_COST[tier]
+
+  const { data: bal } = await supabase
+    .from('credit_balances')
+    .select('balance')
+    .eq('user_id', opts.userId)
+    .single()
+
+  if ((bal?.balance ?? 0) < creditsNeeded) throw new Error('INSUFFICIENT_CREDITS')
+
+  const costUsd = await calculateCost(opts.model, opts.inputTokens, opts.outputTokens)
+
+  await supabase
+    .from('agent_tasks')
+    .update({
+      input_tokens:  opts.inputTokens,
+      output_tokens: opts.outputTokens,
+      cost_usd:      costUsd,
+      model:         opts.model,
+      updated_at:    new Date().toISOString(),
+    })
+    .eq('id', opts.taskId)
+
+  const newBalance = (bal?.balance ?? 0) - creditsNeeded
+  await supabase
+    .from('credit_balances')
+    .upsert({ user_id: opts.userId, balance: newBalance, updated_at: new Date().toISOString() })
+
+  await supabase.from('credit_ledger').insert({
+    user_id:       opts.userId,
+    type:          'usage',
+    credits:       -creditsNeeded,
+    balance_after: newBalance,
+    description:   `agent_run — ${tier} via ${opts.model}`,
+    task_id:       opts.taskId,
+  })
+
+  return { costUsd, creditsDeducted: creditsNeeded }
+}
+
 // ── Compat: saveAgentOutput ────────────────────
-// Used by routes that call generateText() directly (e.g. campaign-builder)
-// and need to save a structured output with type/title/content fields.
+// Saves structured output with type/title/content for the approval queue.
 
 export async function saveAgentOutput({
   taskId,
