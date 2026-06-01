@@ -16,7 +16,7 @@ export default function PrivacyPage() {
       <header className="border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="https://agent7even.com" className="text-lg font-bold text-gray-900 tracking-tight">
-            Agent<span className="text-[#c8522a]">7even</span>
+            Agent<span className="text-[#9BA1AE]">7even</span>
           </Link>
           <Link
             href={APP_URL}
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
       {/* Content */}
       <main className="max-w-3xl mx-auto px-6 py-14">
         <div className="mb-10">
-          <p className="text-xs font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Legal</p>
+          <p className="text-xs font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Legal</p>
           <h1 className="text-4xl font-bold text-gray-900 mb-3">Privacy Policy</h1>
           <p className="text-sm text-gray-400">Last updated: {LAST_UPDATED}</p>
         </div>
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
           <section>
             <p>
               Agent7even (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) operates the Agent7even client
-              dashboard at <a href={APP_URL} className="text-[#c8522a] no-underline hover:underline">{APP_URL}</a>.
+              dashboard at <a href={APP_URL} className="text-[#9BA1AE] no-underline hover:underline">{APP_URL}</a>.
               This Privacy Policy explains how we collect, use, and protect information when you use our platform.
             </p>
           </section>
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
                   href="https://developers.google.com/terms/api-services-user-data-policy"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#c8522a] no-underline hover:underline"
+                  className="text-[#9BA1AE] no-underline hover:underline"
                 >
                   Google API Services User Data Policy
                 </a>
@@ -119,7 +119,7 @@ export default function PrivacyPage() {
             <p className="mt-3">
               We retain your data for as long as your account is active. You may request deletion of your
               account and all associated data at any time by contacting us at{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#c8522a] no-underline hover:underline">{CONTACT_EMAIL}</a>.
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#9BA1AE] no-underline hover:underline">{CONTACT_EMAIL}</a>.
             </p>
           </section>
 
@@ -140,7 +140,7 @@ export default function PrivacyPage() {
                   <span className="font-semibold text-gray-800 w-24 flex-shrink-0">{name}</span>
                   <span className="text-gray-500">
                     {use} —{' '}
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#c8522a] no-underline hover:underline">
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#9BA1AE] no-underline hover:underline">
                       Privacy Policy
                     </a>
                   </span>
@@ -167,14 +167,14 @@ export default function PrivacyPage() {
               <li>Request deletion of your account and associated data.</li>
               <li>Disconnect any third-party integrations (Google Analytics, etc.) at any time.</li>
               <li>Revoke Google OAuth access at any time via your{' '}
-                <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" className="text-[#c8522a] no-underline hover:underline">
+                <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" className="text-[#9BA1AE] no-underline hover:underline">
                   Google Account permissions
                 </a>.
               </li>
             </ul>
             <p className="mt-4">
               To exercise any of these rights, contact us at{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#c8522a] no-underline hover:underline">{CONTACT_EMAIL}</a>.
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#9BA1AE] no-underline hover:underline">{CONTACT_EMAIL}</a>.
             </p>
           </section>
 
@@ -202,8 +202,8 @@ export default function PrivacyPage() {
             </p>
             <div className="mt-4 bg-gray-50 rounded-2xl p-5 space-y-1">
               <p className="font-semibold text-gray-900">Agent7even</p>
-              <p><a href={`mailto:${CONTACT_EMAIL}`} className="text-[#c8522a] no-underline hover:underline">{CONTACT_EMAIL}</a></p>
-              <p><a href="https://agent7even.com" className="text-[#c8522a] no-underline hover:underline">agent7even.com</a></p>
+              <p><a href={`mailto:${CONTACT_EMAIL}`} className="text-[#9BA1AE] no-underline hover:underline">{CONTACT_EMAIL}</a></p>
+              <p><a href="https://agent7even.com" className="text-[#9BA1AE] no-underline hover:underline">agent7even.com</a></p>
             </div>
           </section>
 

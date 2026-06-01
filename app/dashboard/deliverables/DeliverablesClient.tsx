@@ -51,7 +51,7 @@ function FileIcon({ type }: { type: string | null }) {
 
 function roleBadge(role: string | null) {
   if (role === 'admin') return (
-    <span className="text-xs font-medium text-[#c8522a] bg-[#c8522a]/10 px-2 py-0.5 rounded-full">
+    <span className="text-xs font-medium text-[#9BA1AE] bg-[#2D3748]/10 px-2 py-0.5 rounded-full">
       From Agent7even
     </span>
   )
@@ -181,7 +181,7 @@ The user can download files from Agent7even and upload their own briefs and asse
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="flex items-center gap-2 bg-[#c8522a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#b8471f] transition-colors"
+          className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#b8471f] transition-colors"
         >
           <Upload size={15} />
           Upload file
@@ -221,7 +221,7 @@ The user can download files from Agent7even and upload their own briefs and asse
           </p>
           <button
             onClick={() => setShowUploadModal(true)}
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#c8522a] bg-[#c8522a]/10 hover:bg-[#c8522a]/15 px-4 py-2.5 rounded-xl transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#9BA1AE] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2.5 rounded-xl transition-colors"
           >
             <Upload size={14} />
             Upload your first file
@@ -239,7 +239,7 @@ The user can download files from Agent7even and upload their own briefs and asse
               onClick={() => toggleProject(project)}
               className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 transition-colors text-left"
             >
-              <Folder size={17} className="text-[#c8522a] flex-shrink-0" />
+              <Folder size={17} className="text-[#9BA1AE] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900">{project}</p>
                 <p className="text-xs text-gray-400">{files.length} file{files.length !== 1 ? 's' : ''}</p>
@@ -309,7 +309,7 @@ The user can download files from Agent7even and upload their own briefs and asse
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-                    selectedFile ? 'border-[#c8522a]/40 bg-[#c8522a]/5' : 'border-gray-200 hover:border-gray-300'
+                    selectedFile ? 'border-[#3B82F6]/40 bg-[#2D3748]/5' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   {selectedFile ? (
@@ -346,7 +346,7 @@ The user can download files from Agent7even and upload their own briefs and asse
                   value={projectName}
                   onChange={e => setProjectName(e.target.value)}
                   placeholder="e.g. Brand Kit, Social Media Assets, Website Brief"
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300"
                 />
               </div>
 
@@ -360,7 +360,7 @@ The user can download files from Agent7even and upload their own briefs and asse
                   onChange={e => setNotes(e.target.value)}
                   placeholder="Add any context about this file..."
                   rows={3}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300 resize-none"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 resize-none"
                 />
               </div>
 
@@ -381,7 +381,7 @@ The user can download files from Agent7even and upload their own briefs and asse
                 <button
                   onClick={handleUpload}
                   disabled={!selectedFile || !projectName.trim() || uploading}
-                  className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-[#c8522a] hover:bg-[#b8471f] py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#b8471f] py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uploading ? (
                     <><Loader2 size={14} className="animate-spin" /> Uploading...</>

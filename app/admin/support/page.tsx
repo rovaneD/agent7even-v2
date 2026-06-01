@@ -93,7 +93,7 @@ export default async function AdminSupportPage() {
                 <Link
                   key={ticket.id}
                   href={`/admin/support/${ticket.id}`}
-                  className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 hover:border-[#c8522a]/20 hover:shadow-sm px-5 py-4 transition-all"
+                  className="flex items-center gap-4 bg-white rounded-2xl border border-gray-100 hover:border-[#3B82F6]/20 hover:shadow-sm px-5 py-4 transition-all"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">

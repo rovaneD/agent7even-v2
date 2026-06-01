@@ -44,7 +44,7 @@ const PLAN_LABELS: Record<string, string> = { starter: 'Starter', growth: 'Growt
 const PLAN_COLORS: Record<string, string> = {
   starter:  'bg-gray-100 text-gray-600',
   growth:   'bg-blue-50 text-blue-600',
-  proagent: 'bg-[#c8522a]/10 text-[#c8522a]',
+  proagent: 'bg-[#2D3748]/10 text-[#2D3748]',
 }
 const ACTIVITY_LABELS: Record<string, string> = {
   page_view:          'Viewed a page',
@@ -354,7 +354,7 @@ export default function ClientDetail({
                 {profile.avatar_url ? (
                   <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-[#c8522a]/10 flex items-center justify-center text-[#c8522a] font-bold text-lg flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-[#2D3748]/10 flex items-center justify-center text-[#9BA1AE] font-bold text-lg flex-shrink-0">
                     {(profile.full_name || profile.email || 'U')[0].toUpperCase()}
                   </div>
                 )}
@@ -525,7 +525,7 @@ export default function ClientDetail({
               <div className="p-6">
                 {billingLoading ? (
                   <div className="flex justify-center py-10">
-                    <div className="w-5 h-5 border-2 border-gray-200 border-t-[#c8522a] rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-gray-200 border-t-[#3B82F6] rounded-full animate-spin" />
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -599,7 +599,7 @@ export default function ClientDetail({
                           <select
                             value={selectedPlan}
                             onChange={e => setSelectedPlan(e.target.value)}
-                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#c8522a]/40 bg-white"
+                            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
                           >
                             <option value="starter">Starter</option>
                             <option value="growth">Growth</option>
@@ -607,7 +607,7 @@ export default function ClientDetail({
                           </select>
                           <p className="text-[10px] text-gray-400 mt-1.5">Updates DB only — does not affect Stripe.</p>
                         </div>
-                        <button onClick={handleChangePlan} className="px-4 py-2.5 bg-black text-white rounded-xl text-sm font-medium">
+                        <button onClick={handleChangePlan} className="px-4 py-2.5 bg-[#2D3748] text-white rounded-xl text-sm font-medium">
                           Apply
                         </button>
                       </div>
@@ -737,7 +737,7 @@ export default function ClientDetail({
                     <button
                       onClick={handleAddNote}
                       disabled={!newNote.trim() || savingNote}
-                      className="flex items-center gap-2 text-sm font-medium bg-black text-white px-4 py-2 rounded-xl disabled:opacity-40 transition-opacity"
+                      className="flex items-center gap-2 text-sm font-medium bg-[#2D3748] text-white px-4 py-2 rounded-xl disabled:opacity-40 transition-opacity"
                     >
                       {savingNote ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                       Add note
@@ -751,7 +751,7 @@ export default function ClientDetail({
                   <div>
                     {notes.map(note => (
                       <div key={note.id} className="flex gap-3 py-4 border-b border-gray-100 last:border-0">
-                        <div className="w-8 h-8 rounded-full bg-[#c8522a]/10 flex items-center justify-center text-[#c8522a] text-xs font-bold flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#2D3748]/10 flex items-center justify-center text-[#9BA1AE] text-xs font-bold flex-shrink-0">
                           {(note.profiles?.full_name || 'A')[0].toUpperCase()}
                         </div>
                         <div>
@@ -813,21 +813,21 @@ export default function ClientDetail({
             placeholder="Subject"
             value={emailSubject}
             onChange={e => setEmailSubject(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 outline-none focus:border-[#c8522a]/40"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 outline-none focus:border-[#3B82F6]/40"
           />
           <textarea
             placeholder="Message"
             value={emailBody}
             onChange={e => setEmailBody(e.target.value)}
             rows={6}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-[#c8522a]/40"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-[#3B82F6]/40"
           />
           <div className="flex gap-3 mt-4">
             <button onClick={() => setShowEmail(false)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm">Cancel</button>
             <button
               onClick={handleSendEmail}
               disabled={!emailSubject.trim() || !emailBody.trim() || sendingEmail}
-              className="flex-1 py-3 bg-black text-white rounded-xl text-sm font-medium disabled:opacity-40 flex items-center justify-center gap-2"
+              className="flex-1 py-3 bg-[#2D3748] text-white rounded-xl text-sm font-medium disabled:opacity-40 flex items-center justify-center gap-2"
             >
               {sendingEmail && <Loader2 size={14} className="animate-spin" />}
               Send email
@@ -844,14 +844,14 @@ export default function ClientDetail({
               key={plan}
               onClick={() => setSelectedPlan(plan)}
               className={`w-full text-left px-4 py-3 rounded-xl border mb-2 text-sm font-medium ${
-                selectedPlan === plan ? 'border-black bg-black text-white' : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                selectedPlan === plan ? 'border-2 border-[#3B82F6] bg-blue-50/30 text-[#2D3748]' : 'border-gray-200 text-gray-700 hover:border-gray-300'
               }`}
             >
               {PLAN_LABELS[plan]}
             </button>
           ))}
           <p className="text-xs text-gray-400 mt-2">Updates DB only — does not affect Stripe.</p>
-          <button onClick={handleChangePlan} className="w-full mt-4 py-3 bg-black text-white rounded-xl text-sm font-medium">
+          <button onClick={handleChangePlan} className="w-full mt-4 py-3 bg-[#2D3748] text-white rounded-xl text-sm font-medium">
             Confirm change
           </button>
         </Modal>
@@ -865,13 +865,13 @@ export default function ClientDetail({
               key={role}
               onClick={() => setSelectedRole(role)}
               className={`w-full text-left px-4 py-3 rounded-xl border mb-2 text-sm font-medium capitalize ${
-                selectedRole === role ? 'border-black bg-black text-white' : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                selectedRole === role ? 'border-2 border-[#3B82F6] bg-blue-50/30 text-[#2D3748]' : 'border-gray-200 text-gray-700 hover:border-gray-300'
               }`}
             >
               {role}
             </button>
           ))}
-          <button onClick={handleChangeRole} className="w-full mt-4 py-3 bg-black text-white rounded-xl text-sm font-medium">
+          <button onClick={handleChangeRole} className="w-full mt-4 py-3 bg-[#2D3748] text-white rounded-xl text-sm font-medium">
             Confirm change
           </button>
         </Modal>

@@ -219,7 +219,7 @@ function GAConnectModal({
         <div className="flex items-center gap-3 mb-5">
           <BrandIcon src="/google_analytics_icon.png" alt="Google Analytics" />
           <div>
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a]">Connect</p>
+            <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE]">Connect</p>
             <h2 className="text-lg font-bold text-gray-900 leading-tight">Google Analytics</h2>
           </div>
         </div>
@@ -267,7 +267,7 @@ function GAConnectModal({
               value={value}
               onChange={e => { setValue(e.target.value); setError('') }}
               placeholder="123456789"
-              className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a] transition-colors"
+              className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] transition-colors"
             />
             <p className="text-xs text-gray-400 mt-2 leading-relaxed">
               Find this in Google Analytics → Admin → Property Settings → Property ID (the numeric ID, not the G-... code).
@@ -283,7 +283,7 @@ function GAConnectModal({
               <button
                 onClick={submitAgency}
                 disabled={loading}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-[#c8522a] rounded-xl hover:bg-[#b8471f] disabled:opacity-50 transition-colors"
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-[#2D3748] rounded-xl hover:bg-[#1a2535] disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Saving…' : 'Request connection'}
               </button>
@@ -368,7 +368,7 @@ function PropertySelectorModal({
 
         {loading ? (
           <div className="flex items-center justify-center h-24">
-            <div className="w-6 h-6 border-2 border-[#c8522a] border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#3B82F6] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : properties.length === 0 ? (
           <div className="text-center py-6">
@@ -378,7 +378,7 @@ function PropertySelectorModal({
             </p>
             <a
               href="/api/analytics/ga-connect"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-[#c8522a] px-4 py-2.5 rounded-lg hover:bg-[#b8471f] transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-[#2D3748] px-4 py-2.5 rounded-lg hover:bg-[#1a2535] transition-colors"
             >
               Try a different Google account
             </a>
@@ -391,7 +391,7 @@ function PropertySelectorModal({
                 onClick={() => setSelected(p.id)}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-left ${
                   selected === p.id
-                    ? 'border-[#c8522a] bg-orange-50'
+                    ? 'border-[#3B82F6] bg-orange-50'
                     : 'border-gray-100 hover:border-gray-200'
                 }`}
               >
@@ -399,7 +399,7 @@ function PropertySelectorModal({
                   <p className="text-sm font-semibold text-gray-800">{p.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{p.account ? `${p.account} · ` : ''}ID: {p.id}</p>
                 </div>
-                {selected === p.id && <CheckCircle size={16} className="text-[#c8522a] flex-shrink-0" />}
+                {selected === p.id && <CheckCircle size={16} className="text-[#9BA1AE] flex-shrink-0" />}
               </button>
             ))}
           </div>
@@ -411,7 +411,7 @@ function PropertySelectorModal({
           <button
             onClick={save}
             disabled={saving || !selected}
-            className="w-full mt-5 py-3 text-sm font-semibold text-white bg-[#c8522a] rounded-xl hover:bg-[#b8471f] disabled:opacity-50 transition-colors"
+            className="w-full mt-5 py-3 text-sm font-semibold text-white bg-[#2D3748] rounded-xl hover:bg-[#1a2535] disabled:opacity-50 transition-colors"
           >
             {saving ? 'Connecting…' : 'Connect property'}
           </button>
@@ -457,7 +457,7 @@ function LockedPreviewSection({
               { d: 'M', v: 142 }, { d: 'T', v: 189 }, { d: 'W', v: 201 },
               { d: 'T', v: 176 }, { d: 'F', v: 224 }, { d: 'S', v: 98 }, { d: 'S', v: 87 },
             ]} barSize={14}>
-              <Bar dataKey="v" fill="#c8522a" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="v" fill="#3B82F6" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -468,7 +468,7 @@ function LockedPreviewSection({
           </div>
           <a
             href={connectHref}
-            className="inline-flex items-center gap-2 bg-[#c8522a] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#b8471f] transition-colors pointer-events-auto"
+            className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#1a2535] transition-colors pointer-events-auto"
           >
             {connectLabel}
             <ExternalLink size={12} />
@@ -558,7 +558,7 @@ function WebsiteAnalyticsSection({
           <div className="blur-sm opacity-30">
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={websiteData7d} barSize={14}>
-                <Bar dataKey="sessions" fill="#c8522a" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="sessions" fill="#3B82F6" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -572,7 +572,7 @@ function WebsiteAnalyticsSection({
             </div>
             <button
               onClick={onConnect}
-              className="inline-flex items-center gap-2 bg-[#c8522a] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#b8471f] transition-colors pointer-events-auto"
+              className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#1a2535] transition-colors pointer-events-auto"
             >
               {oauthConnected ? 'Select property' : 'Connect Google Analytics'}
             </button>
@@ -592,7 +592,7 @@ function WebsiteAnalyticsSection({
           </span>
         )}
         <div className="h-48 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-[#c8522a] border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-[#3B82F6] border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     )
@@ -630,13 +630,13 @@ function WebsiteAnalyticsSection({
               <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={32} />
               <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} />
-              <Line type="monotone" dataKey="sessions" stroke="#c8522a" strokeWidth={2} dot={false} name="Sessions" />
+              <Line type="monotone" dataKey="sessions" stroke="#3B82F6" strokeWidth={2} dot={false} name="Sessions" />
               <Line type="monotone" dataKey="users" stroke="#e8a87c" strokeWidth={2} dot={false} name="Users" />
             </LineChart>
           </ResponsiveContainer>
           <div className="flex items-center justify-between mt-1 px-1">
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5 text-[10px] text-gray-400"><span className="w-3 h-0.5 bg-[#c8522a] inline-block rounded" />Sessions</span>
+              <span className="flex items-center gap-1.5 text-[10px] text-gray-400"><span className="w-3 h-0.5 bg-[#2D3748] inline-block rounded" />Sessions</span>
               <span className="flex items-center gap-1.5 text-[10px] text-gray-400"><span className="w-3 h-0.5 bg-[#e8a87c] inline-block rounded" />Users</span>
             </div>
             <button
@@ -669,7 +669,7 @@ function WebsiteAnalyticsSection({
         <div className="blur-sm opacity-20">
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={websiteData7d} barSize={14}>
-              <Bar dataKey="sessions" fill="#c8522a" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="sessions" fill="#3B82F6" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -682,7 +682,7 @@ function WebsiteAnalyticsSection({
             </p>
             <p className="text-xs text-gray-400 mt-3">
               Want to connect instantly?{' '}
-              <button onClick={onConnect} className="font-semibold text-[#c8522a] underline underline-offset-2 pointer-events-auto hover:text-[#b8471f]">
+              <button onClick={onConnect} className="font-semibold text-[#9BA1AE] underline underline-offset-2 pointer-events-auto hover:text-[#b8471f]">
                 Use Google sign-in instead →
               </button>
             </p>
@@ -981,7 +981,7 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
                   <XAxis dataKey="day" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={fmt} />
                   <Tooltip formatter={(v) => [fmt(Number(v ?? 0)), 'Reach']} />
-                  <Line type="monotone" dataKey="reach" stroke="#c8522a" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="reach" stroke="#3B82F6" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </>
@@ -1047,7 +1047,7 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
                   <YAxis yAxisId="left" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                   <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                   <Tooltip />
-                  <Bar yAxisId="left" dataKey="spend" fill="#c8522a" radius={[3, 3, 0, 0]} name="Spend ($)" />
+                  <Bar yAxisId="left" dataKey="spend" fill="#3B82F6" radius={[3, 3, 0, 0]} name="Spend ($)" />
                   <Bar yAxisId="right" dataKey="clicks" fill="#e8a48a" radius={[3, 3, 0, 0]} name="Clicks" />
                 </BarChart>
               </ResponsiveContainer>

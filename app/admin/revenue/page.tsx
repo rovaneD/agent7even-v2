@@ -26,7 +26,7 @@ function formatDate(unix: number) {
 function planBadge(plan: string | null) {
   const map: Record<string, string> = {
     starter: 'bg-gray-100 text-gray-600',
-    growth: 'bg-[#c8522a]/10 text-[#c8522a]',
+    growth: 'bg-[#2D3748]/10 text-[#9BA1AE]',
     proagent: 'bg-[#0d0d0d] text-white',
   }
   const key = plan ?? ''
@@ -129,7 +129,7 @@ export default async function AdminRevenuePage() {
           const Icon = card.icon
           return (
             <div key={card.label} className={`rounded-2xl border p-5 ${
-              card.accent ? 'bg-[#c8522a] border-[#c8522a]' : 'bg-white border-gray-100'
+              card.accent ? 'bg-[#2D3748] border-[#3B82F6]' : 'bg-white border-gray-100'
             }`}>
               <div className="flex items-center justify-between mb-3">
                 <span className={`text-xs font-medium uppercase tracking-wide ${
@@ -172,7 +172,7 @@ export default async function AdminRevenuePage() {
                 <p className="text-xs text-gray-400 mt-0.5">${revenue}/mo</p>
                 <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#c8522a] rounded-full transition-all"
+                    className="h-full bg-[#2D3748] rounded-full transition-all"
                     style={{ width: `${pct}%` }}
                   />
                 </div>

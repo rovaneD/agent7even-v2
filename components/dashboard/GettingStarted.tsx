@@ -33,16 +33,16 @@ const ITEMS = [
 ]
 
 interface Props {
-  completed: boolean[]  // must be length 5, matching ITEMS order
+  completed: boolean[]
   dismissed: boolean
 }
 
 export default function GettingStarted({ completed, dismissed }: Props) {
   const [hidden, setHidden] = useState(dismissed)
 
-  const allDone    = completed.every(Boolean)
-  const doneCount  = completed.filter(Boolean).length
-  const pct        = Math.round((doneCount / ITEMS.length) * 100)
+  const allDone   = completed.every(Boolean)
+  const doneCount = completed.filter(Boolean).length
+  const pct       = Math.round((doneCount / ITEMS.length) * 100)
 
   if (hidden || allDone) return null
 
@@ -52,23 +52,22 @@ export default function GettingStarted({ completed, dismissed }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6">
+    <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5 mb-6">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Getting started</h3>
-          <p className="text-xs text-gray-400 mt-0.5">{doneCount} of {ITEMS.length} complete</p>
+          <h3 className="text-sm font-semibold text-[#2D3748]">Getting started</h3>
+          <p className="text-xs text-[#9BA1AE] mt-0.5">{doneCount} of {ITEMS.length} complete</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Progress bar */}
-          <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="w-24 h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#c8522a] rounded-full transition-all duration-500"
+              className="h-full bg-[#3B82F6] rounded-full transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
           <button
             onClick={handleDismiss}
-            className="text-gray-300 hover:text-gray-500 transition-colors p-0.5 rounded"
+            className="text-[#CBD5E1] hover:text-[#9BA1AE] transition-colors p-0.5 rounded"
             title="Dismiss"
           >
             <X size={13} />
@@ -84,28 +83,28 @@ export default function GettingStarted({ completed, dismissed }: Props) {
               key={item.label}
               href={done ? '#' : item.href}
               className={`flex items-center gap-3 px-2 py-2 rounded-xl transition-colors group ${
-                done ? 'cursor-default' : 'hover:bg-gray-50'
+                done ? 'cursor-default' : 'hover:bg-white'
               }`}
             >
               <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
                 done
-                  ? 'bg-emerald-500'
-                  : 'border border-gray-200 group-hover:border-[#c8522a]/40'
+                  ? 'bg-[#10B981]'
+                  : 'border border-[#E2E8F0] group-hover:border-[#3B82F6]/40'
               }`}>
                 {done && <Check size={10} className="text-white" strokeWidth={3} />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-xs font-medium leading-tight ${
-                  done ? 'text-gray-400 line-through' : 'text-gray-700'
+                  done ? 'text-[#CBD5E1] line-through' : 'text-[#2D3748]'
                 }`}>
                   {item.label}
                 </p>
                 {!done && (
-                  <p className="text-[11px] text-gray-400 mt-0.5 leading-snug">{item.desc}</p>
+                  <p className="text-[11px] text-[#9BA1AE] mt-0.5 leading-snug">{item.desc}</p>
                 )}
               </div>
               {!done && (
-                <span className="text-[11px] text-gray-300 group-hover:text-[#c8522a] transition-colors flex-shrink-0">
+                <span className="text-[11px] text-[#CBD5E1] group-hover:text-[#3B82F6] transition-colors flex-shrink-0">
                   →
                 </span>
               )}

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
-import { Rocket, PenLine, BarChart2, MessageCircle, X } from 'lucide-react'
+import { Rocket, PenLine, BarChart2, MessageCircle, X, ArrowUp } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -43,24 +43,24 @@ interface Props {
 // ── Markdown components ───────────────────────────────────────────────────
 
 const PLAIN_MD: Record<string, React.ComponentType<{ children?: React.ReactNode }>> = {
-  p: ({ children }) => <p style={{ margin: '0 0 10px 0', fontSize: 13.5, lineHeight: 1.7, color: '#0a0a0a' }}>{children}</p>,
-  strong: ({ children }) => <span style={{ fontWeight: 500, color: '#0a0a0a' }}>{children}</span>,
-  em: ({ children }) => <span style={{ fontStyle: 'italic', color: '#555' }}>{children}</span>,
-  ul: ({ children }) => <ul style={{ paddingLeft: 16, margin: '0 0 10px 0' }}>{children}</ul>,
-  ol: ({ children }) => <ol style={{ paddingLeft: 16, margin: '0 0 10px 0' }}>{children}</ol>,
-  li: ({ children }) => <li style={{ marginBottom: 5, fontSize: 13.5, lineHeight: 1.65 }}>{children}</li>,
-  h1: ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: '#0a0a0a', margin: '0 0 8px 0' }}>{children}</p>,
-  h2: ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: '#0a0a0a', margin: '0 0 8px 0' }}>{children}</p>,
-  h3: ({ children }) => <p style={{ fontSize: 13, fontWeight: 500, color: '#555', margin: '0 0 6px 0' }}>{children}</p>,
+  p:      ({ children }) => <p style={{ margin: '0 0 10px 0', fontSize: 13.5, lineHeight: 1.7, color: '#2D3748' }}>{children}</p>,
+  strong: ({ children }) => <span style={{ fontWeight: 500, color: '#2D3748' }}>{children}</span>,
+  em:     ({ children }) => <span style={{ fontStyle: 'italic', color: '#9BA1AE' }}>{children}</span>,
+  ul:     ({ children }) => <ul style={{ paddingLeft: 16, margin: '0 0 10px 0' }}>{children}</ul>,
+  ol:     ({ children }) => <ol style={{ paddingLeft: 16, margin: '0 0 10px 0' }}>{children}</ol>,
+  li:     ({ children }) => <li style={{ marginBottom: 5, fontSize: 13.5, lineHeight: 1.65, color: '#2D3748' }}>{children}</li>,
+  h1:     ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: '#2D3748', margin: '0 0 8px 0' }}>{children}</p>,
+  h2:     ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: '#2D3748', margin: '0 0 8px 0' }}>{children}</p>,
+  h3:     ({ children }) => <p style={{ fontSize: 13, fontWeight: 500, color: '#9BA1AE', margin: '0 0 6px 0' }}>{children}</p>,
 }
 
 // ── Modes ─────────────────────────────────────────────────────────────────
 
 const MODES = [
-  { id: 'Build a campaign', label: 'Build a campaign', description: 'Create a 30-day marketing plan', Icon: Rocket },
-  { id: 'Create content', label: 'Create content', description: 'Captions, emails, or ad copy', Icon: PenLine },
-  { id: 'Analyze my marketing', label: 'Analyze my marketing', description: "Review what's working", Icon: BarChart2 },
-  { id: 'Just talk to Maya', label: 'Just talk to Maya', description: 'Open conversation, no agenda', Icon: MessageCircle },
+  { id: 'Build a campaign',     label: 'Build a campaign',     description: 'Create a 30-day marketing plan',  Icon: Rocket        },
+  { id: 'Create content',       label: 'Create content',       description: 'Captions, emails, or ad copy',    Icon: PenLine       },
+  { id: 'Analyze my marketing', label: 'Analyze my marketing', description: "Review what's working",           Icon: BarChart2     },
+  { id: 'Just talk to Maya',    label: 'Just talk to Maya',    description: 'Open conversation, no agenda',    Icon: MessageCircle },
 ]
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -80,20 +80,6 @@ export default function MayChatPanel({
 }: Props) {
   const companyName = profile?.company_name ?? profile?.full_name ?? 'there'
 
-  const profileData = {
-    companyName,
-    businessType:      profile?.business_type      ?? '',
-    idealCustomer:     profile?.ideal_customer      ?? '',
-    sellLocations:     profile?.sell_locations      ?? [],
-    marketingBudget:   profile?.marketing_budget    ?? '',
-    topGoals:          profile?.top_goals           ?? [],
-    marketingChallenge: profile?.marketing_challenge ?? '',
-    contentComfort:    profile?.content_comfort     ?? '',
-    competitors:       profile?.competitors         ?? [],
-    websiteUrl:        profile?.website_url         ?? '',
-    instagramHandle:   profile?.instagram_handle    ?? '',
-  }
-
   const [mode, setMode]         = useState<string | null>(initialMode)
   const [chatInput, setChatInput] = useState('')
 
@@ -101,16 +87,11 @@ export default function MayChatPanel({
   const messagesRef    = useRef<UIMessage[]>([])
   const modeRef        = useRef<string | null>(initialMode)
 
-  // canvasData changes as the user navigates — keep it in a ref so the custom
-  // fetch interceptor always reads the latest value without recreating the transport.
   const canvasDataRef = useRef(canvasData)
   useEffect(() => { canvasDataRef.current = canvasData }, [canvasData])
 
-  // sessionId — starts from prop, updated after first save (new session created)
   const sessionIdRef = useRef<string | null>(initialSessionId)
 
-  // Stable transport — never recreated so useChat never resets mid-conversation.
-  // isHelpMode is captured at mount; panels are always remounted for new sessions so this is safe.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const transport = useMemo(() => new DefaultChatTransport({
     api: '/api/maya/chat',
@@ -175,7 +156,6 @@ export default function MayChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
-  // Inject task from campaign "Do this with Maya →" button
   useEffect(() => {
     if (!pendingTask) return
     setMode('task')
@@ -183,7 +163,6 @@ export default function MayChatPanel({
     onTaskConsumed?.()
   }, [pendingTask]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-send help opener when panel mounts in help mode
   useEffect(() => {
     if (!isHelpMode) return
     sendMessage({ text: '__HELP__' })
@@ -211,21 +190,20 @@ export default function MayChatPanel({
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
 
       {/* Header */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '0.5px solid #f0f0f0' }}>
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #E2E8F0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ color: '#fff', fontSize: 11, fontWeight: 600 }}>M</span>
+          <div style={{ width: 24, height: 24, borderRadius: 8, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>M</span>
           </div>
-          <span style={{ fontSize: 13, fontWeight: 500, color: '#0a0a0a' }}>Maya</span>
-          <span style={{ fontSize: 11, color: '#bbb' }}>·</span>
-          <span style={{ fontSize: 11, color: '#bbb' }}>online</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#2D3748' }}>Maya</span>
+          <span style={{ fontSize: 12, color: '#10B981', fontWeight: 500 }}>online</span>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#555' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#ccc' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9BA1AE', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#9BA1AE' }}
           >
             <X size={15} />
           </button>
@@ -233,27 +211,27 @@ export default function MayChatPanel({
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 18px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
         {showModePicker ? (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: 20 }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <span style={{ color: '#fff', fontSize: 18, fontWeight: 600 }}>M</span>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+              <span style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>M</span>
             </div>
-            <p style={{ fontSize: 16, fontWeight: 500, color: '#0a0a0a', marginBottom: 3 }}>Hey {companyName !== 'there' ? companyName : 'there'}.</p>
-            <p style={{ fontSize: 12, color: '#999', marginBottom: 20 }}>What would you like to work on?</p>
+            <p style={{ fontSize: 15, fontWeight: 600, color: '#2D3748', marginBottom: 3 }}>Hey {companyName !== 'there' ? companyName : 'there'}.</p>
+            <p style={{ fontSize: 12, color: '#9BA1AE', marginBottom: 20 }}>What would you like to work on?</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, width: '100%' }}>
               {MODES.map(({ id, label, description, Icon }) => (
                 <button
                   key={id}
                   onClick={() => selectMode(id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 10, border: '0.5px solid #e8e8e8', background: '#fafafa', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#0a0a0a'; (e.currentTarget as HTMLButtonElement).style.background = '#f5f5f5' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e8e8e8'; (e.currentTarget as HTMLButtonElement).style.background = '#fafafa' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 12, border: '1px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%', transition: 'border-color 0.12s, background 0.12s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#9BA1AE'; (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC' }}
                 >
-                  <Icon size={14} color="#555" strokeWidth={1.75} />
+                  <Icon size={14} color="#9BA1AE" strokeWidth={1.75} />
                   <div>
-                    <p style={{ fontSize: 12.5, fontWeight: 500, color: '#0a0a0a', marginBottom: 1 }}>{label}</p>
-                    <p style={{ fontSize: 11, color: '#aaa', lineHeight: 1.4 }}>{description}</p>
+                    <p style={{ fontSize: 12.5, fontWeight: 500, color: '#2D3748', marginBottom: 1 }}>{label}</p>
+                    <p style={{ fontSize: 11, color: '#9BA1AE', lineHeight: 1.4 }}>{description}</p>
                   </div>
                 </button>
               ))}
@@ -264,19 +242,19 @@ export default function MayChatPanel({
             {visibleMessages.map((msg) => {
               const text = getMsgText(msg)
               return (
-                <div key={msg.id} style={{ marginBottom: msg.role === 'user' ? 20 : 24 }}>
+                <div key={msg.id} style={{ marginBottom: msg.role === 'user' ? 16 : 20 }}>
                   {msg.role === 'user' ? (
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <div style={{ background: '#0a0a0a', color: '#fff', borderRadius: '16px 16px 4px 16px', padding: '9px 13px', maxWidth: '80%', fontSize: 13.5, lineHeight: 1.55 }}>
+                      <div style={{ background: '#2D3748', color: '#fff', borderRadius: '16px 16px 4px 16px', padding: '9px 14px', maxWidth: '82%', fontSize: 13.5, lineHeight: 1.55 }}>
                         {text}
                       </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                        <span style={{ color: '#fff', fontSize: 11, fontWeight: 500 }}>M</span>
+                      <div style={{ width: 24, height: 24, borderRadius: 8, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                        <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>M</span>
                       </div>
-                      <div style={{ flex: 1, minWidth: 0, paddingTop: 3 }}>
+                      <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
                         <ReactMarkdown components={PLAIN_MD as never}>{text}</ReactMarkdown>
                       </div>
                     </div>
@@ -287,10 +265,10 @@ export default function MayChatPanel({
 
             {showThinking && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20 }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ color: '#fff', fontSize: 11, fontWeight: 500 }}>M</span>
+                <div style={{ width: 24, height: 24, borderRadius: 8, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>M</span>
                 </div>
-                <p style={{ fontSize: 12.5, color: '#bbb', fontStyle: 'italic', paddingTop: 6 }}>Maya is thinking...</p>
+                <p style={{ fontSize: 12.5, color: '#9BA1AE', fontStyle: 'italic', paddingTop: 4 }}>Maya is thinking...</p>
               </div>
             )}
 
@@ -300,8 +278,10 @@ export default function MayChatPanel({
       </div>
 
       {/* Input */}
-      <div style={{ flexShrink: 0, borderTop: '0.5px solid #f0f0f0', padding: '12px 14px', background: '#fff' }}>
-        <div style={{ position: 'relative' }}>
+      <div style={{ flexShrink: 0, borderTop: '1px solid #E2E8F0', padding: '12px 14px', background: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: '#F8F8F8', borderRadius: 14, padding: '10px 14px', border: '1px solid #E2E8F0', transition: 'border-color 0.12s' }}
+          onFocus={() => {}} // for future focus-within styling
+        >
           <textarea
             value={chatInput}
             onChange={e => setChatInput(e.target.value)}
@@ -309,27 +289,20 @@ export default function MayChatPanel({
             placeholder="Ask Maya anything..."
             rows={1}
             disabled={isLoading}
-            style={{ width: '100%', border: '0.5px solid #e0e0e0', borderRadius: 20, padding: '9px 42px 9px 14px', fontSize: 13.5, background: '#fafafa', color: '#0a0a0a', resize: 'none', outline: 'none', fontFamily: 'inherit', lineHeight: 1.5, boxSizing: 'border-box', display: 'block', opacity: isLoading ? 0.6 : 1 }}
+            style={{ flex: 1, background: 'transparent', color: '#2D3748', resize: 'none', outline: 'none', fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.5, maxHeight: 128, opacity: isLoading ? 0.5 : 1 }}
           />
           <button
             onClick={() => submitMessage()}
             disabled={isLoading}
-            style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', background: isLoading ? '#ccc' : '#0a0a0a', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLoading ? 'not-allowed' : 'pointer' }}
+            style={{ width: 28, height: 28, borderRadius: 8, background: isLoading ? '#E2E8F0' : '#2D3748', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLoading ? 'not-allowed' : 'pointer', flexShrink: 0, transition: 'background 0.12s' }}
           >
-            <i className="ti ti-arrow-up" style={{ fontSize: 13, color: '#fff' }} />
+            <ArrowUp size={13} color="#fff" />
           </button>
         </div>
-        <p style={{ fontSize: 10.5, color: '#ddd', textAlign: 'center', marginTop: 7 }}>
+        <p style={{ fontSize: 10.5, color: '#CBD5E1', textAlign: 'center', marginTop: 7 }}>
           Maya makes mistakes. Verify important decisions.
         </p>
       </div>
-
-      <style>{`
-        @keyframes dotPulse {
-          0%, 100% { opacity: 0.3; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
     </div>
   )
 }

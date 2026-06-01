@@ -93,8 +93,8 @@ function WeekAccordion({ week }: { week: WeekItem }) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#c8522a' }}>WEEK {week.week}</span>
-          <span style={{ fontSize: 13, fontWeight: 500, color: '#0a0a0a' }}>{week.theme}</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#3B82F6' }}>WEEK {week.week}</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: '#2D3748' }}>{week.theme}</span>
         </div>
         {open ? <ChevronDown size={14} color="#bbb" /> : <ChevronRight size={14} color="#bbb" />}
       </button>
@@ -118,7 +118,7 @@ function WeekAccordion({ week }: { week: WeekItem }) {
                   <ChannelIcon channel={day.channel} />
                   <span style={{ fontSize: 11, color: '#bbb' }}>{day.channel} · {day.type}</span>
                 </div>
-                <p style={{ fontSize: 13, color: '#0a0a0a', lineHeight: 1.5 }}>{day.content}</p>
+                <p style={{ fontSize: 13, color: '#2D3748', lineHeight: 1.5 }}>{day.content}</p>
               </div>
               <span style={{ fontSize: 11, color: '#ddd', whiteSpace: 'nowrap', paddingTop: 2 }}>
                 {day.mins}m
@@ -153,7 +153,7 @@ export default function CampaignDetail({ campaign }: Props) {
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#c8522a' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#3B82F6' }}>
             {campaign.mode === 'guided'
               ? (campaign.segment?.replace(/_/g, ' ') ?? 'Guided')
               : 'Custom campaign'}
@@ -163,7 +163,7 @@ export default function CampaignDetail({ campaign }: Props) {
             <span style={{ fontSize: 11, color: '#bbb' }}>{campaign.timeline_days}-day campaign</span>
           )}
         </div>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0a0a0a', lineHeight: 1.25, marginBottom: 10 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#2D3748', lineHeight: 1.25, marginBottom: 10 }}>
           {campaign.title}
         </h1>
         {campaign.strategy_summary && (
@@ -191,13 +191,13 @@ export default function CampaignDetail({ campaign }: Props) {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <ChannelIcon channel={item.channel} />
-                  <span style={{ fontSize: 13.5, color: '#0a0a0a' }}>{item.task}</span>
+                  <span style={{ fontSize: 13.5, color: '#2D3748' }}>{item.task}</span>
                 </div>
                 <button
                   onClick={() => openMayaWithTask(item.task)}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    fontSize: 12, fontWeight: 500, color: '#c8522a', whiteSpace: 'nowrap',
+                    fontSize: 12, fontWeight: 500, color: '#3B82F6', whiteSpace: 'nowrap',
                     padding: '4px 0', marginLeft: 16,
                   }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.textDecoration = 'underline' }}

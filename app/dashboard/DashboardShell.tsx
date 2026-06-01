@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
@@ -27,6 +27,7 @@ import {
   Megaphone,
   Plus,
   HelpCircle,
+  MoreHorizontal,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
@@ -99,7 +100,99 @@ const NAV = [
   },
 ]
 
-// ── Component ─────────────────────────────────────────────────────────────
+// ── Contextual page actions ────────────────────────────────────────────────
+
+const PAGE_ACTIONS: Record<string, { label: string; action: string }[]> = {
+  dashboard:   [
+    { label: 'Refresh digest',      action: 'refresh-digest' },
+    { label: 'Customize dashboard', action: 'customize' },
+  ],
+  campaigns:   [
+    { label: 'Sort by newest', action: 'sort-newest' },
+    { label: 'Sort by oldest', action: 'sort-oldest' },
+    { label: 'Archive all',    action: 'archive-all' },
+  ],
+  'brand-kit': [
+    { label: 'Export brand guide', action: 'export' },
+    { label: 'Share with team',    action: 'share' },
+  ],
+  foundation:  [
+    { label: 'Export Foundation', action: 'export' },
+    { label: 'Reset Foundation',  action: 'reset' },
+  ],
+  agents:      [
+    { label: 'Pause all agents', action: 'pause-all' },
+    { label: 'View run history', action: 'history' },
+  ],
+  analytics:   [
+    { label: 'Export report', action: 'export' },
+    { label: 'Refresh data',  action: 'refresh' },
+  ],
+}
+
+function ContextMenu({ pageName }: { pageName: string }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const actions = PAGE_ACTIONS[pageName] ?? []
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  if (!actions.length) return null
+
+  function handleAction(action: string) {
+    setOpen(false)
+    window.dispatchEvent(new CustomEvent('page-action', { detail: { action } }))
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          padding: '6px', borderRadius: 8, background: 'none', border: 'none',
+          cursor: 'pointer', color: '#9BA1AE', display: 'flex', alignItems: 'center',
+          transition: 'color 0.12s, background 0.12s',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748'; (e.currentTarget as HTMLButtonElement).style.background = '#F8F8F8' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#9BA1AE'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+      >
+        <MoreHorizontal size={18} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: '100%', marginTop: 4,
+          background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '4px 0',
+          minWidth: 160, zIndex: 50,
+        }}>
+          {actions.map(a => (
+            <button
+              key={a.action}
+              onClick={() => handleAction(a.action)}
+              style={{
+                width: '100%', textAlign: 'left', padding: '8px 16px',
+                fontSize: 13.5, color: '#2D3748', background: 'none', border: 'none',
+                cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F8F8F8' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
 
 function groupSessionsByDate(sessions: Session[]): { label: string; sessions: Session[] }[] {
   const todayStart     = new Date(); todayStart.setHours(0, 0, 0, 0)
@@ -110,7 +203,7 @@ function groupSessionsByDate(sessions: Session[]): { label: string; sessions: Se
   sessions.forEach(s => {
     const d = new Date(s.updated_at); d.setHours(0, 0, 0, 0)
     let label: string
-    if (d.getTime() === todayStart.getTime())     label = 'Today'
+    if (d.getTime() === todayStart.getTime())          label = 'Today'
     else if (d.getTime() === yesterdayStart.getTime()) label = 'Yesterday'
     else label = new Date(s.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     if (!buckets[label]) buckets[label] = []
@@ -120,6 +213,8 @@ function groupSessionsByDate(sessions: Session[]): { label: string; sessions: Se
   const order = ['Today', 'Yesterday', ...Object.keys(buckets).filter(k => k !== 'Today' && k !== 'Yesterday')]
   return order.filter(l => buckets[l]).map(label => ({ label, sessions: buckets[label] }))
 }
+
+// ── Component ─────────────────────────────────────────────────────────────
 
 export default function DashboardShell({
   children,
@@ -152,27 +247,22 @@ export default function DashboardShell({
 
   const isAdmin = isAdminProp || role === 'admin' || role === 'owner'
 
-  // Listen for score updates dispatched by FoundationEditor after a successful rescore
   useEffect(() => {
     function onRescored(e: Event) {
-      const score = (e as CustomEvent<{ score: number }>).detail.score
-      setFoundationScore(score)
+      setFoundationScore((e as CustomEvent<{ score: number }>).detail.score)
     }
     window.addEventListener('foundation:rescored', onRescored)
     return () => window.removeEventListener('foundation:rescored', onRescored)
   }, [])
 
-  // Listen for brand kit section completions dispatched by BrandKitView
   useEffect(() => {
     function onBrandKitProgress(e: Event) {
-      const { completed } = (e as CustomEvent<{ completed: number }>).detail
-      setBrandKitCompleted(completed)
+      setBrandKitCompleted((e as CustomEvent<{ completed: number }>).detail.completed)
     }
     window.addEventListener('brandkit:progress', onBrandKitProgress)
     return () => window.removeEventListener('brandkit:progress', onBrandKitProgress)
   }, [])
 
-  // Listen for page-level context dispatched by page components
   useEffect(() => {
     function onCanvasContext(e: Event) {
       setCanvasData((e as CustomEvent<{ context: string }>).detail.context)
@@ -181,10 +271,8 @@ export default function DashboardShell({
     return () => window.removeEventListener('maya:canvas-context', onCanvasContext)
   }, [])
 
-  // Clear page context when navigating away
   useEffect(() => { setCanvasData('') }, [pathname])
 
-  // Realtime: cross-tab fallback — update score when profiles row changes
   useEffect(() => {
     if (!profileId) return
     const supabase = createClient()
@@ -205,7 +293,6 @@ export default function DashboardShell({
     return () => { supabase.removeChannel(channel) }
   }, [profileId])
 
-  // Listen for "Do this with Maya →" — always fresh panel, no prior session
   useEffect(() => {
     function onOpenTask(e: Event) {
       const { task } = (e as CustomEvent<{ task: string }>).detail
@@ -220,9 +307,17 @@ export default function DashboardShell({
     return () => window.removeEventListener('maya:open-task', onOpenTask)
   }, [])
 
-  // Pass the current page as context to Maya so she knows what you're looking at
   const canvasContext = NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
     ?? (pathname === '/dashboard' ? 'Dashboard' : undefined)
+
+  // Derive current page key for context menu
+  const currentPageKey = pathname.startsWith('/dashboard/brand-kit') ? 'brand-kit'
+    : pathname.startsWith('/dashboard/agents') ? 'agents'
+    : pathname.startsWith('/dashboard/campaigns') ? 'campaigns'
+    : pathname.startsWith('/dashboard/analytics') ? 'analytics'
+    : pathname.startsWith('/dashboard/foundation') ? 'foundation'
+    : pathname === '/dashboard' ? 'dashboard'
+    : ''
 
   function openHelpMode() {
     setHelpMode(true)
@@ -276,23 +371,14 @@ export default function DashboardShell({
 
   const sessionGroups = groupSessionsByDate(sessions)
 
-  const sidebarStyle: React.CSSProperties = {
-    width: 200,
-    flexShrink: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    background: '#fff',
-    borderRight: '0.5px solid #ebebeb',
-    height: '100%',
-    overflow: 'hidden',
-  }
-
+  // ── Foundation bar color ──────────────────────────────────────────────────
   function foundationBarColor(score: number): string {
-    if (score >= 80) return '#16a34a'
-    if (score >= 60) return '#ca8a04'
-    return '#c8522a'
+    if (score >= 80) return '#10B981'
+    if (score >= 60) return '#F59E0B'
+    return '#EF4444'
   }
 
+  // ── Nav item ──────────────────────────────────────────────────────────────
   function NavLink({ item }: { item: typeof NAV[0]['items'][0] }) {
     const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
     const Icon = item.icon
@@ -301,25 +387,29 @@ export default function DashboardShell({
     const isAgents     = item.href === '/dashboard/agents'
     const brandKitPct  = Math.round((brandKitCompleted / 6) * 100)
     const approvalsActive = pathname.startsWith('/dashboard/agents/approvals')
+
     return (
       <>
         <Link
           href={item.href}
           onClick={() => setMobileOpen(false)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px',
-            borderRadius: 7, textDecoration: 'none', fontSize: 12.5, fontWeight: active ? 500 : 400,
-            color: active ? '#0a0a0a' : '#999', background: active ? '#f2f2f2' : 'transparent',
-            transition: 'background 0.12s, color 0.12s', marginBottom: 1,
+            display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+            borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: active ? 500 : 400,
+            color: active ? '#2D3748' : '#9BA1AE',
+            background: active ? '#F8FAFC' : 'transparent',
+            border: active ? '1px solid #E2E8F0' : '1px solid transparent',
+            transition: 'background 0.12s, color 0.12s, border-color 0.12s',
+            marginBottom: 1,
           }}
-          onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#f7f7f7'; (e.currentTarget as HTMLAnchorElement).style.color = '#555' } }}
-          onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#999' } }}
+          onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#F8F8F8'; (e.currentTarget as HTMLAnchorElement).style.color = '#2D3748' } }}
+          onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#9BA1AE' } }}
         >
-          <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#0a0a0a' : '#bbb'} />
+          <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : '#CBD5E1'} />
           {item.label}
           {isFoundation && foundationScore !== null && (
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span style={{ width: 28, height: 3, background: '#f0f0f0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
+              <span style={{ width: 28, height: 3, background: '#E2E8F0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
                 <span style={{ display: 'block', width: `${foundationScore}%`, height: '100%', background: foundationBarColor(foundationScore), borderRadius: 2, transition: 'width 0.4s' }} />
               </span>
               <span style={{ fontSize: 9.5, color: foundationBarColor(foundationScore) }}>{foundationScore}%</span>
@@ -327,19 +417,18 @@ export default function DashboardShell({
           )}
           {isBrandKit && brandKitCompleted > 0 && (
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span style={{ width: 28, height: 3, background: '#f0f0f0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
-                <span style={{ display: 'block', width: `${brandKitPct}%`, height: '100%', background: brandKitCompleted === 6 ? '#16a34a' : '#c8522a', borderRadius: 2, transition: 'width 0.4s' }} />
+              <span style={{ width: 28, height: 3, background: '#E2E8F0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
+                <span style={{ display: 'block', width: `${brandKitPct}%`, height: '100%', background: brandKitCompleted === 6 ? '#10B981' : '#3B82F6', borderRadius: 2, transition: 'width 0.4s' }} />
               </span>
-              <span style={{ fontSize: 9.5, color: brandKitCompleted === 6 ? '#16a34a' : '#c8522a' }}>{brandKitPct}%</span>
+              <span style={{ fontSize: 9.5, color: brandKitCompleted === 6 ? '#10B981' : '#3B82F6' }}>{brandKitPct}%</span>
             </span>
           )}
           {isAgents && pendingApprovalsCount > 0 && (
-            <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, borderRadius: 9, background: '#c8522a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+            <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, borderRadius: 9, background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
               <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>{pendingApprovalsCount}</span>
             </span>
           )}
         </Link>
-        {/* Approvals sub-item */}
         {isAgents && pendingApprovalsCount > 0 && (
           <Link
             href="/dashboard/agents/approvals"
@@ -347,32 +436,38 @@ export default function DashboardShell({
             style={{
               display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px 5px 32px',
               borderRadius: 7, textDecoration: 'none', fontSize: 12, fontWeight: approvalsActive ? 500 : 400,
-              color: approvalsActive ? '#c8522a' : '#bbb', background: approvalsActive ? '#fff5f2' : 'transparent',
+              color: approvalsActive ? '#3B82F6' : '#CBD5E1',
+              background: approvalsActive ? '#EFF6FF' : 'transparent',
               transition: 'background 0.12s, color 0.12s', marginBottom: 1,
             }}
-            onMouseEnter={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = '#fdf5f2'; (e.currentTarget as HTMLAnchorElement).style.color = '#c8522a' } }}
-            onMouseLeave={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#bbb' } }}
+            onMouseEnter={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = '#EFF6FF'; (e.currentTarget as HTMLAnchorElement).style.color = '#3B82F6' } }}
+            onMouseLeave={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#CBD5E1' } }}
           >
-            <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#c8522a', flexShrink: 0 }} />
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#3B82F6', flexShrink: 0 }} />
             Approvals
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#c8522a', fontWeight: 600 }}>{pendingApprovalsCount}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#3B82F6', fontWeight: 600 }}>{pendingApprovalsCount}</span>
           </Link>
         )}
       </>
     )
   }
 
+  // ── Sidebar ───────────────────────────────────────────────────────────────
+
   const sidebar = (
-    <aside style={sidebarStyle}>
+    <aside style={{
+      width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column',
+      background: '#fff', borderRight: '1px solid #E2E8F0', height: '100%', overflow: 'hidden',
+    }}>
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 14px 12px', borderBottom: '0.5px solid #f5f5f5' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em', color: '#0a0a0a' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 14px 12px', borderBottom: '1px solid #E2E8F0' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: '#2D3748' }}>
           AGENT<span style={{ color: '#c8522a' }}>7</span>EVEN
         </span>
         <button
           onClick={() => setMobileOpen(false)}
           className="lg:hidden"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', padding: 2, display: 'flex' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9BA1AE', padding: 2, display: 'flex' }}
         >
           <X size={14} />
         </button>
@@ -384,18 +479,19 @@ export default function DashboardShell({
           onClick={openNewConversation}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px',
-            borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5,
-            fontWeight: 500, color: mayaOpen ? '#fff' : '#0a0a0a',
-            background: mayaOpen ? '#0a0a0a' : '#f2f2f2',
+            borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+            fontWeight: 500, color: mayaOpen ? '#fff' : '#2D3748',
+            background: mayaOpen ? '#2D3748' : '#F8FAFC',
+            border: mayaOpen ? 'none' : '1px solid #E2E8F0',
             transition: 'background 0.12s, color 0.12s',
-          }}
-          onMouseEnter={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = '#e8e8e8' }}
-          onMouseLeave={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = '#f2f2f2' }}
+          } as React.CSSProperties}
+          onMouseEnter={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#9BA1AE' } }}
+          onMouseLeave={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' } }}
         >
-          <Sparkles size={13} strokeWidth={1.75} color={mayaOpen ? '#fff' : '#555'} />
+          <Sparkles size={13} strokeWidth={1.75} color={mayaOpen ? '#fff' : '#9BA1AE'} />
           Maya
           {mayaOpen && activeSessionId === null && (
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#888', fontWeight: 400 }}>new</span>
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#9BA1AE', fontWeight: 400 }}>new</span>
           )}
         </button>
 
@@ -404,7 +500,7 @@ export default function DashboardShell({
           <div style={{ marginTop: 2, marginLeft: 2, marginBottom: 2 }}>
             {sessionGroups.map(group => (
               <div key={group.label} style={{ marginBottom: 6 }}>
-                <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#d0d0d0', padding: '0 4px', marginBottom: 2 }}>
+                <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#CBD5E1', padding: '0 4px', marginBottom: 2 }}>
                   {group.label}
                 </p>
                 {group.sessions.map(session => {
@@ -417,19 +513,19 @@ export default function DashboardShell({
                       style={{
                         width: '100%', display: 'block', textAlign: 'left', padding: '4px 6px 4px 10px',
                         borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        fontSize: 11.5, color: isActive ? '#0a0a0a' : '#888',
-                        background: isActive ? '#f0f0f0' : 'transparent',
+                        fontSize: 11.5, color: isActive ? '#2D3748' : '#9BA1AE',
+                        background: isActive ? '#F8FAFC' : 'transparent',
                         opacity: isLoading ? 0.5 : 1,
                         transition: 'background 0.1s, color 0.1s',
                         marginBottom: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
                       }}
-                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#f7f7f7' }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#F8F8F8' }}
                       onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
                       title={session.title ?? 'Untitled'}
                     >
-                      <span style={{ color: '#d0d0d0', marginRight: 5, fontSize: 10 }}>›</span>
+                      <span style={{ color: '#CBD5E1', marginRight: 5, fontSize: 10 }}>›</span>
                       {session.canvas_context && (
-                        <span style={{ fontSize: 9.5, color: '#c8522a', marginRight: 4, fontWeight: 500 }}>
+                        <span style={{ fontSize: 9.5, color: '#3B82F6', marginRight: 4, fontWeight: 500 }}>
                           {session.canvas_context} ·{' '}
                         </span>
                       )}
@@ -446,14 +542,14 @@ export default function DashboardShell({
           onClick={() => setShowNewCampaign(true)}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px',
-            borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5,
-            fontWeight: 500, color: '#0a0a0a', background: '#f2f2f2',
-            transition: 'background 0.12s',
+            borderRadius: 9, border: '1px solid #E2E8F0', cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: 13, fontWeight: 500, color: '#2D3748', background: '#F8FAFC',
+            transition: 'background 0.12s, border-color 0.12s',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#e8e8e8' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#f2f2f2' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#9BA1AE' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
         >
-          <Plus size={13} strokeWidth={1.75} color="#555" />
+          <Plus size={13} strokeWidth={1.75} color="#9BA1AE" />
           New campaign
         </button>
       </div>
@@ -462,7 +558,7 @@ export default function DashboardShell({
       <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 10px' }}>
         {NAV.map((group) => (
           <div key={group.section} style={{ marginBottom: 18 }}>
-            <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#ccc', padding: '0 3px', marginBottom: 4 }}>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9BA1AE', padding: '0 3px', marginBottom: 4 }}>
               {group.section}
             </p>
             {group.items.map(item => <NavLink key={item.href} item={item} />)}
@@ -470,46 +566,48 @@ export default function DashboardShell({
         ))}
         {isAdmin && (
           <div style={{ marginBottom: 18 }}>
-            <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#ccc', padding: '0 3px', marginBottom: 4 }}>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9BA1AE', padding: '0 3px', marginBottom: 4 }}>
               Admin
             </p>
             {[
-              { href: '/admin/clients',  label: 'Clients',         icon: Users       },
-              { href: '/admin/cost',     label: 'Cost & Usage',    icon: BarChart2   },
-              { href: '/admin/revenue',  label: 'Revenue',         icon: TrendingUp  },
-              { href: '/admin/orders',   label: 'Orders',          icon: ShoppingBag },
-              { href: '/admin/inquiries', label: 'Inquiries',      icon: Inbox       },
-              { href: '/admin/settings', label: 'Admin Settings',  icon: Shield      },
+              { href: '/admin/clients',   label: 'Clients',       icon: Users       },
+              { href: '/admin/cost',      label: 'Cost & Usage',  icon: BarChart2   },
+              { href: '/admin/revenue',   label: 'Revenue',       icon: TrendingUp  },
+              { href: '/admin/orders',    label: 'Orders',        icon: ShoppingBag },
+              { href: '/admin/inquiries', label: 'Inquiries',     icon: Inbox       },
+              { href: '/admin/settings',  label: 'Admin Settings', icon: Shield     },
             ].map(item => <NavLink key={item.href} item={item} />)}
           </div>
         )}
       </nav>
 
       {/* Help + User */}
-      <div style={{ borderTop: '0.5px solid #f0f0f0' }}>
+      <div style={{ borderTop: '1px solid #E2E8F0' }}>
         <button
           onClick={openHelpMode}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px',
             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 12.5, color: '#bbb', transition: 'color 0.12s',
+            fontSize: 13, color: '#9BA1AE', transition: 'color 0.12s',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#555' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#bbb' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#9BA1AE' }}
         >
           <HelpCircle size={13} strokeWidth={1.75} />
           Help
         </button>
         <div style={{ padding: '6px 14px 12px', display: 'flex', alignItems: 'center', gap: 9 }}>
           <UserButton />
-          <span style={{ fontSize: 11.5, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
+          <span style={{ fontSize: 12, color: '#9BA1AE', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
         </div>
       </div>
     </aside>
   )
 
+  // ── Canvas header ──────────────────────────────────────────────────────────
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'var(--font-geist), system-ui, sans-serif', background: '#f8f8f8' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif', background: '#F8F8F8' }}>
       <NewCampaignModal open={showNewCampaign} onClose={() => setShowNewCampaign(false)} />
 
       {/* Sidebar — desktop always visible */}
@@ -534,7 +632,7 @@ export default function DashboardShell({
       {mayaOpen && (
         <div
           className="hidden lg:flex"
-          style={{ width: 460, flexShrink: 0, borderRight: '0.5px solid #ebebeb', overflow: 'hidden', height: '100%' }}
+          style={{ width: 460, flexShrink: 0, borderRight: '1px solid #E2E8F0', overflow: 'hidden', height: '100%' }}
         >
           <MayChatPanel
             key={`panel-${panelKey}`}
@@ -559,12 +657,12 @@ export default function DashboardShell({
         {/* Mobile top bar */}
         <header
           className="lg:hidden"
-          style={{ flexShrink: 0, background: '#fff', borderBottom: '0.5px solid #ebebeb', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+          style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
         >
-          <button onClick={() => setMobileOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', display: 'flex' }}>
+          <button onClick={() => setMobileOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2D3748', display: 'flex' }}>
             <Menu size={18} />
           </button>
-          <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em', color: '#0a0a0a' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: '#2D3748' }}>
             AGENT<span style={{ color: '#c8522a' }}>7</span>EVEN
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -572,6 +670,15 @@ export default function DashboardShell({
             <UserButton />
           </div>
         </header>
+
+        {/* Desktop canvas header — shows page context menu */}
+        <div
+          className="hidden lg:flex"
+          style={{ flexShrink: 0, height: 44, borderBottom: '1px solid #E2E8F0', background: '#fff', paddingRight: 16, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}
+        >
+          <NotificationBell profileId={profileId} initialNotifications={initialNotifications} />
+          <ContextMenu pageName={currentPageKey} />
+        </div>
 
         <main style={{ flex: 1, overflowY: 'auto' }}>
           {children}

@@ -138,8 +138,8 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
       {/* Empty state */}
       {!hasDocuments && (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#c8522a]/10 flex items-center justify-center mx-auto mb-5">
-            <Sparkles size={28} className="text-[#c8522a]" />
+          <div className="w-16 h-16 rounded-2xl bg-[#2D3748]/10 flex items-center justify-center mx-auto mb-5">
+            <Sparkles size={28} className="text-[#9BA1AE]" />
           </div>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">
             Build your brand foundation
@@ -153,7 +153,9 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 max-w-2xl mx-auto">
             {DOCUMENT_TYPES.map(doc => (
               <div key={doc.type} className="bg-gray-50 rounded-xl p-4 text-center">
-                <div className="text-2xl mb-2">{doc.emoji}</div>
+                <div className="w-8 h-8 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center mb-2 mx-auto">
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#2D3748', letterSpacing: '0.04em' }}>{doc.abbr}</span>
+                </div>
                 <p className="text-xs font-semibold text-gray-700">{doc.title}</p>
               </div>
             ))}
@@ -161,7 +163,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
 
           <button
             onClick={() => setView('flow')}
-            className="inline-flex items-center gap-2 bg-[#c8522a] text-white font-semibold text-sm px-6 py-3 rounded-xl hover:bg-[#b8471f] transition-colors"
+            className="inline-flex items-center gap-2 bg-[#2D3748] text-white font-semibold text-sm px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors"
           >
             <Sparkles size={15} />
             Start brand build
@@ -186,13 +188,13 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
                   onClick={() => doc && openDocument(doc)}
                   className={`bg-white rounded-2xl border p-6 transition-all ${
                     doc
-                      ? 'border-gray-100 hover:border-[#c8522a]/30 hover:shadow-sm cursor-pointer'
+                      ? 'border-gray-100 hover:border-[#3B82F6]/30 hover:shadow-sm cursor-pointer'
                       : 'border-dashed border-gray-200 opacity-60'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{docType.emoji}</span>
+                      <span style={{ background: '#E2E8F0', color: '#2D3748', borderRadius: 6, padding: '3px 6px', fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>{docType.abbr}</span>
                       <div>
                         <h3 className="text-sm font-semibold text-gray-900">{docType.title}</h3>
                         <p className="text-xs text-gray-400 mt-0.5">{docType.description}</p>
@@ -212,7 +214,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
                         <span className="text-xs text-gray-400">
                           Version {doc.version} · Updated {new Date(doc.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
-                        <span className="text-xs font-medium text-[#c8522a]">Open & edit →</span>
+                        <span className="text-xs font-medium text-[#9BA1AE]">Open & edit →</span>
                       </div>
                     </>
                   ) : (
@@ -227,8 +229,8 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
           </div>
 
           {/* Tips */}
-          <div className="bg-[#c8522a]/5 border border-[#c8522a]/10 rounded-2xl p-5">
-            <p className="text-xs font-semibold text-[#c8522a] uppercase tracking-wide mb-2">How to use your Brand Kit</p>
+          <div className="bg-[#2D3748]/5 border border-[#3B82F6]/10 rounded-2xl p-5">
+            <p className="text-xs font-semibold text-[#9BA1AE] uppercase tracking-wide mb-2">How to use your Brand Kit</p>
             <ul className="space-y-1.5">
               {[
                 'Share your Brand Voice Statement with anyone creating content for your business',
@@ -237,7 +239,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
                 'Use your Positioning Statement as the foundation for ads and landing pages',
               ].map(tip => (
                 <li key={tip} className="flex items-start gap-2 text-xs text-gray-600">
-                  <span className="text-[#c8522a] mt-0.5 flex-shrink-0">→</span>
+                  <span className="text-[#9BA1AE] mt-0.5 flex-shrink-0">→</span>
                   {tip}
                 </li>
               ))}

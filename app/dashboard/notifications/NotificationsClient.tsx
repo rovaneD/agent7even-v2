@@ -22,18 +22,24 @@ interface Props {
 
 type Filter = 'all' | 'unread' | 'read'
 
-function typeIcon(type: string) {
-  const map: Record<string, string> = {
-    order_status: '📦',
-    order_delivered: '✅',
-    support_reply: '💬',
-    support_closed: '🔒',
-    deliverable_uploaded: '📁',
-    brand_kit_generated: '✨',
-    plan_activated: '🎉',
-    trial_ending: '⏰',
-  }
-  return map[type] ?? '🔔'
+function typeColor(type: string): string {
+  if (type.startsWith('order')) return '#3B82F6'
+  if (type.startsWith('support')) return '#F59E0B'
+  if (type === 'deliverable_uploaded') return '#10B981'
+  if (type === 'brand_kit_generated') return '#10B981'
+  if (type === 'plan_activated') return '#10B981'
+  if (type === 'trial_ending') return '#EF4444'
+  return '#9BA1AE'
+}
+
+function typeInitial(type: string): string {
+  if (type.startsWith('order')) return 'OR'
+  if (type.startsWith('support')) return 'SP'
+  if (type === 'deliverable_uploaded') return 'DL'
+  if (type === 'brand_kit_generated') return 'BK'
+  if (type === 'plan_activated') return 'PL'
+  if (type === 'trial_ending') return 'TR'
+  return 'NT'
 }
 
 function typeLabel(type: string) {
@@ -191,7 +197,7 @@ The user can mark notifications as read and follow links to relevant pages.`
           >
             {f}
             {f === 'unread' && unreadCount > 0 && (
-              <span className="ml-1.5 text-[10px] font-bold bg-[#c8522a] text-white px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 text-[10px] font-bold bg-[#2D3748] text-white px-1.5 py-0.5 rounded-full">
                 {unreadCount}
               </span>
             )}
@@ -219,27 +225,29 @@ The user can mark notifications as read and follow links to relevant pages.`
               key={notif.id}
               className={`bg-white rounded-2xl border transition-all ${
                 !notif.read
-                  ? 'border-[#c8522a]/20 bg-[#c8522a]/5 hover:border-[#c8522a]/30'
+                  ? 'border-[#3B82F6]/20 bg-[#2D3748]/5 hover:border-[#3B82F6]/30'
                   : 'border-gray-100 hover:border-gray-200'
               }`}
             >
               <div className="flex items-start gap-4 p-5">
                 {/* Icon */}
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${
-                  !notif.read ? 'bg-white' : 'bg-gray-50'
-                }`}>
-                  {typeIcon(notif.type)}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  !notif.read ? 'bg-white' : 'bg-[#F8FAFC]'
+                }`} style={{ border: '1px solid #E2E8F0' }}>
+                  <span style={{ background: typeColor(notif.type), color: '#fff', borderRadius: 5, padding: '2px 5px', fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' }}>
+                    {typeInitial(notif.type)}
+                  </span>
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 mb-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold text-[#c8522a] uppercase tracking-wide">
+                      <span className="text-xs font-semibold text-[#9BA1AE] uppercase tracking-wide">
                         {typeLabel(notif.type)}
                       </span>
                       {!notif.read && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#c8522a]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#3B82F6]" />
                       )}
                     </div>
                     <span className="text-xs text-gray-400 flex-shrink-0">
@@ -257,7 +265,7 @@ The user can mark notifications as read and follow links to relevant pages.`
                       <Link
                         href={notif.link}
                         onClick={() => { if (!notif.read) markRead(notif.id) }}
-                        className="text-xs font-semibold text-[#c8522a] hover:text-[#b8471f] transition-colors"
+                        className="text-xs font-semibold text-[#3B82F6] hover:text-[#b8471f] transition-colors"
                       >
                         View →
                       </Link>

@@ -280,10 +280,11 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
 
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: '#0a0a0a', marginBottom: 4, letterSpacing: '-0.3px' }}>
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9BA1AE', marginBottom: 4 }}>Agents</p>
+        <h1 style={{ fontSize: 24, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>
           Agent Command Center
         </h1>
-        <p style={{ fontSize: 14, color: '#888' }}>
+        <p style={{ fontSize: 14, color: '#9BA1AE' }}>
           {companyName} · {agentList.length} agents available
         </p>
       </div>
@@ -294,33 +295,33 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
           href="/dashboard/agents/approvals"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: '#fff5f2', border: '0.5px solid #f0c8b8', borderRadius: 12,
+            background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12,
             padding: '14px 20px', marginBottom: 24, textDecoration: 'none',
             transition: 'border-color 0.12s',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#c8522a' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#f0c8b8' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#3B82F6' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#BFDBFE' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#c8522a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{pendingApprovals.length}</span>
             </div>
             <div>
-              <p style={{ fontSize: 13.5, fontWeight: 600, color: '#0a0a0a', margin: 0 }}>
+              <p style={{ fontSize: 13.5, fontWeight: 600, color: '#2D3748', margin: 0 }}>
                 {pendingApprovals.length} output{pendingApprovals.length !== 1 ? 's' : ''} waiting for your review
               </p>
-              <p style={{ fontSize: 12, color: '#888', margin: '2px 0 0' }}>
+              <p style={{ fontSize: 12, color: '#9BA1AE', margin: '2px 0 0' }}>
                 {[...new Set(pendingApprovals.map(t => AGENTS[t.agent as AgentId]?.name ?? t.agent))].slice(0, 3).join(', ')}
                 {pendingApprovals.length > 3 ? ` +${pendingApprovals.length - 3} more` : ''}
               </p>
             </div>
           </div>
-          <span style={{ fontSize: 12.5, color: '#c8522a', fontWeight: 500 }}>Review →</span>
+          <span style={{ fontSize: 12.5, color: '#3B82F6', fontWeight: 500 }}>Review</span>
         </Link>
       ) : (
-        <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <i className="ti ti-circle-check" style={{ fontSize: 16, color: '#d0d0d0' }} />
-          <span style={{ fontSize: 13, color: '#ccc' }}>Queue is clear — nothing waiting for review</span>
+        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <i className="ti ti-circle-check" style={{ fontSize: 16, color: '#CBD5E1' }} />
+          <span style={{ fontSize: 13, color: '#9BA1AE' }}>Queue is clear — nothing waiting for review</span>
         </div>
       )}
 
@@ -328,8 +329,8 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 16, marginBottom: 24 }}>
 
         {/* Left: Live feed */}
-        <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: 20 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 16 }}>Live activity</p>
+        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9BA1AE', marginBottom: 16 }}>Live activity</p>
 
           {activeOrchestration ? (
             <OrchestrationProgress
@@ -359,7 +360,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                         <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'dotPulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
                         <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#555' }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 12.5, fontWeight: 500, color: '#0a0a0a' }}>{def?.name}</p>
+                          <p style={{ fontSize: 12.5, fontWeight: 500, color: '#2D3748' }}>{def?.name}</p>
                         </div>
                         <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(t.started_at)}</span>
                       </div>
@@ -407,10 +408,12 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               )}
 
               {activeTasks.length === 0 && completedToday.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <i className="ti ti-robot" style={{ fontSize: 28, color: '#e0e0e0', display: 'block', marginBottom: 8 }} />
-                  <p style={{ fontSize: 13, color: '#ccc' }}>No activity yet</p>
-                  <p style={{ fontSize: 12, color: '#ddd' }}>Run an agent to get started</p>
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                    <i className="ti ti-robot" style={{ fontSize: 18, color: '#CBD5E1' }} />
+                  </div>
+                  <p style={{ fontSize: 13, color: '#9BA1AE', marginBottom: 4 }}>Your agents are ready.</p>
+                  <p style={{ fontSize: 12, color: '#CBD5E1' }}>Run an agent to see live activity here.</p>
                 </div>
               )}
             </>
@@ -447,8 +450,8 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         </div>
 
         {/* Right: Scorecard */}
-        <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: 20 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 16 }}>Agent scorecard</p>
+        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9BA1AE', marginBottom: 16 }}>Agent scorecard</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0 16px', alignItems: 'center' }}>
             {/* Header */}
             <span style={{ fontSize: 10, color: '#ccc', textTransform: 'uppercase', paddingBottom: 8, borderBottom: '0.5px solid #f0f0f0' }}>Agent</span>
@@ -470,9 +473,9 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                 </span>
                 <div key={`${entry.agentId}-status`} style={{ padding: '9px 0', borderBottom: '0.5px solid #f8f8f8' }}>
                   {entry.isScheduled ? (
-                    <span style={{ fontSize: 11, background: '#f0f7f0', color: '#16a34a', borderRadius: 20, padding: '2px 8px' }}>Active</span>
+                    <span style={{ fontSize: 11, background: 'rgba(16,185,129,0.1)', color: '#10B981', borderRadius: 20, padding: '2px 8px', fontWeight: 500 }}>Active</span>
                   ) : (
-                    <span style={{ fontSize: 11, background: '#f5f5f5', color: '#aaa', borderRadius: 20, padding: '2px 8px' }}>Idle</span>
+                    <span style={{ fontSize: 11, background: '#F8F8F8', color: '#9BA1AE', borderRadius: 20, padding: '2px 8px', border: '1px solid #E2E8F0', fontWeight: 500 }}>Idle</span>
                   )}
                 </div>
               </>
@@ -482,9 +485,9 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       </div>
 
       {/* ═══ ZONE 3: Create New Task ═══ */}
-      <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: 24 }}>
-        <p style={{ fontSize: 14, fontWeight: 500, color: '#0a0a0a', marginBottom: 4 }}>Run an agent</p>
-        <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>Choose an agent and tell it what you need.</p>
+      <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24 }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>Run an agent</p>
+        <p style={{ fontSize: 13, color: '#9BA1AE', marginBottom: 20 }}>Choose an agent and tell it what you need.</p>
 
         {/* Agent grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
@@ -494,21 +497,21 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               <button
                 key={agent.id}
                 onClick={() => setSelectedAgent(isSelected ? null : agent.id as AgentId)}
-                style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 10, border: isSelected ? '1px solid #0a0a0a' : '0.5px solid #ebebeb', background: isSelected ? '#fafafa' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'border-color 0.15s' }}
-                onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#ccc' }}
-                onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#ebebeb' }}
+                style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 10, border: isSelected ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: isSelected ? 'rgba(59,130,246,0.04)' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#9BA1AE' }}
+                onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <i className={`ti ${agent.icon}`} style={{ fontSize: 20, color: isSelected ? '#0a0a0a' : '#888' }} />
+                  <i className={`ti ${agent.icon}`} style={{ fontSize: 20, color: isSelected ? '#3B82F6' : '#9BA1AE' }} />
                   <span style={{
                     fontSize: 10, borderRadius: 20, padding: '2px 7px', fontWeight: 500,
-                    background: agent.autonomyLevel === 'autonomous' ? '#f0f0f0' : '#0a0a0a',
-                    color: agent.autonomyLevel === 'autonomous' ? '#555' : '#fff',
+                    background: agent.autonomyLevel === 'autonomous' ? 'rgba(59,130,246,0.1)' : 'rgba(45,55,72,0.1)',
+                    color: agent.autonomyLevel === 'autonomous' ? '#3B82F6' : '#2D3748',
                   }}>
                     {agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
                   </span>
                 </div>
-                <p style={{ fontSize: 12.5, fontWeight: 500, color: isSelected ? '#0a0a0a' : '#333', margin: 0 }}>{agent.name}</p>
+                <p style={{ fontSize: 12.5, fontWeight: 500, color: '#2D3748', margin: 0 }}>{agent.name}</p>
                 <p style={{ fontSize: 11, color: '#999', lineHeight: 1.4, margin: 0 }}>{agent.description}</p>
               </button>
             )
@@ -523,13 +526,13 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               onChange={e => setTaskInstructions(e.target.value)}
               placeholder={`Tell ${AGENTS[selectedAgent].name} what you need — plain language...`}
               rows={3}
-              style={{ width: '100%', border: '0.5px solid #e0e0e0', borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', marginBottom: 12, boxSizing: 'border-box', color: '#0a0a0a' }}
+              style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', marginBottom: 12, boxSizing: 'border-box', color: '#2D3748' }}
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ display: 'flex', gap: 6 }}>
                 {(['normal', 'high'] as const).map(p => (
                   <button key={p} onClick={() => setTaskPriority(p)}
-                    style={{ padding: '5px 12px', borderRadius: 20, border: taskPriority === p ? '1px solid #0a0a0a' : '0.5px solid #e0e0e0', background: taskPriority === p ? '#0a0a0a' : '#fff', color: taskPriority === p ? '#fff' : '#888', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}>
+                    style={{ padding: '5px 12px', borderRadius: 20, border: taskPriority === p ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: taskPriority === p ? 'rgba(59,130,246,0.06)' : '#F8FAFC', color: '#2D3748', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}>
                     {p}
                   </button>
                 ))}
@@ -537,9 +540,9 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               <button
                 onClick={handleCreateTask}
                 disabled={submitting || submitted}
-                style={{ marginLeft: 'auto', padding: '8px 24px', background: submitted ? '#16a34a' : '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: submitting || submitted ? 'not-allowed' : 'pointer', fontFamily: 'inherit', minWidth: 160 }}
+                style={{ marginLeft: 'auto', padding: '8px 24px', background: submitted ? '#10B981' : '#2D3748', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: submitting || submitted ? 'not-allowed' : 'pointer', fontFamily: 'inherit', minWidth: 160 }}
               >
-                {submitted ? '✓ Task queued' : submitting ? 'Queuing…' : `Run ${AGENTS[selectedAgent].name}`}
+                {submitted ? 'Task queued' : submitting ? 'Queuing...' : `Run ${AGENTS[selectedAgent].name}`}
               </button>
             </div>
 
@@ -567,9 +570,9 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                   <button
                     key={t.label}
                     onClick={() => setConstraints(prev => prev ? `${prev}\n${t.text}` : t.text)}
-                    style={{ padding: '3px 10px', borderRadius: 20, border: '0.5px solid #e0e0e0', background: '#fafafa', color: '#555', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#0a0a0a' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#e0e0e0' }}
+                    style={{ padding: '3px 10px', borderRadius: 20, border: '0.5px solid #E2E8F0', background: '#fafafa', color: '#555', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#2D3748' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
                   >
                     + {t.label}
                   </button>
@@ -581,7 +584,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                 onChange={e => setConstraints(e.target.value)}
                 rows={4}
                 placeholder={AGENTS[selectedAgent].defaultConstraints}
-                style={{ width: '100%', border: '0.5px solid #e0e0e0', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#0a0a0a', lineHeight: 1.6 }}
+                style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#2D3748', lineHeight: 1.6 }}
               />
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
@@ -589,13 +592,13 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                   <button
                     onClick={handleSaveConstraints}
                     disabled={savingConstraints}
-                    style={{ padding: '6px 16px', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: savingConstraints ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: savingConstraints ? 0.6 : 1 }}
+                    style={{ padding: '6px 16px', background: '#2D3748', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: savingConstraints ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: savingConstraints ? 0.6 : 1 }}
                   >
                     {savingConstraints ? 'Saving…' : 'Save constraints'}
                   </button>
                 )}
                 {constraintsSaved && (
-                  <span style={{ fontSize: 12, color: '#16a34a' }}>✓ Constraints saved</span>
+                  <span style={{ fontSize: 12, color: '#10B981' }}>Constraints saved</span>
                 )}
                 {constraintsLastUpdated && !constraintsSaved && (
                   <span style={{ fontSize: 11, color: '#ccc' }}>

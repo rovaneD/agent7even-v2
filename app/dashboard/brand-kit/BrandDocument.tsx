@@ -83,7 +83,7 @@ export default function BrandDocument({ document, onBack, onSaved, onRegenerate 
               saved
                 ? 'bg-emerald-50 text-emerald-700'
                 : isDirty
-                ? 'bg-[#c8522a] text-white hover:bg-[#b8471f]'
+                ? 'bg-[#2D3748] text-white hover:bg-[#b8471f]'
                 : 'bg-gray-50 text-gray-300 cursor-not-allowed'
             }`}
           >
@@ -100,7 +100,7 @@ export default function BrandDocument({ document, onBack, onSaved, onRegenerate 
 
       {/* Document header */}
       <div className="flex items-center gap-4 mb-6">
-        <span className="text-4xl">{docType?.emoji}</span>
+        <span style={{ background: '#E2E8F0', color: '#2D3748', borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>{docType?.abbr ?? 'BK'}</span>
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">{document.title}</h1>
           <div className="flex items-center gap-3 mt-1">
@@ -127,7 +127,7 @@ export default function BrandDocument({ document, onBack, onSaved, onRegenerate 
           <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
           <span className="ml-2 text-xs text-gray-400 font-medium">{document.title}</span>
-          {isDirty && <span className="text-xs text-[#c8522a] font-medium ml-auto">Unsaved changes</span>}
+          {isDirty && <span className="text-xs text-[#9BA1AE] font-medium ml-auto">Unsaved changes</span>}
         </div>
 
         <textarea
@@ -141,7 +141,7 @@ export default function BrandDocument({ document, onBack, onSaved, onRegenerate 
 
       {/* Tip */}
       <div className="mt-4 flex items-start gap-2 text-xs text-gray-400">
-        <span className="text-[#c8522a] font-bold flex-shrink-0">→</span>
+        <span className="text-[#9BA1AE] font-bold flex-shrink-0">→</span>
         <span>
           This document is yours to edit freely. Click anywhere in the text to make changes,
           then save. To start fresh with new answers, click Regenerate.

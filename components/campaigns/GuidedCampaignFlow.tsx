@@ -8,11 +8,11 @@ import OrchestrationProgress from '@/components/agents/OrchestrationProgress'
 // ── Data ──────────────────────────────────────────────────────────────────
 
 const SEGMENTS = [
-  { id: 'past_customers',    label: 'Past customers',         description: "People who bought but haven't returned", icon: '🔄' },
-  { id: 'warm_leads',        label: 'Warm leads gone quiet',  description: 'Engaged but didn\'t convert',            icon: '🌡️' },
-  { id: 'current_customers', label: 'Current customers',      description: 'Upsell, retain, or get referrals',       icon: '⭐' },
-  { id: 'cold_audience',     label: 'Cold audience',          description: 'Brand new, never heard of you',          icon: '🎯' },
-  { id: 're_engagement',     label: 'Re-engagement',          description: 'Inactive subscribers or followers',      icon: '💬' },
+  { id: 'past_customers',    label: 'Past customers',         description: "People who bought but haven't returned", icon: 'PC' },
+  { id: 'warm_leads',        label: 'Warm leads gone quiet',  description: 'Engaged but didn\'t convert',            icon: 'WL' },
+  { id: 'current_customers', label: 'Current customers',      description: 'Upsell, retain, or get referrals',       icon: 'CC' },
+  { id: 'cold_audience',     label: 'Cold audience',          description: 'Brand new, never heard of you',          icon: 'CA' },
+  { id: 're_engagement',     label: 'Re-engagement',          description: 'Inactive subscribers or followers',      icon: 'RE' },
 ]
 
 const GOALS_BY_SEGMENT: Record<string, { id: string; label: string }[]> = {
@@ -158,11 +158,11 @@ export default function GuidedCampaignFlow() {
   if (isGenerating) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 24, padding: '0 24px' }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>M</span>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: '#0a0a0a', margin: '0 0 6px' }}>Building your campaign</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: '#2D3748', margin: '0 0 6px' }}>Building your campaign</h2>
           <p style={{ fontSize: 13, color: '#999', margin: 0 }}>
             Maya is crafting a plan tailored to your audience and goals.
           </p>
@@ -182,15 +182,15 @@ export default function GuidedCampaignFlow() {
             {GENERATION_STEPS.map((s, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 {i < genStep ? (
-                  <CheckCircle2 size={15} color="#16a34a" />
+                  <CheckCircle2 size={15} color="#10B981" />
                 ) : i === genStep ? (
-                  <Circle size={15} color="#c8522a" />
+                  <Circle size={15} color="#3B82F6" />
                 ) : (
                   <Circle size={15} color="#e0e0e0" />
                 )}
                 <span style={{
                   fontSize: 13,
-                  color: i < genStep ? '#16a34a' : i === genStep ? '#0a0a0a' : '#ccc',
+                  color: i < genStep ? '#10B981' : i === genStep ? '#2D3748' : '#ccc',
                   fontWeight: i === genStep ? 500 : 400,
                 }}>
                   {s}
@@ -212,7 +212,7 @@ export default function GuidedCampaignFlow() {
             key={n}
             style={{
               height: 3, flex: 1, borderRadius: 2,
-              background: n <= step ? '#0a0a0a' : '#e8e8e8',
+              background: n <= step ? '#2D3748' : '#E2E8F0',
               transition: 'background 0.2s',
             }}
           />
@@ -225,7 +225,7 @@ export default function GuidedCampaignFlow() {
       {/* Step 1 — Segment */}
       {step === 1 && (
         <>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#0a0a0a', marginBottom: 6 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#2D3748', marginBottom: 6 }}>
             Who are you reaching?
           </h1>
           <p style={{ fontSize: 13, color: '#999', marginBottom: 24 }}>
@@ -248,7 +248,7 @@ export default function GuidedCampaignFlow() {
             disabled={!segment}
             style={{
               width: '100%', padding: '12px 0', borderRadius: 12, border: 'none',
-              background: segment ? '#0a0a0a' : '#e8e8e8',
+              background: segment ? '#2D3748' : '#E2E8F0',
               color: segment ? '#fff' : '#bbb',
               fontSize: 13.5, fontWeight: 500, cursor: segment ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit',
@@ -268,7 +268,7 @@ export default function GuidedCampaignFlow() {
           >
             <ArrowLeft size={13} /> Back
           </button>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#0a0a0a', marginBottom: 6 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#2D3748', marginBottom: 6 }}>
             What&apos;s the goal?
           </h1>
           <p style={{ fontSize: 13, color: '#999', marginBottom: 24 }}>
@@ -281,9 +281,9 @@ export default function GuidedCampaignFlow() {
                 onClick={() => setGoal(g.id)}
                 style={{
                   textAlign: 'left', padding: '14px 16px', borderRadius: 12,
-                  border: `1.5px solid ${goal === g.id ? '#0a0a0a' : '#e8e8e8'}`,
-                  background: goal === g.id ? '#0a0a0a' : '#fafafa',
-                  color: goal === g.id ? '#fff' : '#0a0a0a',
+                  border: goal === g.id ? '2px solid #3B82F6' : '1px solid #E2E8F0',
+                  background: goal === g.id ? 'rgba(59,130,246,0.04)' : '#F8FAFC',
+                  color: '#2D3748',
                   fontSize: 13.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'all 0.12s',
                 }}
@@ -297,7 +297,7 @@ export default function GuidedCampaignFlow() {
             disabled={!goal}
             style={{
               width: '100%', padding: '12px 0', borderRadius: 12, border: 'none',
-              background: goal ? '#0a0a0a' : '#e8e8e8',
+              background: goal ? '#2D3748' : '#E2E8F0',
               color: goal ? '#fff' : '#bbb',
               fontSize: 13.5, fontWeight: 500, cursor: goal ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit',
@@ -317,7 +317,7 @@ export default function GuidedCampaignFlow() {
           >
             <ArrowLeft size={13} /> Back
           </button>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#0a0a0a', marginBottom: 6 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#2D3748', marginBottom: 6 }}>
             Timeline &amp; budget
           </h1>
           <p style={{ fontSize: 13, color: '#999', marginBottom: 24 }}>
@@ -334,15 +334,15 @@ export default function GuidedCampaignFlow() {
                 key={t.id}
                 onClick={() => setTimeline(t.id)}
                 style={{
-                  padding: '12px 8px', borderRadius: 12, border: `1.5px solid ${timeline === t.id ? '#0a0a0a' : '#e8e8e8'}`,
-                  background: timeline === t.id ? '#0a0a0a' : '#fafafa',
+                  padding: '12px 8px', borderRadius: 12, border: timeline === t.id ? '2px solid #3B82F6' : '1px solid #E2E8F0',
+                  background: timeline === t.id ? 'rgba(59,130,246,0.04)' : '#F8FAFC',
                   cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
                 }}
               >
-                <p style={{ fontSize: 13, fontWeight: 600, color: timeline === t.id ? '#fff' : '#0a0a0a', marginBottom: 2 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#2D3748', marginBottom: 2 }}>
                   {t.label}
                 </p>
-                <p style={{ fontSize: 11, color: timeline === t.id ? '#aaa' : '#bbb' }}>{t.description}</p>
+                <p style={{ fontSize: 11, color: '#9BA1AE' }}>{t.description}</p>
               </button>
             ))}
           </div>
@@ -357,10 +357,10 @@ export default function GuidedCampaignFlow() {
                 key={b.id}
                 onClick={() => setBudget(b.id)}
                 style={{
-                  padding: '11px 12px', borderRadius: 12, border: `1.5px solid ${budget === b.id ? '#0a0a0a' : '#e8e8e8'}`,
-                  background: budget === b.id ? '#0a0a0a' : '#fafafa',
+                  padding: '11px 12px', borderRadius: 12, border: budget === b.id ? '2px solid #3B82F6' : '1px solid #E2E8F0',
+                  background: budget === b.id ? 'rgba(59,130,246,0.04)' : '#F8FAFC',
                   cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
-                  fontSize: 13, fontWeight: 500, color: budget === b.id ? '#fff' : '#0a0a0a',
+                  fontSize: 13, fontWeight: 500, color: '#2D3748',
                 }}
               >
                 {b.label}
@@ -379,18 +379,18 @@ export default function GuidedCampaignFlow() {
                 onClick={() => setSelectedModel(opt.id)}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '13px 14px', borderRadius: 12, border: `1.5px solid ${selectedModel === opt.id ? '#0a0a0a' : '#e8e8e8'}`,
-                  background: selectedModel === opt.id ? '#0a0a0a' : '#fafafa',
+                  padding: '13px 14px', borderRadius: 12, border: selectedModel === opt.id ? '2px solid #3B82F6' : '1px solid #E2E8F0',
+                  background: selectedModel === opt.id ? 'rgba(59,130,246,0.04)' : '#F8FAFC',
                   cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 0.12s',
                 }}
               >
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: selectedModel === opt.id ? '#fff' : '#0a0a0a', marginBottom: 2 }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: '#2D3748', marginBottom: 2 }}>
                     {opt.label}
                   </p>
-                  <p style={{ fontSize: 11.5, color: selectedModel === opt.id ? '#aaa' : '#999' }}>{opt.description}</p>
+                  <p style={{ fontSize: 11.5, color: '#9BA1AE' }}>{opt.description}</p>
                 </div>
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: selectedModel === opt.id ? '#888' : '#bbb', marginLeft: 16, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: '#9BA1AE', marginLeft: 16, whiteSpace: 'nowrap' }}>
                   {opt.credits} credits
                 </span>
               </button>
@@ -398,14 +398,14 @@ export default function GuidedCampaignFlow() {
           </div>
 
           {error && (
-            <p style={{ fontSize: 12.5, color: '#c8522a', marginBottom: 12 }}>{error}</p>
+            <p style={{ fontSize: 12.5, color: '#EF4444', marginBottom: 12 }}>{error}</p>
           )}
 
           <button
             onClick={generate}
             style={{
               width: '100%', padding: '13px 0', borderRadius: 12, border: 'none',
-              background: '#0a0a0a', color: '#fff',
+              background: '#2D3748', color: '#fff',
               fontSize: 13.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -435,18 +435,18 @@ function SelectCard({
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
-        borderRadius: 12, border: `1.5px solid ${selected ? '#0a0a0a' : '#e8e8e8'}`,
-        background: selected ? '#0a0a0a' : '#fafafa',
+        borderRadius: 12, border: selected ? '2px solid #3B82F6' : '1px solid #E2E8F0',
+        background: selected ? 'rgba(59,130,246,0.04)' : '#F8FAFC',
         cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
         transition: 'all 0.12s',
       }}
     >
-      <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
+      <span style={{ background: '#E2E8F0', color: '#2D3748', borderRadius: 6, padding: '4px 7px', fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>{icon}</span>
       <div>
-        <p style={{ fontSize: 13.5, fontWeight: 500, color: selected ? '#fff' : '#0a0a0a', marginBottom: 2 }}>
+        <p style={{ fontSize: 13.5, fontWeight: 500, color: '#2D3748', marginBottom: 2 }}>
           {title}
         </p>
-        <p style={{ fontSize: 11.5, color: selected ? '#aaa' : '#999' }}>{description}</p>
+        <p style={{ fontSize: 11.5, color: '#9BA1AE' }}>{description}</p>
       </div>
     </button>
   )

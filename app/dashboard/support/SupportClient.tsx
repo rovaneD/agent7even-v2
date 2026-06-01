@@ -177,7 +177,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
               value={subject}
               onChange={e => setSubject(e.target.value)}
               placeholder="Brief description of your issue"
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300"
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300"
             />
           </div>
 
@@ -211,7 +211,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
               onChange={e => setBody(e.target.value)}
               placeholder="Describe your issue in detail..."
               rows={6}
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300 resize-none"
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 resize-none"
             />
           </div>
 
@@ -233,7 +233,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
             <button
               onClick={handleSubmit}
               disabled={!subject.trim() || !body.trim() || submitting}
-              className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-[#c8522a] hover:bg-[#b8471f] py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1a2535] py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               {submitting ? 'Submitting...' : 'Submit ticket'}
@@ -276,12 +276,12 @@ The user can view existing tickets or open a new support ticket with the Agent7e
             >
               <div className={`max-w-[80%] rounded-2xl px-5 py-4 ${
                 msg.sender_role === 'client'
-                  ? 'bg-[#c8522a] text-white rounded-br-none'
+                  ? 'bg-[#2D3748] text-white rounded-br-none'
                   : 'bg-white border border-gray-100 text-gray-800 rounded-bl-none'
               }`}>
                 <div className={`flex items-center gap-2 mb-2 ${msg.sender_role === 'client' ? 'justify-end' : ''}`}>
                   <span className={`text-xs font-semibold ${
-                    msg.sender_role === 'client' ? 'text-white/80' : 'text-[#c8522a]'
+                    msg.sender_role === 'client' ? 'text-white/80' : 'text-[#3B82F6]'
                   }`}>
                     {msg.sender_role === 'client' ? 'You' : 'Agent7even Support'}
                   </span>
@@ -313,7 +313,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
               <button
                 onClick={handleReply}
                 disabled={!replyBody.trim() || replying}
-                className="flex items-center gap-2 text-sm font-semibold text-white bg-[#c8522a] hover:bg-[#b8471f] px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1a2535] px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {replying ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 {replying ? 'Sending...' : 'Send reply'}
@@ -342,7 +342,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
         </div>
         <button
           onClick={() => setView('new')}
-          className="flex items-center gap-2 bg-[#c8522a] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#b8471f] transition-colors"
+          className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1a2535] transition-colors"
         >
           <Plus size={15} />
           New ticket
@@ -360,7 +360,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
           </p>
           <button
             onClick={() => setView('new')}
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#c8522a] bg-[#c8522a]/10 hover:bg-[#c8522a]/15 px-4 py-2.5 rounded-xl transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#3B82F6] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2.5 rounded-xl transition-colors"
           >
             <Plus size={14} />
             Open your first ticket
@@ -372,7 +372,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
             <button
               key={ticket.id}
               onClick={() => openTicket(ticket)}
-              className="w-full bg-white rounded-2xl border border-gray-100 hover:border-[#c8522a]/20 hover:shadow-sm p-5 text-left transition-all"
+              className="w-full bg-white rounded-2xl border border-gray-100 hover:border-[#3B82F6]/20 hover:shadow-sm p-5 text-left transition-all"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">

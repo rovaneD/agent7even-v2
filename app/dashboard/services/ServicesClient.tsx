@@ -151,8 +151,8 @@ function RequestModal({ service, onClose, onSubmit }: RequestModalProps) {
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#c8522a]/8 flex items-center justify-center">
-              <Icon size={18} className="text-[#c8522a]" />
+            <div className="w-10 h-10 rounded-xl bg-[#2D3748]/8 flex items-center justify-center">
+              <Icon size={18} className="text-[#9BA1AE]" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-gray-900">{service.name}</h2>
@@ -174,7 +174,7 @@ function RequestModal({ service, onClose, onSubmit }: RequestModalProps) {
             onChange={e => setBrief(e.target.value)}
             placeholder={`Describe what you need for ${service.name.toLowerCase()}. Include any relevant details about your business, goals, timeline preferences, and any existing assets we should know about.`}
             rows={5}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#c8522a]/40 resize-none transition-colors"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 resize-none transition-colors"
           />
           <p className="text-xs text-gray-400 mt-2">
             Our team will review and respond within 1 business day.
@@ -192,7 +192,7 @@ function RequestModal({ service, onClose, onSubmit }: RequestModalProps) {
           <button
             onClick={handleSubmit}
             disabled={!brief.trim() || loading}
-            className="flex items-center gap-2 bg-[#c8522a] text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-[#b04623] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-[#b04623] disabled:opacity-40 transition-colors"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : null}
             Submit request
@@ -268,7 +268,7 @@ The user can request new marketing services or track existing orders.`
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Services</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Services</p>
           <h1 className="text-2xl font-bold text-gray-900">Marketing services</h1>
           <p className="text-gray-500 text-sm mt-1">Request a service or track your active orders.</p>
         </div>
@@ -319,7 +319,7 @@ The user can request new marketing services or track existing orders.`
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-900 leading-snug">{service.name}</p>
-                      <p className="text-xs text-[#c8522a] font-medium">{service.price}</p>
+                      <p className="text-xs text-[#9BA1AE] font-medium">{service.price}</p>
                     </div>
                   </div>
                   <span className={`flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full ${
@@ -345,14 +345,14 @@ The user can request new marketing services or track existing orders.`
                   ) : service.requiresScope ? (
                     <button
                       onClick={() => router.push('/dashboard/services/inquiry')}
-                      className="flex items-center gap-1.5 text-xs font-medium text-[#c8522a] hover:text-[#b04623] transition-colors"
+                      className="flex items-center gap-1.5 text-xs font-medium text-[#9BA1AE] hover:text-[#b04623] transition-colors"
                     >
                       <ArrowRight size={12} /> Get a quote
                     </button>
                   ) : (
                     <button
                       onClick={() => setRequestingService(service)}
-                      className="flex items-center gap-1.5 text-xs font-medium text-[#c8522a] hover:text-[#b04623] transition-colors"
+                      className="flex items-center gap-1.5 text-xs font-medium text-[#9BA1AE] hover:text-[#b04623] transition-colors"
                     >
                       <Plus size={12} /> Request
                     </button>
@@ -376,7 +376,7 @@ The user can request new marketing services or track existing orders.`
               <p className="text-xs text-gray-400 mb-4">Request a service to get started.</p>
               <button
                 onClick={() => setActiveTab('browse')}
-                className="text-sm font-medium text-[#c8522a] hover:text-[#b04623] transition-colors"
+                className="text-sm font-medium text-[#9BA1AE] hover:text-[#b04623] transition-colors"
               >
                 Browse services →
               </button>

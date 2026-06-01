@@ -246,6 +246,7 @@ Do NOT say this until you have: what they're promoting, who the audience is, and
       : ''
 
     const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
+Never use emoji in your responses. Use plain text only.
 ${helpSection}
 ${contextSection}
 ${canvasSection}${foundationSection}

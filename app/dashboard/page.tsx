@@ -2,15 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import {
-  ShoppingBag,
-  BarChart2,
-  ArrowRight,
-  Clock,
-  FileText,
-  CheckCircle,
-} from 'lucide-react'
-import PlanBanner from './PlanBanner'
+import { ArrowRight } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 import MorningDigest from '@/components/dashboard/MorningDigest'
 import GettingStarted from '@/components/dashboard/GettingStarted'
@@ -35,7 +27,6 @@ export default async function DashboardPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  // Fetch digest + checklist data in parallel
   const [digestResult, campaignResult, agentResult, brandKitResult] = await Promise.all([
     profile
       ? supabase
@@ -85,6 +76,11 @@ export default async function DashboardPage() {
   const firstName   = profile?.full_name?.split(' ')[0] ?? undefined
   const hasPlan = !!profile?.plan
 
+  // Quick stats
+  const activeCampaigns  = campaignResult.count ?? 0
+  const agentsRunThisWeek = agentResult.count ?? 0
+  const creditBalance = 0 // placeholder — fetched client-side via CreditBalance component
+
   const contextString = `DASHBOARD PAGE
 Company: ${displayName}
 Plan: ${profile?.plan ?? 'none'}
@@ -92,7 +88,7 @@ The user is on their main dashboard overview.
 ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents and campaigns.' : `Plan is active: ${profile.plan}.`}`
 
   return (
-    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl">
+    <div className="px-8 py-8 max-w-5xl">
       <CanvasContextDispatcher context={contextString} />
 
       {profile && (
@@ -108,74 +104,67 @@ ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents an
         dismissed={gettingStartedDismissed}
       />
 
+      {/* Page header */}
       <div className="mb-8">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Dashboard</p>
-        <h1 className="text-2xl font-bold text-gray-900">Welcome back, {displayName}.</h1>
-        <p className="text-gray-500 text-sm mt-1">Here&apos;s what&apos;s happening with your business.</p>
-      </div>
-
-      {!hasPlan && (
-        <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-6">
-          <p className="text-sm text-gray-600">
-            You&apos;re on a free account —{' '}
-            <Link href="/dashboard/billing" className="font-medium text-black underline">
-              choose a plan
-            </Link>
-            {' '}to unlock agents and campaigns.
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-1">Dashboard</p>
+        <h1 className="text-2xl font-semibold text-[#2D3748]">Welcome back, {displayName}.</h1>
+        {!hasPlan && (
+          <p className="text-sm text-[#9BA1AE] mt-1">
+            You are on a free account.{' '}
+            <Link href="/dashboard/billing" className="text-[#3B82F6] font-medium hover:underline">
+              Choose a plan
+            </Link>{' '}
+            to unlock agents and campaigns.
           </p>
-        </div>
-      )}
-
-      {hasPlan && <PlanBanner plan={profile.plan} />}
-
-      {/* Maya entry point */}
-      <Link
-        href="/maya"
-        className="block mb-6 rounded-2xl border border-gray-100 bg-white p-5 hover:border-gray-300 transition-colors group"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#0a0a0a] flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-lg font-semibold">M</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 mb-0.5">Talk to Maya</p>
-            <p className="text-xs text-gray-400 leading-relaxed">Your AI marketing strategist — get a plan, create content, and act on it, all in one place.</p>
-          </div>
-          <div className="flex-shrink-0 flex items-center gap-1 text-xs font-medium text-gray-400 group-hover:text-[#0a0a0a] transition-colors">
-            Open <ArrowRight size={12} />
-          </div>
-        </div>
-      </Link>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {[
-          { label: 'Hours reclaimed', value: '—', sub: 'This month', icon: Clock, color: 'text-[#c8522a]', bg: 'bg-[#c8522a]/8' },
-          { label: 'Content produced', value: '—', sub: 'Total pieces', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50' },
-          { label: 'Active services', value: '—', sub: 'Running now', icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50' },
-        ].map((card) => (
-          <div key={card.label} className="bg-white rounded-2xl border border-gray-100 p-5">
-            <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center mb-4`}>
-              <card.icon size={15} className={card.color} />
-            </div>
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-2">{card.label}</p>
-            <p className={`text-3xl font-bold ${card.color} mb-1`}>{card.value}</p>
-            <p className="text-xs text-gray-400">{card.sub}</p>
-          </div>
-        ))}
+        )}
+        {hasPlan && (
+          <p className="text-sm text-[#9BA1AE] mt-1">Here is what is happening with your business.</p>
+        )}
       </div>
 
+      {/* Workspace summary */}
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5">
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-3">Active campaigns</p>
+          <p className="text-3xl font-semibold text-[#2D3748] mb-1">{activeCampaigns > 0 ? activeCampaigns : '—'}</p>
+          <Link href="/dashboard/campaigns" className="text-xs text-[#3B82F6] font-medium hover:underline flex items-center gap-1 mt-1">
+            View all <ArrowRight size={10} />
+          </Link>
+        </div>
+        <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5">
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-3">Agents run</p>
+          <p className="text-3xl font-semibold text-[#2D3748] mb-1">{agentsRunThisWeek > 0 ? agentsRunThisWeek : '—'}</p>
+          <Link href="/dashboard/agents" className="text-xs text-[#3B82F6] font-medium hover:underline flex items-center gap-1 mt-1">
+            View agents <ArrowRight size={10} />
+          </Link>
+        </div>
+        <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5">
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-3">Credits remaining</p>
+          <p className="text-3xl font-semibold text-[#2D3748] mb-1">—</p>
+          <Link href="/dashboard/billing" className="text-xs text-[#3B82F6] font-medium hover:underline flex items-center gap-1 mt-1">
+            Top up <ArrowRight size={10} />
+          </Link>
+        </div>
+      </div>
+
+      {/* Quick links */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[
-          { href: '/dashboard/services', icon: ShoppingBag, label: 'Services', desc: 'Request and track your marketing services', cta: 'View services' },
-          { href: '/dashboard/analytics', icon: BarChart2, label: 'Analytics', desc: 'Connect your accounts and track performance', cta: 'View analytics' },
-        ].map((card) => (
-          <Link key={card.href} href={card.href} className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-sm transition-all group">
-            <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center mb-4 group-hover:bg-[#c8522a]/8 transition-colors">
-              <card.icon size={16} className="text-gray-400 group-hover:text-[#c8522a] transition-colors" />
-            </div>
-            <p className="text-sm font-semibold text-gray-900 mb-1">{card.label}</p>
-            <p className="text-xs text-gray-400 leading-relaxed mb-4">{card.desc}</p>
-            <span className="text-xs font-medium text-[#c8522a] flex items-center gap-1">{card.cta} <ArrowRight size={11} /></span>
+          { href: '/dashboard/campaigns', label: 'Campaigns', desc: 'Build and track your marketing campaigns', cta: 'View campaigns' },
+          { href: '/dashboard/agents',    label: 'Agents',    desc: 'Run automated marketing agents and review outputs', cta: 'View agents' },
+          { href: '/dashboard/brand-kit', label: 'Brand Kit', desc: 'Logos, colors, fonts, voice, and templates', cta: 'View brand kit' },
+          { href: '/dashboard/analytics', label: 'Analytics', desc: 'Connect your accounts and track performance', cta: 'View analytics' },
+        ].map(card => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#9BA1AE] hover:shadow-sm transition-all group"
+          >
+            <p className="text-sm font-semibold text-[#2D3748] mb-1">{card.label}</p>
+            <p className="text-xs text-[#9BA1AE] leading-relaxed mb-4">{card.desc}</p>
+            <span className="text-xs font-medium text-[#3B82F6] flex items-center gap-1">
+              {card.cta} <ArrowRight size={11} />
+            </span>
           </Link>
         ))}
       </div>

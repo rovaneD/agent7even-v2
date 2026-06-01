@@ -146,9 +146,9 @@ function Cell({ value, highlight = false }: { value: CellVal; highlight?: boolea
   if (value === true) {
     return (
       <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${
-        highlight ? 'bg-[#c8522a]/20' : 'bg-white/10'
+        highlight ? 'bg-[#3B82F6]/20' : 'bg-white/10'
       }`}>
-        <Check size={11} className={highlight ? 'text-[#c8522a]' : 'text-white/50'} />
+        <Check size={11} className={highlight ? 'text-[#3B82F6]' : 'text-white/50'} />
       </span>
     )
   }
@@ -156,7 +156,7 @@ function Cell({ value, highlight = false }: { value: CellVal; highlight?: boolea
     return <span className="text-white/15">—</span>
   }
   return (
-    <span className={`text-sm font-medium ${highlight ? 'text-[#c8522a]' : 'text-white/60'}`}>
+    <span className={`text-sm font-medium ${highlight ? 'text-[#3B82F6]' : 'text-white/60'}`}>
       {value}
     </span>
   )
@@ -225,7 +225,7 @@ export default function PricingPage() {
 
       {/* Hero */}
       <div className="max-w-4xl mx-auto px-6 pt-20 pb-14 text-center">
-        <p className="text-[11px] font-semibold tracking-widest uppercase text-[#c8522a] mb-4">
+        <p className="text-[11px] font-semibold tracking-widest uppercase text-white/30 mb-4">
           Pricing
         </p>
         <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-5">
@@ -254,7 +254,7 @@ export default function PricingPage() {
           >
             Annual
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
-              annual ? 'bg-[#c8522a] text-white' : 'bg-white/10 text-white/40'
+              annual ? 'bg-[#3B82F6] text-white' : 'bg-white/10 text-white/40'
             }`}>
               2 months free
             </span>
@@ -294,7 +294,7 @@ export default function PricingPage() {
 
                 <div className={`rounded-2xl border flex flex-col h-full transition-all ${
                   plan.popular
-                    ? 'bg-[#c8522a] border-[#c8522a]'
+                    ? 'bg-[#2D3748] border-[#2D3748]'
                     : 'bg-white/[0.03] border-white/10 hover:border-white/20'
                 }`}>
                   <div className="p-8 flex flex-col flex-1">
@@ -368,7 +368,7 @@ export default function PricingPage() {
                         plan.trial
                           ? 'bg-emerald-500 hover:bg-emerald-400 text-white'
                           : plan.popular
-                          ? 'bg-white text-[#c8522a] hover:bg-[#f5f4f0]'
+                          ? 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
                           : 'bg-white/8 text-[#f5f4f0] hover:bg-white/12 border border-white/10'
                       }`}
                     >
@@ -407,7 +407,7 @@ export default function PricingPage() {
               <tr className="border-b border-white/[0.08]">
                 <th className="text-left px-6 py-4 text-white/30 font-medium w-[38%]">Feature</th>
                 <th className="text-center px-5 py-4 text-[#f5f4f0] font-semibold w-[20%]">Starter</th>
-                <th className="text-center px-5 py-4 text-[#c8522a] font-semibold w-[20%] bg-[#c8522a]/[0.06]">Growth</th>
+                <th className="text-center px-5 py-4 text-[#3B82F6] font-semibold w-[20%] bg-[#3B82F6]/[0.06]">Growth</th>
                 <th className="text-center px-5 py-4 text-[#f5f4f0] font-semibold w-[22%]">ProAgent</th>
               </tr>
             </thead>
@@ -421,7 +421,7 @@ export default function PricingPage() {
                   <td className="px-5 py-4 text-center">
                     <Cell value={row.starter} />
                   </td>
-                  <td className="px-5 py-4 text-center bg-[#c8522a]/[0.04]">
+                  <td className="px-5 py-4 text-center bg-[#3B82F6]/[0.04]">
                     <Cell value={row.growth} highlight />
                   </td>
                   <td className="px-5 py-4 text-center">
@@ -464,7 +464,7 @@ export default function PricingPage() {
                   </span>
                   <span className="flex-shrink-0 text-white/30">
                     {isOpen
-                      ? <Minus size={15} className="text-[#c8522a]" />
+                      ? <Minus size={15} className="text-[#3B82F6]" />
                       : <Plus size={15} />
                     }
                   </span>

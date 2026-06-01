@@ -244,7 +244,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="max-w-lg w-full">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#2D3748] flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold">M</span>
             </div>
             <div>
@@ -296,7 +296,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
             </button>
             <button
               onClick={handleGenerateAnyway}
-              className="flex-1 py-3 bg-black text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+              className="flex-1 py-3 bg-[#2D3748] text-white rounded-xl text-sm font-medium hover:bg-[#1a2535] transition-colors"
             >
               Generate anyway
             </button>
@@ -312,7 +312,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="max-w-sm w-full px-6 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-black flex items-center justify-center mx-auto mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-[#2D3748] flex items-center justify-center mx-auto mb-6">
             <span className="text-white font-bold text-xl">M</span>
           </div>
           {generationStage === 'scoring' ? (
@@ -339,7 +339,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                 {ALL_DOCS.map(doc => (
                   <div key={doc} className="flex items-center gap-3">
                     {generationProgress.includes(doc) ? (
-                      <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-[#2D3748] flex items-center justify-center flex-shrink-0">
                         <Check size={11} className="text-white" />
                       </div>
                     ) : (
@@ -368,7 +368,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
       {/* Header */}
       <div className="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#2D3748] flex items-center justify-center">
             <span className="text-white font-bold text-sm">M</span>
           </div>
           <span className="text-sm font-medium text-gray-900">Maya</span>
@@ -377,7 +377,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
           {[0, 1, 2, 3, 4].map(i => (
             <div
               key={i}
-              className={`h-1.5 w-8 rounded-full transition-all duration-300 ${i <= step ? 'bg-black' : 'bg-gray-100'}`}
+              className={`h-1.5 w-8 rounded-full transition-all duration-300 ${i <= step ? 'bg-[#2D3748]' : 'bg-gray-100'}`}
             />
           ))}
           <span className="text-xs text-gray-400 ml-2">{step + 1} of 5</span>
@@ -387,7 +387,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
       {/* Maya intro */}
       <div className="px-6 py-6 border-b border-gray-50 bg-gray-50/50">
         <div className="max-w-2xl mx-auto flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div className="w-8 h-8 rounded-full bg-[#2D3748] flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-white font-bold text-xs">M</span>
           </div>
           <div>
@@ -416,7 +416,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   onChange={e => updateAnswer('businessDescription', e.target.value)}
                   placeholder="e.g. I make handmade skincare products for women with sensitive skin"
                   rows={3}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black resize-none placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
                 />
               </div>
               <div>
@@ -428,7 +428,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   onChange={e => updateAnswer('problemSolved', e.target.value)}
                   placeholder="e.g. Most skincare products have harsh chemicals that cause reactions for sensitive skin types"
                   rows={3}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black resize-none placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
                 />
               </div>
               <div>
@@ -441,7 +441,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   onChange={e => updateAnswer('transformation', e.target.value)}
                   placeholder="e.g. They finally have a skincare routine that doesn't cause flare-ups"
                   rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black resize-none placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
                 />
               </div>
             </div>
@@ -459,7 +459,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   onChange={e => updateAnswer('customerWho', e.target.value)}
                   placeholder="e.g. Women 30–50 with sensitive skin who shop online and care about clean ingredients"
                   rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black resize-none placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
                 />
               </div>
               <div>
@@ -471,7 +471,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   onChange={e => updateAnswer('customerFrustration', e.target.value)}
                   placeholder="e.g. Every product they try causes breakouts or irritation"
                   rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black resize-none placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
                 />
               </div>
               <div>
@@ -484,7 +484,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   onChange={e => updateAnswer('customerTriedBefore', e.target.value)}
                   placeholder="e.g. Drugstore brands, expensive department store products, dermatologist recommendations"
                   rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black resize-none placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
                 />
               </div>
               <div>
@@ -497,7 +497,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   onChange={e => updateAnswer('customerBuyingTrigger', e.target.value)}
                   placeholder="e.g. Seeing before/after photos from real customers with similar skin"
                   rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black resize-none placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
                 />
               </div>
             </div>
@@ -523,7 +523,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                         updateAnswer('competitors', updated)
                       }}
                       placeholder={`@competitor${i + 1} or business name`}
-                      className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black placeholder:text-gray-300 transition-colors"
+                      className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] placeholder:text-gray-300 transition-colors"
                     />
                   ))}
                 </div>
@@ -539,7 +539,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                       onClick={() => updateAnswer('differentiator', opt)}
                       className={`text-sm font-medium py-3 px-4 rounded-xl border text-left transition-all ${
                         answers.differentiator === opt
-                          ? 'border-black bg-black text-white'
+                          ? 'border-2 border-[#3B82F6] bg-blue-50/30 text-[#2D3748]'
                           : 'border-gray-200 text-gray-700 hover:border-gray-400'
                       }`}
                     >
@@ -558,7 +558,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   onChange={e => updateAnswer('differentiatorOwn', e.target.value)}
                   placeholder="e.g. We're the only skincare brand that formulates specifically for sensitive + acne-prone skin types together"
                   rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black resize-none placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
                 />
               </div>
             </div>
@@ -580,7 +580,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                       onClick={() => toggleArrayItem('toneTraits', opt, 4)}
                       className={`text-sm font-medium px-4 py-2 rounded-full border transition-all ${
                         answers.toneTraits.includes(opt)
-                          ? 'border-black bg-black text-white'
+                          ? 'border-2 border-[#3B82F6] bg-blue-50/30 text-[#2D3748]'
                           : 'border-gray-200 text-gray-600 hover:border-gray-400'
                       }`}
                     >
@@ -599,7 +599,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   value={answers.brandsAdmired}
                   onChange={e => updateAnswer('brandsAdmired', e.target.value)}
                   placeholder="e.g. Glossier, Patagonia, Morning Brew"
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] placeholder:text-gray-300 transition-colors"
                 />
               </div>
               <div>
@@ -612,7 +612,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                   value={answers.neverSoundLike}
                   onChange={e => updateAnswer('neverSoundLike', e.target.value)}
                   placeholder="e.g. Corporate and stiff, overly salesy, like every other skincare brand"
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-black placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] placeholder:text-gray-300 transition-colors"
                 />
               </div>
             </div>
@@ -632,7 +632,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                       onClick={() => updateAnswer('marketingBudget', opt)}
                       className={`text-sm font-medium py-3 px-4 rounded-xl border text-left transition-all ${
                         answers.marketingBudget === opt
-                          ? 'border-black bg-black text-white'
+                          ? 'border-2 border-[#3B82F6] bg-blue-50/30 text-[#2D3748]'
                           : 'border-gray-200 text-gray-700 hover:border-gray-400'
                       }`}
                     >
@@ -653,7 +653,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                       onClick={() => toggleArrayItem('channels', opt)}
                       className={`text-sm font-medium px-4 py-2 rounded-full border transition-all ${
                         answers.channels.includes(opt)
-                          ? 'border-black bg-black text-white'
+                          ? 'border-2 border-[#3B82F6] bg-blue-50/30 text-[#2D3748]'
                           : 'border-gray-200 text-gray-600 hover:border-gray-400'
                       }`}
                     >
@@ -673,7 +673,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
                       onClick={() => updateAnswer('monthlyGoal', opt)}
                       className={`w-full text-sm font-medium py-3 px-4 rounded-xl border text-left transition-all ${
                         answers.monthlyGoal === opt
-                          ? 'border-black bg-black text-white'
+                          ? 'border-2 border-[#3B82F6] bg-blue-50/30 text-[#2D3748]'
                           : 'border-gray-200 text-gray-700 hover:border-gray-400'
                       }`}
                     >
@@ -701,7 +701,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
           <button
             onClick={handleNext}
             disabled={!canProceed()}
-            className="flex items-center gap-2 bg-black text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {step === 4 ? 'Build my foundation' : 'Continue'}
             <ArrowRight size={15} />

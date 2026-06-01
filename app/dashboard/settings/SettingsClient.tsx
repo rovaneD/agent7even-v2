@@ -43,7 +43,7 @@ function PreferenceToggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${
-          checked ? 'bg-[#c8522a]' : 'bg-gray-200'
+          checked ? 'bg-[#2D3748]' : 'bg-gray-200'
         }`}
       >
         <span
@@ -63,7 +63,7 @@ interface Props {
 function planBadge(plan: string | null) {
   const map: Record<string, string> = {
     starter: 'bg-gray-100 text-gray-600',
-    growth: 'bg-[#c8522a]/10 text-[#c8522a]',
+    growth: 'bg-[#2D3748]/10 text-[#9BA1AE]',
     proagent: 'bg-[#0d0d0d] text-white',
   }
   const label = plan ?? 'No plan'
@@ -194,12 +194,12 @@ The user can update their company name, website URL, and Instagram handle. Name 
           To update your name or email, visit your{' '}
           <button
             onClick={() => openUserProfile()}
-            className="text-[#c8522a] underline underline-offset-2"
+            className="text-[#9BA1AE] underline underline-offset-2"
           >
             account settings
           </button>
           . To change your plan, go to{' '}
-          <a href="/dashboard/billing" className="text-[#c8522a] underline underline-offset-2">Billing</a>.
+          <a href="/dashboard/billing" className="text-[#9BA1AE] underline underline-offset-2">Billing</a>.
         </p>
       </div>
 
@@ -218,7 +218,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
               value={companyName}
               onChange={e => setCompanyName(e.target.value)}
               placeholder="Your business name"
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300 transition-colors"
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 transition-colors"
             />
           </div>
 
@@ -232,7 +232,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
               value={websiteUrl}
               onChange={e => setWebsiteUrl(e.target.value)}
               placeholder="https://yourbusiness.com"
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300 transition-colors"
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 transition-colors"
             />
           </div>
 
@@ -251,7 +251,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
                 className={`w-full text-sm border rounded-xl pl-8 pr-4 py-3 focus:outline-none focus:ring-1 placeholder:text-gray-300 transition-colors ${
                   error
                     ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-                    : 'border-gray-200 focus:border-[#c8522a] focus:ring-[#c8522a]/20'
+                    : 'border-gray-200 focus:border-[#3B82F6] focus:ring-[#3B82F6]/20'
                 }`}
               />
             </div>
@@ -275,7 +275,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
               saved
                 ? 'bg-emerald-50 text-emerald-700'
                 : isDirty
-                ? 'bg-[#c8522a] text-white hover:bg-[#b8471f]'
+                ? 'bg-[#2D3748] text-white hover:bg-[#1a2535]'
                 : 'bg-gray-50 text-gray-300 cursor-not-allowed'
             }`}
           >

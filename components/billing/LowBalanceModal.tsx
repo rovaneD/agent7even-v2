@@ -22,7 +22,7 @@ export default function LowBalanceModal({ balance, planMax, onDismiss }: Props) 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <Zap size={16} color="#f97316" />
-              <h2 style={{ fontSize: 15, fontWeight: 600, color: '#0a0a0a', margin: 0 }}>Running low on credits</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 600, color: '#2D3748', margin: 0 }}>Running low on credits</h2>
             </div>
             <p style={{ fontSize: 13, color: '#888', margin: 0 }}>
               You have {balance} credits left ({pct}% of your plan).

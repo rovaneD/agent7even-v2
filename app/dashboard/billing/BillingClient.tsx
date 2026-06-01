@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Check, ExternalLink, Zap, TrendingUp, Star, AlertCircle, CheckCircle2 } from 'lucide-react'
 import CreditTopUp from '@/components/billing/CreditTopUp'
+import CreditsUsage from '@/components/billing/CreditsUsage'
+import type { CreditsUsageData } from '@/components/billing/CreditsUsage'
 
 interface Invoice {
   id: string
@@ -21,6 +23,7 @@ interface Props {
   invoices: Invoice[]
   portalUrl?: string | null
   creditBalance?: number
+  creditsUsage?: CreditsUsageData | null
 }
 
 const PLANS = {
@@ -96,7 +99,7 @@ function formatAmount(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
 }
 
-function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, creditBalance = 0 }: Props) {
+function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, creditBalance = 0, creditsUsage }: Props) {
   const searchParams   = useSearchParams()
   const topupStatus    = searchParams.get('topup')
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
@@ -181,8 +184,8 @@ The user can view their current plan, upgrade to a higher tier, and access the S
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Current plan</p>
             {currentPlan ? (
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#c8522a]/10 flex items-center justify-center">
-                  <PlanIcon size={17} className="text-[#c8522a]" />
+                <div className="w-9 h-9 rounded-xl bg-[#2D3748]/10 flex items-center justify-center">
+                  <PlanIcon size={17} className="text-[#3B82F6]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">{currentPlan.name}</h2>
@@ -214,8 +217,8 @@ The user can view their current plan, upgrade to a higher tier, and access the S
             <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               {currentPlan.features.map((f) => (
                 <div key={f} className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0">
-                    <Check size={9} className="text-[#c8522a]" />
+                  <div className="w-4 h-4 rounded-full bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0">
+                    <Check size={9} className="text-[#3B82F6]" />
                   </div>
                   <span className="text-sm text-gray-600">{f}</span>
                 </div>
@@ -236,6 +239,9 @@ The user can view their current plan, upgrade to a higher tier, and access the S
           </a>
         )}
       </div>
+
+      {/* Credits & Usage */}
+      {creditsUsage && <CreditsUsage data={creditsUsage} />}
 
       {/* Credit top-up */}
       <CreditTopUp currentBalance={creditBalance} />
@@ -268,7 +274,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
                   billingAnnual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
                 }`}
               >
-                Annual <span className="text-[#c8522a] font-semibold">−2mo</span>
+                Annual <span className="text-[#3B82F6] font-semibold">−2mo</span>
               </button>
             </div>
           </div>
@@ -285,11 +291,11 @@ The user can view their current plan, upgrade to a higher tier, and access the S
               return (
                 <div
                   key={planKey}
-                  className="border border-gray-100 rounded-xl p-5 hover:border-[#c8522a]/30 transition-colors flex flex-col"
+                  className="border border-gray-100 rounded-xl p-5 hover:border-[#3B82F6]/30 transition-colors flex flex-col"
                 >
                   {/* Header */}
                   <div className="flex items-center gap-2 mb-3">
-                    <Icon size={15} className="text-[#c8522a]" />
+                    <Icon size={15} className="text-[#3B82F6]" />
                     <span className="text-sm font-semibold text-gray-900">{p.name}</span>
                     {p.trial && (
                       <span className="ml-auto text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
@@ -315,8 +321,8 @@ The user can view their current plan, upgrade to a higher tier, and access the S
                   <ul className="space-y-1.5 mb-5 flex-1">
                     {p.features.map((f) => (
                       <li key={f} className="flex items-start gap-2">
-                        <div className="w-3.5 h-3.5 rounded-full bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Check size={8} className="text-[#c8522a]" />
+                        <div className="w-3.5 h-3.5 rounded-full bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check size={8} className="text-[#3B82F6]" />
                         </div>
                         <span className="text-xs text-gray-500 leading-snug">{f}</span>
                       </li>
@@ -327,7 +333,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
                   <button
                     onClick={() => handleUpgrade(planKey)}
                     disabled={upgradeLoading === planKey}
-                    className="w-full py-2.5 rounded-lg text-sm font-semibold bg-[#c8522a] text-white hover:bg-[#b8471f] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full py-2.5 rounded-lg text-sm font-semibold bg-[#2D3748] text-white hover:bg-[#1a2535] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {upgradeLoading === planKey ? 'Redirecting…' : `Upgrade to ${p.name}`}
                   </button>

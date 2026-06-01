@@ -55,12 +55,12 @@ export default function AdminNotes({
           onChange={e => setBody(e.target.value)}
           placeholder="Add an internal note..."
           rows={2}
-          className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#c8522a]/40 resize-none transition-colors"
+          className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 resize-none transition-colors"
         />
         <button
           onClick={addNote}
           disabled={!body.trim() || saving}
-          className="w-10 h-10 rounded-xl bg-[#c8522a] flex items-center justify-center disabled:opacity-40 hover:bg-[#b04623] transition-colors flex-shrink-0 self-end"
+          className="w-10 h-10 rounded-xl bg-[#2D3748] flex items-center justify-center disabled:opacity-40 hover:bg-[#b04623] transition-colors flex-shrink-0 self-end"
         >
           {saving ? <Loader2 size={14} className="text-white animate-spin" /> : <Send size={14} className="text-white" />}
         </button>

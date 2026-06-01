@@ -132,7 +132,7 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
             value={ticket.priority ?? 'low'}
             onChange={e => handleUpdate({ priority: e.target.value })}
             disabled={updating}
-            className="text-xs font-medium border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#c8522a] bg-white text-gray-700"
+            className="text-xs font-medium border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#3B82F6] bg-white text-gray-700"
           >
             <option value="low">Low priority</option>
             <option value="medium">Medium priority</option>
@@ -152,7 +152,7 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
             <button
               onClick={() => handleUpdate({ status: 'open' })}
               disabled={updating}
-              className="flex items-center gap-2 text-xs font-semibold text-[#c8522a] bg-[#c8522a]/10 hover:bg-[#c8522a]/15 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 text-xs font-semibold text-[#9BA1AE] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
             >
               Reopen ticket
             </button>
@@ -177,12 +177,12 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
           >
             <div className={`max-w-[80%] rounded-2xl px-5 py-4 ${
               msg.sender_role === 'admin'
-                ? 'bg-[#c8522a] text-white rounded-br-none'
+                ? 'bg-[#2D3748] text-white rounded-br-none'
                 : 'bg-white border border-gray-100 text-gray-800 rounded-bl-none'
             }`}>
               <div className={`flex items-center gap-2 mb-2 ${msg.sender_role === 'admin' ? 'justify-end' : ''}`}>
                 <span className={`text-xs font-semibold ${
-                  msg.sender_role === 'admin' ? 'text-white/80' : 'text-[#c8522a]'
+                  msg.sender_role === 'admin' ? 'text-white/80' : 'text-[#9BA1AE]'
                 }`}>
                   {msg.sender_role === 'admin' ? 'You (Agent7even)' : client.full_name}
                 </span>
@@ -214,7 +214,7 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
             <button
               onClick={handleReply}
               disabled={!replyBody.trim() || replying}
-              className="flex items-center gap-2 text-sm font-semibold text-white bg-[#c8522a] hover:bg-[#b8471f] px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#b8471f] px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {replying ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               {replying ? 'Sending...' : 'Send reply'}
@@ -227,7 +227,7 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
           <p className="text-sm text-gray-400">This ticket is closed.</p>
           <button
             onClick={() => handleUpdate({ status: 'open' })}
-            className="text-xs font-medium text-[#c8522a] hover:underline mt-2 block mx-auto"
+            className="text-xs font-medium text-[#9BA1AE] hover:underline mt-2 block mx-auto"
           >
             Reopen if needed
           </button>

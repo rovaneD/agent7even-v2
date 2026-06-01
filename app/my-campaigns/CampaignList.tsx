@@ -89,7 +89,7 @@ export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
         <p className="text-gray-400 text-sm mb-6">Talk to Maya to build your first one.</p>
         <Link
           href="/maya"
-          className="bg-[#0a0a0a] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-gray-800 transition-colors"
+          className="bg-[#2D3748] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-[#1a2535] transition-colors"
         >
           Talk to Maya
         </Link>
@@ -143,7 +143,7 @@ export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
                         return (
                           <div key={i} className="flex gap-2.5 items-start justify-between">
                             <div className="flex gap-2.5 items-start flex-1 min-w-0">
-                              <span className={`text-sm mt-0.5 flex-shrink-0 ${isDone ? 'text-green-600' : 'text-[#c8522a]'}`}>
+                              <span className={`text-sm mt-0.5 flex-shrink-0 ${isDone ? 'text-green-600' : 'text-[#9BA1AE]'}`}>
                                 {isDone ? '✓' : '→'}
                               </span>
                               <p className="text-sm text-gray-700 leading-relaxed">{win}</p>
@@ -169,7 +169,7 @@ export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
                             ) : (
                               <a
                                 href={`/maya?task=${encodeURIComponent(win)}&campaignId=${c.id}`}
-                                className="flex-shrink-0 text-xs font-medium text-[#c8522a] hover:underline whitespace-nowrap ml-3 mt-0.5"
+                                className="flex-shrink-0 text-xs font-medium text-[#9BA1AE] hover:underline whitespace-nowrap ml-3 mt-0.5"
                               >
                                 Do this with Maya →
                               </a>

@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
-import { Plus } from 'lucide-react'
+import { Plus, Megaphone } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 
 type Campaign = {
@@ -14,16 +14,17 @@ type Campaign = {
   created_at: string
 }
 
+const STATUS_BADGES: Record<string, { bg: string; text: string }> = {
+  active:    { bg: '#ECFDF5', text: '#10B981' },
+  paused:    { bg: '#FFFBEB', text: '#F59E0B' },
+  completed: { bg: '#EFF6FF', text: '#3B82F6' },
+  archived:  { bg: '#F8F8F8', text: '#9BA1AE' },
+}
+
 function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, { bg: string; text: string }> = {
-    active:    { bg: '#f0fdf4', text: '#16a34a' },
-    paused:    { bg: '#fffbeb', text: '#ca8a04' },
-    completed: { bg: '#eff6ff', text: '#2563eb' },
-    archived:  { bg: '#f9fafb', text: '#9ca3af' },
-  }
-  const c = colors[status] ?? colors.active
+  const c = STATUS_BADGES[status] ?? STATUS_BADGES.active
   return (
-    <span style={{ background: c.bg, color: c.text, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 20 }}>
+    <span style={{ background: c.bg, color: c.text, fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 20, border: 'none' }}>
       {status}
     </span>
   )
@@ -66,32 +67,44 @@ ${campaignLines}
 The user can create new campaigns or view existing ones.`
 
   return (
-    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-4xl">
+    <div className="px-8 py-8">
       <CanvasContextDispatcher context={contextString} />
+
+      {/* Page header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Campaigns</p>
-          <h1 className="text-2xl font-bold text-gray-900">My campaigns</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {campaigns?.length
-              ? `${campaigns.length} campaign${campaigns.length === 1 ? '' : 's'}`
-              : 'No campaigns yet'}
-          </p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-1">Campaigns</p>
+          <h1 className="text-2xl font-semibold text-[#2D3748]">My campaigns</h1>
+          {campaigns?.length ? (
+            <p className="text-sm text-[#9BA1AE] mt-1">
+              {campaigns.length} campaign{campaigns.length === 1 ? '' : 's'}
+            </p>
+          ) : (
+            <p className="text-sm text-[#9BA1AE] mt-1">No campaigns yet</p>
+          )}
         </div>
-        <Link
-          href="/dashboard/campaigns/new"
-          className="flex-shrink-0 flex items-center gap-1.5 bg-[#0a0a0a] text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-gray-800 transition-colors mt-1"
-        >
-          <Plus size={13} /> New campaign
-        </Link>
+        {!!campaigns?.length && (
+          <Link
+            href="/dashboard/campaigns/new"
+            className="flex-shrink-0 flex items-center gap-1.5 bg-[#2D3748] text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-[#1a2535] transition-colors mt-1"
+          >
+            <Plus size={13} /> New campaign
+          </Link>
+        )}
       </div>
 
       {!campaigns?.length ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
-          <p className="text-sm text-gray-400 mb-4">You haven&apos;t built a campaign yet.</p>
+        <div className="flex flex-col items-center justify-center py-32">
+          <div className="w-12 h-12 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center mb-4">
+            <Megaphone className="w-5 h-5 text-[#9BA1AE]" />
+          </div>
+          <h3 className="font-semibold text-[#2D3748] mb-1">No campaigns yet</h3>
+          <p className="text-sm text-[#9BA1AE] mb-6 text-center max-w-xs">
+            Build your first campaign and Maya will create a complete week-by-week marketing plan for you.
+          </p>
           <Link
             href="/dashboard/campaigns/new"
-            className="inline-flex items-center gap-1.5 bg-[#0a0a0a] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-1.5 bg-[#2D3748] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-[#1a2535] transition-colors"
           >
             <Plus size={13} /> Build your first campaign
           </Link>
@@ -100,19 +113,17 @@ The user can create new campaigns or view existing ones.`
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {(campaigns as Campaign[]).map(campaign => (
             <Link key={campaign.id} href={`/dashboard/campaigns/${campaign.id}`}>
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-300 transition-colors cursor-pointer">
+              <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#9BA1AE] hover:shadow-sm transition-all cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-[#c8522a] capitalize">
+                  <span className="text-xs font-medium text-[#9BA1AE] capitalize">
                     {campaign.mode === 'guided'
                       ? (campaign.segment?.replace(/_/g, ' ') ?? 'Guided')
                       : 'Custom campaign'}
                   </span>
                   <StatusBadge status={campaign.status} />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-1 text-sm leading-snug">{campaign.title}</h3>
-                <p className="text-xs text-gray-400">
-                  Created {formatDate(campaign.created_at)}
-                </p>
+                <h3 className="font-semibold text-[#2D3748] mb-1 text-sm leading-snug">{campaign.title}</h3>
+                <p className="text-xs text-[#9BA1AE]">Created {formatDate(campaign.created_at)}</p>
               </div>
             </Link>
           ))}

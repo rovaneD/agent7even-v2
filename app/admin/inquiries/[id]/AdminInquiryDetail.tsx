@@ -117,7 +117,7 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
             <ChevronLeft size={16} />
             Back to inquiries
           </Link>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-1">
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-1">
             {SERVICE_LABELS[inquiry.service_type] ?? inquiry.service_type}
           </p>
           <h1 className="text-2xl font-bold text-gray-900">{inquiry.project_name}</h1>
@@ -129,7 +129,7 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
           <select
             value={inquiry.status}
             onChange={e => setInquiry(prev => ({ ...prev, status: e.target.value }))}
-            className="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#c8522a] bg-white text-gray-700"
+            className="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#3B82F6] bg-white text-gray-700"
           >
             {STATUS_OPTIONS.map(s => (
               <option key={s.value} value={s.value}>{s.label}</option>
@@ -142,7 +142,7 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
             className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
               saved
                 ? 'bg-emerald-50 text-emerald-700'
-                : 'bg-[#c8522a] text-white hover:bg-[#b8471f]'
+                : 'bg-[#2D3748] text-white hover:bg-[#1a2535]'
             }`}
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> :
@@ -162,8 +162,8 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Client</h2>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#c8522a]/10 flex items-center justify-center">
-                <User size={16} className="text-[#c8522a]" />
+              <div className="w-10 h-10 rounded-xl bg-[#2D3748]/10 flex items-center justify-center">
+                <User size={16} className="text-[#9BA1AE]" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900">
@@ -214,7 +214,7 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
               value={proposalUrl}
               onChange={e => setProposalUrl(e.target.value)}
               placeholder="https://docs.google.com/... or Notion link"
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300"
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300"
             />
             <p className="text-xs text-gray-400 mt-1.5">
               Paste a link to the proposal document once it's ready.
@@ -301,7 +301,7 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
                 href={inquiry.proposal_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm font-medium text-[#c8522a] hover:text-[#b8471f] transition-colors"
+                className="flex items-center gap-2 text-sm font-medium text-[#9BA1AE] hover:text-[#b8471f] transition-colors"
               >
                 <ExternalLink size={14} />
                 View proposal

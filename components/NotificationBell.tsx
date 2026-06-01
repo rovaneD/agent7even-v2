@@ -31,18 +31,24 @@ function timeAgo(dateStr: string) {
   return `${days}d ago`
 }
 
-function typeIcon(type: string) {
-  const map: Record<string, string> = {
-    order_status: '📦',
-    order_delivered: '✅',
-    support_reply: '💬',
-    support_closed: '🔒',
-    deliverable_uploaded: '📁',
-    brand_kit_generated: '✨',
-    plan_activated: '🎉',
-    trial_ending: '⏰',
-  }
-  return map[type] ?? '🔔'
+function typeColor(type: string): string {
+  if (type.startsWith('order')) return '#3B82F6'
+  if (type.startsWith('support')) return '#F59E0B'
+  if (type === 'deliverable_uploaded') return '#10B981'
+  if (type === 'brand_kit_generated') return '#10B981'
+  if (type === 'plan_activated') return '#10B981'
+  if (type === 'trial_ending') return '#EF4444'
+  return '#9BA1AE'
+}
+
+function typeInitial(type: string): string {
+  if (type.startsWith('order')) return 'OR'
+  if (type.startsWith('support')) return 'SP'
+  if (type === 'deliverable_uploaded') return 'DL'
+  if (type === 'brand_kit_generated') return 'BK'
+  if (type === 'plan_activated') return 'PL'
+  if (type === 'trial_ending') return 'TR'
+  return 'NT'
 }
 
 export default function NotificationBell({ profileId, initialNotifications }: Props) {
@@ -131,7 +137,7 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
       >
         <Bell size={18} className="text-gray-500" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#c8522a] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#2D3748] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -145,7 +151,7 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="text-xs font-medium text-white bg-[#c8522a] px-1.5 py-0.5 rounded-full">
+                <span className="text-xs font-medium text-white bg-[#2D3748] px-1.5 py-0.5 rounded-full">
                   {unreadCount}
                 </span>
               )}
@@ -183,17 +189,19 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
                     if (notif.link) setOpen(false)
                   }}
                   className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    !notif.read ? 'bg-[#c8522a]/5' : ''
+                    !notif.read ? 'bg-[#2D3748]/5' : ''
                   }`}
                 >
-                  <span className="text-base flex-shrink-0 mt-0.5">{typeIcon(notif.type)}</span>
+                  <span style={{ background: typeColor(notif.type), color: '#fff', borderRadius: 5, padding: '2px 5px', fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0, marginTop: 2 }}>
+                    {typeInitial(notif.type)}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <p className={`text-xs font-semibold leading-snug ${!notif.read ? 'text-gray-900' : 'text-gray-600'}`}>
                         {notif.title}
                       </p>
                       {!notif.read && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#c8522a] flex-shrink-0 mt-1" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D3748] flex-shrink-0 mt-1" />
                       )}
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5 leading-snug line-clamp-2">{notif.body}</p>
@@ -219,7 +227,7 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
               <Link
                 href="/dashboard/notifications"
                 onClick={() => setOpen(false)}
-                className="text-xs font-medium text-[#c8522a] hover:text-[#b8471f] transition-colors"
+                className="text-xs font-medium text-[#9BA1AE] hover:text-[#b8471f] transition-colors"
               >
                 View all notifications →
               </Link>

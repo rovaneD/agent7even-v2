@@ -71,7 +71,7 @@ function SaveButton({ saving, saved, disabled, onClick }: {
       className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
         saved ? 'bg-emerald-50 text-emerald-700' :
         disabled ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
-        'bg-[#c8522a] text-white hover:bg-[#b8471f]'
+        'bg-[#2D3748] text-white hover:bg-[#1a2535]'
       }`}
     >
       {saving ? <Loader2 size={14} className="animate-spin" /> :
@@ -89,8 +89,8 @@ function SectionHeader({ icon: Icon, title, description }: {
 }) {
   return (
     <div className="flex items-start gap-4 mb-6">
-      <div className="w-10 h-10 rounded-xl bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0">
-        <Icon size={18} className="text-[#c8522a]" />
+      <div className="w-10 h-10 rounded-xl bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0">
+        <Icon size={18} className="text-[#9BA1AE]" />
       </div>
       <div>
         <h2 className="text-base font-semibold text-gray-900">{title}</h2>
@@ -146,7 +146,7 @@ export default function AdminSettingsClient({
   return (
     <div className="px-8 py-8 max-w-6xl">
       <div className="mb-8">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Admin</p>
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-gray-400 text-sm mt-1">Platform configuration and management</p>
       </div>
@@ -162,7 +162,7 @@ export default function AdminSettingsClient({
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
                   activeTab === tab.id
-                    ? 'bg-[#c8522a]/10 text-[#c8522a]'
+                    ? 'bg-[#2D3748]/10 text-[#9BA1AE]'
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                 }`}
               >
@@ -242,7 +242,7 @@ function NotificationsSection({ initialEmail, initialLimit }: {
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20"
+            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20"
           />
           <p className="text-xs text-gray-400 mt-1.5">
             Receives new order, support ticket, and qualified lead emails.
@@ -260,7 +260,7 @@ function NotificationsSection({ initialEmail, initialLimit }: {
               onChange={e => setLimit(Number(e.target.value))}
               min={1}
               max={100}
-              className="w-32 text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20"
+              className="w-32 text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20"
             />
             <span className="text-sm text-gray-400">runs per month</span>
           </div>
@@ -328,7 +328,7 @@ function BannerSection({ initialBanner }: { initialBanner: Banner }) {
           <button
             onClick={() => setBanner(b => ({ ...b, enabled: !b.enabled }))}
             className={`relative w-11 h-6 rounded-full transition-colors ${
-              banner.enabled ? 'bg-[#c8522a]' : 'bg-gray-200'
+              banner.enabled ? 'bg-[#2D3748]' : 'bg-gray-200'
             }`}
           >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
@@ -348,7 +348,7 @@ function BannerSection({ initialBanner }: { initialBanner: Banner }) {
                 onClick={() => setBanner(b => ({ ...b, type }))}
                 className={`text-xs font-medium px-4 py-2 rounded-lg border capitalize transition-all ${
                   banner.type === type
-                    ? 'border-[#c8522a] bg-[#c8522a]/5 text-[#c8522a]'
+                    ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#9BA1AE]'
                     : 'border-gray-200 text-gray-400 hover:border-gray-300'
                 }`}
               >
@@ -367,7 +367,7 @@ function BannerSection({ initialBanner }: { initialBanner: Banner }) {
             onChange={e => setBanner(b => ({ ...b, message: e.target.value }))}
             placeholder="e.g. We're performing maintenance on Sunday from 2–4am UTC."
             rows={3}
-            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 resize-none placeholder:text-gray-300"
+            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 resize-none placeholder:text-gray-300"
           />
         </div>
 
@@ -429,7 +429,7 @@ function UsersSection({ initialUsers }: { initialUsers: User[] }) {
 
   function roleBadgeColor(role: string | null) {
     if (role === 'owner') return 'bg-[#0d0d0d] text-white'
-    if (role === 'admin') return 'bg-[#c8522a]/10 text-[#c8522a]'
+    if (role === 'admin') return 'bg-[#2D3748]/10 text-[#9BA1AE]'
     return 'bg-gray-100 text-gray-600'
   }
 
@@ -446,7 +446,7 @@ function UsersSection({ initialUsers }: { initialUsers: User[] }) {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Search by name, company, or email..."
-        className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 mb-4 placeholder:text-gray-300"
+        className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 mb-4 placeholder:text-gray-300"
       />
 
       {error && (
@@ -471,7 +471,7 @@ function UsersSection({ initialUsers }: { initialUsers: User[] }) {
               <select
                 value={user.role ?? 'client'}
                 onChange={e => updateUser(user.id, { role: e.target.value })}
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#c8522a] bg-white text-gray-700"
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#3B82F6] bg-white text-gray-700"
               >
                 <option value="client">Client</option>
                 <option value="admin">Admin</option>
@@ -482,7 +482,7 @@ function UsersSection({ initialUsers }: { initialUsers: User[] }) {
               <select
                 value={user.status ?? 'active'}
                 onChange={e => updateUser(user.id, { status: e.target.value })}
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#c8522a] bg-white text-gray-700"
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#3B82F6] bg-white text-gray-700"
               >
                 <option value="onboarding">Onboarding</option>
                 <option value="active">Active</option>
@@ -548,7 +548,7 @@ function BillingSection({ users }: { users: User[] }) {
           <select
             value={selectedUser}
             onChange={e => setSelectedUser(e.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] bg-white text-gray-700"
+            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] bg-white text-gray-700"
           >
             <option value="">— Select a client —</option>
             {clients.map(u => (
@@ -570,7 +570,7 @@ function BillingSection({ users }: { users: User[] }) {
                 onClick={() => setPlan(p)}
                 className={`text-xs font-semibold px-4 py-2 rounded-lg border capitalize transition-all ${
                   plan === p
-                    ? 'bg-[#c8522a] border-[#c8522a] text-white'
+                    ? 'bg-[#2D3748] border-[#3B82F6] text-white'
                     : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
@@ -672,7 +672,7 @@ function PromptsSection({ initialPrompts }: { initialPrompts: Prompt[] }) {
                       <button
                         onClick={() => togglePrompt(prompt.id, !prompt.is_active)}
                         className={`relative w-9 h-5 rounded-full transition-colors ${
-                          prompt.is_active ? 'bg-[#c8522a]' : 'bg-gray-200'
+                          prompt.is_active ? 'bg-[#2D3748]' : 'bg-gray-200'
                         }`}
                       >
                         <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
@@ -761,7 +761,7 @@ function ServicesSection({ initialServices }: { initialServices: Service[] }) {
                   <button
                     onClick={() => toggleService(service.id, !service.is_active)}
                     className={`relative w-9 h-5 rounded-full transition-colors ${
-                      service.is_active ? 'bg-[#c8522a]' : 'bg-gray-200'
+                      service.is_active ? 'bg-[#2D3748]' : 'bg-gray-200'
                     }`}
                   >
                     <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${

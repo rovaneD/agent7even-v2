@@ -52,7 +52,7 @@ const PLAN_LABELS: Record<string, string> = {
 const PLAN_COLORS: Record<string, string> = {
   starter:  'bg-gray-100 text-gray-600',
   growth:   'bg-blue-50 text-blue-600',
-  proagent: 'bg-[#c8522a]/10 text-[#c8522a]',
+  proagent: 'bg-[#2D3748]/10 text-[#2D3748]',
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -198,8 +198,8 @@ export default function ClientHealthView() {
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <ChevronUp size={10} className="text-gray-300" />
     return sortAsc
-      ? <ChevronUp size={10} className="text-[#c8522a]" />
-      : <ChevronDown size={10} className="text-[#c8522a]" />
+      ? <ChevronUp size={10} className="text-[#9BA1AE]" />
+      : <ChevronDown size={10} className="text-[#9BA1AE]" />
   }
 
   function ColHeader({ label, k }: { label: string; k: SortKey }) {
@@ -216,7 +216,7 @@ export default function ClientHealthView() {
   return (
     <div className="px-8 py-8 max-w-7xl">
       <div className="mb-6">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Admin</p>
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Client Health</h1>
         <p className="text-gray-500 text-sm mt-1">{clients.length} clients</p>
       </div>
@@ -238,12 +238,12 @@ export default function ClientHealthView() {
           value={search}
           onChange={e => handleSearchChange(e.target.value)}
           placeholder="Search name or email…"
-          className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm w-64 outline-none focus:border-[#c8522a]/40 transition-colors"
+          className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm w-64 outline-none focus:border-[#3B82F6]/40 transition-colors"
         />
         <select
           value={planFilter}
           onChange={e => setPlanFilter(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#c8522a]/40 bg-white"
+          className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
         >
           <option value="all">All plans</option>
           <option value="starter">Starter</option>
@@ -253,7 +253,7 @@ export default function ClientHealthView() {
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#c8522a]/40 bg-white"
+          className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
         >
           <option value="all">All statuses</option>
           <option value="active">Active</option>
@@ -315,7 +315,7 @@ export default function ClientHealthView() {
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="w-5 h-5 border-2 border-gray-200 border-t-[#c8522a] rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-gray-200 border-t-[#3B82F6] rounded-full animate-spin" />
           </div>
         ) : error ? (
           <div className="text-center py-16">
@@ -355,7 +355,7 @@ export default function ClientHealthView() {
                       {client.avatar_url ? (
                         <img src={client.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0 text-[#c8522a] text-xs font-bold">
+                        <div className="w-8 h-8 rounded-full bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0 text-[#9BA1AE] text-xs font-bold">
                           {(client.full_name || client.email || 'U')[0].toUpperCase()}
                         </div>
                       )}

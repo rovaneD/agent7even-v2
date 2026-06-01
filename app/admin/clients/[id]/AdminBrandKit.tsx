@@ -24,10 +24,10 @@ interface Props {
 }
 
 const DOCUMENT_TYPES = [
-  { type: 'voice', title: 'Brand Voice Statement', emoji: '🗣️' },
-  { type: 'story', title: 'Brand Story', emoji: '📖' },
-  { type: 'persona', title: 'Ideal Client Profile', emoji: '🎯' },
-  { type: 'positioning', title: 'Brand Positioning Statement', emoji: '📍' },
+  { type: 'voice', title: 'Brand Voice Statement', abbr: 'BV' },
+  { type: 'story', title: 'Brand Story', abbr: 'BS' },
+  { type: 'persona', title: 'Ideal Client Profile', abbr: 'IC' },
+  { type: 'positioning', title: 'Brand Positioning Statement', abbr: 'BP' },
 ]
 
 export default function AdminBrandKit({ documents, answers }: Props) {
@@ -64,7 +64,7 @@ export default function AdminBrandKit({ documents, answers }: Props) {
               onClick={() => setExpandedDoc(isExpanded ? null : doc.type)}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
             >
-              <span className="text-lg">{docType.emoji}</span>
+              <span style={{ background: '#E2E8F0', color: '#2D3748', borderRadius: 6, padding: '3px 6px', fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>{docType.abbr}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800">{doc.title}</p>
                 <p className="text-xs text-gray-400">

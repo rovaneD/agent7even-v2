@@ -48,7 +48,7 @@ const PLAN_LABELS: Record<string, string> = {
 const PLAN_COLORS: Record<string, string> = {
   starter:  'bg-gray-100 text-gray-600',
   growth:   'bg-blue-50 text-blue-600',
-  proagent: 'bg-[#c8522a]/10 text-[#c8522a]',
+  proagent: 'bg-[#2D3748]/10 text-[#9BA1AE]',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -171,8 +171,8 @@ export default function CostActivityView() {
   function SortIcon({ k }: { k: AccountSortKey }) {
     if (sortKey !== k) return <ChevronUp size={10} className="text-gray-300" />
     return sortAsc
-      ? <ChevronUp size={10} className="text-[#c8522a]" />
-      : <ChevronDown size={10} className="text-[#c8522a]" />
+      ? <ChevronUp size={10} className="text-[#9BA1AE]" />
+      : <ChevronDown size={10} className="text-[#9BA1AE]" />
   }
 
   function ColHead({ label, k }: { label: string; k: AccountSortKey }) {
@@ -205,7 +205,7 @@ export default function CostActivityView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="w-5 h-5 border-2 border-gray-200 border-t-[#c8522a] rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-gray-200 border-t-[#3B82F6] rounded-full animate-spin" />
       </div>
     )
   }
@@ -224,7 +224,7 @@ export default function CostActivityView() {
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Admin</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Admin</p>
           <h1 className="text-2xl font-bold text-gray-900">Cost & Usage</h1>
           <p className="text-gray-500 text-sm mt-1">Current month · all accounts</p>
         </div>
@@ -245,7 +245,7 @@ export default function CostActivityView() {
           value={`$${summary?.total_mrr ?? 0}`}
           sub="from active plans"
           Icon={DollarSign}
-          color="bg-[#c8522a]"
+          color="bg-[#2D3748]"
         />
         <SummaryCard
           label="AI Cost"

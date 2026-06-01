@@ -35,7 +35,7 @@ const GENERATION_STEPS = [
 
 const PLAIN_MD = {
   p: ({ children }: { children?: React.ReactNode }) => (
-    <p style={{ margin: '0 0 10px 0', fontSize: 13.5, lineHeight: 1.7, color: '#0a0a0a' }}>{children}</p>
+    <p style={{ margin: '0 0 10px 0', fontSize: 13.5, lineHeight: 1.7, color: '#2D3748' }}>{children}</p>
   ),
   strong: ({ children }: { children?: React.ReactNode }) => (
     <span style={{ fontWeight: 500 }}>{children}</span>
@@ -167,11 +167,11 @@ export default function OpenCanvasFlow() {
   if (isCreating) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 24, padding: '0 24px' }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>M</span>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, color: '#0a0a0a', margin: '0 0 6px' }}>Building your campaign</h2>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: '#2D3748', margin: '0 0 6px' }}>Building your campaign</h2>
           <p style={{ fontSize: 13, color: '#999', margin: 0 }}>
             Maya is running multiple agents in parallel to build the strongest possible campaign.
           </p>
@@ -191,13 +191,13 @@ export default function OpenCanvasFlow() {
             {GENERATION_STEPS.map((s, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 {i < genStep ? (
-                  <CheckCircle2 size={15} color="#16a34a" />
+                  <CheckCircle2 size={15} color="#10B981" />
                 ) : i === genStep ? (
-                  <Circle size={15} color="#c8522a" />
+                  <Circle size={15} color="#3B82F6" />
                 ) : (
                   <Circle size={15} color="#e0e0e0" />
                 )}
-                <span style={{ fontSize: 13, color: i < genStep ? '#16a34a' : i === genStep ? '#0a0a0a' : '#ccc', fontWeight: i === genStep ? 500 : 400 }}>
+                <span style={{ fontSize: 13, color: i < genStep ? '#10B981' : i === genStep ? '#2D3748' : '#ccc', fontWeight: i === genStep ? 500 : 400 }}>
                   {s}
                 </span>
               </div>
@@ -214,11 +214,11 @@ export default function OpenCanvasFlow() {
       {/* Header */}
       <div style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '0.5px solid #f0f0f0', background: '#fff' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>M</span>
           </div>
           <div>
-            <p style={{ fontSize: 13.5, fontWeight: 500, color: '#0a0a0a', lineHeight: 1 }}>Open Canvas</p>
+            <p style={{ fontSize: 13.5, fontWeight: 500, color: '#2D3748', lineHeight: 1 }}>Open Canvas</p>
             <p style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>Describe your situation and Maya will build a custom campaign</p>
           </div>
         </div>
@@ -228,10 +228,10 @@ export default function OpenCanvasFlow() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px' }}>
         {visibleMessages.length === 0 && !isLoading && (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 24 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
               <span style={{ color: '#fff', fontSize: 11, fontWeight: 500 }}>M</span>
             </div>
-            <p style={{ fontSize: 13.5, lineHeight: 1.7, color: '#0a0a0a', paddingTop: 3 }}>
+            <p style={{ fontSize: 13.5, lineHeight: 1.7, color: '#2D3748', paddingTop: 3 }}>
               Tell me what&apos;s going on — what are you trying to solve or achieve with this campaign? Don&apos;t worry about fitting it into a template, just describe the situation.
             </p>
           </div>
@@ -243,13 +243,13 @@ export default function OpenCanvasFlow() {
             <div key={msg.id} style={{ marginBottom: msg.role === 'user' ? 20 : 24 }}>
               {msg.role === 'user' ? (
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <div style={{ background: '#0a0a0a', color: '#fff', borderRadius: '16px 16px 4px 16px', padding: '9px 13px', maxWidth: '80%', fontSize: 13.5, lineHeight: 1.55 }}>
+                  <div style={{ background: '#2D3748', color: '#fff', borderRadius: '16px 16px 4px 16px', padding: '9px 13px', maxWidth: '80%', fontSize: 13.5, lineHeight: 1.55 }}>
                     {text}
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                     <span style={{ color: '#fff', fontSize: 11, fontWeight: 500 }}>M</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0, paddingTop: 3 }}>
@@ -263,7 +263,7 @@ export default function OpenCanvasFlow() {
 
         {isLoading && visibleMessages.at(-1)?.role === 'user' && (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20 }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <span style={{ color: '#fff', fontSize: 11, fontWeight: 500 }}>M</span>
             </div>
             <p style={{ fontSize: 12.5, color: '#bbb', fontStyle: 'italic', paddingTop: 6 }}>Maya is thinking...</p>
@@ -275,7 +275,7 @@ export default function OpenCanvasFlow() {
             <button
               onClick={generateCampaign}
               style={{
-                background: '#0a0a0a', color: '#fff',
+                background: '#2D3748', color: '#fff',
                 border: 'none', borderRadius: 10,
                 padding: '10px 18px', fontSize: 13, fontWeight: 500,
                 cursor: 'pointer', fontFamily: 'inherit',
@@ -287,7 +287,7 @@ export default function OpenCanvasFlow() {
         )}
 
         {error && (
-          <p style={{ fontSize: 12.5, color: '#c8522a', paddingLeft: 38, marginBottom: 12 }}>{error}</p>
+          <p style={{ fontSize: 12.5, color: '#3B82F6', paddingLeft: 38, marginBottom: 12 }}>{error}</p>
         )}
 
         <div ref={messagesEndRef} />
@@ -306,9 +306,10 @@ export default function OpenCanvasFlow() {
                 style={{
                   fontSize: 11.5, padding: '5px 10px', borderRadius: 8, fontWeight: 500,
                   border: '1px solid',
-                  borderColor: selectedModel === opt.id ? '#0a0a0a' : '#e0e0e0',
-                  background: selectedModel === opt.id ? '#0a0a0a' : '#fff',
-                  color: selectedModel === opt.id ? '#fff' : '#777',
+                  borderColor: selectedModel === opt.id ? '#3B82F6' : '#E2E8F0',
+                  borderWidth: selectedModel === opt.id ? 2 : 1,
+                  background: selectedModel === opt.id ? 'rgba(59,130,246,0.04)' : '#F8FAFC',
+                  color: '#2D3748',
                   cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.1s',
                 }}
               >
@@ -331,7 +332,7 @@ export default function OpenCanvasFlow() {
               style={{
                 width: '100%', border: '0.5px solid #e0e0e0', borderRadius: 20,
                 padding: '9px 42px 9px 14px', fontSize: 13.5, background: '#fafafa',
-                color: '#0a0a0a', resize: 'none', outline: 'none', fontFamily: 'inherit',
+                color: '#2D3748', resize: 'none', outline: 'none', fontFamily: 'inherit',
                 lineHeight: 1.5, boxSizing: 'border-box', display: 'block',
                 opacity: isLoading ? 0.6 : 1,
               }}
@@ -342,7 +343,7 @@ export default function OpenCanvasFlow() {
               style={{
                 position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)',
                 width: 28, height: 28, borderRadius: '50%',
-                background: isLoading || !input.trim() ? '#ccc' : '#0a0a0a',
+                background: isLoading || !input.trim() ? '#ccc' : '#2D3748',
                 border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
               }}

@@ -125,7 +125,7 @@ function relativeTime(iso: string): string {
 function scoreColor(score: number): string {
   if (score >= 80) return '#16a34a'
   if (score >= 60) return '#ca8a04'
-  return '#c8522a'
+  return '#3B82F6'
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ export default function FoundationEditor({
     return (
       <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl">
         <div className="mb-8">
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Foundation</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Foundation</p>
           <h1 className="text-2xl font-bold text-gray-900">Your business foundation</h1>
           <p className="text-gray-500 text-sm mt-1">The answers that inform everything Maya creates for you.</p>
         </div>
@@ -246,7 +246,7 @@ export default function FoundationEditor({
           </p>
           <Link
             href="/foundation"
-            className="px-5 py-2.5 bg-black text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors"
+            className="px-5 py-2.5 bg-[#2D3748] text-white text-sm font-medium rounded-xl hover:bg-[#1a2535] transition-colors"
           >
             {foundationComplete ? 'Go to Foundation' : 'Set up Foundation'}
           </Link>
@@ -262,7 +262,7 @@ export default function FoundationEditor({
 
       {/* Header */}
       <div className="mb-8">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Foundation</p>
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Foundation</p>
         <h1 className="text-2xl font-bold text-gray-900">{companyName || 'Your'} foundation</h1>
         <p className="text-gray-500 text-sm mt-1">
           The answers that inform everything Maya creates for you. Edit anything, then rescore.

@@ -12,7 +12,7 @@ export default async function CalendarPage() {
 This feature is coming soon — the content calendar is not yet active.
 When available, it will show a week-by-week view of all planned content across campaigns." />
       <div className="mb-8">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Content Calendar</p>
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#3B82F6] mb-2">Content Calendar</p>
         <h1 className="text-2xl font-bold text-gray-900">Your content schedule</h1>
         <p className="text-gray-500 text-sm mt-1">Week-by-week view of all planned content across your campaigns.</p>
       </div>

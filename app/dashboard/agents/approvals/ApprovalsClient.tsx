@@ -147,7 +147,7 @@ function ApprovalItem({
             onChange={onToggleCheck}
             disabled={!hasReviewedOne}
             title={!hasReviewedOne ? 'Expand at least one item to enable bulk selection' : undefined}
-            style={{ width: 14, height: 14, accentColor: '#c8522a', cursor: hasReviewedOne ? 'pointer' : 'not-allowed', opacity: hasReviewedOne ? 1 : 0.4 }}
+            style={{ width: 14, height: 14, accentColor: '#3B82F6', cursor: hasReviewedOne ? 'pointer' : 'not-allowed', opacity: hasReviewedOne ? 1 : 0.4 }}
           />
         </div>
 
@@ -155,13 +155,13 @@ function ApprovalItem({
           {/* Agent + meta */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <i className={`ti ${agentDef?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#888' }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#0a0a0a' }}>{agentDef?.name ?? task.agent}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#2D3748' }}>{agentDef?.name ?? task.agent}</span>
             <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(task.completed_at)}</span>
           </div>
 
           {/* Output title */}
           {output?.title && (
-            <p style={{ fontSize: 14, fontWeight: 500, color: '#0a0a0a', marginBottom: 6 }}>{output.title}</p>
+            <p style={{ fontSize: 14, fontWeight: 500, color: '#2D3748', marginBottom: 6 }}>{output.title}</p>
           )}
 
           {/* Collapsed preview */}
@@ -180,9 +180,9 @@ function ApprovalItem({
                   onChange={e => setEditVal(e.target.value)}
                   rows={8}
                   style={{
-                    width: '100%', border: '0.5px solid #0a0a0a', borderRadius: 8, padding: '10px 12px',
+                    width: '100%', border: '0.5px solid #2D3748', borderRadius: 8, padding: '10px 12px',
                     fontSize: 13, lineHeight: 1.6, resize: 'vertical', outline: 'none',
-                    fontFamily: 'inherit', boxSizing: 'border-box', color: '#0a0a0a',
+                    fontFamily: 'inherit', boxSizing: 'border-box', color: '#2D3748',
                   }}
                 />
               ) : (
@@ -210,9 +210,9 @@ function ApprovalItem({
                 onClick={() => selectChip(chip)}
                 style={{
                   padding: '3px 10px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
-                  border: activeChip === chip.label ? '0.5px solid #c8522a' : '0.5px solid #e0e0e0',
+                  border: activeChip === chip.label ? '0.5px solid #3B82F6' : '0.5px solid #E2E8F0',
                   background: activeChip === chip.label ? '#fff5f2' : '#f8f8f8',
-                  color: activeChip === chip.label ? '#c8522a' : '#666',
+                  color: activeChip === chip.label ? '#3B82F6' : '#666',
                   transition: 'all 0.1s',
                 }}
               >
@@ -230,7 +230,7 @@ function ApprovalItem({
                 placeholder="Rejection note for the agent (optional)"
                 rows={2}
                 style={{
-                  width: '100%', border: '0.5px solid #e0e0e0', borderRadius: 8, padding: '8px 12px',
+                  width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 8, padding: '8px 12px',
                   fontSize: 12.5, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
                   color: '#555',
                 }}
@@ -245,7 +245,7 @@ function ApprovalItem({
                 <button
                   onClick={doApprove}
                   disabled={approving}
-                  style={{ padding: '6px 16px', borderRadius: 7, background: '#0a0a0a', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: approving ? 0.6 : 1, fontFamily: 'inherit' }}
+                  style={{ padding: '6px 16px', borderRadius: 7, background: '#2D3748', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: approving ? 0.6 : 1, fontFamily: 'inherit' }}
                 >
                   {approving ? 'Saving…' : 'Save edits & approve'}
                 </button>
@@ -261,7 +261,7 @@ function ApprovalItem({
                 <button
                   onClick={doReject}
                   disabled={rejecting}
-                  style={{ padding: '6px 16px', borderRadius: 7, background: '#c8522a', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: rejecting ? 0.6 : 1, fontFamily: 'inherit' }}
+                  style={{ padding: '6px 16px', borderRadius: 7, background: '#3B82F6', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: rejecting ? 0.6 : 1, fontFamily: 'inherit' }}
                 >
                   {rejecting ? 'Rejecting…' : 'Reject & re-run'}
                 </button>
@@ -277,13 +277,13 @@ function ApprovalItem({
                 <button
                   onClick={doApprove}
                   disabled={approving}
-                  style={{ padding: '6px 16px', borderRadius: 7, background: '#0a0a0a', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: approving ? 0.6 : 1, fontFamily: 'inherit' }}
+                  style={{ padding: '6px 16px', borderRadius: 7, background: '#2D3748', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: approving ? 0.6 : 1, fontFamily: 'inherit' }}
                 >
                   {approving ? 'Approving…' : 'Approve'}
                 </button>
                 <button
                   onClick={() => { setIsEditing(true); setEditVal(raw); onToggleExpand() }}
-                  style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#0a0a0a', border: '0.5px solid #ddd', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                  style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#2D3748', border: '0.5px solid #ddd', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                   Edit &amp; approve
                 </button>
@@ -449,11 +449,11 @@ The user is reviewing agent outputs. They can approve, edit-and-approve, or reje
           Agent Command Center
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#0a0a0a', letterSpacing: '-0.3px', margin: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#2D3748', letterSpacing: '-0.3px', margin: 0 }}>
             Approval Queue
           </h1>
           {tasks.length > 0 && (
-            <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#c8522a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{tasks.length}</span>
             </div>
           )}
@@ -466,12 +466,12 @@ The user is reviewing agent outputs. They can approve, edit-and-approve, or reje
       {/* Empty state */}
       {tasks.length === 0 && (
         <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
-          <CheckCircle2 size={32} color="#e0e0e0" style={{ marginBottom: 12 }} />
+          <CheckCircle2 size={32} color="#E2E8F0" style={{ marginBottom: 12 }} />
           <p style={{ fontSize: 14, color: '#aaa', margin: 0 }}>Queue is clear</p>
           <p style={{ fontSize: 13, color: '#ccc', marginTop: 4 }}>Outputs from approval-required agents will appear here</p>
           <Link
             href="/dashboard/agents"
-            style={{ display: 'inline-block', marginTop: 16, fontSize: 12.5, color: '#c8522a', textDecoration: 'none', fontWeight: 500 }}
+            style={{ display: 'inline-block', marginTop: 16, fontSize: 12.5, color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}
           >
             ← Back to agents
           </Link>
@@ -490,7 +490,7 @@ The user is reviewing agent outputs. They can approve, edit-and-approve, or reje
                 <select
                   value={agentFilter}
                   onChange={e => setAgentFilter(e.target.value)}
-                  style={{ fontSize: 12, border: '0.5px solid #e0e0e0', borderRadius: 7, padding: '4px 8px', background: '#fff', color: '#555', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}
+                  style={{ fontSize: 12, border: '0.5px solid #E2E8F0', borderRadius: 7, padding: '4px 8px', background: '#fff', color: '#555', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}
                 >
                   <option value="all">All agents ({tasks.length})</option>
                   {agentsInQueue.map(a => {
@@ -508,7 +508,7 @@ The user is reviewing agent outputs. They can approve, edit-and-approve, or reje
               <select
                 value={sortOrder}
                 onChange={e => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                style={{ fontSize: 12, border: '0.5px solid #e0e0e0', borderRadius: 7, padding: '4px 8px', background: '#fff', color: '#555', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}
+                style={{ fontSize: 12, border: '0.5px solid #E2E8F0', borderRadius: 7, padding: '4px 8px', background: '#fff', color: '#555', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}
               >
                 <option value="newest">Newest first</option>
                 <option value="oldest">Oldest first</option>
@@ -530,7 +530,7 @@ The user is reviewing agent outputs. They can approve, edit-and-approve, or reje
 
           {/* Bulk action bar — appears when items checked */}
           {checkedIds.size > 0 && (
-            <div style={{ background: '#0a0a0a', borderRadius: 10, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ background: '#2D3748', borderRadius: 10, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12.5, color: '#fff', fontWeight: 500 }}>
                 {checkedIds.size} selected
               </span>
@@ -546,7 +546,7 @@ The user is reviewing agent outputs. They can approve, edit-and-approve, or reje
                   <button
                     onClick={handleBulkAction}
                     disabled={bulkLoading}
-                    style={{ padding: '5px 14px', borderRadius: 7, background: '#c8522a', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: bulkLoading ? 0.6 : 1, fontFamily: 'inherit' }}
+                    style={{ padding: '5px 14px', borderRadius: 7, background: '#3B82F6', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: bulkLoading ? 0.6 : 1, fontFamily: 'inherit' }}
                   >
                     {bulkLoading ? 'Rejecting…' : 'Reject & re-run all'}
                   </button>
@@ -562,7 +562,7 @@ The user is reviewing agent outputs. They can approve, edit-and-approve, or reje
                   <button
                     onClick={async () => { setBulkAction('approve'); await handleBulkActionWith('approve') }}
                     disabled={bulkLoading}
-                    style={{ padding: '5px 14px', borderRadius: 7, background: '#fff', color: '#0a0a0a', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: bulkLoading ? 0.6 : 1, fontFamily: 'inherit' }}
+                    style={{ padding: '5px 14px', borderRadius: 7, background: '#fff', color: '#2D3748', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: bulkLoading ? 0.6 : 1, fontFamily: 'inherit' }}
                   >
                     {bulkLoading && bulkAction === 'approve' ? 'Approving…' : 'Approve all'}
                   </button>

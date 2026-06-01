@@ -126,7 +126,7 @@ export default function InquiryForm({ companyName }: Props) {
         </p>
         <button
           onClick={() => router.push('/dashboard/services')}
-          className="inline-flex items-center gap-2 bg-[#c8522a] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#b8471f] transition-colors"
+          className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors"
         >
           Back to services
         </button>
@@ -148,7 +148,7 @@ export default function InquiryForm({ companyName }: Props) {
 
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-semibold text-[#c8522a] uppercase tracking-wide">
+          <span className="text-xs font-semibold text-[#3B82F6] uppercase tracking-wide">
             Design & Development
           </span>
           <span className="text-xs text-gray-300">·</span>
@@ -166,7 +166,7 @@ export default function InquiryForm({ companyName }: Props) {
           <div
             key={s}
             className={`h-1 flex-1 rounded-full transition-all ${
-              s <= step ? 'bg-[#c8522a]' : 'bg-gray-100'
+              s <= step ? 'bg-[#2D3748]' : 'bg-gray-100'
             }`}
           />
         ))}
@@ -188,17 +188,17 @@ export default function InquiryForm({ companyName }: Props) {
                     onClick={() => setServiceType(type.id)}
                     className={`w-full flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${
                       serviceType === type.id
-                        ? 'border-[#c8522a] bg-[#c8522a]/5'
+                        ? 'border-[#3B82F6] bg-[#2D3748]/5'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      serviceType === type.id ? 'bg-[#c8522a]/10' : 'bg-gray-50'
+                      serviceType === type.id ? 'bg-[#2D3748]/10' : 'bg-gray-50'
                     }`}>
-                      <Icon size={16} className={serviceType === type.id ? 'text-[#c8522a]' : 'text-gray-400'} />
+                      <Icon size={16} className={serviceType === type.id ? 'text-[#3B82F6]' : 'text-gray-400'} />
                     </div>
                     <div>
-                      <p className={`text-sm font-semibold ${serviceType === type.id ? 'text-[#c8522a]' : 'text-gray-800'}`}>
+                      <p className={`text-sm font-semibold ${serviceType === type.id ? 'text-[#3B82F6]' : 'text-gray-800'}`}>
                         {type.label}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">{type.description}</p>
@@ -218,7 +218,7 @@ export default function InquiryForm({ companyName }: Props) {
               value={projectName}
               onChange={e => setProjectName(e.target.value)}
               placeholder="e.g. Durso Design Mobile App, Client Portal Redesign"
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300"
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300"
             />
           </div>
 
@@ -231,7 +231,7 @@ export default function InquiryForm({ companyName }: Props) {
               onChange={e => setDescription(e.target.value)}
               placeholder="Tell us what you're trying to build, who it's for, and what problem it solves..."
               rows={5}
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300 resize-none"
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 resize-none"
             />
           </div>
 
@@ -247,7 +247,7 @@ export default function InquiryForm({ companyName }: Props) {
                     onClick={() => togglePlatform(p)}
                     className={`text-xs font-medium px-3 py-2 rounded-lg border transition-all ${
                       platforms.includes(p)
-                        ? 'bg-[#c8522a] border-[#c8522a] text-white'
+                        ? 'bg-[#2D3748] border-[#3B82F6] text-white'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
@@ -278,7 +278,7 @@ export default function InquiryForm({ companyName }: Props) {
                   onClick={() => setHasExistingBrand(opt.value)}
                   className={`flex-1 text-sm font-medium py-3 px-4 rounded-xl border transition-all ${
                     hasExistingBrand === opt.value
-                      ? 'border-[#c8522a] bg-[#c8522a]/5 text-[#c8522a]'
+                      ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#3B82F6]'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
@@ -303,7 +303,7 @@ export default function InquiryForm({ companyName }: Props) {
                   onClick={() => setHasExistingDesigns(opt.value)}
                   className={`flex-1 text-sm font-medium py-3 px-4 rounded-xl border transition-all ${
                     hasExistingDesigns === opt.value
-                      ? 'border-[#c8522a] bg-[#c8522a]/5 text-[#c8522a]'
+                      ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#3B82F6]'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
@@ -329,7 +329,7 @@ export default function InquiryForm({ companyName }: Props) {
                   onClick={() => setTimeline(t)}
                   className={`text-sm font-medium py-3 px-4 rounded-xl border text-left transition-all ${
                     timeline === t
-                      ? 'border-[#c8522a] bg-[#c8522a]/5 text-[#c8522a]'
+                      ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#3B82F6]'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
@@ -350,7 +350,7 @@ export default function InquiryForm({ companyName }: Props) {
                   onClick={() => setBudgetRange(b)}
                   className={`text-sm font-medium py-3 px-4 rounded-xl border text-left transition-all ${
                     budgetRange === b
-                      ? 'border-[#c8522a] bg-[#c8522a]/5 text-[#c8522a]'
+                      ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#3B82F6]'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}
                 >
@@ -369,7 +369,7 @@ export default function InquiryForm({ companyName }: Props) {
               onChange={e => setAdditionalNotes(e.target.value)}
               placeholder="Reference links, competitors you admire, specific requirements..."
               rows={4}
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300 resize-none"
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 resize-none"
             />
           </div>
 
@@ -395,7 +395,7 @@ export default function InquiryForm({ companyName }: Props) {
           <button
             onClick={() => setStep(s => s + 1)}
             disabled={step === 1 ? !canProceedStep1() : !canProceedStep2()}
-            className="flex items-center gap-2 bg-[#c8522a] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#b8471f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue →
           </button>
@@ -403,7 +403,7 @@ export default function InquiryForm({ companyName }: Props) {
           <button
             onClick={handleSubmit}
             disabled={!timeline || submitting}
-            className="flex items-center gap-2 bg-[#c8522a] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#b8471f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <><Loader2 size={14} className="animate-spin" /> Submitting...</>

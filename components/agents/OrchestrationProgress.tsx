@@ -94,7 +94,7 @@ export default function OrchestrationProgress({
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#0a0a0a', margin: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#2D3748', margin: 0 }}>
             {isComplete ? 'Orchestration complete' : 'Agents running...'}
           </p>
           <p style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>
@@ -102,7 +102,7 @@ export default function OrchestrationProgress({
           </p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: '#0a0a0a', margin: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: '#2D3748', margin: 0 }}>
             {session.completed_tasks}/{session.total_tasks}
           </p>
           <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>agents</p>
@@ -115,7 +115,7 @@ export default function OrchestrationProgress({
           style={{
             borderRadius: 99, height: 4,
             width: `${pct}%`,
-            background: isBudgetHit ? '#f97316' : isComplete ? '#22c55e' : '#0a0a0a',
+            background: isBudgetHit ? '#F59E0B' : isComplete ? '#10B981' : '#3B82F6',
             transition: 'width 0.5s ease',
           }}
         />
@@ -181,10 +181,10 @@ function AgentStatusRow({
           </div>
         )}
         {status === 'running' && (
-          <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #0a0a0a', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
+          <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #2D3748', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
         )}
         {status === 'pending' && (
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#e0e0e0' }} />
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#E2E8F0' }} />
         )}
         {status === 'failed' && (
           <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -195,8 +195,8 @@ function AgentStatusRow({
 
       <span style={{
         fontSize: 12.5,
-        color: status === 'completed' ? '#0a0a0a'
-             : status === 'running'   ? '#0a0a0a'
+        color: status === 'completed' ? '#2D3748'
+             : status === 'running'   ? '#2D3748'
              : status === 'failed'    ? '#ef4444'
              : '#bbb',
         fontWeight: status === 'completed' || status === 'running' ? 500 : 400,
@@ -224,7 +224,7 @@ function CompactProgress({ session, pct }: { session: OrchestrationSession; pct:
           style={{
             borderRadius: 99, height: 3,
             width: `${pct}%`,
-            background: isComplete ? '#22c55e' : '#0a0a0a',
+            background: isComplete ? '#22c55e' : '#2D3748',
             transition: 'width 0.5s ease',
           }}
         />

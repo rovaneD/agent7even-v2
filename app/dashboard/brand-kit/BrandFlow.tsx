@@ -133,7 +133,7 @@ export default function BrandFlow({
         </div>
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#c8522a] rounded-full transition-all duration-500"
+            className="h-full bg-[#2D3748] rounded-full transition-all duration-500"
             style={{ width: `${((chapterIndex) / BRAND_CHAPTERS.length) * 100}%` }}
           />
         </div>
@@ -143,14 +143,14 @@ export default function BrandFlow({
             <div
               key={c.id}
               className={`flex items-center gap-1 text-xs font-medium transition-colors ${
-                i === chapterIndex ? 'text-[#c8522a]' : i < chapterIndex ? 'text-gray-400' : 'text-gray-200'
+                i === chapterIndex ? 'text-[#9BA1AE]' : i < chapterIndex ? 'text-gray-400' : 'text-gray-200'
               }`}
             >
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs transition-all ${
                 i < chapterIndex
-                  ? 'bg-[#c8522a] text-white'
+                  ? 'bg-[#2D3748] text-white'
                   : i === chapterIndex
-                  ? 'bg-[#c8522a]/10 text-[#c8522a] border border-[#c8522a]/30'
+                  ? 'bg-[#2D3748]/10 text-[#9BA1AE] border border-[#3B82F6]/30'
                   : 'bg-gray-100 text-gray-300'
               }`}>
                 {i < chapterIndex ? <Check size={10} /> : i + 1}
@@ -164,7 +164,9 @@ export default function BrandFlow({
       {/* Chapter header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">{chapter.emoji}</span>
+          <div className="w-9 h-9 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center flex-shrink-0">
+            <span className="text-sm font-bold text-[#2D3748]">{chapterIndex + 1}</span>
+          </div>
           <div>
             <h2 className="text-xl font-semibold text-gray-900">{chapter.title}</h2>
             <p className="text-sm text-gray-400">{chapter.description}</p>
@@ -181,8 +183,8 @@ export default function BrandFlow({
           >
             {/* Question bubble */}
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-8 h-8 rounded-full bg-[#0d0d0d] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-[#c8522a]">A7</span>
+              <div className="w-8 h-8 rounded-full bg-[#2D3748] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-[#9BA1AE]">A7</span>
               </div>
               <div className="bg-gray-50 rounded-2xl rounded-tl-none px-5 py-4 flex-1">
                 <p className="text-sm font-semibold text-gray-900 mb-1">{q.question}</p>
@@ -200,7 +202,7 @@ export default function BrandFlow({
                   onChange={e => setAnswer(q.id, e.target.value)}
                   placeholder={q.placeholder}
                   rows={4}
-                  className="w-full text-sm text-gray-800 bg-white border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300 resize-none transition-colors"
+                  className="w-full text-sm text-gray-800 bg-white border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 resize-none transition-colors"
                 />
               )}
 
@@ -210,7 +212,7 @@ export default function BrandFlow({
                   value={(answers[q.id] as string) ?? ''}
                   onChange={e => setAnswer(q.id, e.target.value)}
                   placeholder={q.placeholder}
-                  className="w-full text-sm text-gray-800 bg-white border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#c8522a] focus:ring-1 focus:ring-[#c8522a]/20 placeholder:text-gray-300 transition-colors"
+                  className="w-full text-sm text-gray-800 bg-white border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 transition-colors"
                 />
               )}
 
@@ -222,7 +224,7 @@ export default function BrandFlow({
                       onClick={() => setAnswer(q.id, opt)}
                       className={`w-full text-left text-sm px-4 py-3 rounded-xl border transition-all ${
                         answers[q.id] === opt
-                          ? 'border-[#c8522a] bg-[#c8522a]/5 text-[#c8522a] font-medium'
+                          ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#9BA1AE] font-medium'
                           : 'border-gray-200 text-gray-700 hover:border-gray-300'
                       }`}
                     >
@@ -242,7 +244,7 @@ export default function BrandFlow({
                         onClick={() => toggleMultiselect(q.id, opt)}
                         className={`text-xs font-medium px-3 py-2 rounded-lg border transition-all ${
                           selected
-                            ? 'border-[#c8522a] bg-[#c8522a] text-white'
+                            ? 'border-[#3B82F6] bg-[#2D3748] text-white'
                             : 'border-gray-200 text-gray-600 hover:border-gray-300'
                         }`}
                       >
@@ -260,8 +262,8 @@ export default function BrandFlow({
         {/* Typing indicator */}
         {showTyping && (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#0d0d0d] flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-bold text-[#c8522a]">A7</span>
+            <div className="w-8 h-8 rounded-full bg-[#2D3748] flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-bold text-[#9BA1AE]">A7</span>
             </div>
             <div className="bg-gray-50 rounded-2xl rounded-tl-none px-5 py-4">
               <div className="flex gap-1">
@@ -303,7 +305,7 @@ export default function BrandFlow({
           <button
             onClick={handleNext}
             disabled={!chapterAnswered() || generating}
-            className="flex items-center gap-2 bg-[#c8522a] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#b8471f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generating ? (
               <>
@@ -313,7 +315,6 @@ export default function BrandFlow({
             ) : isLastChapter ? (
               <>
                 <span>Generate Brand Kit</span>
-                <span className="text-lg">✨</span>
               </>
             ) : (
               <>

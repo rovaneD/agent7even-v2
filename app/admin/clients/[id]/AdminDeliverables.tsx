@@ -149,7 +149,7 @@ export default function AdminDeliverables({ clientId, initialDeliverables }: Pro
               value={projectName}
               onChange={e => setProjectName(e.target.value)}
               placeholder="e.g. Brand Kit, Social Media"
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#c8522a] bg-white"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#3B82F6] bg-white"
             />
           </div>
           <div>
@@ -159,7 +159,7 @@ export default function AdminDeliverables({ clientId, initialDeliverables }: Pro
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="Version 1, Final, etc."
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#c8522a] bg-white"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#3B82F6] bg-white"
             />
           </div>
         </div>
@@ -168,7 +168,7 @@ export default function AdminDeliverables({ clientId, initialDeliverables }: Pro
           <div
             onClick={() => fileInputRef.current?.click()}
             className={`flex-1 flex items-center gap-3 border-2 border-dashed rounded-lg px-4 py-3 cursor-pointer transition-colors ${
-              selectedFile ? 'border-[#c8522a]/40 bg-[#c8522a]/5' : 'border-gray-200 hover:border-gray-300 bg-white'
+              selectedFile ? 'border-[#3B82F6]/40 bg-[#2D3748]/5' : 'border-gray-200 hover:border-gray-300 bg-white'
             }`}
           >
             <Upload size={15} className="text-gray-400 flex-shrink-0" />
@@ -188,7 +188,7 @@ export default function AdminDeliverables({ clientId, initialDeliverables }: Pro
           <button
             onClick={handleUpload}
             disabled={!selectedFile || !projectName.trim() || uploading}
-            className="flex items-center gap-2 text-sm font-semibold text-white bg-[#c8522a] hover:bg-[#b8471f] px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            className="flex items-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#b8471f] px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
             {uploading ? 'Uploading...' : 'Upload'}
@@ -219,7 +219,7 @@ export default function AdminDeliverables({ clientId, initialDeliverables }: Pro
           {Object.entries(grouped).map(([project, files]) => (
             <div key={project} className="border border-gray-100 rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
-                <Folder size={14} className="text-[#c8522a]" />
+                <Folder size={14} className="text-[#9BA1AE]" />
                 <span className="text-xs font-semibold text-gray-700">{project}</span>
                 <span className="text-xs text-gray-400 ml-auto">{files.length} file{files.length !== 1 ? 's' : ''}</span>
               </div>

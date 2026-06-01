@@ -36,7 +36,7 @@ export default function NewCampaignModal({ open, onClose }: Props) {
         }}
         onClick={e => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: '#0a0a0a', marginBottom: 6 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: '#2D3748', marginBottom: 6 }}>
           New campaign
         </h2>
         <p style={{ fontSize: 13, color: '#999', marginBottom: 20 }}>
@@ -87,7 +87,7 @@ function ModeCard({
       }}
       onMouseEnter={e => {
         const t = e.currentTarget as HTMLButtonElement
-        t.style.borderColor = '#0a0a0a'
+        t.style.borderColor = '#2D3748'
         t.style.background = '#f5f5f5'
       }}
       onMouseLeave={e => {
@@ -105,7 +105,7 @@ function ModeCard({
       >
         {icon}
       </div>
-      <p style={{ fontSize: 13.5, fontWeight: 600, color: '#0a0a0a', marginBottom: 4 }}>{title}</p>
+      <p style={{ fontSize: 13.5, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>{title}</p>
       <p style={{ fontSize: 11.5, color: '#999', lineHeight: 1.5 }}>{description}</p>
     </button>
   )

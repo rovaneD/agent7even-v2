@@ -257,24 +257,24 @@ export const DOCUMENT_TYPES = [
     type: 'voice',
     title: 'Brand Voice Statement',
     description: 'Your tone of voice guide — how to write, words to use, words to avoid',
-    emoji: '🗣️',
+    abbr: 'BV',
   },
   {
     type: 'story',
     title: 'Brand Story',
     description: 'Your origin, mission, and who you serve — in narrative form',
-    emoji: '📖',
+    abbr: 'BS',
   },
   {
     type: 'persona',
     title: 'Ideal Client Profile',
     description: 'A detailed persona of your perfect client',
-    emoji: '🎯',
+    abbr: 'IC',
   },
   {
     type: 'positioning',
     title: 'Brand Positioning Statement',
     description: 'Your unique position in the market — clear and compelling',
-    emoji: '📍',
+    abbr: 'BP',
   },
 ]

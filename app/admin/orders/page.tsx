@@ -44,7 +44,7 @@ export default async function AdminOrdersPage() {
     <div className="px-8 py-8 max-w-6xl">
       <CanvasContextDispatcher context={contextStr} />
       <div className="mb-8">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Admin</p>
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
         <p className="text-gray-500 text-sm mt-1">{active.length} active · {completed.length} completed</p>
       </div>

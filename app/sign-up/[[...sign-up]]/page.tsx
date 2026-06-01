@@ -17,12 +17,12 @@ export default async function SignUpPage({ searchParams }: Props) {
 
       {/* Left — branding panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-14 border-r border-white/5">
-        <a href="/" className="text-sm font-semibold tracking-widest uppercase text-[#c8522a]">
+        <a href="/" className="text-sm font-semibold tracking-widest uppercase text-[#9BA1AE]">
           Agent7even
         </a>
 
         <div>
-          <p className="text-xs font-semibold tracking-widest uppercase text-[#c8522a] mb-5">
+          <p className="text-xs font-semibold tracking-widest uppercase text-[#9BA1AE] mb-5">
             Get started free
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-[#f5f4f0] leading-snug mb-10">
@@ -32,8 +32,8 @@ export default async function SignUpPage({ searchParams }: Props) {
           <div className="space-y-6">
             {highlights.map(({ icon: Icon, label, desc }) => (
               <div key={label} className="flex items-start gap-4">
-                <div className="w-9 h-9 rounded-xl bg-[#c8522a]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Icon size={16} className="text-[#c8522a]" />
+                <div className="w-9 h-9 rounded-xl bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon size={16} className="text-[#9BA1AE]" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[#f5f4f0] mb-0.5">{label}</p>
@@ -53,7 +53,7 @@ export default async function SignUpPage({ searchParams }: Props) {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-[#111111]">
 
         {/* Mobile logo */}
-        <a href="/" className="lg:hidden text-sm font-semibold tracking-widest uppercase text-[#c8522a] mb-10">
+        <a href="/" className="lg:hidden text-sm font-semibold tracking-widest uppercase text-[#9BA1AE] mb-10">
           Agent7even
         </a>
 
@@ -61,15 +61,15 @@ export default async function SignUpPage({ searchParams }: Props) {
           forceRedirectUrl={postSignUpRedirect}
           appearance={{
             variables: {
-              colorPrimary: '#c8522a',
+              colorPrimary: '#3B82F6',
               borderRadius: '0.75rem',
               fontSize: '0.9rem',
             },
             elements: {
               card: 'shadow-xl',
-              formButtonPrimary: '!bg-[#c8522a] hover:!bg-[#b8471f] !text-white font-semibold',
-              footerActionLink: '!text-[#c8522a] hover:!text-[#b8471f] font-semibold',
-              identityPreviewEditButton: '!text-[#c8522a]',
+              formButtonPrimary: '!bg-[#2D3748] hover:!bg-[#1a2535] !text-white font-semibold',
+              footerActionLink: '!text-[#9BA1AE] hover:!text-[#1a2535] font-semibold',
+              identityPreviewEditButton: '!text-[#9BA1AE]',
             },
           }}
         />

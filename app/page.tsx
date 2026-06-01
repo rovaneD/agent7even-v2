@@ -8,14 +8,14 @@ export default function HomePage() {
       {/* Nav */}
       <header className="flex items-center justify-between px-8 py-5 border-b border-white/10">
         <span className="font-bold text-base tracking-wide">
-          AGENT<span className="text-[#c8522a]">7</span>EVEN
+          AGENT<span className="text-[#9BA1AE]">7</span>EVEN
         </span>
         <div className="flex items-center gap-4">
           <Show when="signed-out">
             <Link href="/sign-in" className="text-sm text-white/60 hover:text-white transition-colors">
               Sign in
             </Link>
-            <Link href="/sign-up" className="bg-[#c8522a] text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-[#b04623] transition-colors">
+            <Link href="/sign-up" className="bg-[#2D3748] text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-[#b04623] transition-colors">
               Sign up
             </Link>
           </Show>
@@ -33,7 +33,7 @@ export default function HomePage() {
 
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center text-center px-6 py-24">
-        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#c8522a] mb-4">
+        <p className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#9BA1AE] mb-4">
           Your marketing command center
         </p>
         <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6 max-w-3xl">
@@ -44,14 +44,14 @@ export default function HomePage() {
         </p>
         <div className="flex items-center gap-4 flex-wrap justify-center">
           <Show when="signed-out">
-            <Link href="/sign-up" className="bg-[#c8522a] text-white font-medium px-8 py-3 rounded-xl hover:bg-[#b04623] transition-colors">
+            <Link href="/sign-up" className="bg-[#2D3748] text-white font-medium px-8 py-3 rounded-xl hover:bg-[#b04623] transition-colors">
               Start free →
             </Link>
           </Show>
           <Show when="signed-in">
             <Link
               href="/dashboard"
-              className="bg-[#c8522a] text-white font-medium px-8 py-3 rounded-xl hover:bg-[#b04623] transition-colors"
+              className="bg-[#2D3748] text-white font-medium px-8 py-3 rounded-xl hover:bg-[#b04623] transition-colors"
             >
               Go to dashboard →
             </Link>
