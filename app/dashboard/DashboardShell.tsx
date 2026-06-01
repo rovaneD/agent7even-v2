@@ -309,8 +309,6 @@ export default function DashboardShell({
     function onOpenTask(e: Event) {
       const { task } = (e as CustomEvent<{ task: string }>).detail
       setMayaOpen(true)
-      setSidebarCollapsed(true)
-      localStorage.setItem('sidebar-collapsed', 'true')
       setMayaPendingTask(task)
       setActiveSessionId(null)
       setActiveMessages([])
@@ -336,8 +334,6 @@ export default function DashboardShell({
   function openHelpMode() {
     setHelpMode(true)
     setMayaOpen(true)
-    setSidebarCollapsed(true)
-    localStorage.setItem('sidebar-collapsed', 'true')
     setActiveSessionId(null)
     setActiveMessages([])
     setActiveMode(null)
@@ -353,8 +349,6 @@ export default function DashboardShell({
     }
     setHelpMode(false)
     setMayaOpen(true)
-    setSidebarCollapsed(true)
-    localStorage.setItem('sidebar-collapsed', 'true')
     setActiveSessionId(null)
     setActiveMessages([])
     setActiveMode(null)
@@ -371,8 +365,6 @@ export default function DashboardShell({
       setActiveMode(session?.mode ?? null)
       setActiveSessionId(sessionId)
       setMayaOpen(true)
-      setSidebarCollapsed(true)
-      localStorage.setItem('sidebar-collapsed', 'true')
       setMayaPendingTask(null)
       setPanelKey(k => k + 1)
     } finally {
