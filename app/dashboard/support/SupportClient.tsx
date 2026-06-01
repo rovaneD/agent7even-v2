@@ -233,7 +233,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
             <button
               onClick={handleSubmit}
               disabled={!subject.trim() || !body.trim() || submitting}
-              className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1a2535] py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1E293B] py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               {submitting ? 'Submitting...' : 'Submit ticket'}
@@ -313,7 +313,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
               <button
                 onClick={handleReply}
                 disabled={!replyBody.trim() || replying}
-                className="flex items-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1a2535] px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1E293B] px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {replying ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 {replying ? 'Sending...' : 'Send reply'}
@@ -342,7 +342,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
         </div>
         <button
           onClick={() => setView('new')}
-          className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1a2535] transition-colors"
+          className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-4 py-2.5 rounded-xl hover:bg-[#1E293B] transition-colors"
         >
           <Plus size={15} />
           New ticket

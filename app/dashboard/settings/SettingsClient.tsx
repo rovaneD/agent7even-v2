@@ -275,7 +275,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
               saved
                 ? 'bg-emerald-50 text-emerald-700'
                 : isDirty
-                ? 'bg-[#2D3748] text-white hover:bg-[#1a2535]'
+                ? 'bg-[#2D3748] text-white hover:bg-[#1E293B]'
                 : 'bg-gray-50 text-gray-300 cursor-not-allowed'
             }`}
           >

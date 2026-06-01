@@ -246,7 +246,7 @@ export default function FoundationEditor({
           </p>
           <Link
             href="/foundation"
-            className="px-5 py-2.5 bg-[#2D3748] text-white text-sm font-medium rounded-xl hover:bg-[#1a2535] transition-colors"
+            className="px-5 py-2.5 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl hover:bg-[#1E293B] transition-colors"
           >
             {foundationComplete ? 'Go to Foundation' : 'Set up Foundation'}
           </Link>

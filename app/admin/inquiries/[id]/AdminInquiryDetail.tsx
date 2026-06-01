@@ -142,7 +142,7 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
             className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
               saved
                 ? 'bg-emerald-50 text-emerald-700'
-                : 'bg-[#2D3748] text-white hover:bg-[#1a2535]'
+                : 'bg-[#2D3748] text-white hover:bg-[#1E293B]'
             }`}
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> :

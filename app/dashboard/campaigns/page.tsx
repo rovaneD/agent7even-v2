@@ -86,7 +86,7 @@ The user can create new campaigns or view existing ones.`
         {!!campaigns?.length && (
           <Link
             href="/dashboard/campaigns/new"
-            className="flex-shrink-0 flex items-center gap-1.5 bg-[#2D3748] text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-[#1a2535] transition-colors mt-1"
+            className="flex-shrink-0 flex items-center gap-1.5 bg-[#2D3748] text-white text-[15px] font-medium px-4 py-2.5 rounded-xl hover:bg-[#1E293B] transition-colors mt-1"
           >
             <Plus size={13} /> New campaign
           </Link>
@@ -104,7 +104,7 @@ The user can create new campaigns or view existing ones.`
           </p>
           <Link
             href="/dashboard/campaigns/new"
-            className="flex items-center gap-1.5 bg-[#2D3748] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-[#1a2535] transition-colors"
+            className="flex items-center gap-1.5 bg-[#2D3748] text-white text-[15px] font-medium px-5 py-2.5 rounded-xl hover:bg-[#1E293B] transition-colors"
           >
             <Plus size={13} /> Build your first campaign
           </Link>

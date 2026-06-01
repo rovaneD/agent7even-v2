@@ -222,7 +222,7 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleApprove(item.taskId)}
-                    className="flex-1 py-2 bg-[#2D3748] text-white text-xs font-medium rounded-lg hover:bg-[#1a2535] transition-colors"
+                    className="flex-1 py-2 bg-[#2D3748] text-white text-xs font-medium rounded-lg hover:bg-[#1E293B] transition-colors"
                   >
                     Approve
                   </button>

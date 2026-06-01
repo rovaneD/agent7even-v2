@@ -126,7 +126,7 @@ export default function InquiryForm({ companyName }: Props) {
         </p>
         <button
           onClick={() => router.push('/dashboard/services')}
-          className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors"
+          className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-3 rounded-xl hover:bg-[#1E293B] transition-colors"
         >
           Back to services
         </button>
@@ -395,7 +395,7 @@ export default function InquiryForm({ companyName }: Props) {
           <button
             onClick={() => setStep(s => s + 1)}
             disabled={step === 1 ? !canProceedStep1() : !canProceedStep2()}
-            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-3 rounded-xl hover:bg-[#1E293B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue →
           </button>
@@ -403,7 +403,7 @@ export default function InquiryForm({ companyName }: Props) {
           <button
             onClick={handleSubmit}
             disabled={!timeline || submitting}
-            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-3 rounded-xl hover:bg-[#1E293B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <><Loader2 size={14} className="animate-spin" /> Submitting...</>

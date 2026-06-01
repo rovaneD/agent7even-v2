@@ -83,7 +83,7 @@ export default function BrandDocument({ document, onBack, onSaved, onRegenerate 
               saved
                 ? 'bg-emerald-50 text-emerald-700'
                 : isDirty
-                ? 'bg-[#2D3748] text-white hover:bg-[#b8471f]'
+                ? 'bg-[#2D3748] text-white hover:bg-[#1E293B]'
                 : 'bg-gray-50 text-gray-300 cursor-not-allowed'
             }`}
           >

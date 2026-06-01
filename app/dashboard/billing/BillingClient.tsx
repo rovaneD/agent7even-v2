@@ -232,7 +232,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
             href={portalUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 px-4 py-2.5 rounded-xl transition-colors"
+            className="inline-flex items-center gap-2 text-[15px] font-medium text-[#2D3748] hover:text-[#1E293B] bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E2E8F0] hover:border-[#94A3B8] px-4 py-2.5 rounded-xl transition-colors"
           >
             Manage billing &amp; invoices
             <ExternalLink size={13} />
@@ -333,7 +333,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
                   <button
                     onClick={() => handleUpgrade(planKey)}
                     disabled={upgradeLoading === planKey}
-                    className="w-full py-2.5 rounded-lg text-sm font-semibold bg-[#2D3748] text-white hover:bg-[#1a2535] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full py-2.5 rounded-xl text-[15px] font-medium bg-[#2D3748] text-white hover:bg-[#1E293B] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {upgradeLoading === planKey ? 'Redirecting…' : `Upgrade to ${p.name}`}
                   </button>

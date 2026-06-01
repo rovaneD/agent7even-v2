@@ -305,7 +305,7 @@ export default function BrandFlow({
           <button
             onClick={handleNext}
             disabled={!chapterAnswered() || generating}
-            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-3 rounded-xl hover:bg-[#1E293B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generating ? (
               <>

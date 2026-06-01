@@ -296,7 +296,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
             </button>
             <button
               onClick={handleGenerateAnyway}
-              className="flex-1 py-3 bg-[#2D3748] text-white rounded-xl text-sm font-medium hover:bg-[#1a2535] transition-colors"
+              className="flex-1 py-3 bg-[#2D3748] text-white rounded-xl text-sm font-medium hover:bg-[#1E293B] transition-colors"
             >
               Generate anyway
             </button>
@@ -701,7 +701,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
           <button
             onClick={handleNext}
             disabled={!canProceed()}
-            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-3 rounded-xl hover:bg-[#1E293B] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {step === 4 ? 'Build my foundation' : 'Continue'}
             <ArrowRight size={15} />

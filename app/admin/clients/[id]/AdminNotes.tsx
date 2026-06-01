@@ -60,7 +60,7 @@ export default function AdminNotes({
         <button
           onClick={addNote}
           disabled={!body.trim() || saving}
-          className="w-10 h-10 rounded-xl bg-[#2D3748] flex items-center justify-center disabled:opacity-40 hover:bg-[#b04623] transition-colors flex-shrink-0 self-end"
+          className="w-10 h-10 rounded-xl bg-[#2D3748] flex items-center justify-center disabled:opacity-40 hover:bg-[#1E293B] transition-colors flex-shrink-0 self-end"
         >
           {saving ? <Loader2 size={14} className="text-white animate-spin" /> : <Send size={14} className="text-white" />}
         </button>

@@ -89,7 +89,7 @@ export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
         <p className="text-gray-400 text-sm mb-6">Talk to Maya to build your first one.</p>
         <Link
           href="/maya"
-          className="bg-[#2D3748] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-[#1a2535] transition-colors"
+          className="bg-[#2D3748] text-white text-[15px] font-medium px-5 py-2.5 rounded-xl hover:bg-[#1E293B] transition-colors"
         >
           Talk to Maya
         </Link>

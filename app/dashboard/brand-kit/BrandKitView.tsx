@@ -453,7 +453,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
             <button
               onClick={generatePalette}
               disabled={generating}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-sm font-medium rounded-xl hover:bg-[#1a2535] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl hover:bg-[#1E293B] disabled:opacity-60 transition-colors"
             >
               {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
               {generating ? 'Generating…' : 'Generate with Maya'}
@@ -495,7 +495,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
             <button
               onClick={acceptPalette}
               disabled={accepting}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-sm font-medium rounded-xl hover:bg-[#1a2535] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl hover:bg-[#1E293B] disabled:opacity-60 transition-colors"
             >
               {accepting ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
               {accepting ? 'Saving…' : 'Accept palette'}
@@ -701,7 +701,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
             <button
               onClick={generateFonts}
               disabled={generating}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-sm font-medium rounded-xl hover:bg-[#1a2535] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl hover:bg-[#1E293B] disabled:opacity-60 transition-colors"
             >
               {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
               {generating ? 'Generating…' : 'Generate with Maya'}
@@ -739,7 +739,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
                 </div>
                 <button
                   onClick={() => applyPairing(pairing)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium bg-[#2D3748] text-white rounded-xl hover:bg-[#1a2535] transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-[15px] font-medium bg-[#2D3748] text-white rounded-xl hover:bg-[#1E293B] transition-colors"
                 >
                   <Check size={13} /> Use this pairing
                 </button>
@@ -827,7 +827,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
                   onClick={() => saveFont(role)}
                   disabled={!font?.family || isSaving}
                   className={`w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-xl transition-colors ${
-                    isSaved ? 'bg-green-50 text-green-700' : 'bg-[#2D3748] text-white hover:bg-[#1a2535] disabled:opacity-40'
+                    isSaved ? 'bg-green-50 text-green-700' : 'bg-[#2D3748] text-white hover:bg-[#1E293B] disabled:opacity-40'
                   }`}
                 >
                   {isSaving ? <Loader2 size={13} className="animate-spin" /> : isSaved ? <><Check size={13} /> Saved</> : <><Save size={13} /> Save font</>}
@@ -910,7 +910,7 @@ function ImagerySection({ profileId: _profileId, assets, documents, onAssetsChan
             onClick={saveStyle}
             disabled={!style.trim()}
             className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-              styleSaved ? 'bg-green-50 text-green-700' : 'bg-[#2D3748] text-white hover:bg-[#1a2535] disabled:opacity-40'
+              styleSaved ? 'bg-green-50 text-green-700' : 'bg-[#2D3748] text-white hover:bg-[#1E293B] disabled:opacity-40'
             }`}
           >
             {styleSaved ? <><Check size={13} /> Saved</> : <><Save size={13} /> Save</>}
@@ -1104,7 +1104,7 @@ function DocumentCard({ doc, title, placeholder, isFoundation, regenerating, onS
           />
           <div className="flex gap-2 mt-3">
             <button onClick={handleSave} disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-sm font-medium rounded-xl disabled:opacity-60">
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl disabled:opacity-60">
               {saving ? <Loader2 size={13} className="animate-spin" /> : saved ? <Check size={13} /> : <Save size={13} />}
               {saving ? 'Saving…' : 'Save'}
             </button>
@@ -1217,7 +1217,7 @@ function TemplatesSection({ profileId: _profileId, assets, onAssetsChange, allAs
           <button
             onClick={addTemplate}
             disabled={adding || !newName.trim() || !newUrl.trim()}
-            className="flex items-center gap-1.5 text-sm font-medium bg-[#2D3748] text-white px-4 py-2 rounded-xl hover:bg-[#1a2535] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 text-[15px] font-medium bg-[#2D3748] text-white px-4 py-2 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors"
           >
             {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
             Add link

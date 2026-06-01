@@ -15,7 +15,7 @@ export default function HomePage() {
             <Link href="/sign-in" className="text-sm text-white/60 hover:text-white transition-colors">
               Sign in
             </Link>
-            <Link href="/sign-up" className="bg-[#2D3748] text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-[#b04623] transition-colors">
+            <Link href="/sign-up" className="bg-[#2D3748] text-white text-[15px] font-medium px-5 py-2 rounded-lg hover:bg-[#1E293B] transition-colors">
               Sign up
             </Link>
           </Show>
@@ -44,14 +44,14 @@ export default function HomePage() {
         </p>
         <div className="flex items-center gap-4 flex-wrap justify-center">
           <Show when="signed-out">
-            <Link href="/sign-up" className="bg-[#2D3748] text-white font-medium px-8 py-3 rounded-xl hover:bg-[#b04623] transition-colors">
+            <Link href="/sign-up" className="bg-[#2D3748] text-white font-medium px-8 py-3 rounded-xl hover:bg-[#1E293B] transition-colors">
               Start free →
             </Link>
           </Show>
           <Show when="signed-in">
             <Link
               href="/dashboard"
-              className="bg-[#2D3748] text-white font-medium px-8 py-3 rounded-xl hover:bg-[#b04623] transition-colors"
+              className="bg-[#2D3748] text-white font-medium px-8 py-3 rounded-xl hover:bg-[#1E293B] transition-colors"
             >
               Go to dashboard →
             </Link>

@@ -283,7 +283,7 @@ function GAConnectModal({
               <button
                 onClick={submitAgency}
                 disabled={loading}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-[#2D3748] rounded-xl hover:bg-[#1a2535] disabled:opacity-50 transition-colors"
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-[#2D3748] rounded-xl hover:bg-[#1E293B] disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Saving…' : 'Request connection'}
               </button>
@@ -378,7 +378,7 @@ function PropertySelectorModal({
             </p>
             <a
               href="/api/analytics/ga-connect"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-[#2D3748] px-4 py-2.5 rounded-lg hover:bg-[#1a2535] transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-[#2D3748] px-4 py-2.5 rounded-lg hover:bg-[#1E293B] transition-colors"
             >
               Try a different Google account
             </a>
@@ -411,7 +411,7 @@ function PropertySelectorModal({
           <button
             onClick={save}
             disabled={saving || !selected}
-            className="w-full mt-5 py-3 text-sm font-semibold text-white bg-[#2D3748] rounded-xl hover:bg-[#1a2535] disabled:opacity-50 transition-colors"
+            className="w-full mt-5 py-3 text-sm font-semibold text-white bg-[#2D3748] rounded-xl hover:bg-[#1E293B] disabled:opacity-50 transition-colors"
           >
             {saving ? 'Connecting…' : 'Connect property'}
           </button>
@@ -468,7 +468,7 @@ function LockedPreviewSection({
           </div>
           <a
             href={connectHref}
-            className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#1a2535] transition-colors pointer-events-auto"
+            className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#1E293B] transition-colors pointer-events-auto"
           >
             {connectLabel}
             <ExternalLink size={12} />
@@ -572,7 +572,7 @@ function WebsiteAnalyticsSection({
             </div>
             <button
               onClick={onConnect}
-              className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#1a2535] transition-colors pointer-events-auto"
+              className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#1E293B] transition-colors pointer-events-auto"
             >
               {oauthConnected ? 'Select property' : 'Connect Google Analytics'}
             </button>

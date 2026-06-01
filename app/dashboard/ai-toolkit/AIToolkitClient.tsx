@@ -289,7 +289,7 @@ function PromptRunner({
           <button
             onClick={run}
             disabled={loading || (!allVarsFilled && prompt.variables.length > 0)}
-            className="w-full bg-[#2D3748] text-white font-medium text-sm py-3 rounded-xl hover:bg-[#b04623] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-[#2D3748] text-white font-medium text-sm py-3 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
           >
             {loading ? <><Loader2 size={14} className="animate-spin" /> Generating...</> : <><Zap size={14} /> Generate</>}
           </button>
@@ -350,7 +350,7 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
         </div>
         <a
           href="/pricing"
-          className="inline-flex items-center gap-2 bg-[#2D3748] hover:bg-[#1a2535] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors flex-shrink-0"
+          className="inline-flex items-center gap-2 bg-[#2D3748] hover:bg-[#1E293B] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors flex-shrink-0"
         >
           View plans <ArrowRight size={14} />
         </a>

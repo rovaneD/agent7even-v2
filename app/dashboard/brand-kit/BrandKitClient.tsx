@@ -163,7 +163,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
 
           <button
             onClick={() => setView('flow')}
-            className="inline-flex items-center gap-2 bg-[#2D3748] text-white font-semibold text-sm px-6 py-3 rounded-xl hover:bg-[#1a2535] transition-colors"
+            className="inline-flex items-center gap-2 bg-[#2D3748] text-white font-semibold text-sm px-6 py-3 rounded-xl hover:bg-[#1E293B] transition-colors"
           >
             <Sparkles size={15} />
             Start brand build

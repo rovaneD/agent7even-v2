@@ -737,7 +737,7 @@ export default function ClientDetail({
                     <button
                       onClick={handleAddNote}
                       disabled={!newNote.trim() || savingNote}
-                      className="flex items-center gap-2 text-sm font-medium bg-[#2D3748] text-white px-4 py-2 rounded-xl disabled:opacity-40 transition-opacity"
+                      className="flex items-center gap-2 text-[15px] font-medium bg-[#2D3748] text-white px-4 py-2 rounded-xl disabled:opacity-40 transition-opacity"
                     >
                       {savingNote ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                       Add note

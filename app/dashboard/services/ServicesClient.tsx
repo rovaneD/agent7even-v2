@@ -192,7 +192,7 @@ function RequestModal({ service, onClose, onSubmit }: RequestModalProps) {
           <button
             onClick={handleSubmit}
             disabled={!brief.trim() || loading}
-            className="flex items-center gap-2 bg-[#2D3748] text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-[#b04623] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-2.5 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : null}
             Submit request

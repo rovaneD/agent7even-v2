@@ -188,7 +188,7 @@ export default function AdminDeliverables({ clientId, initialDeliverables }: Pro
           <button
             onClick={handleUpload}
             disabled={!selectedFile || !projectName.trim() || uploading}
-            className="flex items-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#b8471f] px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            className="flex items-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1E293B] px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
             {uploading ? 'Uploading...' : 'Upload'}
