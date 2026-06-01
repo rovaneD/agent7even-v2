@@ -769,8 +769,8 @@ export default function DashboardShell({
       {/* Maya panel */}
       {mayaOpen && (
         <div
-          className="hidden lg:flex"
-          style={{ width: 460, flexShrink: 0, borderRight: '1px solid #E2E8F0', overflow: 'hidden', height: '100%' }}
+          className="hidden lg:block"
+          style={{ flexShrink: 0, overflow: 'hidden', height: '100%' }}
         >
           <MayChatPanel
             key={`panel-${panelKey}`}

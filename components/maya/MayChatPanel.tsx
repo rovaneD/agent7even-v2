@@ -63,6 +63,12 @@ const MODES = [
   { id: 'Just talk to Maya',    label: 'Just talk to Maya',    description: 'Open conversation, no agenda',    Icon: MessageCircle },
 ]
 
+// ── Constants ─────────────────────────────────────────────────────────────
+
+const MIN_WIDTH = 320
+const MAX_WIDTH = 640
+const DEFAULT_WIDTH = 380
+
 // ── Component ─────────────────────────────────────────────────────────────
 
 export default function MayChatPanel({
@@ -82,10 +88,40 @@ export default function MayChatPanel({
 
   const [mode, setMode]         = useState<string | null>(initialMode)
   const [chatInput, setChatInput] = useState('')
+  const [panelWidth, setPanelWidth] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_WIDTH
+    return parseInt(localStorage.getItem('maya-panel-width') ?? String(DEFAULT_WIDTH))
+  })
+  const [isDragging, setIsDragging] = useState(false)
+  const panelWidthRef = useRef(panelWidth)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesRef    = useRef<UIMessage[]>([])
   const modeRef        = useRef<string | null>(initialMode)
+
+  function handleDragMouseDown(e: React.MouseEvent) {
+    e.preventDefault()
+    setIsDragging(true)
+    const startX = e.clientX
+    const startWidth = panelWidthRef.current
+
+    function onMouseMove(ev: MouseEvent) {
+      const delta = ev.clientX - startX
+      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + delta))
+      setPanelWidth(newWidth)
+      panelWidthRef.current = newWidth
+    }
+
+    function onMouseUp() {
+      setIsDragging(false)
+      localStorage.setItem('maya-panel-width', String(panelWidthRef.current))
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }
 
   const canvasDataRef = useRef(canvasData)
   useEffect(() => { canvasDataRef.current = canvasData }, [canvasData])
@@ -187,7 +223,19 @@ export default function MayChatPanel({
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', width: panelWidth, flexShrink: 0, position: 'relative', borderRight: '1px solid #E2E8F0' }}>
+
+      {/* Drag handle — right edge */}
+      <div
+        onMouseDown={handleDragMouseDown}
+        style={{
+          position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize',
+          zIndex: 10, background: isDragging ? 'rgba(59,130,246,0.4)' : 'transparent',
+          transition: 'background 0.12s',
+        }}
+        onMouseEnter={e => { if (!isDragging) (e.currentTarget as HTMLDivElement).style.background = 'rgba(59,130,246,0.2)' }}
+        onMouseLeave={e => { if (!isDragging) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+      />
 
       {/* Header */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #E2E8F0' }}>
