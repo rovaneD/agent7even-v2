@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useId } from 'react'
 import { Bell, X, CheckCheck, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -57,13 +57,14 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
   const [marking, setMarking] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
+  const instanceId = useId()
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  // Realtime subscription
+  // Realtime subscription — instanceId makes the channel unique per mounted instance
   useEffect(() => {
     const channel = supabase
-      .channel(`notifications:${profileId}`)
+      .channel(`notifications:${profileId}:${instanceId}`)
       .on(
         'postgres_changes',
         {
