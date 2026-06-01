@@ -34,14 +34,31 @@ export async function POST(req: Request) {
       scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
     })
 
-    // Fire the agent immediately if not scheduled
+    // Fire the agent immediately if not scheduled.
+    // On any failure, mark the task failed so it surfaces in the UI instead of hanging at pending.
     if (!scheduledFor) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-      fetch(`${baseUrl}/api/agents/run/${agent.replace(/_/g, '-')}`, {
+      const runUrl = `${baseUrl}/api/agents/run/${agent.replace(/_/g, '-')}`
+      fetch(runUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskId: task.id, input: { ...input, userId: profile.id } }),
-      }).catch(err => console.error('Agent fire error:', err))
+      }).then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text().catch(() => `HTTP ${res.status}`)
+          console.error('Agent run failed:', runUrl, res.status, text)
+          await supabase
+            .from('agent_tasks')
+            .update({ status: 'failed', error: `run-route error ${res.status}: ${text.slice(0, 200)}`, completed_at: new Date().toISOString() })
+            .eq('id', task.id)
+        }
+      }).catch(async (err) => {
+        console.error('Agent fire error:', err)
+        await supabase
+          .from('agent_tasks')
+          .update({ status: 'failed', error: String(err).slice(0, 200), completed_at: new Date().toISOString() })
+          .eq('id', task.id)
+      })
     }
 
     logActivity(profile.id, 'agent_run', { agent }).catch(() => {})
