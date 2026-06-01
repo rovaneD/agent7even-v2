@@ -118,7 +118,7 @@ export default function InquiryForm({ companyName }: Props) {
         <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-6">
           <CheckCircle size={28} className="text-emerald-600" />
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Inquiry submitted</h2>
+        <h2 className="text-[26px] font-semibold text-[#2D3748] mb-2">Inquiry submitted</h2>
         <p className="text-sm text-gray-400 leading-relaxed mb-8">
           We've received your project inquiry for <strong>{projectName}</strong>.
           The Agent7even team will review your brief and get back to you within 1-2 business days

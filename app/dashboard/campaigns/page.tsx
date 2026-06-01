@@ -73,8 +73,8 @@ The user can create new campaigns or view existing ones.`
       {/* Page header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-1">Campaigns</p>
-          <h1 className="text-2xl font-semibold text-[#2D3748]">My campaigns</h1>
+          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-1">Campaigns</p>
+          <h1 className="text-[26px] font-semibold text-[#2D3748]">My campaigns</h1>
           {campaigns?.length ? (
             <p className="text-sm text-[#64748B] mt-1">
               {campaigns.length} campaign{campaigns.length === 1 ? '' : 's'}

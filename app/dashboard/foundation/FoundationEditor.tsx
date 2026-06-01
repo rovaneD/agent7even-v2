@@ -228,7 +228,7 @@ export default function FoundationEditor({
     return (
       <div className="px-8 pt-8 pb-6 max-w-[1200px]">
         <div className="mb-8">
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Foundation</p>
+          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">Foundation</p>
           <h1 className="text-2xl font-bold text-gray-900">Your business foundation</h1>
           <p className="text-gray-500 text-sm mt-1">The answers that inform everything Maya creates for you.</p>
         </div>
@@ -262,7 +262,7 @@ export default function FoundationEditor({
 
       {/* Header */}
       <div className="mb-8">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Foundation</p>
+        <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">Foundation</p>
         <h1 className="text-2xl font-bold text-gray-900">{companyName || 'Your'} foundation</h1>
         <p className="text-gray-500 text-sm mt-1">
           The answers that inform everything Maya creates for you. Edit anything, then rescore.

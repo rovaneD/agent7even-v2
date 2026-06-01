@@ -144,7 +144,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
     <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-8">
 
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Billing</h1>
+        <h1 className="text-[26px] font-semibold text-[#2D3748]">Billing</h1>
         <p className="text-sm text-gray-400 mt-0.5">Manage your plan and payment history</p>
       </div>
 
@@ -188,13 +188,13 @@ The user can view their current plan, upgrade to a higher tier, and access the S
                   <PlanIcon size={17} className="text-[#3B82F6]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{currentPlan.name}</h2>
+                  <h2 className="text-[17px] font-semibold text-[#2D3748]">{currentPlan.name}</h2>
                   <p className="text-sm text-gray-400">${currentPlan.monthlyPrice}/mo</p>
                 </div>
               </div>
             ) : (
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">No active plan</h2>
+                <h2 className="text-[17px] font-semibold text-[#2D3748]">No active plan</h2>
                 <p className="text-sm text-gray-400">Choose a plan to unlock the full platform</p>
               </div>
             )}
@@ -251,7 +251,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h3 className="text-base font-semibold text-gray-900">
+              <h3 className="text-[17px] font-semibold text-[#2D3748]">
                 {currentPlan ? 'Upgrade your plan' : 'Choose a plan'}
               </h3>
               <p className="text-sm text-gray-400 mt-0.5">
@@ -305,7 +305,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
                   </div>
 
                   {/* Price */}
-                  <p className="text-2xl font-semibold text-gray-900 mb-0.5">
+                  <p className="text-2xl font-semibold text-[#2D3748] mb-0.5">
                     ${price}<span className="text-sm font-normal text-gray-400">/mo</span>
                   </p>
                   {billingAnnual ? (
@@ -347,7 +347,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
       {/* Invoice history */}
       {invoices.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h3 className="text-base font-semibold text-gray-900 mb-5">Invoice history</h3>
+          <h3 className="text-[17px] font-semibold text-[#2D3748] mb-5">Invoice history</h3>
           <div className="divide-y divide-gray-50">
             {invoices.map((inv) => (
               <div key={inv.id} className="flex items-center justify-between py-3">
@@ -385,7 +385,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
 
       {invoices.length === 0 && currentPlan && (
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h3 className="text-base font-semibold text-gray-900 mb-2">Invoice history</h3>
+          <h3 className="text-[17px] font-semibold text-[#2D3748] mb-2">Invoice history</h3>
           <p className="text-sm text-gray-400">No invoices yet — they&#39;ll appear here after your first billing cycle.</p>
         </div>
       )}

@@ -119,7 +119,7 @@ export default async function AdminRevenuePage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Revenue</h1>
+        <h1 className="text-[26px] font-semibold text-[#2D3748]">Revenue</h1>
         <p className="text-sm text-gray-400 mt-0.5">Subscription overview and payment history</p>
       </div>
 

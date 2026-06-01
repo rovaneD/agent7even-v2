@@ -504,7 +504,7 @@ export default function AIToolkitClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">AI Toolkit</p>
+          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">AI Toolkit</p>
           <h1 className="text-2xl font-bold text-gray-900">Your AI tools</h1>
           <p className="text-gray-500 text-sm mt-1">Generate content, copy, and strategy in seconds.</p>
         </div>

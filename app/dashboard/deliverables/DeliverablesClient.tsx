@@ -174,7 +174,7 @@ The user can download files from Agent7even and upload their own briefs and asse
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Deliverables</h1>
+          <h1 className="text-[26px] font-semibold text-[#2D3748]">Deliverables</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {companyName ? `${companyName} — ` : ''}Files, assets, and project briefs
           </p>
@@ -294,7 +294,7 @@ The user can download files from Agent7even and upload their own briefs and asse
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Upload file</h3>
+              <h3 className="text-[17px] font-semibold text-[#2D3748]">Upload file</h3>
               <button onClick={() => setShowUploadModal(false)}>
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>

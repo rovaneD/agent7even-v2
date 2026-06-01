@@ -142,14 +142,14 @@ export default function BrandKitView({
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Brand Kit</p>
+          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">Brand Kit</p>
           <h1 className="text-2xl font-bold text-gray-900">Brand Identity</h1>
           <p className="text-sm text-gray-400 mt-1">Your complete brand system — colors, fonts, voice, and assets</p>
         </div>
         <div className="flex items-center gap-3 mt-1">
           <div className="text-right">
             <p className="text-xs text-gray-400">Complete</p>
-            <p className="text-lg font-semibold text-gray-900">{completedCount}/6</p>
+            <p className="text-[17px] font-semibold text-[#2D3748]">{completedCount}/6</p>
           </div>
           <div className="w-24 bg-[#E2E8F0] rounded-full h-2">
             <div className={`${completedCount === 6 ? 'bg-[#10B981]' : 'bg-[#3B82F6]'} rounded-full h-2 transition-all`} style={{ width: `${(completedCount / 6) * 100}%` }} />
@@ -1079,13 +1079,13 @@ function DocumentCard({ doc, title, placeholder, isFoundation, regenerating, onS
         <div className="flex gap-2">
           {!editing && (
             <button onClick={() => setEditing(true)}
-              className="text-xs font-medium text-gray-600 hover:text-black px-3 py-1.5 border border-gray-200 rounded-lg transition-colors">
+              className="text-xs font-medium text-gray-600 hover:text-[#2D3748] px-3 py-1.5 border border-gray-200 rounded-lg transition-colors">
               Edit
             </button>
           )}
           {isFoundation && (
             <button onClick={onRegenerate} disabled={regenerating}
-              className="text-xs font-medium text-gray-600 hover:text-black px-3 py-1.5 border border-gray-200 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50">
+              className="text-xs font-medium text-gray-600 hover:text-[#2D3748] px-3 py-1.5 border border-gray-200 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50">
               {regenerating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
               {regenerating ? 'Regenerating…' : 'Regenerate'}
             </button>
@@ -1251,13 +1251,13 @@ function TemplatesSection({ profileId: _profileId, assets, onAssetsChange, allAs
                 <div className="flex items-center gap-2">
                   {asset.external_url && (
                     <a href={asset.external_url} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-gray-500 hover:text-black px-3 py-1.5 border border-gray-200 rounded-lg">
+                      className="text-xs text-gray-500 hover:text-[#2D3748] px-3 py-1.5 border border-gray-200 rounded-lg">
                       Open →
                     </a>
                   )}
                   {(asset.signed_url || asset.file_url) && (
                     <a href={asset.signed_url ?? asset.file_url ?? ''} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-gray-500 hover:text-black px-3 py-1.5 border border-gray-200 rounded-lg">
+                      className="text-xs text-gray-500 hover:text-[#2D3748] px-3 py-1.5 border border-gray-200 rounded-lg">
                       Download →
                     </a>
                   )}

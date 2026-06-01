@@ -168,7 +168,7 @@ export default function BrandFlow({
             <span className="text-sm font-bold text-[#2D3748]">{chapterIndex + 1}</span>
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">{chapter.title}</h2>
+            <h2 className="text-[26px] font-semibold text-[#2D3748]">{chapter.title}</h2>
             <p className="text-sm text-gray-400">{chapter.description}</p>
           </div>
         </div>

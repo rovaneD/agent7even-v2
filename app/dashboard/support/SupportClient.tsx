@@ -166,7 +166,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
           Back to support
         </button>
 
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">New support ticket</h1>
+        <h1 className="text-[26px] font-semibold text-[#2D3748] mb-1">New support ticket</h1>
         <p className="text-sm text-gray-400 mb-8">We typically respond within one business day.</p>
 
         <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
@@ -258,7 +258,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
 
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{activeTicket.subject}</h1>
+            <h1 className="text-[26px] font-semibold text-[#2D3748]">{activeTicket.subject}</h1>
             <div className="flex items-center gap-3 mt-2">
               {statusBadge(activeTicket.status)}
               {priorityBadge(activeTicket.priority)}
@@ -335,7 +335,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
     <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Support</h1>
+          <h1 className="text-[26px] font-semibold text-[#2D3748]">Support</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {companyName ? `${companyName} — ` : ''}Get help from the Agent7even team
           </p>

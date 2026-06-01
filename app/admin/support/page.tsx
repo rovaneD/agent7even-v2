@@ -69,7 +69,7 @@ export default async function AdminSupportPage() {
     <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
       <CanvasContextDispatcher context={contextStr} />
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Support</h1>
+        <h1 className="text-[26px] font-semibold text-[#2D3748]">Support</h1>
         <p className="text-sm text-gray-400 mt-0.5">
           {open.length} open · {closed.length} closed
         </p>

@@ -163,7 +163,7 @@ The user can mark notifications as read and follow links to relevant pages.`
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Notifications</h1>
+          <h1 className="text-[26px] font-semibold text-[#2D3748]">Notifications</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </p>

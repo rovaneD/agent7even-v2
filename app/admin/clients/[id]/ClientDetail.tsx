@@ -533,7 +533,7 @@ export default function ClientDetail({
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-xl p-4">
                         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Current plan</p>
-                        <p className="text-lg font-semibold text-gray-900 capitalize">{profile.plan ?? '—'}</p>
+                        <p className="text-[17px] font-semibold text-[#2D3748] capitalize">{profile.plan ?? '—'}</p>
                         {billingData?.subscription?.current_period_end && (
                           <p className="text-xs text-gray-400 mt-1">
                             Renews {formatDate(new Date(billingData.subscription.current_period_end * 1000).toISOString())}
@@ -542,7 +542,7 @@ export default function ClientDetail({
                       </div>
                       <div className="bg-gray-50 rounded-xl p-4">
                         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Credits</p>
-                        <p className="text-lg font-semibold text-gray-900">{initialCreditBalance} <span className="text-sm font-normal text-gray-400">/ {planMax}</span></p>
+                        <p className="text-[17px] font-semibold text-[#2D3748]">{initialCreditBalance} <span className="text-sm font-normal text-gray-400">/ {planMax}</span></p>
                         <p className="text-xs text-gray-400 mt-1">remaining this month</p>
                       </div>
                     </div>

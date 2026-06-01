@@ -219,7 +219,7 @@ function GAConnectModal({
         <div className="flex items-center gap-3 mb-5">
           <BrandIcon src="/google_analytics_icon.png" alt="Google Analytics" />
           <div>
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B]">Connect</p>
+            <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8]">Connect</p>
             <h2 className="text-lg font-bold text-gray-900 leading-tight">Google Analytics</h2>
           </div>
         </div>
@@ -619,7 +619,7 @@ function WebsiteAnalyticsSection({
           ].map(({ label, value }) => (
             <div key={label} className="bg-white px-5 py-3">
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">{label}</p>
-              <p className="text-lg font-semibold text-gray-900 mt-0.5">{value}</p>
+              <p className="text-[17px] font-semibold text-[#2D3748] mt-0.5">{value}</p>
             </div>
           ))}
         </div>
@@ -852,7 +852,7 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Analytics</h1>
+          <h1 className="text-[26px] font-semibold text-[#2D3748]">Analytics</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {companyName ? `${companyName} — ` : ''}Performance overview
           </p>
@@ -963,15 +963,15 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-400 mb-1">Followers</p>
-                  <p className="text-xl font-semibold text-gray-900">{fmt(metaData?.instagram?.followers ?? 0)}</p>
+                  <p className="text-[26px] font-semibold text-[#2D3748]">{fmt(metaData?.instagram?.followers ?? 0)}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-400 mb-1">Posts</p>
-                  <p className="text-xl font-semibold text-gray-900">{metaData?.instagram?.media_count ?? 0}</p>
+                  <p className="text-[26px] font-semibold text-[#2D3748]">{metaData?.instagram?.media_count ?? 0}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-400 mb-1">Period reach</p>
-                  <p className="text-xl font-semibold text-gray-900">{fmt(igChartData.reduce((a, d) => a + d.reach, 0))}</p>
+                  <p className="text-[26px] font-semibold text-[#2D3748]">{fmt(igChartData.reduce((a, d) => a + d.reach, 0))}</p>
                 </div>
               </div>
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Daily reach</p>
@@ -1035,7 +1035,7 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
                 ].map(s => (
                   <div key={s.label} className="bg-gray-50 rounded-xl p-4">
                     <p className="text-xs text-gray-400 mb-1">{s.label}</p>
-                    <p className="text-xl font-semibold text-gray-900">{s.value}</p>
+                    <p className="text-[26px] font-semibold text-[#2D3748]">{s.value}</p>
                   </div>
                 ))}
               </div>

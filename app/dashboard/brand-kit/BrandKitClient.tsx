@@ -119,7 +119,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Brand Kit</h1>
+          <h1 className="text-[26px] font-semibold text-[#2D3748]">Brand Kit</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {companyName ? `${companyName} — ` : ''}Your brand foundation documents
           </p>
@@ -141,7 +141,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
           <div className="w-16 h-16 rounded-2xl bg-[#2D3748]/10 flex items-center justify-center mx-auto mb-5">
             <Sparkles size={28} className="text-[#64748B]" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          <h2 className="text-[17px] font-semibold text-[#2D3748] mb-2">
             Build your brand foundation
           </h2>
           <p className="text-sm text-gray-400 max-w-md mx-auto mb-8 leading-relaxed">

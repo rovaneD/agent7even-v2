@@ -213,7 +213,7 @@ The user can invite new team members and manage their roles and permissions.`
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Team</h1>
+          <h1 className="text-[26px] font-semibold text-[#2D3748]">Team</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {companyName} — manage your team members and their access
           </p>
@@ -388,7 +388,7 @@ The user can invite new team members and manage their roles and permissions.`
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Invite team member</h3>
+              <h3 className="text-[17px] font-semibold text-[#2D3748]">Invite team member</h3>
               <button onClick={() => setShowInviteModal(false)}>
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>
@@ -500,7 +500,7 @@ The user can invite new team members and manage their roles and permissions.`
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Edit permissions</h3>
+                <h3 className="text-[17px] font-semibold text-[#2D3748]">Edit permissions</h3>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {selectedMember.profiles?.full_name ?? selectedMember.invited_email}
                 </p>

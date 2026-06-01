@@ -268,7 +268,7 @@ The user can request new marketing services or track existing orders.`
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Services</p>
+          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">Services</p>
           <h1 className="text-2xl font-bold text-gray-900">Marketing services</h1>
           <p className="text-gray-500 text-sm mt-1">Request a service or track your active orders.</p>
         </div>

@@ -93,7 +93,7 @@ function SectionHeader({ icon: Icon, title, description }: {
         <Icon size={18} className="text-[#64748B]" />
       </div>
       <div>
-        <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+        <h2 className="text-[17px] font-semibold text-[#2D3748]">{title}</h2>
         <p className="text-sm text-gray-400 mt-0.5">{description}</p>
       </div>
     </div>

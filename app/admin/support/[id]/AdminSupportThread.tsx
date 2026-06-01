@@ -119,7 +119,7 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
       {/* Header */}
       <div className="flex items-start justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">{ticket.subject}</h1>
+          <h1 className="text-[26px] font-semibold text-[#2D3748]">{ticket.subject}</h1>
           <p className="text-sm text-gray-400 mt-1">
             {client.company_name ?? client.full_name} · {client.email}
           </p>
