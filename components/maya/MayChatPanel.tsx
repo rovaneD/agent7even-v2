@@ -106,8 +106,10 @@ export default function MayChatPanel({
   const panelWidthRef = useRef(panelWidth)
 
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([])
+  const [isDragOver, setIsDragOver] = useState(false)
   const attachmentsRef = useRef<Array<{ url: string; name: string; mimeType: string }>>([])
   const fileInputRef   = useRef<HTMLInputElement>(null)
+  const dragCounterRef = useRef(0)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesRef    = useRef<UIMessage[]>([])
@@ -227,11 +229,8 @@ export default function MayChatPanel({
     sendMessage({ text: `__MODE__${modeId}__` })
   }
 
-  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? [])
+  async function uploadFiles(files: File[]) {
     if (!files.length) return
-    if (fileInputRef.current) fileInputRef.current.value = ''
-
     const newItems: PendingAttachment[] = files.map(f => ({
       id: Math.random().toString(36).slice(2),
       name: f.name,
@@ -259,6 +258,36 @@ export default function MayChatPanel({
     }))
   }
 
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    uploadFiles(files)
+  }
+
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault()
+    dragCounterRef.current++
+    if (e.dataTransfer.types.includes('Files')) setIsDragOver(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault()
+    dragCounterRef.current--
+    if (dragCounterRef.current === 0) setIsDragOver(false)
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault()
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    dragCounterRef.current = 0
+    setIsDragOver(false)
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length) uploadFiles(files)
+  }
+
   function removeAttachment(id: string) {
     setPendingAttachments(prev => prev.filter(a => a.id !== id))
   }
@@ -282,7 +311,28 @@ export default function MayChatPanel({
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', width: panelWidth, flexShrink: 0, position: 'relative', borderRight: '1px solid #E2E8F0' }}>
+    <div
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', width: panelWidth, flexShrink: 0, position: 'relative', borderRight: '1px solid #E2E8F0' }}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+
+      {/* Drop overlay */}
+      {isDragOver && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 30,
+          background: 'rgba(248,250,252,0.96)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 10, pointerEvents: 'none',
+          border: '2px dashed #3B82F6', borderRadius: 0,
+        }}>
+          <Paperclip size={22} color="#3B82F6" />
+          <p style={{ fontSize: 13.5, fontWeight: 600, color: '#3B82F6' }}>Drop to attach</p>
+          <p style={{ fontSize: 12, color: '#94A3B8' }}>Images, PDFs, and documents</p>
+        </div>
+      )}
 
       {/* Drag handle — right edge */}
       <div
