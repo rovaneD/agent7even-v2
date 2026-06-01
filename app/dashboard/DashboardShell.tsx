@@ -26,6 +26,7 @@ import {
   Shield,
   Megaphone,
   Plus,
+  HelpCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
@@ -139,6 +140,7 @@ export default function DashboardShell({
   const [brandKitCompleted, setBrandKitCompleted] = useState(initialBrandKitCompleted)
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(initialPendingApprovalsCount)
   const [showNewCampaign, setShowNewCampaign] = useState(false)
+  const [helpMode, setHelpMode] = useState(false)
   const [mayaPendingTask, setMayaPendingTask] = useState<string | null>(null)
   const [panelKey, setPanelKey]       = useState(0)
   const [canvasData, setCanvasData]   = useState<string>('')
@@ -222,11 +224,23 @@ export default function DashboardShell({
   const canvasContext = NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
     ?? (pathname === '/dashboard' ? 'Dashboard' : undefined)
 
+  function openHelpMode() {
+    setHelpMode(true)
+    setMayaOpen(true)
+    setActiveSessionId(null)
+    setActiveMessages([])
+    setActiveMode(null)
+    setMayaPendingTask(null)
+    setPanelKey(k => k + 1)
+  }
+
   async function openNewConversation() {
-    if (mayaOpen && activeSessionId === null && activeMessages.length === 0) {
+    if (mayaOpen && activeSessionId === null && activeMessages.length === 0 && !helpMode) {
       setMayaOpen(false)
+      setHelpMode(false)
       return
     }
+    setHelpMode(false)
     setMayaOpen(true)
     setActiveSessionId(null)
     setActiveMessages([])
@@ -471,10 +485,25 @@ export default function DashboardShell({
         )}
       </nav>
 
-      {/* User */}
-      <div style={{ borderTop: '0.5px solid #f0f0f0', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 9 }}>
-        <UserButton />
-        <span style={{ fontSize: 11.5, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
+      {/* Help + User */}
+      <div style={{ borderTop: '0.5px solid #f0f0f0' }}>
+        <button
+          onClick={openHelpMode}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px',
+            background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: 12.5, color: '#bbb', transition: 'color 0.12s',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#555' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#bbb' }}
+        >
+          <HelpCircle size={13} strokeWidth={1.75} />
+          Help
+        </button>
+        <div style={{ padding: '6px 14px 12px', display: 'flex', alignItems: 'center', gap: 9 }}>
+          <UserButton />
+          <span style={{ fontSize: 11.5, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
+        </div>
       </div>
     </aside>
   )
@@ -516,9 +545,10 @@ export default function DashboardShell({
             canvasData={canvasData}
             pendingTask={mayaPendingTask}
             onTaskConsumed={() => setMayaPendingTask(null)}
-            onClose={() => { setMayaOpen(false) }}
+            onClose={() => { setMayaOpen(false); setHelpMode(false) }}
             sessionId={activeSessionId}
             onSessionCreated={handleSessionCreated}
+            isHelpMode={helpMode}
           />
         </div>
       )}

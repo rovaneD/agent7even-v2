@@ -1039,3 +1039,286 @@ Webhook route was at `app/api/stripe/webhook/route.ts` — blocked by Clerk midd
 19. Foundation rebuild (both accounts) ⚠️ manual — fill form + rescore
 21. Merge to production 🔴 after validation
 
+
+---
+
+## Orchestration Progress UI — Built May 31, 2026
+
+### What shipped
+Real-time agent-by-agent progress display for parallel orchestration runs.
+
+### Schema additions
+- `orchestration_sessions.agent_ids text[]` — which agents ran
+- `orchestration_sessions.agent_status jsonb` — per-agent status (pending/running/completed/failed)
+
+### New component
+`components/agents/OrchestrationProgress.tsx` — full and compact modes, Supabase realtime subscription, progress bar, agent status rows with spinner/checkmark/X, budget exceeded warning, cost summary on completion
+
+### Surfaces
+- Agent Command Center Live Activity — shows active orchestration in real time, recent completed orchestrations below
+- Campaign generation screen — replaces generic dots with agent-by-agent progress
+
+### New API routes
+- `GET /api/agents/orchestrations/active` — returns running orchestration for user
+- `GET /api/agents/orchestrations/recent` — returns last 5 completed
+
+### Work queue
+18. Orchestration progress UI ✅ DONE — all feature items complete
+
+---
+
+## Kyle Norton Lessons — Added May 31, 2026
+
+`KYLE_NORTON_LESSONS.md` added to project. Companion to `SAASTR_LESSONS.md`.
+Source: Kyle Norton (CRO, Owner.com) SaaStr AI 2026 talk.
+
+### Core thesis for Maya
+Maya is the productized version of the centralized AI team an SMB could never hire.
+The owner should never orchestrate agents, manage prompts, or assemble workflows —
+Maya runs everything centrally and surfaces results.
+
+### Key principles that affect the build
+
+**Principle 1 — Performance theater test**
+Before building any owner-facing config UI: does this get the owner to a result,
+or just make them feel like they're doing AI? Cut features that fail this test.
+
+**Principle 3 — Lossiness (most important architectural takeaway)**
+Every generative step compounds error. Target: no agent chain runs more than
+2–3 generative steps without a human or deterministic checkpoint. The approval
+queue is Maya's lossiness interceptor — must sit at the right points inside
+chains, not only at final output. Foundation reduces lossiness at the source.
+
+**Principle 4 — Autonomy ramp**
+Autonomy is earned over time per agent, not chosen up front. New owners start
+with everything in Approval. After a track record of approved on-brand output,
+Maya suggests graduating that agent to Auto.
+
+**Principle 6 — Capture, don't ask**
+Every owner action (approve, edit, reject, reschedule) should write a structured
+signal back into Maya's permanent context automatically. The bidirectional canvas
+must be a capture mechanism, not just a reflect one.
+
+### Action items added to roadmap
+1. Map generative-chain length for every agent and orchestration
+2. Audit approval queue position — confirm mid-chain interception possible
+3. Make canvas binding a capture mechanism (approvals/edits write back to context)
+4. Build autonomy ramp — per-agent Auto suggestion after track record
+5. Wire Maya chat into runAgent() — existing gap, elevated priority
+6. Per-agent eval + iteration loop before marking any agent "done"
+7. Run every proposed build through Kyle's 5 build/buy questions
+8. Performance theater test on every feature before building
+
+### Sophistication ladder positioning
+Most SMBs are at L0 (ChatGPT as search bar). Maya delivers L3 (centralized
+infrastructure, context library that compounds, real leverage) with zero
+building required. Copy frame: "You don't need to learn AI. You need the
+thing the best operators built — and that's what Maya is."
+
+
+---
+
+## Kyle Norton Principles — Interjections & Modifications
+*What needs to change in the existing build based on KYLE_NORTON_LESSONS.md*
+
+---
+
+### 1. Session Handoff Protocol — Two New Checks Added
+
+Every session that proposes or builds a new feature must pass two tests
+before writing any code. Add these to the Session Handoff Protocol:
+
+**Performance theater test (Principle 1):**
+> "Does this get the owner closer to a marketing result, or does it just
+> make them feel like they're doing AI?"
+> If the answer is the latter — cut it. Features that ask the owner to
+> configure, chain, manage, or orchestrate anything are performance theater.
+
+**Build/buy test (Principle 2) — Kyle's 5 questions:**
+1. How critical is uptime? (if it breaks, does everything stop?)
+2. How customized does it need to be? (is off-the-shelf 90% there?)
+3. What's the engineering ROI?
+4. Is this core proprietary intelligence?
+5. Does it give a real competitive advantage?
+
+If the answer isn't "we must build this" — buy or integrate instead.
+Infrastructure (auth, payments, email, transcription) = buy.
+Intelligence (Foundation, brand context, campaign reasoning, agent outputs) = build.
+
+---
+
+### 2. Generative Chain Length — Required Documentation Per Agent
+
+**Status: Not yet done — add to work queue**
+
+Before any agent is considered production-ready, its generative chain must
+be documented. Claude Code should produce this as a single reference file.
+
+Format per agent:
+```
+Agent: content_writer
+Chain: user_request → [brand_kit fetch] → [foundation_answers fetch] →
+       generate_draft (1 generative step) → [brand_voice_guardian check
+       (1 generative step)] → approval_queue
+Checkpoint: approval_queue (human intercept before delivery)
+Chain length: 2 generative steps before human checkpoint ✅
+```
+
+Target: no chain runs more than 2–3 generative steps without a human
+or deterministic checkpoint. Chains longer than 3 generative steps
+are high-lossiness and need a mid-chain intercept added.
+
+**Add to work queue:**
+- Document all 9 agent chains
+- Document all orchestration flows (campaign_builder, etc.)
+- Flag any chain > 3 generative steps for redesign
+
+---
+
+### 3. Autonomy Ramp — New Product Feature (not yet built)
+
+**Status: Not built — add to roadmap**
+
+Currently Auto/Approval is a static setting in the agent registry.
+It should be a dynamic, earned progression per agent per user.
+
+**How it works:**
+- New users: all agents default to `approval_required` regardless of registry setting
+- After N consecutive approved outputs from an agent (suggested: 5), Maya
+  proactively suggests in chat: "Your Content Writer has produced 5 outputs
+  you've approved without changes. Want me to let it run automatically?"
+- User confirms → that agent switches to `auto` for that user in a new
+  `agent_autonomy_overrides` table
+- User can revert any agent back to approval at any time from Agent Command Center
+
+**New table needed:**
+```sql
+CREATE TABLE agent_autonomy_overrides (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid REFERENCES profiles(id) ON DELETE CASCADE,
+  agent_id    text NOT NULL,
+  autonomy    text NOT NULL,  -- 'auto' | 'approval_required'
+  approved_streak integer DEFAULT 0,
+  upgraded_at timestamptz,
+  updated_at  timestamptz DEFAULT now(),
+  UNIQUE(user_id, agent_id)
+);
+```
+
+**Runtime behavior:**
+`buildSystemPrompt()` and task creation should check
+`agent_autonomy_overrides` first, fall back to registry default.
+
+**Maya's suggestion trigger:**
+After each approval, increment `approved_streak`. When streak hits 5
+and agent is still on `approval_required`, send an in-app notification
+and surface in Maya chat on next session.
+
+---
+
+### 4. Canvas as Capture Mechanism — New Table + Wiring
+
+**Status: Partially built (rejection notes saved) — gap: not permanent context**
+
+Every owner action must write a structured signal back into Maya's
+permanent context — not just the current session.
+
+**New table:**
+```sql
+CREATE TABLE owner_signals (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid REFERENCES profiles(id) ON DELETE CASCADE,
+  signal_type text NOT NULL,
+  -- 'approved' | 'rejected' | 'edited' | 'dismissed' | 'campaign_created'
+  -- 'agent_run' | 'content_rescheduled' | 'brand_kit_updated'
+  agent_id    text,
+  entity_type text,   -- 'agent_output' | 'campaign' | 'brand_doc' | 'calendar_item'
+  entity_id   uuid,
+  signal_data jsonb,  -- { original, edited, rejection_reason, etc. }
+  created_at  timestamptz DEFAULT now()
+);
+```
+
+**Where signals get written:**
+- Approval queue approve → `signal_type: 'approved'`
+- Approval queue reject → `signal_type: 'rejected'` + rejection_reason
+- Approval queue edit → `signal_type: 'edited'` + diff
+- Campaign created → `signal_type: 'campaign_created'`
+- Brand Kit updated → `signal_type: 'brand_kit_updated'`
+- Morning digest dismissed → `signal_type: 'dismissed'`
+
+**How Maya uses it:**
+`/api/maya/chat/route.ts` system prompt includes a summary of recent
+owner signals — last 10 signals, grouped by type. Maya uses this to
+understand patterns: what gets approved, what gets rejected, what the
+owner edits vs. accepts wholesale.
+
+```typescript
+// In system prompt construction:
+const recentSignals = await getOwnerSignals(profileId, 10)
+const signalSummary = summarizeSignals(recentSignals)
+// e.g. "Owner has rejected 3 outputs for 'Off-brand tone' this week.
+//       All approved outputs were under 150 words.
+//       Last 5 campaigns were for warm leads segment."
+```
+
+---
+
+### 5. Build/Buy Applied to Pending Roadmap Items
+
+Run each remaining roadmap item through the 5 questions:
+
+| Item | Build or Buy? | Reason |
+|---|---|---|
+| Help center content | Build (Maya) | Core intelligence — Maya IS the help |
+| Design system | Build | Brand/product-specific |
+| Marketing site | Build | Positioning is proprietary |
+| Analytics dashboard | Buy (existing GA/Meta) | Already 90% solved |
+| Email sending | Buy (Resend) ✅ already | Infrastructure |
+| A/B testing | Buy when needed | Not core intelligence |
+| Video content | Buy (partner/service) | Not core intelligence |
+| Autonomy ramp | Build | Core product behavior |
+| Owner signals capture | Build | Core intelligence layer |
+
+---
+
+### 6. Sophistication Ladder — Copy Changes Needed
+
+**L0→L3 framing must appear in two places:**
+
+**Foundation intro (first screen after sign-up):**
+Current: generic "let's learn about your business"
+Needed: "Most business owners use AI like a search bar. Maya gives you
+what the best marketing operators built — a system that knows your
+business, runs your marketing, and gets better the longer you use it.
+Let's set that up."
+
+**Pricing page value proposition (subtitle):**
+Current: "One platform for your marketing dashboard, AI tools, and
+managed services."
+Needed: "The centralized marketing system your best competitors are
+already running — without the team, the budget, or the learning curve."
+
+**Agent Command Center empty state:**
+When no agents have run yet, instead of "No activity yet — run an agent
+to get started":
+"Your agents are ready. While your competitors are manually posting,
+emailing, and guessing — yours will be running automatically."
+
+---
+
+### Updated Session Handoff Protocol
+
+Every new session — Claude Code or otherwise — must:
+
+1. Read `MAYA_CONTEXT.md` fully
+2. Read the highest-numbered `CONTEXTV*.md` for technical detail
+3. Run `git remote -v` — confirm `agent7even-v2`
+4. **Performance theater test** — does the feature get the owner to a result?
+5. **Build/buy test** — run Kyle's 5 questions before building anything new
+6. Confirm the feature fits Maya's architecture
+
+When building a new agent or orchestration:
+7. Document the generative chain length
+8. Confirm a human or deterministic checkpoint exists within 2–3 steps
+

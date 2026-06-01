@@ -37,6 +37,7 @@ interface Props {
   onClose?: () => void
   sessionId?: string | null
   onSessionCreated?: (id: string, title: string) => void
+  isHelpMode?: boolean
 }
 
 // ── Markdown components ───────────────────────────────────────────────────
@@ -75,6 +76,7 @@ export default function MayChatPanel({
   onClose,
   sessionId: initialSessionId = null,
   onSessionCreated,
+  isHelpMode = false,
 }: Props) {
   const companyName = profile?.company_name ?? profile?.full_name ?? 'there'
 
@@ -108,10 +110,11 @@ export default function MayChatPanel({
   const sessionIdRef = useRef<string | null>(initialSessionId)
 
   // Stable transport — never recreated so useChat never resets mid-conversation.
+  // isHelpMode is captured at mount; panels are always remounted for new sessions so this is safe.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const transport = useMemo(() => new DefaultChatTransport({
     api: '/api/maya/chat',
-    body: { canvasContext },
+    body: { canvasContext, ...(isHelpMode ? { isHelpMode: true } : {}) },
     fetch: async (url, init) => {
       const body = JSON.parse((init?.body as string) ?? '{}')
       if (canvasDataRef.current) body.canvasData = canvasDataRef.current
@@ -159,11 +162,11 @@ export default function MayChatPanel({
 
   const visibleMessages = messages.filter(msg => {
     const t = getMsgText(msg)
-    return !t.startsWith('__SYSTEM_INIT__') && !t.startsWith('__MODE__') && !t.startsWith('__TASK__')
+    return !t.startsWith('__SYSTEM_INIT__') && !t.startsWith('__MODE__') && !t.startsWith('__TASK__') && t !== '__HELP__'
   })
 
   const chatStarted    = visibleMessages.length > 0 || mode !== null
-  const showModePicker = mode === null && !chatStarted
+  const showModePicker = mode === null && !chatStarted && !isHelpMode
   const showThinking   = isLoading && (!visibleMessages.at(-1) || visibleMessages.at(-1)!.role === 'user')
 
   useEffect(() => { messagesRef.current = messages }, [messages])
@@ -179,6 +182,12 @@ export default function MayChatPanel({
     sendMessage({ text: `__TASK__${pendingTask}__` })
     onTaskConsumed?.()
   }, [pendingTask]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-send help opener when panel mounts in help mode
+  useEffect(() => {
+    if (!isHelpMode) return
+    sendMessage({ text: '__HELP__' })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectMode(modeId: string) {
     setMode(modeId)

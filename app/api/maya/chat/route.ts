@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas } = await req.json()
+  const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas, isHelpMode } = await req.json()
   const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
   if (!converted?.length) {
@@ -42,6 +42,10 @@ export async function POST(req: Request) {
       const selectedMode = text.replace(/^__MODE__/, '').replace(/__$/, '')
       modeInstruction = MODE_PROMPTS[selectedMode] ?? ''
       return { ...msg, content: "Let's get started." }
+    }
+    if (text === '__HELP__') {
+      modeInstruction = 'Respond EXACTLY with this message and nothing else: "What can I help you with? I can walk you through any part of Maya."'
+      return { ...msg, content: 'Hi, I need some help.' }
     }
     if (text.startsWith('__TASK__')) {
       const task = text.replace(/^__TASK__/, '').replace(/__$/, '').trim()
@@ -192,6 +196,38 @@ Reference these specifics in your opening. Never ask for information already lis
         }`
       : ''
 
+    const helpSection = isHelpMode ? `
+PRODUCT KNOWLEDGE — AGENT7EVEN MAYA PLATFORM:
+
+NAVIGATION SECTIONS:
+- Dashboard: Overview of campaigns, morning digest, agent activity, and quick stats
+- Agents: 9 automated marketing agents. Run them manually, schedule them, or review their queued outputs in the approval queue. Each agent has a "What NOT to do" constraints field for brand safety.
+- Campaigns: Two creation modes — Guided (3 steps: pick audience segment → set goal → set timeline/budget) or Open Canvas (chat with Maya → she asks questions → generates the full plan). Each campaign has a "Do this today" action list and a week-by-week schedule. Click "Do this with Maya →" on any task to get help executing it.
+- Services: Add-on work from the Agent7even team (design, web, photography, etc.). Browse, request, and track status.
+- Content Calendar: Week-by-week content plan generated from campaigns. Shows platform, content type, estimated time.
+- Foundation: One-time business setup — 5 steps collecting business description, customer profile, positioning, brand voice, and 30-day goals. Generates 5 documents Maya uses for every agent run and campaign. Edit answers at any time and re-score.
+- Brand Kit: 6 sections — Identity (logos, tagline), Colors (palette), Typography (fonts), Imagery (photo style), Voice (brand documents), Templates (Canva/Figma links). Maya can generate color palettes and font pairings.
+- Analytics: Connect Google Analytics (OAuth) and Meta Ads (OAuth) to see sessions, traffic sources, spend, reach, and ROAS.
+- Deliverables: Files uploaded by the Agent7even team for your projects. Download via signed URLs.
+- Support: Threaded support tickets with priority levels. Maya can help draft support messages.
+- Notifications: Real-time activity feed — agent completions, approvals, deliverables, plan changes.
+- Team: Invite team members, set per-module permissions (billing, analytics, etc.), manage seats.
+- Billing: Your plan (Starter/Growth/ProAgent), credit balance, top-up credits, invoice history, Stripe portal.
+- Settings: Company name, website, Instagram handle, notification preferences.
+
+HOW CREDITS WORK:
+Credits are the currency for running agents and chatting with Maya. Your plan includes a monthly allowance: Starter 100cr, Growth 350cr, ProAgent 1,000cr. Maya chat costs 2 credits per message. Agent runs cost 2–25 credits based on complexity. Top up mid-month from the Billing page. A low-balance modal appears when you drop below 20%.
+
+HOW FOUNDATION WORKS:
+Foundation is a 5-step setup that collects deep business context — description, customer profile, positioning, brand voice, 30-day goals. When complete, it generates 5 documents that Maya uses for every agent run and campaign. A higher Foundation score means better, more specific output. You can always edit answers and re-score at /dashboard/foundation.
+
+THE APPROVAL QUEUE:
+Some agents (like Campaign Builder and Brand Voice Guardian) require approval before their output is saved. These outputs appear in Agents → Approvals. You can expand each item, edit it, approve it, or reject it with a reason (rejection feeds back to Maya as training signal).
+
+YOUR ROLE IN HELP MODE:
+You are a helpful guide for the Maya platform. Answer questions about how to use any feature. Be specific, direct, and practical. Walk users through exact steps. Do not talk about pricing unless asked. Do not speculate about features that don't exist. If someone asks how to do something, give them the literal steps — not vague suggestions.
+` : ''
+
     const openCanvasSection = isOpenCanvas
       ? `
 OPEN CANVAS MODE:
@@ -210,7 +246,7 @@ Do NOT say this until you have: what they're promoting, who the audience is, and
       : ''
 
     const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
-
+${helpSection}
 ${contextSection}
 ${canvasSection}${foundationSection}
 HOW YOU OPEN:
@@ -223,7 +259,7 @@ ${modeSection}${editSection}${openCanvasSection}
 RESPONSE LENGTH — CRITICAL:
 Maximum 3 sentences per reply. Stop. Never output more than 4 sentences before pausing for a response.
 
-${isOpenCanvas ? '' : `WHEN TO ORCHESTRATE — after 4–6 meaningful exchanges:
+${isOpenCanvas || isHelpMode ? '' : `WHEN TO ORCHESTRATE — after 4–6 meaningful exchanges:
 Say exactly: "Got everything I need. I'm spinning up the Campaign Builder now — it'll have your full 30-day plan ready in about a minute."
 This exact phrase triggers the Campaign Builder. Only use it when you genuinely have enough context.
 

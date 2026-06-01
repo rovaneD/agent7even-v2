@@ -13,6 +13,7 @@ import {
 import PlanBanner from './PlanBanner'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 import MorningDigest from '@/components/dashboard/MorningDigest'
+import GettingStarted from '@/components/dashboard/GettingStarted'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -33,15 +34,52 @@ export default async function DashboardPage() {
   }
 
   const today = new Date().toISOString().split('T')[0]
-  const { data: digestRows } = profile
-    ? await supabase
-        .from('daily_digests')
-        .select('id, agent_runs, approvals, today_actions, dismissed')
-        .eq('user_id', profile.id)
-        .eq('date', today)
-        .limit(1)
-    : { data: null }
-  const digest = digestRows?.[0] ?? null
+
+  // Fetch digest + checklist data in parallel
+  const [digestResult, campaignResult, agentResult, brandKitResult] = await Promise.all([
+    profile
+      ? supabase
+          .from('daily_digests')
+          .select('id, agent_runs, approvals, today_actions, dismissed')
+          .eq('user_id', profile.id)
+          .eq('date', today)
+          .limit(1)
+      : Promise.resolve({ data: null }),
+
+    profile
+      ? supabase
+          .from('campaigns')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', profile.id)
+      : Promise.resolve({ count: 0 }),
+
+    profile
+      ? supabase
+          .from('agent_tasks')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', profile.id)
+          .eq('status', 'completed')
+      : Promise.resolve({ count: 0 }),
+
+    profile
+      ? supabase
+          .from('brand_kit_sections')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', profile.id)
+      : Promise.resolve({ count: 0 }),
+  ])
+
+  const digest = digestResult.data?.[0] ?? null
+
+  const checklistCompleted: boolean[] = [
+    !!profile?.foundation_complete,
+    (campaignResult.count ?? 0) > 0,
+    (agentResult.count ?? 0) > 0,
+    (brandKitResult.count ?? 0) > 0,
+    !!(profile as Record<string, unknown>)?.ga_connected || !!(profile as Record<string, unknown>)?.meta_connected,
+  ]
+
+  const gettingStartedDismissed = !!(profile as Record<string, unknown>)?.getting_started_dismissed
 
   const displayName = profile?.company_name || profile?.full_name || 'there'
   const firstName   = profile?.full_name?.split(' ')[0] ?? undefined
@@ -64,6 +102,11 @@ ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents an
           firstName={firstName}
         />
       )}
+
+      <GettingStarted
+        completed={checklistCompleted}
+        dismissed={gettingStartedDismissed}
+      />
 
       <div className="mb-8">
         <p className="text-[10px] font-semibold tracking-widest uppercase text-[#c8522a] mb-2">Dashboard</p>
