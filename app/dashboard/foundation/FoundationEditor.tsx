@@ -1,10 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Loader2, Check } from 'lucide-react'
+import {
+  DIFFERENTIATOR_OPTIONS,
+  TONE_OPTIONS,
+  CHANNEL_OPTIONS,
+  BUDGET_OPTIONS,
+  GOAL_OPTIONS,
+} from '@/app/foundation/FoundationFlow'
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface FieldScore {
   score: number
@@ -19,14 +26,14 @@ interface Answers {
   customerFrustration: string
   customerTriedBefore: string
   customerBuyingTrigger: string
-  competitors: string
+  competitors: [string, string, string]
   differentiator: string
   differentiatorOwn: string
-  toneTraits: string
+  toneTraits: string[]
   brandsAdmired: string
   neverSoundLike: string
   marketingBudget: string
-  channels: string
+  channels: string[]
   monthlyGoal: string
 }
 
@@ -40,8 +47,11 @@ interface Props {
   lastUpdated: string | null
 }
 
-// ── Field groups ───────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────
 
+const COLLAPSED_MAX = 132
+
+// Labels match FIELD_EXPECTATIONS in /api/foundation/score/route.ts — keep in sync
 const FIELD_LABELS: Record<string, string> = {
   businessDescription:   'Business description',
   problemSolved:         'Problem solved',
@@ -61,55 +71,14 @@ const FIELD_LABELS: Record<string, string> = {
   monthlyGoal:           'Monthly goal',
 }
 
-const FIELD_GROUPS = [
-  {
-    title: 'Your Business',
-    fields: ['businessDescription', 'problemSolved', 'transformation'],
-  },
-  {
-    title: 'Your Customer',
-    fields: ['customerWho', 'customerFrustration', 'customerTriedBefore', 'customerBuyingTrigger'],
-  },
-  {
-    title: 'Your Position',
-    fields: ['competitors', 'differentiator', 'differentiatorOwn'],
-  },
-  {
-    title: 'Your Voice',
-    fields: ['toneTraits', 'brandsAdmired', 'neverSoundLike'],
-  },
-  {
-    title: 'Your 30 Days',
-    fields: ['marketingBudget', 'channels', 'monthlyGoal'],
-  },
-]
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function normalizeAnswers(raw: Record<string, unknown> | null): Answers {
-  const stringify = (v: unknown): string => {
-    if (!v) return ''
-    if (Array.isArray(v)) return v.filter(Boolean).join(', ')
-    return String(v)
-  }
-  return {
-    businessDescription:   stringify(raw?.businessDescription),
-    problemSolved:         stringify(raw?.problemSolved),
-    transformation:        stringify(raw?.transformation),
-    customerWho:           stringify(raw?.customerWho),
-    customerFrustration:   stringify(raw?.customerFrustration),
-    customerTriedBefore:   stringify(raw?.customerTriedBefore),
-    customerBuyingTrigger: stringify(raw?.customerBuyingTrigger),
-    competitors:           stringify(raw?.competitors),
-    differentiator:        stringify(raw?.differentiator),
-    differentiatorOwn:     stringify(raw?.differentiatorOwn),
-    toneTraits:            stringify(raw?.toneTraits),
-    brandsAdmired:         stringify(raw?.brandsAdmired),
-    neverSoundLike:        stringify(raw?.neverSoundLike),
-    marketingBudget:       stringify(raw?.marketingBudget),
-    channels:              stringify(raw?.channels),
-    monthlyGoal:           stringify(raw?.monthlyGoal),
-  }
+function scoreColor(score: number | undefined): string {
+  if (score == null) return 'text-gray-400'
+  if (score >= 85) return 'text-emerald-600'
+  if (score >= 75) return 'text-lime-600'
+  if (score >= 50) return 'text-amber-600'
+  return 'text-red-500'
 }
 
 function relativeTime(iso: string): string {
@@ -122,13 +91,328 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function scoreColor(score: number): string {
-  if (score >= 80) return '#16a34a'
-  if (score >= 60) return '#ca8a04'
-  return '#3B82F6'
+function normalizeAnswers(raw: Record<string, unknown> | null): Answers {
+  const empty: Answers = {
+    businessDescription: '', problemSolved: '', transformation: '',
+    customerWho: '', customerFrustration: '', customerTriedBefore: '', customerBuyingTrigger: '',
+    competitors: ['', '', ''],
+    differentiator: '', differentiatorOwn: '',
+    toneTraits: [], brandsAdmired: '', neverSoundLike: '',
+    marketingBudget: '', channels: [], monthlyGoal: '',
+  }
+  if (!raw) return empty
+
+  const str = (v: unknown): string => {
+    if (!v) return ''
+    if (Array.isArray(v)) return v.filter(Boolean).map(String).join(', ')
+    return String(v)
+  }
+  const strArr = (v: unknown): string[] => {
+    if (!v) return []
+    if (Array.isArray(v)) return v.filter(Boolean).map(String)
+    if (typeof v === 'string') return v.split(',').map(x => x.trim()).filter(Boolean)
+    return []
+  }
+
+  let competitors: [string, string, string] = ['', '', '']
+  const rawComp = raw.competitors
+  if (Array.isArray(rawComp)) {
+    competitors = [String(rawComp[0] ?? ''), String(rawComp[1] ?? ''), String(rawComp[2] ?? '')]
+  } else if (typeof rawComp === 'string' && rawComp) {
+    const parts = rawComp.split(',').map(x => x.trim())
+    competitors = [parts[0] ?? '', parts[1] ?? '', parts[2] ?? '']
+  }
+
+  return {
+    businessDescription:   str(raw.businessDescription),
+    problemSolved:         str(raw.problemSolved),
+    transformation:        str(raw.transformation),
+    customerWho:           str(raw.customerWho),
+    customerFrustration:   str(raw.customerFrustration),
+    customerTriedBefore:   str(raw.customerTriedBefore),
+    customerBuyingTrigger: str(raw.customerBuyingTrigger),
+    competitors,
+    differentiator:        str(raw.differentiator),
+    differentiatorOwn:     str(raw.differentiatorOwn),
+    toneTraits:            strArr(raw.toneTraits),
+    brandsAdmired:         str(raw.brandsAdmired),
+    neverSoundLike:        str(raw.neverSoundLike),
+    marketingBudget:       str(raw.marketingBudget),
+    channels:              strArr(raw.channels),
+    monthlyGoal:           str(raw.monthlyGoal),
+  }
 }
 
-// ── Component ──────────────────────────────────────────────────────────────
+function computeWeakFields(scores: Record<string, FieldScore>): string[] {
+  return Object.entries(scores)
+    .filter(([, v]) => v.score > 0 && v.score < 70)
+    .sort((a, b) => a[1].score - b[1].score)
+    .slice(0, 5)
+    .map(([k]) => k)
+}
+
+// ── AnswerField — auto-growing, collapsible text field ───────────────────────
+
+function AnswerField({
+  fieldKey,
+  label,
+  value,
+  score,
+  onChange,
+}: {
+  fieldKey: string
+  label: string
+  value: string
+  score: FieldScore | undefined
+  onChange: (key: string, value: string) => void
+}) {
+  const taRef = useRef<HTMLTextAreaElement>(null)
+  const [focused, setFocused] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+
+  const resize = useCallback(() => {
+    const ta = taRef.current
+    if (!ta) return
+    ta.style.height = 'auto'
+    ta.style.height = `${ta.scrollHeight}px`
+    setOverflowing(ta.scrollHeight > COLLAPSED_MAX + 8)
+  }, [])
+
+  useEffect(() => { resize() }, [value, resize])
+  useEffect(() => { resize() }, [focused, resize])
+  useEffect(() => { resize() }, [expanded, resize])
+
+  const isOpen = focused || expanded
+  const collapsed = !isOpen && overflowing
+
+  return (
+    <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 transition-colors hover:border-gray-300 focus-within:border-gray-400">
+      <div className="mb-1.5 flex items-baseline justify-between gap-3">
+        <span className="text-[13px] font-medium text-gray-900">{label}</span>
+        {score != null && score.score > 0 && (
+          <span className={`flex-shrink-0 text-xs font-medium ${scoreColor(score.score)}`}>
+            {score.score}%
+          </span>
+        )}
+      </div>
+
+      <div className="relative">
+        <textarea
+          ref={taRef}
+          value={value}
+          onChange={e => onChange(fieldKey, e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          rows={1}
+          spellCheck
+          placeholder={`Add your ${label.toLowerCase()}…`}
+          className="w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-gray-600 outline-none placeholder:text-gray-400"
+          style={{
+            maxHeight: collapsed ? COLLAPSED_MAX : undefined,
+            overflow: collapsed ? 'hidden' : 'visible',
+          }}
+        />
+        {collapsed && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent" />
+        )}
+      </div>
+
+      {score?.feedback && score.score < 70 && !focused && (
+        <p className="mt-1.5 text-xs leading-relaxed text-amber-600">{score.feedback}</p>
+      )}
+      {overflowing && !focused && (
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          className="mt-1.5 text-xs text-blue-600 hover:underline"
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── CompetitorEntry — single auto-growing competitor input ───────────────────
+
+function CompetitorEntry({
+  index,
+  value,
+  onChange,
+}: {
+  index: number
+  value: string
+  onChange: (i: number, v: string) => void
+}) {
+  const taRef = useRef<HTMLTextAreaElement>(null)
+
+  const resize = useCallback(() => {
+    const ta = taRef.current
+    if (!ta) return
+    ta.style.height = 'auto'
+    ta.style.height = `${ta.scrollHeight}px`
+  }, [])
+
+  useEffect(() => { resize() }, [value, resize])
+
+  return (
+    <div>
+      <p className="mb-0.5 text-[11px] text-gray-400">Competitor {index + 1}</p>
+      <textarea
+        ref={taRef}
+        value={value}
+        onChange={e => onChange(index, e.target.value)}
+        rows={1}
+        spellCheck
+        placeholder={`@competitor${index + 1} or business name`}
+        className="w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-gray-600 outline-none placeholder:text-gray-400"
+      />
+    </div>
+  )
+}
+
+// ── CompetitorsField — 3 entries sharing one card ────────────────────────────
+
+function CompetitorsField({
+  values,
+  score,
+  onChange,
+}: {
+  values: [string, string, string]
+  score: FieldScore | undefined
+  onChange: (values: [string, string, string]) => void
+}) {
+  function updateEntry(i: number, v: string) {
+    const updated = [...values] as [string, string, string]
+    updated[i] = v
+    onChange(updated)
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 transition-colors hover:border-gray-300 focus-within:border-gray-400">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <span className="text-[13px] font-medium text-gray-900">Competitors</span>
+        {score != null && score.score > 0 && (
+          <span className={`flex-shrink-0 text-xs font-medium ${scoreColor(score.score)}`}>
+            {score.score}%
+          </span>
+        )}
+      </div>
+      <div className="space-y-3 divide-y divide-gray-100">
+        {values.map((v, i) => (
+          <div key={i} className={i > 0 ? 'pt-3' : ''}>
+            <CompetitorEntry index={i} value={v} onChange={updateEntry} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── SingleChipField ──────────────────────────────────────────────────────────
+
+function SingleChipField({
+  label,
+  options,
+  value,
+  score,
+  fullWidth,
+  onChange,
+}: {
+  label: string
+  options: string[]
+  value: string
+  score: FieldScore | undefined
+  fullWidth?: boolean
+  onChange: (v: string) => void
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 transition-colors hover:border-gray-300">
+      <div className="mb-2.5 flex items-baseline justify-between gap-3">
+        <span className="text-[13px] font-medium text-gray-900">{label}</span>
+        {score != null && score.score > 0 && (
+          <span className={`flex-shrink-0 text-xs font-medium ${scoreColor(score.score)}`}>
+            {score.score}%
+          </span>
+        )}
+      </div>
+      <div className={fullWidth ? 'space-y-2' : 'grid grid-cols-2 gap-2'}>
+        {options.map(opt => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            className={`rounded-lg border px-3 py-2 text-left text-[13px] font-medium transition-all ${
+              value === opt
+                ? 'border-transparent bg-gray-900 text-white'
+                : 'border-gray-200 text-gray-600 hover:border-gray-400'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── MultiChipField ───────────────────────────────────────────────────────────
+
+function MultiChipField({
+  label,
+  options,
+  value,
+  score,
+  maxSelect,
+  onChange,
+}: {
+  label: string
+  options: string[]
+  value: string[]
+  score: FieldScore | undefined
+  maxSelect?: number
+  onChange: (v: string[]) => void
+}) {
+  function toggle(opt: string) {
+    if (value.includes(opt)) {
+      onChange(value.filter(v => v !== opt))
+    } else if (!maxSelect || value.length < maxSelect) {
+      onChange([...value, opt])
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 transition-colors hover:border-gray-300">
+      <div className="mb-2.5 flex items-baseline justify-between gap-3">
+        <span className="text-[13px] font-medium text-gray-900">{label}</span>
+        {score != null && score.score > 0 && (
+          <span className={`flex-shrink-0 text-xs font-medium ${scoreColor(score.score)}`}>
+            {score.score}%
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {options.map(opt => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => toggle(opt)}
+            className={`rounded-full border px-3 py-1.5 text-[13px] font-medium transition-all ${
+              value.includes(opt)
+                ? 'border-transparent bg-gray-900 text-white'
+                : 'border-gray-200 text-gray-600 hover:border-gray-400'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 
 export default function FoundationEditor({
   companyName,
@@ -138,49 +422,62 @@ export default function FoundationEditor({
   foundationComplete,
   lastUpdated,
 }: Props) {
-  const [answers, setAnswers] = useState<Answers>(normalizeAnswers(initialAnswers))
-  const [savedAnswers] = useState<Answers>(normalizeAnswers(initialAnswers))
-  const [score, setScore] = useState(initialScore)
+  const [answers, setAnswers] = useState<Answers>(() => normalizeAnswers(initialAnswers))
   const [fieldScores, setFieldScores] = useState<Record<string, FieldScore>>(initialFieldScores)
-  const [weakFields, setWeakFields] = useState<string[]>(
-    Object.entries(initialFieldScores)
-      .filter(([, v]) => v.score < 70 && v.score > 0)
-      .sort((a, b) => a[1].score - b[1].score)
-      .slice(0, 5)
-      .map(([k]) => k)
-  )
+  const [score, setScore] = useState(initialScore)
+  const [weakFields, setWeakFields] = useState<string[]>(() => computeWeakFields(initialFieldScores))
   const [rescoring, setRescoring] = useState(false)
   const [rescored, setRescored] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [dirty, setDirty] = useState(false)
   const [lastUpdatedAt, setLastUpdatedAt] = useState(lastUpdated)
 
-  const hasChanges = JSON.stringify(answers) !== JSON.stringify(savedAnswers)
-
-  function dispatchCanvasContext(currentAnswers: Answers, currentScore: number, currentWeakFields: string[]) {
-    const filled = (v: string) => v?.trim() ? v.trim() : '(not filled in)'
+  function dispatchCanvasContext(ans: Answers, currentScore: number, weak: string[]) {
+    const display = (v: string | string[]): string => {
+      if (Array.isArray(v)) {
+        const filled = v.filter(Boolean)
+        return filled.length ? filled.join(', ') : '(not filled in)'
+      }
+      return v?.trim() ? v.trim() : '(not filled in)'
+    }
     const lines = [
-      `FOUNDATION PAGE`,
+      'FOUNDATION PAGE',
       `Score: ${currentScore}%`,
-      ``,
-      `CURRENT ANSWERS:`,
+      '',
+      'CURRENT ANSWERS:',
       ...Object.entries(FIELD_LABELS).map(([k, label]) =>
-        `${label}: ${filled(currentAnswers[k as keyof Answers])}`
+        `${label}: ${display(ans[k as keyof Answers] as string | string[])}`
       ),
     ]
-    if (currentWeakFields.length > 0) {
-      lines.push(``, `WEAK AREAS (below 70%):`)
-      currentWeakFields.forEach(f => lines.push(`- ${FIELD_LABELS[f]}`))
+    if (weak.length) {
+      lines.push('', 'WEAK AREAS (below 70%):')
+      weak.forEach(f => lines.push(`- ${FIELD_LABELS[f]}`))
     }
     window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
   }
 
-  // Dispatch on mount so Maya knows the page state when the panel opens
   useEffect(() => {
     dispatchCanvasContext(answers, score, weakFields)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function updateField(key: keyof Answers, value: string) {
+  function updateText(key: string, value: string) {
     setAnswers(prev => ({ ...prev, [key]: value }))
+    setDirty(true)
+  }
+
+  function updateCompetitors(values: [string, string, string]) {
+    setAnswers(prev => ({ ...prev, competitors: values }))
+    setDirty(true)
+  }
+
+  function updateSingle(key: 'differentiator' | 'marketingBudget' | 'monthlyGoal', value: string) {
+    setAnswers(prev => ({ ...prev, [key]: value }))
+    setDirty(true)
+  }
+
+  function updateMulti(key: 'toneTraits' | 'channels', value: string[]) {
+    setAnswers(prev => ({ ...prev, [key]: value }))
+    setDirty(true)
   }
 
   async function handleRescore() {
@@ -192,28 +489,28 @@ export default function FoundationEditor({
         body: JSON.stringify({ answers }),
       })
       const data = await res.json()
-      setScore(data.overallScore)
-      setFieldScores(data.fieldScores ?? {})
-      setWeakFields(data.topWeakFields ?? [])
+
+      const newScore: number = data.overallScore
+      const newFieldScores: Record<string, FieldScore> = data.fieldScores ?? {}
+      const newWeak: string[] = data.topWeakFields ?? computeWeakFields(newFieldScores)
+
+      setScore(newScore)
+      setFieldScores(newFieldScores)
+      setWeakFields(newWeak)
       setLastUpdatedAt(new Date().toISOString())
+      setDirty(false)
       setRescored(true)
-      window.dispatchEvent(new CustomEvent('foundation:rescored', { detail: { score: data.overallScore } }))
-      dispatchCanvasContext(answers, data.overallScore, data.topWeakFields ?? [])
+
+      window.dispatchEvent(new CustomEvent('foundation:rescored', { detail: { score: newScore } }))
+      dispatchCanvasContext(answers, newScore, newWeak)
       setTimeout(() => setRescored(false), 3000)
 
       // Regenerate foundation documents in background
-      const splitToArray = (s: string) => s ? s.split(',').map(x => x.trim()).filter(Boolean) : []
-      const adaptedAnswers = {
-        ...answers,
-        competitors: splitToArray(answers.competitors),
-        toneTraits:  splitToArray(answers.toneTraits),
-        channels:    splitToArray(answers.channels),
-      }
       setGenerating(true)
       fetch('/api/foundation/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: adaptedAnswers, companyName }),
+        body: JSON.stringify({ answers, companyName }),
       })
         .catch(err => console.error('[foundation] doc generation failed:', err))
         .finally(() => setGenerating(false))
@@ -222,7 +519,7 @@ export default function FoundationEditor({
     }
   }
 
-  // ── Empty state — no answers saved yet ──────────────────────────────────
+  // ── Empty state ──────────────────────────────────────────────────────────
 
   if (!initialAnswers) {
     return (
@@ -269,89 +566,162 @@ export default function FoundationEditor({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+      <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
 
-        {/* Left — editable answers (3/5) */}
-        <div className="lg:col-span-3 space-y-6">
-          {FIELD_GROUPS.map(group => (
-            <div key={group.title} className="bg-white rounded-2xl border border-gray-100 p-6">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-5">
-                {group.title}
-              </p>
-              <div className="space-y-5">
-                {group.fields.map(key => {
-                  const fs = fieldScores[key]
-                  return (
-                    <div key={key}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-medium text-gray-700">
-                          {FIELD_LABELS[key]}
-                        </label>
-                        {fs && fs.score > 0 && (
-                          <span style={{ color: scoreColor(fs.score) }} className="text-xs font-medium">
-                            {fs.score}%
-                          </span>
-                        )}
-                      </div>
-                      <textarea
-                        value={answers[key as keyof Answers]}
-                        onChange={e => updateField(key as keyof Answers, e.target.value)}
-                        rows={2}
-                        className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-black resize-none placeholder:text-gray-300 transition-colors leading-relaxed"
-                        placeholder={`Add your ${FIELD_LABELS[key]?.toLowerCase()}…`}
-                      />
-                      {fs?.feedback && fs.score < 70 && (
-                        <p className="text-xs text-orange-500 mt-1 leading-relaxed">
-                          {fs.feedback}
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+        {/* ── Left: field sections ─────────────────────────────────────────── */}
+        <div className="space-y-7">
+
+          {/* Your business */}
+          <div>
+            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your business</p>
+            <div className="space-y-2.5">
+              {(['businessDescription', 'problemSolved', 'transformation'] as const).map(key => (
+                <AnswerField
+                  key={key}
+                  fieldKey={key}
+                  label={FIELD_LABELS[key]}
+                  value={answers[key]}
+                  score={fieldScores[key]}
+                  onChange={updateText}
+                />
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Your customer */}
+          <div>
+            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your customer</p>
+            <div className="space-y-2.5">
+              {(['customerWho', 'customerFrustration', 'customerTriedBefore', 'customerBuyingTrigger'] as const).map(key => (
+                <AnswerField
+                  key={key}
+                  fieldKey={key}
+                  label={FIELD_LABELS[key]}
+                  value={answers[key]}
+                  score={fieldScores[key]}
+                  onChange={updateText}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Your position */}
+          <div>
+            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your position</p>
+            <div className="space-y-2.5">
+              <CompetitorsField
+                values={answers.competitors}
+                score={fieldScores.competitors}
+                onChange={updateCompetitors}
+              />
+              <SingleChipField
+                label={FIELD_LABELS.differentiator}
+                options={DIFFERENTIATOR_OPTIONS}
+                value={answers.differentiator}
+                score={fieldScores.differentiator}
+                onChange={v => updateSingle('differentiator', v)}
+              />
+              <AnswerField
+                fieldKey="differentiatorOwn"
+                label={FIELD_LABELS.differentiatorOwn}
+                value={answers.differentiatorOwn}
+                score={fieldScores.differentiatorOwn}
+                onChange={updateText}
+              />
+            </div>
+          </div>
+
+          {/* Your voice */}
+          <div>
+            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your voice</p>
+            <div className="space-y-2.5">
+              <MultiChipField
+                label={FIELD_LABELS.toneTraits}
+                options={TONE_OPTIONS}
+                value={answers.toneTraits}
+                score={fieldScores.toneTraits}
+                maxSelect={4}
+                onChange={v => updateMulti('toneTraits', v)}
+              />
+              <AnswerField
+                fieldKey="brandsAdmired"
+                label={FIELD_LABELS.brandsAdmired}
+                value={answers.brandsAdmired}
+                score={fieldScores.brandsAdmired}
+                onChange={updateText}
+              />
+              <AnswerField
+                fieldKey="neverSoundLike"
+                label={FIELD_LABELS.neverSoundLike}
+                value={answers.neverSoundLike}
+                score={fieldScores.neverSoundLike}
+                onChange={updateText}
+              />
+            </div>
+          </div>
+
+          {/* Your 30 days */}
+          <div>
+            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your 30 days</p>
+            <div className="space-y-2.5">
+              <SingleChipField
+                label={FIELD_LABELS.marketingBudget}
+                options={BUDGET_OPTIONS}
+                value={answers.marketingBudget}
+                score={fieldScores.marketingBudget}
+                onChange={v => updateSingle('marketingBudget', v)}
+              />
+              <MultiChipField
+                label={FIELD_LABELS.channels}
+                options={CHANNEL_OPTIONS}
+                value={answers.channels}
+                score={fieldScores.channels}
+                onChange={v => updateMulti('channels', v)}
+              />
+              <SingleChipField
+                label={FIELD_LABELS.monthlyGoal}
+                options={GOAL_OPTIONS}
+                value={answers.monthlyGoal}
+                score={fieldScores.monthlyGoal}
+                fullWidth
+                onChange={v => updateSingle('monthlyGoal', v)}
+              />
+            </div>
+          </div>
+
         </div>
 
-        {/* Right — score card (2/5) */}
-        <div className="lg:col-span-2 sticky top-6 space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        {/* ── Right: strength panel (sticky) ───────────────────────────────── */}
+        <div className="lg:sticky lg:top-8 lg:self-start space-y-3">
+
+          <div className="rounded-xl border border-gray-200/80 bg-white p-4">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-sm font-semibold text-gray-900">Foundation strength</h3>
-              <span
-                className="text-2xl font-bold"
-                style={{ color: scoreColor(score) }}
-              >
-                {score}%
-              </span>
+              <span className="text-sm font-medium text-gray-900">Foundation strength</span>
+              <span className={`text-2xl font-semibold ${scoreColor(score)}`}>{score}%</span>
             </div>
 
-            {/* Progress bar */}
-            <div className="w-full bg-gray-100 rounded-full h-2 mb-6">
+            <div className="my-3 h-1.5 overflow-hidden rounded-full bg-gray-100">
               <div
-                className="rounded-full h-2 transition-all duration-500"
-                style={{
-                  width: `${score}%`,
-                  background: scoreColor(score),
-                }}
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${score}%`, background: score >= 85 ? '#16a34a' : score >= 75 ? '#65a30d' : score >= 50 ? '#d97706' : '#ef4444' }}
               />
             </div>
 
-            {/* Weak fields */}
-            {weakFields.length > 0 && (
-              <div className="space-y-3 mb-5">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
-                  Areas to strengthen
-                </p>
+            {weakFields.length === 0 && score > 0 ? (
+              <p className="mb-3 flex items-center gap-1.5 text-xs text-emerald-700">
+                <Check size={13} strokeWidth={2.5} />
+                Strong foundation — no weak areas
+              </p>
+            ) : weakFields.length > 0 ? (
+              <div className="mb-3 space-y-2.5">
+                <p className="text-xs font-medium text-gray-400">Areas to strengthen</p>
                 {weakFields.map(field => (
-                  <div key={field} className="flex items-start gap-2.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 flex-shrink-0" />
+                  <div key={field} className="flex items-start gap-2">
+                    <div className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />
                     <div>
-                      <p className="text-xs font-medium text-gray-700">
-                        {FIELD_LABELS[field]}
-                      </p>
+                      <p className="text-xs font-medium text-gray-700">{FIELD_LABELS[field]}</p>
                       {fieldScores[field]?.feedback && (
-                        <p className="text-xs text-gray-400 leading-relaxed mt-0.5">
+                        <p className="mt-0.5 text-xs leading-relaxed text-gray-400">
                           {fieldScores[field].feedback}
                         </p>
                       )}
@@ -359,51 +729,42 @@ export default function FoundationEditor({
                   </div>
                 ))}
               </div>
-            )}
-
-            {weakFields.length === 0 && score > 0 && (
-              <div className="flex items-center gap-2 mb-5 text-green-600">
-                <Check size={14} />
-                <p className="text-xs font-medium">Strong foundation — no weak areas</p>
-              </div>
-            )}
+            ) : null}
 
             <button
+              type="button"
               onClick={handleRescore}
               disabled={rescoring}
-              className="w-full py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-black transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {rescoring ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" />
-                  Rescoring…
-                </>
+                <><Loader2 size={13} className="animate-spin" />Rescoring…</>
               ) : rescored ? (
-                <>
-                  <Check size={13} className="text-green-500" />
-                  Score updated
-                </>
+                <><Check size={13} className="text-emerald-500" />Score updated</>
               ) : (
-                hasChanges ? 'Save & rescore' : 'Rescore my foundation'
+                dirty ? 'Save & rescore' : 'Rescore my foundation'
               )}
             </button>
 
             {generating && (
-              <p className="text-xs text-gray-400 text-center mt-2 flex items-center justify-center gap-1.5">
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-[11px] text-gray-400">
                 <Loader2 size={10} className="animate-spin" />
                 Updating Maya&apos;s context…
               </p>
             )}
-            {!generating && lastUpdatedAt && (
-              <p className="text-xs text-gray-400 text-center mt-2">
-                Last scored {relativeTime(lastUpdatedAt)}
+            {!generating && (
+              <p className="mt-2 text-center text-[11px] text-gray-400">
+                {dirty
+                  ? 'Unsaved edits — rescore to save'
+                  : lastUpdatedAt
+                    ? `Last scored ${relativeTime(lastUpdatedAt)}`
+                    : 'Not yet scored'}
               </p>
             )}
           </div>
 
-          {/* What Maya does with this */}
-          <div className="bg-gray-50 rounded-2xl p-4">
-            <p className="text-xs font-semibold text-gray-500 mb-2">What Maya uses this for</p>
+          <div className="rounded-xl bg-gray-50 p-4">
+            <p className="mb-2 text-xs font-medium text-gray-700">What Maya uses this for</p>
             <ul className="space-y-1.5">
               {[
                 'Every piece of content stays in your brand voice',
@@ -411,15 +772,15 @@ export default function FoundationEditor({
                 'Agents write with your differentiator front of mind',
                 'Analytics recommendations fit your goals',
               ].map(item => (
-                <li key={item} className="flex items-start gap-2 text-xs text-gray-500">
-                  <div className="w-1 h-1 rounded-full bg-gray-300 mt-1.5 flex-shrink-0" />
+                <li key={item} className="flex items-start gap-2 text-xs leading-relaxed text-gray-500">
+                  <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-gray-300" />
                   {item}
                 </li>
               ))}
             </ul>
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   )

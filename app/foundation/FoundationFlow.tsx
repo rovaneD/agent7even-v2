@@ -82,7 +82,7 @@ const STEP_TITLES = [
   'Your 30 Days',
 ]
 
-const DIFFERENTIATOR_OPTIONS = [
+export const DIFFERENTIATOR_OPTIONS = [
   'Better quality',
   'Faster results',
   'More personal',
@@ -91,23 +91,23 @@ const DIFFERENTIATOR_OPTIONS = [
   'Something completely different',
 ]
 
-const TONE_OPTIONS = [
+export const TONE_OPTIONS = [
   'Professional', 'Casual', 'Bold', 'Gentle',
   'Expert', 'Peer', 'Serious', 'Playful',
   'Warm', 'Direct', 'Inspiring', 'Grounded',
 ]
 
-const CHANNEL_OPTIONS = [
+export const CHANNEL_OPTIONS = [
   'Instagram', 'Email', 'Website', 'TikTok',
   'Google', 'LinkedIn', 'Facebook', 'YouTube',
 ]
 
-const BUDGET_OPTIONS = [
+export const BUDGET_OPTIONS = [
   'Under $200/mo', '$200–$500/mo', '$500–$1,500/mo',
   '$1,500–$5,000/mo', '$5,000+/mo',
 ]
 
-const GOAL_OPTIONS = [
+export const GOAL_OPTIONS = [
   'Get my first 10 customers',
   'Launch a product or service',
   'Build my audience from zero',
