@@ -319,17 +319,17 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
           <span style={{ fontSize: 12.5, color: '#3B82F6', fontWeight: 500 }}>Review</span>
         </Link>
       ) : (
-        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
           <i className="ti ti-circle-check" style={{ fontSize: 16, color: '#CBD5E1' }} />
           <span style={{ fontSize: 13, color: '#64748B' }}>Queue is clear — nothing waiting for review</span>
         </div>
       )}
 
       {/* ═══ ZONE 2: Agent Activity ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 16, marginBottom: 24, height: 280 }}>
 
         {/* Left: Live feed */}
-        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 20, overflow: 'hidden', overflowY: 'auto' }}>
           <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 16 }}>Live activity</p>
 
           {activeOrchestration ? (
@@ -450,7 +450,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         </div>
 
         {/* Right: Scorecard */}
-        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
+        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 20, overflowY: 'auto' }}>
           <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 16 }}>Agent scorecard</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0 16px', alignItems: 'center' }}>
             {/* Header */}
@@ -485,7 +485,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       </div>
 
       {/* ═══ ZONE 3: Create New Task ═══ */}
-      <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24 }}>
+      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 24 }}>
         <p style={{ fontSize: 14, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>Run an agent</p>
         <p style={{ fontSize: 13, color: '#64748B', marginBottom: 20 }}>Choose an agent and tell it what you need.</p>
 

@@ -113,7 +113,7 @@ The user can create new campaigns or view existing ones.`
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {(campaigns as Campaign[]).map(campaign => (
             <Link key={campaign.id} href={`/dashboard/campaigns/${campaign.id}`}>
-              <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#64748B] hover:shadow-sm transition-all cursor-pointer">
+              <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#64748B] hover:shadow-sm transition-all cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-[#64748B] capitalize">
                     {campaign.mode === 'guided'

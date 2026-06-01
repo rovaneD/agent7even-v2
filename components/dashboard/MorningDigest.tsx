@@ -80,7 +80,7 @@ function ChannelLabel({ channel }: { channel: string }) {
 
 function DigestSkeleton() {
   return (
-    <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-6 mb-6 animate-pulse">
+    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 mb-6 animate-pulse">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-6 h-6 rounded-lg bg-[#E2E8F0]" />
         <div className="h-4 w-12 bg-[#E2E8F0] rounded" />
@@ -159,7 +159,7 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
   }
 
   return (
-    <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-6 mb-6">
+    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 mb-6">
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6">

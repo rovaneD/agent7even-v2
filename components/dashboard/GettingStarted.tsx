@@ -52,7 +52,7 @@ export default function GettingStarted({ completed, dismissed }: Props) {
   }
 
   return (
-    <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5 mb-6">
+    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 mb-6">
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-sm font-semibold text-[#2D3748]">Getting started</h3>

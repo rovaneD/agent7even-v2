@@ -124,21 +124,21 @@ ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents an
 
       {/* Workspace summary */}
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
           <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-3">Active campaigns</p>
           <p className="text-3xl font-semibold text-[#2D3748] mb-1">{activeCampaigns > 0 ? activeCampaigns : '—'}</p>
           <Link href="/dashboard/campaigns" className="text-xs text-[#3B82F6] font-medium hover:underline flex items-center gap-1 mt-1">
             View all <ArrowRight size={10} />
           </Link>
         </div>
-        <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
           <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-3">Agents run</p>
           <p className="text-3xl font-semibold text-[#2D3748] mb-1">{agentsRunThisWeek > 0 ? agentsRunThisWeek : '—'}</p>
           <Link href="/dashboard/agents" className="text-xs text-[#3B82F6] font-medium hover:underline flex items-center gap-1 mt-1">
             View agents <ArrowRight size={10} />
           </Link>
         </div>
-        <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5">
           <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-3">Credits remaining</p>
           <p className="text-3xl font-semibold text-[#2D3748] mb-1">—</p>
           <Link href="/dashboard/billing" className="text-xs text-[#3B82F6] font-medium hover:underline flex items-center gap-1 mt-1">
@@ -158,7 +158,7 @@ ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents an
           <Link
             key={card.href}
             href={card.href}
-            className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#64748B] hover:shadow-sm transition-all group"
+            className="bg-white rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#64748B] hover:shadow-sm transition-all group"
           >
             <p className="text-sm font-semibold text-[#2D3748] mb-1">{card.label}</p>
             <p className="text-xs text-[#64748B] leading-relaxed mb-4">{card.desc}</p>

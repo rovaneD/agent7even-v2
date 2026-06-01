@@ -40,7 +40,7 @@ export default function CreditTopUp({ currentBalance, onSuccess }: Props) {
   const selectedPkg = CREDIT_PACKAGES.find(p => p.id === selected)
 
   return (
-    <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-6">
+    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
       <div className="flex items-center gap-2 mb-1">
         <Zap className="w-4 h-4 text-[#3B82F6]" />
         <h3 className="text-base font-semibold text-[#2D3748]">Top up credits</h3>

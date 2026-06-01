@@ -56,7 +56,7 @@ export default function CreditsUsage({ data }: Props) {
     : 0
 
   return (
-    <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-6">
+    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-5">
