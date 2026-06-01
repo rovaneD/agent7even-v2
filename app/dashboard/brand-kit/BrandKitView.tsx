@@ -142,7 +142,7 @@ export default function BrandKitView({
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Brand Kit</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Brand Kit</p>
           <h1 className="text-2xl font-bold text-gray-900">Brand Identity</h1>
           <p className="text-sm text-gray-400 mt-1">Your complete brand system — colors, fonts, voice, and assets</p>
         </div>
@@ -167,7 +167,7 @@ export default function BrandKitView({
               key={key}
               onClick={() => setActiveSection(key)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                active ? 'bg-[#2D3748] text-white' : 'text-[#9BA1AE] hover:text-[#2D3748] hover:bg-[#F8F8F8] bg-white border border-[#E2E8F0]'
+                active ? 'bg-[#2D3748] text-white' : 'text-[#64748B] hover:text-[#2D3748] hover:bg-[#F8FAFC] bg-white border border-[#E2E8F0]'
               }`}
             >
               <Icon size={13} strokeWidth={1.75} />

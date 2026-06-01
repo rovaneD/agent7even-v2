@@ -29,7 +29,7 @@ function typeColor(type: string): string {
   if (type === 'brand_kit_generated') return '#10B981'
   if (type === 'plan_activated') return '#10B981'
   if (type === 'trial_ending') return '#EF4444'
-  return '#9BA1AE'
+  return '#64748B'
 }
 
 function typeInitial(type: string): string {
@@ -243,7 +243,7 @@ The user can mark notifications as read and follow links to relevant pages.`
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 mb-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold text-[#9BA1AE] uppercase tracking-wide">
+                      <span className="text-xs font-semibold text-[#64748B] uppercase tracking-wide">
                         {typeLabel(notif.type)}
                       </span>
                       {!notif.read && (

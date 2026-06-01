@@ -51,7 +51,7 @@ function FileIcon({ type }: { type: string | null }) {
 
 function roleBadge(role: string | null) {
   if (role === 'admin') return (
-    <span className="text-xs font-medium text-[#9BA1AE] bg-[#2D3748]/10 px-2 py-0.5 rounded-full">
+    <span className="text-xs font-medium text-[#64748B] bg-[#2D3748]/10 px-2 py-0.5 rounded-full">
       From Agent7even
     </span>
   )
@@ -221,7 +221,7 @@ The user can download files from Agent7even and upload their own briefs and asse
           </p>
           <button
             onClick={() => setShowUploadModal(true)}
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#9BA1AE] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2.5 rounded-xl transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#64748B] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2.5 rounded-xl transition-colors"
           >
             <Upload size={14} />
             Upload your first file
@@ -239,7 +239,7 @@ The user can download files from Agent7even and upload their own briefs and asse
               onClick={() => toggleProject(project)}
               className="w-full flex items-center gap-3 px-6 py-4 hover:bg-gray-50 transition-colors text-left"
             >
-              <Folder size={17} className="text-[#9BA1AE] flex-shrink-0" />
+              <Folder size={17} className="text-[#64748B] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900">{project}</p>
                 <p className="text-xs text-gray-400">{files.length} file{files.length !== 1 ? 's' : ''}</p>

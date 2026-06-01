@@ -354,7 +354,7 @@ export default function ClientDetail({
                 {profile.avatar_url ? (
                   <img src={profile.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-[#2D3748]/10 flex items-center justify-center text-[#9BA1AE] font-bold text-lg flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-[#2D3748]/10 flex items-center justify-center text-[#64748B] font-bold text-lg flex-shrink-0">
                     {(profile.full_name || profile.email || 'U')[0].toUpperCase()}
                   </div>
                 )}
@@ -751,7 +751,7 @@ export default function ClientDetail({
                   <div>
                     {notes.map(note => (
                       <div key={note.id} className="flex gap-3 py-4 border-b border-gray-100 last:border-0">
-                        <div className="w-8 h-8 rounded-full bg-[#2D3748]/10 flex items-center justify-center text-[#9BA1AE] text-xs font-bold flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#2D3748]/10 flex items-center justify-center text-[#64748B] text-xs font-bold flex-shrink-0">
                           {(note.profiles?.full_name || 'A')[0].toUpperCase()}
                         </div>
                         <div>

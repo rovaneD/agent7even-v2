@@ -35,7 +35,7 @@ function CheckoutRedirect() {
     return (
       <div className="text-center">
         <p className="text-white/60 text-sm mb-4">Something went wrong starting checkout.</p>
-        <a href="/pricing" className="text-sm font-medium text-[#9BA1AE] hover:text-[#b8471f] transition-colors">
+        <a href="/pricing" className="text-sm font-medium text-[#64748B] hover:text-[#b8471f] transition-colors">
           ← Back to pricing
         </a>
       </div>
@@ -44,7 +44,7 @@ function CheckoutRedirect() {
 
   return (
     <div className="text-center">
-      <Loader2 size={28} className="text-[#9BA1AE] animate-spin mx-auto mb-4" />
+      <Loader2 size={28} className="text-[#64748B] animate-spin mx-auto mb-4" />
       <p className="text-white/50 text-sm">Setting up your subscription...</p>
     </div>
   )
@@ -55,7 +55,7 @@ export default function CheckoutNowPage() {
     <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-6">
       <Suspense fallback={
         <div className="text-center">
-          <Loader2 size={28} className="text-[#9BA1AE] animate-spin mx-auto mb-4" />
+          <Loader2 size={28} className="text-[#64748B] animate-spin mx-auto mb-4" />
           <p className="text-white/50 text-sm">Setting up your subscription...</p>
         </div>
       }>

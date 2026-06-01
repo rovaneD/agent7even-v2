@@ -45,13 +45,13 @@ interface Props {
 const PLAIN_MD: Record<string, React.ComponentType<{ children?: React.ReactNode }>> = {
   p:      ({ children }) => <p style={{ margin: '0 0 10px 0', fontSize: 13.5, lineHeight: 1.7, color: '#2D3748' }}>{children}</p>,
   strong: ({ children }) => <span style={{ fontWeight: 500, color: '#2D3748' }}>{children}</span>,
-  em:     ({ children }) => <span style={{ fontStyle: 'italic', color: '#9BA1AE' }}>{children}</span>,
+  em:     ({ children }) => <span style={{ fontStyle: 'italic', color: '#64748B' }}>{children}</span>,
   ul:     ({ children }) => <ul style={{ paddingLeft: 16, margin: '0 0 10px 0' }}>{children}</ul>,
   ol:     ({ children }) => <ol style={{ paddingLeft: 16, margin: '0 0 10px 0' }}>{children}</ol>,
   li:     ({ children }) => <li style={{ marginBottom: 5, fontSize: 13.5, lineHeight: 1.65, color: '#2D3748' }}>{children}</li>,
   h1:     ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: '#2D3748', margin: '0 0 8px 0' }}>{children}</p>,
   h2:     ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: '#2D3748', margin: '0 0 8px 0' }}>{children}</p>,
-  h3:     ({ children }) => <p style={{ fontSize: 13, fontWeight: 500, color: '#9BA1AE', margin: '0 0 6px 0' }}>{children}</p>,
+  h3:     ({ children }) => <p style={{ fontSize: 13, fontWeight: 500, color: '#64748B', margin: '0 0 6px 0' }}>{children}</p>,
 }
 
 // ── Modes ─────────────────────────────────────────────────────────────────
@@ -201,9 +201,9 @@ export default function MayChatPanel({
         {onClose && (
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9BA1AE', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#9BA1AE' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B' }}
           >
             <X size={15} />
           </button>
@@ -218,20 +218,20 @@ export default function MayChatPanel({
               <span style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>M</span>
             </div>
             <p style={{ fontSize: 15, fontWeight: 600, color: '#2D3748', marginBottom: 3 }}>Hey {companyName !== 'there' ? companyName : 'there'}.</p>
-            <p style={{ fontSize: 12, color: '#9BA1AE', marginBottom: 20 }}>What would you like to work on?</p>
+            <p style={{ fontSize: 12, color: '#64748B', marginBottom: 20 }}>What would you like to work on?</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, width: '100%' }}>
               {MODES.map(({ id, label, description, Icon }) => (
                 <button
                   key={id}
                   onClick={() => selectMode(id)}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 12, border: '1px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%', transition: 'border-color 0.12s, background 0.12s' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#9BA1AE'; (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#64748B'; (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9' }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC' }}
                 >
-                  <Icon size={14} color="#9BA1AE" strokeWidth={1.75} />
+                  <Icon size={14} color="#64748B" strokeWidth={1.75} />
                   <div>
                     <p style={{ fontSize: 12.5, fontWeight: 500, color: '#2D3748', marginBottom: 1 }}>{label}</p>
-                    <p style={{ fontSize: 11, color: '#9BA1AE', lineHeight: 1.4 }}>{description}</p>
+                    <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.4 }}>{description}</p>
                   </div>
                 </button>
               ))}
@@ -268,7 +268,7 @@ export default function MayChatPanel({
                 <div style={{ width: 24, height: 24, borderRadius: 8, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>M</span>
                 </div>
-                <p style={{ fontSize: 12.5, color: '#9BA1AE', fontStyle: 'italic', paddingTop: 4 }}>Maya is thinking...</p>
+                <p style={{ fontSize: 12.5, color: '#64748B', fontStyle: 'italic', paddingTop: 4 }}>Maya is thinking...</p>
               </div>
             )}
 
@@ -279,7 +279,7 @@ export default function MayChatPanel({
 
       {/* Input */}
       <div style={{ flexShrink: 0, borderTop: '1px solid #E2E8F0', padding: '12px 14px', background: '#fff' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: '#F8F8F8', borderRadius: 14, padding: '10px 14px', border: '1px solid #E2E8F0', transition: 'border-color 0.12s' }}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: '#F8FAFC', borderRadius: 14, padding: '10px 14px', border: '1px solid #E2E8F0', transition: 'border-color 0.12s' }}
           onFocus={() => {}} // for future focus-within styling
         >
           <textarea

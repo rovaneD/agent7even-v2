@@ -219,7 +219,7 @@ export default function AdminDeliverables({ clientId, initialDeliverables }: Pro
           {Object.entries(grouped).map(([project, files]) => (
             <div key={project} className="border border-gray-100 rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
-                <Folder size={14} className="text-[#9BA1AE]" />
+                <Folder size={14} className="text-[#64748B]" />
                 <span className="text-xs font-semibold text-gray-700">{project}</span>
                 <span className="text-xs text-gray-400 ml-auto">{files.length} file{files.length !== 1 ? 's' : ''}</span>
               </div>

@@ -45,7 +45,7 @@ export default function CreditTopUp({ currentBalance, onSuccess }: Props) {
         <Zap className="w-4 h-4 text-[#3B82F6]" />
         <h3 className="text-base font-semibold text-[#2D3748]">Top up credits</h3>
       </div>
-      <p className="text-sm text-[#9BA1AE] mb-5">
+      <p className="text-sm text-[#64748B] mb-5">
         Current balance:{' '}
         <span className="font-medium text-[#2D3748]">{currentBalance} credits</span>
         {' '}· Credits never expire
@@ -66,7 +66,7 @@ export default function CreditTopUp({ currentBalance, onSuccess }: Props) {
                 transition: 'all 0.12s',
                 fontFamily: 'inherit',
               }}
-              onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#9BA1AE' }}
+              onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#64748B' }}
               onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
             >
               <div>
@@ -83,7 +83,7 @@ export default function CreditTopUp({ currentBalance, onSuccess }: Props) {
                     </span>
                   )}
                 </div>
-                <p style={{ fontSize: 12, color: '#9BA1AE', margin: 0 }}>
+                <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>
                   {pkg.description}
                 </p>
               </div>

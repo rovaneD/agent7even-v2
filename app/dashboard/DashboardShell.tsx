@@ -156,11 +156,11 @@ function ContextMenu({ pageName }: { pageName: string }) {
         onClick={() => setOpen(o => !o)}
         style={{
           padding: '6px', borderRadius: 8, background: 'none', border: 'none',
-          cursor: 'pointer', color: '#9BA1AE', display: 'flex', alignItems: 'center',
+          cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center',
           transition: 'color 0.12s, background 0.12s',
         }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748'; (e.currentTarget as HTMLButtonElement).style.background = '#F8F8F8' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#9BA1AE'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748'; (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
       >
         <MoreHorizontal size={18} />
       </button>
@@ -180,7 +180,7 @@ function ContextMenu({ pageName }: { pageName: string }) {
                 fontSize: 13.5, color: '#2D3748', background: 'none', border: 'none',
                 cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.1s',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F8F8F8' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC' }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
             >
               {a.label}
@@ -395,17 +395,17 @@ export default function DashboardShell({
           onClick={() => setMobileOpen(false)}
           style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
-            borderRadius: 8, textDecoration: 'none', fontSize: 13, fontWeight: active ? 500 : 400,
-            color: active ? '#2D3748' : '#9BA1AE',
-            background: active ? '#F8FAFC' : 'transparent',
+            borderRadius: 8, textDecoration: 'none', fontSize: 14, fontWeight: active ? 500 : 400,
+            color: active ? '#2D3748' : '#64748B',
+            background: active ? '#F1F5F9' : 'transparent',
             border: active ? '1px solid #E2E8F0' : '1px solid transparent',
             transition: 'background 0.12s, color 0.12s, border-color 0.12s',
             marginBottom: 1,
           }}
-          onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#F8F8F8'; (e.currentTarget as HTMLAnchorElement).style.color = '#2D3748' } }}
-          onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#9BA1AE' } }}
+          onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLAnchorElement).style.color = '#2D3748' } }}
+          onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#64748B' } }}
         >
-          <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : '#CBD5E1'} />
+          <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : '#94A3B8'} />
           {item.label}
           {isFoundation && foundationScore !== null && (
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -435,13 +435,13 @@ export default function DashboardShell({
             onClick={() => setMobileOpen(false)}
             style={{
               display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px 5px 32px',
-              borderRadius: 7, textDecoration: 'none', fontSize: 12, fontWeight: approvalsActive ? 500 : 400,
-              color: approvalsActive ? '#3B82F6' : '#CBD5E1',
+              borderRadius: 7, textDecoration: 'none', fontSize: 13, fontWeight: approvalsActive ? 500 : 400,
+              color: approvalsActive ? '#3B82F6' : '#94A3B8',
               background: approvalsActive ? '#EFF6FF' : 'transparent',
               transition: 'background 0.12s, color 0.12s', marginBottom: 1,
             }}
             onMouseEnter={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = '#EFF6FF'; (e.currentTarget as HTMLAnchorElement).style.color = '#3B82F6' } }}
-            onMouseLeave={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#CBD5E1' } }}
+            onMouseLeave={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#94A3B8' } }}
           >
             <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#3B82F6', flexShrink: 0 }} />
             Approvals
@@ -467,7 +467,7 @@ export default function DashboardShell({
         <button
           onClick={() => setMobileOpen(false)}
           className="lg:hidden"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9BA1AE', padding: 2, display: 'flex' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: 2, display: 'flex' }}
         >
           <X size={14} />
         </button>
@@ -485,13 +485,13 @@ export default function DashboardShell({
             border: mayaOpen ? 'none' : '1px solid #E2E8F0',
             transition: 'background 0.12s, color 0.12s',
           } as React.CSSProperties}
-          onMouseEnter={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#9BA1AE' } }}
+          onMouseEnter={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#CBD5E1' } }}
           onMouseLeave={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' } }}
         >
-          <Sparkles size={13} strokeWidth={1.75} color={mayaOpen ? '#fff' : '#9BA1AE'} />
+          <Sparkles size={13} strokeWidth={1.75} color={mayaOpen ? '#fff' : '#64748B'} />
           Maya
           {mayaOpen && activeSessionId === null && (
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#9BA1AE', fontWeight: 400 }}>new</span>
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#64748B', fontWeight: 400 }}>new</span>
           )}
         </button>
 
@@ -500,7 +500,7 @@ export default function DashboardShell({
           <div style={{ marginTop: 2, marginLeft: 2, marginBottom: 2 }}>
             {sessionGroups.map(group => (
               <div key={group.label} style={{ marginBottom: 6 }}>
-                <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#CBD5E1', padding: '0 4px', marginBottom: 2 }}>
+                <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 4px', marginBottom: 2 }}>
                   {group.label}
                 </p>
                 {group.sessions.map(session => {
@@ -513,13 +513,13 @@ export default function DashboardShell({
                       style={{
                         width: '100%', display: 'block', textAlign: 'left', padding: '4px 6px 4px 10px',
                         borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        fontSize: 11.5, color: isActive ? '#2D3748' : '#9BA1AE',
+                        fontSize: 11.5, color: isActive ? '#2D3748' : '#64748B',
                         background: isActive ? '#F8FAFC' : 'transparent',
                         opacity: isLoading ? 0.5 : 1,
                         transition: 'background 0.1s, color 0.1s',
                         marginBottom: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
                       }}
-                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#F8F8F8' }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC' }}
                       onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
                       title={session.title ?? 'Untitled'}
                     >
@@ -546,10 +546,10 @@ export default function DashboardShell({
             fontSize: 13, fontWeight: 500, color: '#2D3748', background: '#F8FAFC',
             transition: 'background 0.12s, border-color 0.12s',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#9BA1AE' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#CBD5E1' }}
           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
         >
-          <Plus size={13} strokeWidth={1.75} color="#9BA1AE" />
+          <Plus size={13} strokeWidth={1.75} color="#64748B" />
           New campaign
         </button>
       </div>
@@ -558,7 +558,7 @@ export default function DashboardShell({
       <nav style={{ flex: 1, overflowY: 'auto', padding: '4px 10px' }}>
         {NAV.map((group) => (
           <div key={group.section} style={{ marginBottom: 18 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9BA1AE', padding: '0 3px', marginBottom: 4 }}>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 3px', marginBottom: 4 }}>
               {group.section}
             </p>
             {group.items.map(item => <NavLink key={item.href} item={item} />)}
@@ -566,7 +566,7 @@ export default function DashboardShell({
         ))}
         {isAdmin && (
           <div style={{ marginBottom: 18 }}>
-            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9BA1AE', padding: '0 3px', marginBottom: 4 }}>
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 3px', marginBottom: 4 }}>
               Admin
             </p>
             {[
@@ -588,17 +588,17 @@ export default function DashboardShell({
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px',
             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 13, color: '#9BA1AE', transition: 'color 0.12s',
+            fontSize: 14, color: '#64748B', transition: 'color 0.12s',
           }}
           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#9BA1AE' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B' }}
         >
-          <HelpCircle size={13} strokeWidth={1.75} />
+          <HelpCircle size={14} strokeWidth={1.75} />
           Help
         </button>
         <div style={{ padding: '6px 14px 12px', display: 'flex', alignItems: 'center', gap: 9 }}>
           <UserButton />
-          <span style={{ fontSize: 12, color: '#9BA1AE', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
+          <span style={{ fontSize: 13, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
         </div>
       </div>
     </aside>
@@ -607,7 +607,7 @@ export default function DashboardShell({
   // ── Canvas header ──────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif', background: '#F8F8F8' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif', background: '#F1F5F9' }}>
       <NewCampaignModal open={showNewCampaign} onClose={() => setShowNewCampaign(false)} />
 
       {/* Sidebar — desktop always visible */}

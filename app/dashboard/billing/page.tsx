@@ -125,7 +125,7 @@ export default async function BillingPage() {
 
     const breakdown: BreakdownItem[] = Object.entries(grouped)
       .sort((a, b) => b[1] - a[1])
-      .map(([label, credits]) => ({ label, credits, color: COLORS[label] ?? '#9BA1AE' }))
+      .map(([label, credits]) => ({ label, credits, color: COLORS[label] ?? '#64748B' }))
 
     const monthlyRemaining = Math.max(0, monthlyAllocation - monthlyUsed)
     const topupBalance = creditBalance - monthlyRemaining

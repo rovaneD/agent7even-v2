@@ -90,7 +90,7 @@ function SectionHeader({ icon: Icon, title, description }: {
   return (
     <div className="flex items-start gap-4 mb-6">
       <div className="w-10 h-10 rounded-xl bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0">
-        <Icon size={18} className="text-[#9BA1AE]" />
+        <Icon size={18} className="text-[#64748B]" />
       </div>
       <div>
         <h2 className="text-base font-semibold text-gray-900">{title}</h2>
@@ -146,7 +146,7 @@ export default function AdminSettingsClient({
   return (
     <div className="px-8 py-8 max-w-6xl">
       <div className="mb-8">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Admin</p>
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="text-gray-400 text-sm mt-1">Platform configuration and management</p>
       </div>
@@ -162,7 +162,7 @@ export default function AdminSettingsClient({
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
                   activeTab === tab.id
-                    ? 'bg-[#2D3748]/10 text-[#9BA1AE]'
+                    ? 'bg-[#2D3748]/10 text-[#64748B]'
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                 }`}
               >
@@ -348,7 +348,7 @@ function BannerSection({ initialBanner }: { initialBanner: Banner }) {
                 onClick={() => setBanner(b => ({ ...b, type }))}
                 className={`text-xs font-medium px-4 py-2 rounded-lg border capitalize transition-all ${
                   banner.type === type
-                    ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#9BA1AE]'
+                    ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#64748B]'
                     : 'border-gray-200 text-gray-400 hover:border-gray-300'
                 }`}
               >
@@ -429,7 +429,7 @@ function UsersSection({ initialUsers }: { initialUsers: User[] }) {
 
   function roleBadgeColor(role: string | null) {
     if (role === 'owner') return 'bg-[#0d0d0d] text-white'
-    if (role === 'admin') return 'bg-[#2D3748]/10 text-[#9BA1AE]'
+    if (role === 'admin') return 'bg-[#2D3748]/10 text-[#64748B]'
     return 'bg-gray-100 text-gray-600'
   }
 

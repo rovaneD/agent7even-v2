@@ -198,8 +198,8 @@ export default function ClientHealthView() {
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <ChevronUp size={10} className="text-gray-300" />
     return sortAsc
-      ? <ChevronUp size={10} className="text-[#9BA1AE]" />
-      : <ChevronDown size={10} className="text-[#9BA1AE]" />
+      ? <ChevronUp size={10} className="text-[#64748B]" />
+      : <ChevronDown size={10} className="text-[#64748B]" />
   }
 
   function ColHeader({ label, k }: { label: string; k: SortKey }) {
@@ -216,7 +216,7 @@ export default function ClientHealthView() {
   return (
     <div className="px-8 py-8 max-w-7xl">
       <div className="mb-6">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Admin</p>
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Client Health</h1>
         <p className="text-gray-500 text-sm mt-1">{clients.length} clients</p>
       </div>
@@ -355,7 +355,7 @@ export default function ClientHealthView() {
                       {client.avatar_url ? (
                         <img src={client.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0 text-[#9BA1AE] text-xs font-bold">
+                        <div className="w-8 h-8 rounded-full bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0 text-[#64748B] text-xs font-bold">
                           {(client.full_name || client.email || 'U')[0].toUpperCase()}
                         </div>
                       )}

@@ -73,7 +73,7 @@ export default async function AdminPage() {
 
       {/* Header */}
       <div className="mb-8">
-        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Admin</p>
+        <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Command Center</h1>
         <p className="text-sm text-gray-400 mt-1">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -85,7 +85,7 @@ export default async function AdminPage() {
         {[
           { label: 'Total clients', value: totalClients ?? 0, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50', href: '/admin/clients' },
           { label: 'Active clients', value: activeClients ?? 0, icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50', href: '/admin/clients' },
-          { label: 'Pending orders', value: pendingOrders.length, icon: ShoppingBag, color: 'text-[#9BA1AE]', bg: 'bg-[#2D3748]/8', href: '/admin/orders' },
+          { label: 'Pending orders', value: pendingOrders.length, icon: ShoppingBag, color: 'text-[#64748B]', bg: 'bg-[#2D3748]/8', href: '/admin/orders' },
           { label: 'Open tickets', value: openTickets ?? 0, icon: Headphones, color: 'text-purple-500', bg: 'bg-purple-50', href: '/admin/support' },
         ].map((metric) => (
           <Link
@@ -136,7 +136,7 @@ export default async function AdminPage() {
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Recent orders</p>
-            <Link href="/admin/orders" className="text-xs text-[#9BA1AE] hover:underline">View all →</Link>
+            <Link href="/admin/orders" className="text-xs text-[#64748B] hover:underline">View all →</Link>
           </div>
           {recentOrders && recentOrders.length > 0 ? (
             <div className="space-y-3">
@@ -173,7 +173,7 @@ export default async function AdminPage() {
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Recent clients</p>
-            <Link href="/admin/clients" className="text-xs text-[#9BA1AE] hover:underline">View all →</Link>
+            <Link href="/admin/clients" className="text-xs text-[#64748B] hover:underline">View all →</Link>
           </div>
           {recentClients && recentClients.length > 0 ? (
             <div className="space-y-3">
@@ -185,7 +185,7 @@ export default async function AdminPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-full bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-[#9BA1AE] text-xs font-bold">
+                      <span className="text-[#64748B] text-xs font-bold">
                         {(client.company_name || client.full_name || client.email || 'U')[0].toUpperCase()}
                       </span>
                     </div>

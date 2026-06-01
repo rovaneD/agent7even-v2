@@ -70,7 +70,7 @@ function ChannelLabel({ channel }: { channel: string }) {
     c.includes('instagram') || c.includes('social') ? '#e1306c' :
     c.includes('email')                              ? '#2D3748' :
     c.includes('ad')                                 ? '#1877f2' :
-    '#9BA1AE'
+    '#64748B'
   return (
     <span style={{ background: bg, color: '#fff', borderRadius: 5, padding: '2px 5px', fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>
       {label}
@@ -170,13 +170,13 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
             </div>
             <span className="text-sm font-semibold text-[#2D3748]">Maya</span>
           </div>
-          <p className="text-sm text-[#9BA1AE]">
+          <p className="text-sm text-[#64748B]">
             {getGreeting()}{firstName ? `, ${firstName}` : ''}. Here is what happened overnight.
           </p>
         </div>
         <button
           onClick={handleDismiss}
-          className="text-xs text-[#9BA1AE] hover:text-[#2D3748] transition-colors mt-0.5"
+          className="text-xs text-[#64748B] hover:text-[#2D3748] transition-colors mt-0.5"
         >
           Dismiss
         </button>
@@ -185,13 +185,13 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
       {/* What I did */}
       {hasActivity && (
         <div className="mb-6">
-          <p className="text-[10px] font-semibold text-[#9BA1AE] uppercase tracking-widest mb-3">What I did</p>
+          <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-widest mb-3">What I did</p>
           <div className="space-y-2">
             {agentRuns.map((run, i) => (
               <div key={i} className="flex items-start gap-3 py-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] mt-2 flex-shrink-0" />
                 <p className="text-sm text-[#2D3748]">
-                  <span className="font-medium text-[#9BA1AE] mr-1.5">{run.agentName}</span>
+                  <span className="font-medium text-[#64748B] mr-1.5">{run.agentName}</span>
                   {run.summary}
                 </p>
               </div>
@@ -203,7 +203,7 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
       {/* What needs you */}
       {hasPending && (
         <div className="mb-6">
-          <p className="text-[10px] font-semibold text-[#9BA1AE] uppercase tracking-widest mb-3">
+          <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-widest mb-3">
             What needs you
             <span className="ml-2 bg-[#3B82F6]/10 text-[#3B82F6] text-[10px] font-semibold px-1.5 py-0.5 rounded-full normal-case tracking-normal">
               {approvals.length}
@@ -213,7 +213,7 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
             {approvals.map(item => (
               <div key={item.taskId} className="bg-white rounded-xl p-4 border border-[#E2E8F0]">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-[#9BA1AE]">{item.agentName}</span>
+                  <span className="text-xs font-medium text-[#64748B]">{item.agentName}</span>
                   <span className="text-xs text-[#CBD5E1]">{formatRelative(item.createdAt)}</span>
                 </div>
                 {item.preview && (
@@ -228,13 +228,13 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
                   </button>
                   <button
                     onClick={() => handleReject(item.taskId)}
-                    className="flex-1 py-2 border border-[#E2E8F0] text-[#2D3748] text-xs font-medium rounded-lg hover:border-[#9BA1AE] transition-colors"
+                    className="flex-1 py-2 border border-[#E2E8F0] text-[#2D3748] text-xs font-medium rounded-lg hover:border-[#64748B] transition-colors"
                   >
                     Reject
                   </button>
                   <Link
                     href={`/dashboard/agents/approvals?task=${item.taskId}`}
-                    className="px-3 py-2 border border-[#E2E8F0] text-[#3B82F6] text-xs font-medium rounded-lg hover:border-[#9BA1AE] transition-colors whitespace-nowrap"
+                    className="px-3 py-2 border border-[#E2E8F0] text-[#3B82F6] text-xs font-medium rounded-lg hover:border-[#64748B] transition-colors whitespace-nowrap"
                   >
                     Review
                   </Link>
@@ -248,7 +248,7 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
       {/* Today's plan */}
       {hasActions && (
         <div>
-          <p className="text-[10px] font-semibold text-[#9BA1AE] uppercase tracking-widest mb-3">Today&apos;s plan</p>
+          <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-widest mb-3">Today&apos;s plan</p>
           <div className="space-y-1">
             {digest.today_actions.map((action, i) => (
               <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#E2E8F0] last:border-0">
@@ -256,7 +256,7 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
                   <ChannelLabel channel={action.channel} />
                   <div className="min-w-0">
                     <p className="text-sm text-[#2D3748] truncate">{action.task}</p>
-                    <p className="text-xs text-[#9BA1AE] truncate">{action.campaignTitle}</p>
+                    <p className="text-xs text-[#64748B] truncate">{action.campaignTitle}</p>
                   </div>
                 </div>
                 <button

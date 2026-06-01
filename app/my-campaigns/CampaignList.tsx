@@ -143,7 +143,7 @@ export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
                         return (
                           <div key={i} className="flex gap-2.5 items-start justify-between">
                             <div className="flex gap-2.5 items-start flex-1 min-w-0">
-                              <span className={`text-sm mt-0.5 flex-shrink-0 ${isDone ? 'text-green-600' : 'text-[#9BA1AE]'}`}>
+                              <span className={`text-sm mt-0.5 flex-shrink-0 ${isDone ? 'text-green-600' : 'text-[#64748B]'}`}>
                                 {isDone ? '✓' : '→'}
                               </span>
                               <p className="text-sm text-gray-700 leading-relaxed">{win}</p>
@@ -169,7 +169,7 @@ export default function CampaignList({ campaigns }: { campaigns: Campaign[] }) {
                             ) : (
                               <a
                                 href={`/maya?task=${encodeURIComponent(win)}&campaignId=${c.id}`}
-                                className="flex-shrink-0 text-xs font-medium text-[#9BA1AE] hover:underline whitespace-nowrap ml-3 mt-0.5"
+                                className="flex-shrink-0 text-xs font-medium text-[#64748B] hover:underline whitespace-nowrap ml-3 mt-0.5"
                               >
                                 Do this with Maya →
                               </a>

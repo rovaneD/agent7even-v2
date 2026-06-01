@@ -219,7 +219,7 @@ function GAConnectModal({
         <div className="flex items-center gap-3 mb-5">
           <BrandIcon src="/google_analytics_icon.png" alt="Google Analytics" />
           <div>
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE]">Connect</p>
+            <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B]">Connect</p>
             <h2 className="text-lg font-bold text-gray-900 leading-tight">Google Analytics</h2>
           </div>
         </div>
@@ -399,7 +399,7 @@ function PropertySelectorModal({
                   <p className="text-sm font-semibold text-gray-800">{p.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{p.account ? `${p.account} · ` : ''}ID: {p.id}</p>
                 </div>
-                {selected === p.id && <CheckCircle size={16} className="text-[#9BA1AE] flex-shrink-0" />}
+                {selected === p.id && <CheckCircle size={16} className="text-[#64748B] flex-shrink-0" />}
               </button>
             ))}
           </div>
@@ -682,7 +682,7 @@ function WebsiteAnalyticsSection({
             </p>
             <p className="text-xs text-gray-400 mt-3">
               Want to connect instantly?{' '}
-              <button onClick={onConnect} className="font-semibold text-[#9BA1AE] underline underline-offset-2 pointer-events-auto hover:text-[#b8471f]">
+              <button onClick={onConnect} className="font-semibold text-[#64748B] underline underline-offset-2 pointer-events-auto hover:text-[#b8471f]">
                 Use Google sign-in instead →
               </button>
             </p>

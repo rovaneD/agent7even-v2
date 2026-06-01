@@ -487,12 +487,12 @@ export default function MayaShell({
                 )}
               </>
             )
-            const sharedStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: isActive ? 500 : 400, color: isActive ? '#2D3748' : '#9BA1AE', background: isActive ? '#F8FAFC' : 'transparent', width: '100%', textAlign: 'left', fontFamily: 'inherit', textDecoration: 'none' }
+            const sharedStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: isActive ? 500 : 400, color: isActive ? '#2D3748' : '#64748B', background: isActive ? '#F8FAFC' : 'transparent', width: '100%', textAlign: 'left', fontFamily: 'inherit', textDecoration: 'none' }
             if (item.href) {
               return (
                 <a key={item.id} href={item.href} style={sharedStyle}
                   onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLAnchorElement).style.background = '#f5f5f5'; (e.currentTarget as HTMLAnchorElement).style.color = '#555' } }}
-                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#9BA1AE' } }}
+                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#64748B' } }}
                 >
                   {inner}
                 </a>
@@ -501,7 +501,7 @@ export default function MayaShell({
             return (
               <button key={item.id} onClick={() => setActiveNav(item.id)} style={sharedStyle}
                 onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = '#f5f5f5'; (e.currentTarget as HTMLButtonElement).style.color = '#555' } }}
-                onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = '#9BA1AE' } }}
+                onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = '#64748B' } }}
               >
                 {inner}
               </button>
@@ -525,9 +525,9 @@ export default function MayaShell({
             {chatStarted && sessionTitle ? sessionTitle : 'Maya'}
           </span>
           <button onClick={() => setCanvasOpen(o => !o)} title={canvasOpen ? 'Collapse canvas' : 'Expand canvas'}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9BA1AE', display: 'flex', alignItems: 'center', padding: 4, borderRadius: 6 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center', padding: 4, borderRadius: 6 }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#555' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#9BA1AE' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B' }}
           >
             <i className={`ti ${canvasOpen ? 'ti-layout-sidebar' : 'ti-layout-sidebar-right'}`} style={{ fontSize: 16 }} />
           </button>
@@ -613,7 +613,7 @@ export default function MayaShell({
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                     <span style={{ color: '#fff', fontSize: 12, fontWeight: 500 }}>M</span>
                   </div>
-                  <p style={{ fontSize: 13, color: '#9BA1AE', fontStyle: 'italic', paddingTop: 7 }}>Maya is thinking...</p>
+                  <p style={{ fontSize: 13, color: '#64748B', fontStyle: 'italic', paddingTop: 7 }}>Maya is thinking...</p>
                 </div>
               )}
 
@@ -674,7 +674,7 @@ export default function MayaShell({
               </div>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-              <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#9BA1AE', marginBottom: 12 }}>Competitors</p>
+              <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#64748B', marginBottom: 12 }}>Competitors</p>
               {competitors.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                   {competitors.map((handle, i) => {
@@ -689,7 +689,7 @@ export default function MayaShell({
                           <p style={{ fontSize: 13, fontWeight: 500, color: '#2D3748', marginBottom: 2 }}>@{clean}</p>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2D3748', animation: 'dotPulse 2s ease-in-out infinite', animationDelay: `${i * 0.3}s` }} />
-                            <span style={{ fontSize: 11, color: '#9BA1AE' }}>Watching...</span>
+                            <span style={{ fontSize: 11, color: '#64748B' }}>Watching...</span>
                           </div>
                         </div>
                       </div>
@@ -699,7 +699,7 @@ export default function MayaShell({
               ) : (
                 <div style={{ background: '#fff', border: '0.5px dashed #e0e0e0', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
                   <p style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>+ Add competitors</p>
-                  <p style={{ fontSize: 11, color: '#9BA1AE', lineHeight: 1.5 }}>I can suggest competitors based on your industry — just ask me.</p>
+                  <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>I can suggest competitors based on your industry — just ask me.</p>
                 </div>
               )}
               {planLoading && (
@@ -713,7 +713,7 @@ export default function MayaShell({
               )}
               <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: '#9BA1AE' }}>Maya</span>
+                  <span style={{ fontSize: 11, color: '#64748B' }}>Maya</span>
                 </div>
                 <p style={{ fontSize: 13, color: '#555', lineHeight: 1.65, fontStyle: 'italic' }}>
                   Social proof is outperforming product posts 3:1 in most niches right now. One real customer story beats ten product photos.
@@ -761,7 +761,7 @@ export default function MayaShell({
                                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                                   <button
                                     onClick={() => copyToClipboard(opt.content, optId)}
-                                    style={{ fontSize: 11, color: copiedId === optId ? '#16a34a' : '#9BA1AE', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0, fontWeight: 500 }}
+                                    style={{ fontSize: 11, color: copiedId === optId ? '#16a34a' : '#64748B', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0, fontWeight: 500 }}
                                   >
                                     {copiedId === optId ? 'Copied ✓' : 'Copy'}
                                   </button>
@@ -778,7 +778,7 @@ export default function MayaShell({
                             </div>
                           )
                         })}
-                        <p style={{ fontSize: 11, color: '#9BA1AE', textAlign: 'center', paddingTop: 4 }}>
+                        <p style={{ fontSize: 11, color: '#64748B', textAlign: 'center', paddingTop: 4 }}>
                           Reply in the chat to refine any option
                         </p>
                       </div>
@@ -791,7 +791,7 @@ export default function MayaShell({
                       <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 10, padding: '16px 18px' }}>
                         <p style={{ fontSize: 13, color: '#333', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>{clean}</p>
                       </div>
-                      <p style={{ fontSize: 11, color: '#9BA1AE', textAlign: 'center' }}>
+                      <p style={{ fontSize: 11, color: '#64748B', textAlign: 'center' }}>
                         Reply in the chat to refine any option
                       </p>
                     </div>
@@ -824,7 +824,7 @@ export default function MayaShell({
                 </div>
 
                 <div>
-                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#9BA1AE', marginBottom: 10 }}>Do this today</p>
+                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#64748B', marginBottom: 10 }}>Do this today</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {campaignPlan.quick_wins?.map((win, i) => (
                       <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -847,7 +847,7 @@ export default function MayaShell({
 
                 {campaignPlan.weeks?.map(week => (
                   <div key={week.week}>
-                    <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#9BA1AE', marginBottom: 10 }}>
+                    <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#64748B', marginBottom: 10 }}>
                       Week {week.week} — {week.theme}
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -855,7 +855,7 @@ export default function MayaShell({
                         <div key={i} style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 8, padding: '10px 12px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                             <span style={{ fontSize: 11, fontWeight: 500, color: '#555' }}>{task.day} · {task.channel}</span>
-                            <span style={{ fontSize: 10, color: '#9BA1AE' }}>{task.time_required}</span>
+                            <span style={{ fontSize: 10, color: '#64748B' }}>{task.time_required}</span>
                           </div>
                           <p style={{ fontSize: 12.5, color: '#333', lineHeight: 1.5 }}>{task.action}</p>
                         </div>
@@ -865,7 +865,7 @@ export default function MayaShell({
                 ))}
 
                 <div>
-                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#9BA1AE', marginBottom: 10 }}>Track these</p>
+                  <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#64748B', marginBottom: 10 }}>Track these</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {campaignPlan.metrics_to_track?.map((metric, i) => (
                       <span key={i} style={{ fontSize: 11, background: '#fff', border: '0.5px solid #e0e0e0', color: '#555', borderRadius: 20, padding: '4px 10px' }}>

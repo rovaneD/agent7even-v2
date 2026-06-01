@@ -342,7 +342,7 @@ export default function GuidedCampaignFlow() {
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#2D3748', marginBottom: 2 }}>
                   {t.label}
                 </p>
-                <p style={{ fontSize: 11, color: '#9BA1AE' }}>{t.description}</p>
+                <p style={{ fontSize: 11, color: '#64748B' }}>{t.description}</p>
               </button>
             ))}
           </div>
@@ -388,9 +388,9 @@ export default function GuidedCampaignFlow() {
                   <p style={{ fontSize: 13, fontWeight: 500, color: '#2D3748', marginBottom: 2 }}>
                     {opt.label}
                   </p>
-                  <p style={{ fontSize: 11.5, color: '#9BA1AE' }}>{opt.description}</p>
+                  <p style={{ fontSize: 11.5, color: '#64748B' }}>{opt.description}</p>
                 </div>
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: '#9BA1AE', marginLeft: 16, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: '#64748B', marginLeft: 16, whiteSpace: 'nowrap' }}>
                   {opt.credits} credits
                 </span>
               </button>
@@ -446,7 +446,7 @@ function SelectCard({
         <p style={{ fontSize: 13.5, fontWeight: 500, color: '#2D3748', marginBottom: 2 }}>
           {title}
         </p>
-        <p style={{ fontSize: 11.5, color: '#9BA1AE' }}>{description}</p>
+        <p style={{ fontSize: 11.5, color: '#64748B' }}>{description}</p>
       </div>
     </button>
   )

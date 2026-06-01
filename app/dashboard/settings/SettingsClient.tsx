@@ -63,7 +63,7 @@ interface Props {
 function planBadge(plan: string | null) {
   const map: Record<string, string> = {
     starter: 'bg-gray-100 text-gray-600',
-    growth: 'bg-[#2D3748]/10 text-[#9BA1AE]',
+    growth: 'bg-[#2D3748]/10 text-[#64748B]',
     proagent: 'bg-[#0d0d0d] text-white',
   }
   const label = plan ?? 'No plan'
@@ -194,12 +194,12 @@ The user can update their company name, website URL, and Instagram handle. Name 
           To update your name or email, visit your{' '}
           <button
             onClick={() => openUserProfile()}
-            className="text-[#9BA1AE] underline underline-offset-2"
+            className="text-[#64748B] underline underline-offset-2"
           >
             account settings
           </button>
           . To change your plan, go to{' '}
-          <a href="/dashboard/billing" className="text-[#9BA1AE] underline underline-offset-2">Billing</a>.
+          <a href="/dashboard/billing" className="text-[#64748B] underline underline-offset-2">Billing</a>.
         </p>
       </div>
 

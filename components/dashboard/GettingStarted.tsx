@@ -56,7 +56,7 @@ export default function GettingStarted({ completed, dismissed }: Props) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-sm font-semibold text-[#2D3748]">Getting started</h3>
-          <p className="text-xs text-[#9BA1AE] mt-0.5">{doneCount} of {ITEMS.length} complete</p>
+          <p className="text-xs text-[#64748B] mt-0.5">{doneCount} of {ITEMS.length} complete</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="w-24 h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
@@ -67,7 +67,7 @@ export default function GettingStarted({ completed, dismissed }: Props) {
           </div>
           <button
             onClick={handleDismiss}
-            className="text-[#CBD5E1] hover:text-[#9BA1AE] transition-colors p-0.5 rounded"
+            className="text-[#CBD5E1] hover:text-[#64748B] transition-colors p-0.5 rounded"
             title="Dismiss"
           >
             <X size={13} />
@@ -100,7 +100,7 @@ export default function GettingStarted({ completed, dismissed }: Props) {
                   {item.label}
                 </p>
                 {!done && (
-                  <p className="text-[11px] text-[#9BA1AE] mt-0.5 leading-snug">{item.desc}</p>
+                  <p className="text-[11px] text-[#64748B] mt-0.5 leading-snug">{item.desc}</p>
                 )}
               </div>
               {!done && (

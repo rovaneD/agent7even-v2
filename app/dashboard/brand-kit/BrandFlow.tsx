@@ -143,14 +143,14 @@ export default function BrandFlow({
             <div
               key={c.id}
               className={`flex items-center gap-1 text-xs font-medium transition-colors ${
-                i === chapterIndex ? 'text-[#9BA1AE]' : i < chapterIndex ? 'text-gray-400' : 'text-gray-200'
+                i === chapterIndex ? 'text-[#64748B]' : i < chapterIndex ? 'text-gray-400' : 'text-gray-200'
               }`}
             >
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs transition-all ${
                 i < chapterIndex
                   ? 'bg-[#2D3748] text-white'
                   : i === chapterIndex
-                  ? 'bg-[#2D3748]/10 text-[#9BA1AE] border border-[#3B82F6]/30'
+                  ? 'bg-[#2D3748]/10 text-[#64748B] border border-[#3B82F6]/30'
                   : 'bg-gray-100 text-gray-300'
               }`}>
                 {i < chapterIndex ? <Check size={10} /> : i + 1}
@@ -184,7 +184,7 @@ export default function BrandFlow({
             {/* Question bubble */}
             <div className="flex items-start gap-3 mb-4">
               <div className="w-8 h-8 rounded-full bg-[#2D3748] flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-[#9BA1AE]">A7</span>
+                <span className="text-xs font-bold text-[#64748B]">A7</span>
               </div>
               <div className="bg-gray-50 rounded-2xl rounded-tl-none px-5 py-4 flex-1">
                 <p className="text-sm font-semibold text-gray-900 mb-1">{q.question}</p>
@@ -224,7 +224,7 @@ export default function BrandFlow({
                       onClick={() => setAnswer(q.id, opt)}
                       className={`w-full text-left text-sm px-4 py-3 rounded-xl border transition-all ${
                         answers[q.id] === opt
-                          ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#9BA1AE] font-medium'
+                          ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#64748B] font-medium'
                           : 'border-gray-200 text-gray-700 hover:border-gray-300'
                       }`}
                     >
@@ -263,7 +263,7 @@ export default function BrandFlow({
         {showTyping && (
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#2D3748] flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-bold text-[#9BA1AE]">A7</span>
+              <span className="text-xs font-bold text-[#64748B]">A7</span>
             </div>
             <div className="bg-gray-50 rounded-2xl rounded-tl-none px-5 py-4">
               <div className="flex gap-1">

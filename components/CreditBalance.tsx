@@ -71,7 +71,7 @@ export default function CreditBalance({ userId, plan }: Props) {
       )}
 
       <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-100 rounded-xl">
-        <Zap className={`h-4 w-4 ${low ? 'text-orange-500' : 'text-[#9BA1AE]'}`} />
+        <Zap className={`h-4 w-4 ${low ? 'text-orange-500' : 'text-[#64748B]'}`} />
         <div>
           <p className="text-xs text-gray-400 leading-none">Credits</p>
           <p className={`text-sm font-semibold leading-none mt-0.5 ${low ? 'text-orange-500' : 'text-gray-900'}`}>

@@ -117,7 +117,7 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
             <ChevronLeft size={16} />
             Back to inquiries
           </Link>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-1">
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-1">
             {SERVICE_LABELS[inquiry.service_type] ?? inquiry.service_type}
           </p>
           <h1 className="text-2xl font-bold text-gray-900">{inquiry.project_name}</h1>
@@ -163,7 +163,7 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Client</h2>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#2D3748]/10 flex items-center justify-center">
-                <User size={16} className="text-[#9BA1AE]" />
+                <User size={16} className="text-[#64748B]" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-900">
@@ -301,7 +301,7 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
                 href={inquiry.proposal_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm font-medium text-[#9BA1AE] hover:text-[#b8471f] transition-colors"
+                className="flex items-center gap-2 text-sm font-medium text-[#64748B] hover:text-[#b8471f] transition-colors"
               >
                 <ExternalLink size={14} />
                 View proposal

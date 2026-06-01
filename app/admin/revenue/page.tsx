@@ -26,7 +26,7 @@ function formatDate(unix: number) {
 function planBadge(plan: string | null) {
   const map: Record<string, string> = {
     starter: 'bg-gray-100 text-gray-600',
-    growth: 'bg-[#2D3748]/10 text-[#9BA1AE]',
+    growth: 'bg-[#2D3748]/10 text-[#64748B]',
     proagent: 'bg-[#0d0d0d] text-white',
   }
   const key = plan ?? ''

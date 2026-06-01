@@ -152,7 +152,7 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
             <button
               onClick={() => handleUpdate({ status: 'open' })}
               disabled={updating}
-              className="flex items-center gap-2 text-xs font-semibold text-[#9BA1AE] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 text-xs font-semibold text-[#64748B] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
             >
               Reopen ticket
             </button>
@@ -182,7 +182,7 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
             }`}>
               <div className={`flex items-center gap-2 mb-2 ${msg.sender_role === 'admin' ? 'justify-end' : ''}`}>
                 <span className={`text-xs font-semibold ${
-                  msg.sender_role === 'admin' ? 'text-white/80' : 'text-[#9BA1AE]'
+                  msg.sender_role === 'admin' ? 'text-white/80' : 'text-[#64748B]'
                 }`}>
                   {msg.sender_role === 'admin' ? 'You (Agent7even)' : client.full_name}
                 </span>
@@ -227,7 +227,7 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
           <p className="text-sm text-gray-400">This ticket is closed.</p>
           <button
             onClick={() => handleUpdate({ status: 'open' })}
-            className="text-xs font-medium text-[#9BA1AE] hover:underline mt-2 block mx-auto"
+            className="text-xs font-medium text-[#64748B] hover:underline mt-2 block mx-auto"
           >
             Reopen if needed
           </button>

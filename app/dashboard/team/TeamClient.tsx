@@ -282,7 +282,7 @@ The user can invite new team members and manage their roles and permissions.`
           {extraSeats > 0 && (
             <div className="pt-2 mt-2 border-t border-gray-50 flex items-center justify-between text-sm">
               <span className="font-medium text-gray-700">Extra seat charges</span>
-              <span className="font-semibold text-[#9BA1AE]">${extraSeats * 15}/mo added to your subscription</span>
+              <span className="font-semibold text-[#64748B]">${extraSeats * 15}/mo added to your subscription</span>
             </div>
           )}
         </div>
@@ -303,7 +303,7 @@ The user can invite new team members and manage their roles and permissions.`
             </p>
             <button
               onClick={() => setShowInviteModal(true)}
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#9BA1AE] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2.5 rounded-xl transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[#64748B] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2.5 rounded-xl transition-colors"
             >
               <Plus size={14} />
               Invite your first team member
@@ -318,7 +318,7 @@ The user can invite new team members and manage their roles and permissions.`
                   {member.profiles?.avatar_url ? (
                     <img src={member.profiles.avatar_url} className="w-9 h-9 rounded-xl object-cover" alt="" />
                   ) : (
-                    <span className="text-sm font-semibold text-[#9BA1AE]">
+                    <span className="text-sm font-semibold text-[#64748B]">
                       {(member.profiles?.full_name ?? member.invited_email)?.[0]?.toUpperCase()}
                     </span>
                   )}
@@ -350,7 +350,7 @@ The user can invite new team members and manage their roles and permissions.`
                 {/* Role badge */}
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${
                   member.role === 'admin'
-                    ? 'bg-[#2D3748]/10 text-[#9BA1AE]'
+                    ? 'bg-[#2D3748]/10 text-[#64748B]'
                     : 'bg-gray-100 text-gray-500'
                 }`}>
                   {member.role}
@@ -419,7 +419,7 @@ The user can invite new team members and manage their roles and permissions.`
                       onClick={() => setInviteRole(r)}
                       className={`flex-1 text-sm font-medium py-2.5 rounded-xl border capitalize transition-all ${
                         inviteRole === r
-                          ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#9BA1AE]'
+                          ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#64748B]'
                           : 'border-gray-200 text-gray-600 hover:border-gray-300'
                       }`}
                     >
@@ -520,7 +520,7 @@ The user can invite new team members and manage their roles and permissions.`
                       onClick={() => setSelectedMember(prev => prev ? { ...prev, role: r } : null)}
                       className={`flex-1 text-sm font-medium py-2.5 rounded-xl border capitalize transition-all ${
                         selectedMember.role === r
-                          ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#9BA1AE]'
+                          ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#64748B]'
                           : 'border-gray-200 text-gray-600 hover:border-gray-300'
                       }`}
                     >

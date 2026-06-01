@@ -25,10 +25,10 @@ export default function PlanBanner({ plan }: { plan: string }) {
 
   return (
     <div className="bg-[#2D3748]/5 border border-[#3B82F6]/20 rounded-2xl p-4 mb-6 flex items-center gap-3 flex-wrap sm:flex-nowrap">
-      <CheckCircle size={16} className="text-[#9BA1AE] flex-shrink-0" />
+      <CheckCircle size={16} className="text-[#64748B] flex-shrink-0" />
       <p className="text-sm text-gray-700 flex-shrink-0">
         You&apos;re on the{' '}
-        <span className="font-semibold text-[#9BA1AE]">{planLabel}</span> plan.
+        <span className="font-semibold text-[#64748B]">{planLabel}</span> plan.
       </p>
       {showTeamMessage && (
         <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-3 py-1.5">

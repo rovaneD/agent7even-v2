@@ -38,7 +38,7 @@ function typeColor(type: string): string {
   if (type === 'brand_kit_generated') return '#10B981'
   if (type === 'plan_activated') return '#10B981'
   if (type === 'trial_ending') return '#EF4444'
-  return '#9BA1AE'
+  return '#64748B'
 }
 
 function typeInitial(type: string): string {
@@ -228,7 +228,7 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
               <Link
                 href="/dashboard/notifications"
                 onClick={() => setOpen(false)}
-                className="text-xs font-medium text-[#9BA1AE] hover:text-[#b8471f] transition-colors"
+                className="text-xs font-medium text-[#64748B] hover:text-[#b8471f] transition-colors"
               >
                 View all notifications →
               </Link>

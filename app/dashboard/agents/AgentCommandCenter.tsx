@@ -280,11 +280,11 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
 
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
-        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9BA1AE', marginBottom: 4 }}>Agents</p>
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#64748B', marginBottom: 4 }}>Agents</p>
         <h1 style={{ fontSize: 24, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>
           Agent Command Center
         </h1>
-        <p style={{ fontSize: 14, color: '#9BA1AE' }}>
+        <p style={{ fontSize: 14, color: '#64748B' }}>
           {companyName} · {agentList.length} agents available
         </p>
       </div>
@@ -310,7 +310,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               <p style={{ fontSize: 13.5, fontWeight: 600, color: '#2D3748', margin: 0 }}>
                 {pendingApprovals.length} output{pendingApprovals.length !== 1 ? 's' : ''} waiting for your review
               </p>
-              <p style={{ fontSize: 12, color: '#9BA1AE', margin: '2px 0 0' }}>
+              <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0' }}>
                 {[...new Set(pendingApprovals.map(t => AGENTS[t.agent as AgentId]?.name ?? t.agent))].slice(0, 3).join(', ')}
                 {pendingApprovals.length > 3 ? ` +${pendingApprovals.length - 3} more` : ''}
               </p>
@@ -321,7 +321,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       ) : (
         <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
           <i className="ti ti-circle-check" style={{ fontSize: 16, color: '#CBD5E1' }} />
-          <span style={{ fontSize: 13, color: '#9BA1AE' }}>Queue is clear — nothing waiting for review</span>
+          <span style={{ fontSize: 13, color: '#64748B' }}>Queue is clear — nothing waiting for review</span>
         </div>
       )}
 
@@ -330,7 +330,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
 
         {/* Left: Live feed */}
         <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
-          <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9BA1AE', marginBottom: 16 }}>Live activity</p>
+          <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 16 }}>Live activity</p>
 
           {activeOrchestration ? (
             <OrchestrationProgress
@@ -412,7 +412,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
                     <i className="ti ti-robot" style={{ fontSize: 18, color: '#CBD5E1' }} />
                   </div>
-                  <p style={{ fontSize: 13, color: '#9BA1AE', marginBottom: 4 }}>Your agents are ready.</p>
+                  <p style={{ fontSize: 13, color: '#64748B', marginBottom: 4 }}>Your agents are ready.</p>
                   <p style={{ fontSize: 12, color: '#CBD5E1' }}>Run an agent to see live activity here.</p>
                 </div>
               )}
@@ -451,7 +451,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
 
         {/* Right: Scorecard */}
         <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 20 }}>
-          <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9BA1AE', marginBottom: 16 }}>Agent scorecard</p>
+          <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 16 }}>Agent scorecard</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0 16px', alignItems: 'center' }}>
             {/* Header */}
             <span style={{ fontSize: 10, color: '#ccc', textTransform: 'uppercase', paddingBottom: 8, borderBottom: '0.5px solid #f0f0f0' }}>Agent</span>
@@ -475,7 +475,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                   {entry.isScheduled ? (
                     <span style={{ fontSize: 11, background: 'rgba(16,185,129,0.1)', color: '#10B981', borderRadius: 20, padding: '2px 8px', fontWeight: 500 }}>Active</span>
                   ) : (
-                    <span style={{ fontSize: 11, background: '#F8F8F8', color: '#9BA1AE', borderRadius: 20, padding: '2px 8px', border: '1px solid #E2E8F0', fontWeight: 500 }}>Idle</span>
+                    <span style={{ fontSize: 11, background: '#F8FAFC', color: '#64748B', borderRadius: 20, padding: '2px 8px', border: '1px solid #E2E8F0', fontWeight: 500 }}>Idle</span>
                   )}
                 </div>
               </>
@@ -487,7 +487,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       {/* ═══ ZONE 3: Create New Task ═══ */}
       <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 24 }}>
         <p style={{ fontSize: 14, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>Run an agent</p>
-        <p style={{ fontSize: 13, color: '#9BA1AE', marginBottom: 20 }}>Choose an agent and tell it what you need.</p>
+        <p style={{ fontSize: 13, color: '#64748B', marginBottom: 20 }}>Choose an agent and tell it what you need.</p>
 
         {/* Agent grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
@@ -498,11 +498,11 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                 key={agent.id}
                 onClick={() => setSelectedAgent(isSelected ? null : agent.id as AgentId)}
                 style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 10, border: isSelected ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: isSelected ? 'rgba(59,130,246,0.04)' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'border-color 0.15s' }}
-                onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#9BA1AE' }}
+                onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#64748B' }}
                 onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <i className={`ti ${agent.icon}`} style={{ fontSize: 20, color: isSelected ? '#3B82F6' : '#9BA1AE' }} />
+                  <i className={`ti ${agent.icon}`} style={{ fontSize: 20, color: isSelected ? '#3B82F6' : '#64748B' }} />
                   <span style={{
                     fontSize: 10, borderRadius: 20, padding: '2px 7px', fontWeight: 500,
                     background: agent.autonomyLevel === 'autonomous' ? 'rgba(59,130,246,0.1)' : 'rgba(45,55,72,0.1)',

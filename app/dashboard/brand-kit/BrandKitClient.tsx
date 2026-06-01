@@ -139,7 +139,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
       {!hasDocuments && (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <div className="w-16 h-16 rounded-2xl bg-[#2D3748]/10 flex items-center justify-center mx-auto mb-5">
-            <Sparkles size={28} className="text-[#9BA1AE]" />
+            <Sparkles size={28} className="text-[#64748B]" />
           </div>
           <h2 className="text-lg font-semibold text-gray-900 mb-2">
             Build your brand foundation
@@ -214,7 +214,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
                         <span className="text-xs text-gray-400">
                           Version {doc.version} · Updated {new Date(doc.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
-                        <span className="text-xs font-medium text-[#9BA1AE]">Open & edit →</span>
+                        <span className="text-xs font-medium text-[#64748B]">Open & edit →</span>
                       </div>
                     </>
                   ) : (
@@ -230,7 +230,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
 
           {/* Tips */}
           <div className="bg-[#2D3748]/5 border border-[#3B82F6]/10 rounded-2xl p-5">
-            <p className="text-xs font-semibold text-[#9BA1AE] uppercase tracking-wide mb-2">How to use your Brand Kit</p>
+            <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wide mb-2">How to use your Brand Kit</p>
             <ul className="space-y-1.5">
               {[
                 'Share your Brand Voice Statement with anyone creating content for your business',
@@ -239,7 +239,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
                 'Use your Positioning Statement as the foundation for ads and landing pages',
               ].map(tip => (
                 <li key={tip} className="flex items-start gap-2 text-xs text-gray-600">
-                  <span className="text-[#9BA1AE] mt-0.5 flex-shrink-0">→</span>
+                  <span className="text-[#64748B] mt-0.5 flex-shrink-0">→</span>
                   {tip}
                 </li>
               ))}

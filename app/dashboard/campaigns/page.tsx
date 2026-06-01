@@ -18,7 +18,7 @@ const STATUS_BADGES: Record<string, { bg: string; text: string }> = {
   active:    { bg: '#ECFDF5', text: '#10B981' },
   paused:    { bg: '#FFFBEB', text: '#F59E0B' },
   completed: { bg: '#EFF6FF', text: '#3B82F6' },
-  archived:  { bg: '#F8F8F8', text: '#9BA1AE' },
+  archived:  { bg: '#F8FAFC', text: '#64748B' },
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -73,14 +73,14 @@ The user can create new campaigns or view existing ones.`
       {/* Page header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-1">Campaigns</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-1">Campaigns</p>
           <h1 className="text-2xl font-semibold text-[#2D3748]">My campaigns</h1>
           {campaigns?.length ? (
-            <p className="text-sm text-[#9BA1AE] mt-1">
+            <p className="text-sm text-[#64748B] mt-1">
               {campaigns.length} campaign{campaigns.length === 1 ? '' : 's'}
             </p>
           ) : (
-            <p className="text-sm text-[#9BA1AE] mt-1">No campaigns yet</p>
+            <p className="text-sm text-[#64748B] mt-1">No campaigns yet</p>
           )}
         </div>
         {!!campaigns?.length && (
@@ -96,10 +96,10 @@ The user can create new campaigns or view existing ones.`
       {!campaigns?.length ? (
         <div className="flex flex-col items-center justify-center py-32">
           <div className="w-12 h-12 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center mb-4">
-            <Megaphone className="w-5 h-5 text-[#9BA1AE]" />
+            <Megaphone className="w-5 h-5 text-[#64748B]" />
           </div>
           <h3 className="font-semibold text-[#2D3748] mb-1">No campaigns yet</h3>
-          <p className="text-sm text-[#9BA1AE] mb-6 text-center max-w-xs">
+          <p className="text-sm text-[#64748B] mb-6 text-center max-w-xs">
             Build your first campaign and Maya will create a complete week-by-week marketing plan for you.
           </p>
           <Link
@@ -113,9 +113,9 @@ The user can create new campaigns or view existing ones.`
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {(campaigns as Campaign[]).map(campaign => (
             <Link key={campaign.id} href={`/dashboard/campaigns/${campaign.id}`}>
-              <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#9BA1AE] hover:shadow-sm transition-all cursor-pointer">
+              <div className="bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] p-5 hover:border-[#64748B] hover:shadow-sm transition-all cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-[#9BA1AE] capitalize">
+                  <span className="text-xs font-medium text-[#64748B] capitalize">
                     {campaign.mode === 'guided'
                       ? (campaign.segment?.replace(/_/g, ' ') ?? 'Guided')
                       : 'Custom campaign'}
@@ -123,7 +123,7 @@ The user can create new campaigns or view existing ones.`
                   <StatusBadge status={campaign.status} />
                 </div>
                 <h3 className="font-semibold text-[#2D3748] mb-1 text-sm leading-snug">{campaign.title}</h3>
-                <p className="text-xs text-[#9BA1AE]">Created {formatDate(campaign.created_at)}</p>
+                <p className="text-xs text-[#64748B]">Created {formatDate(campaign.created_at)}</p>
               </div>
             </Link>
           ))}

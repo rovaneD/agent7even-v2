@@ -39,7 +39,7 @@ const STARTER_LIMIT = 15
 
 const PLAN_META: Record<string, { label: string; color: string; bg: string }> = {
   starter:  { label: 'Starter',  color: 'text-gray-700',     bg: 'bg-gray-100' },
-  growth:   { label: 'Growth',   color: 'text-[#9BA1AE]',    bg: 'bg-[#2D3748]/10' },
+  growth:   { label: 'Growth',   color: 'text-[#64748B]',    bg: 'bg-[#2D3748]/10' },
   proagent: { label: 'ProAgent', color: 'text-purple-700',   bg: 'bg-purple-100' },
 }
 
@@ -93,7 +93,7 @@ function meetsRequirement(userPlan: string | null, required: string): boolean {
 
 const PLAN_BADGE: Record<string, { label: string; style: string }> = {
   starter:  { label: 'Starter+',  style: 'bg-gray-100 text-gray-600' },
-  growth:   { label: 'Growth+',   style: 'bg-[#2D3748]/10 text-[#9BA1AE]' },
+  growth:   { label: 'Growth+',   style: 'bg-[#2D3748]/10 text-[#64748B]' },
   proagent: { label: 'ProAgent',  style: 'bg-purple-100 text-purple-700' },
 }
 
@@ -270,7 +270,7 @@ function PromptRunner({
           <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${useBrandVoice && brandKitComplete ? 'bg-[#2D3748]/5 border-[#3B82F6]/20' : 'bg-gray-50 border-gray-100'}`}>
             <div className="flex items-center gap-3">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${useBrandVoice && brandKitComplete ? 'bg-[#2D3748]/10' : 'bg-gray-100'}`}>
-                <Sparkles size={15} className={useBrandVoice && brandKitComplete ? 'text-[#9BA1AE]' : 'text-gray-400'} />
+                <Sparkles size={15} className={useBrandVoice && brandKitComplete ? 'text-[#64748B]' : 'text-gray-400'} />
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-800">Use my brand voice</p>
@@ -315,7 +315,7 @@ function PromptRunner({
               <button
                 onClick={run}
                 disabled={loading}
-                className="mt-3 text-xs text-[#9BA1AE] hover:text-[#b04623] transition-colors flex items-center gap-1"
+                className="mt-3 text-xs text-[#64748B] hover:text-[#b04623] transition-colors flex items-center gap-1"
               >
                 <Zap size={11} /> Regenerate
               </button>
@@ -388,7 +388,7 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
         {plan === 'starter' && (
           <a
             href="/dashboard/billing"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#9BA1AE] hover:text-[#b8471f] transition-colors flex-shrink-0"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#64748B] hover:text-[#b8471f] transition-colors flex-shrink-0"
           >
             <TrendingUp size={14} />
             Upgrade to Growth — unlimited runs
@@ -432,7 +432,7 @@ function UpgradeCallout() {
         </div>
         <a
           href="/pricing"
-          className="inline-flex items-center gap-2 bg-white text-[#9BA1AE] text-sm font-bold px-5 py-3 rounded-xl hover:bg-[#f5f4f0] transition-colors flex-shrink-0 whitespace-nowrap"
+          className="inline-flex items-center gap-2 bg-white text-[#64748B] text-sm font-bold px-5 py-3 rounded-xl hover:bg-[#f5f4f0] transition-colors flex-shrink-0 whitespace-nowrap"
         >
           See plans <ArrowRight size={14} />
         </a>
@@ -504,13 +504,13 @@ export default function AIToolkitClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">AI Toolkit</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">AI Toolkit</p>
           <h1 className="text-2xl font-bold text-gray-900">Your AI tools</h1>
           <p className="text-gray-500 text-sm mt-1">Generate content, copy, and strategy in seconds.</p>
         </div>
         <div className="flex gap-3 sm:flex-shrink-0">
           <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 text-center flex-1 sm:flex-initial sm:px-5">
-            <p className="text-xl font-bold text-[#9BA1AE]">{totalRuns}</p>
+            <p className="text-xl font-bold text-[#64748B]">{totalRuns}</p>
             <p className="text-xs text-gray-400">Outputs</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 text-center flex-1 sm:flex-initial sm:px-5">
@@ -523,12 +523,12 @@ export default function AIToolkitClient({
       {/* Brand Kit nudge / active banner */}
       {!brandKitComplete && (
         <div className="flex items-start gap-3 bg-[#2D3748]/5 border border-[#3B82F6]/10 rounded-xl px-4 py-3 mb-5">
-          <Sparkles size={15} className="text-[#9BA1AE] mt-0.5 flex-shrink-0" />
+          <Sparkles size={15} className="text-[#64748B] mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-800 mb-0.5">Your AI outputs are generic right now</p>
             <p className="text-xs text-gray-500 leading-relaxed">Complete your Brand Kit and Claude will automatically write in your brand&apos;s voice, tone, and style — for every prompt you run.</p>
           </div>
-          <a href="/dashboard/brand-kit" className="flex-shrink-0 text-xs font-semibold text-[#9BA1AE] bg-[#2D3748]/10 hover:bg-[#2D3748]/20 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">Complete Brand Kit →</a>
+          <a href="/dashboard/brand-kit" className="flex-shrink-0 text-xs font-semibold text-[#64748B] bg-[#2D3748]/10 hover:bg-[#2D3748]/20 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">Complete Brand Kit →</a>
         </div>
       )}
       {brandKitComplete && (
@@ -563,7 +563,7 @@ export default function AIToolkitClient({
             {([
               { key: 'all',      label: 'Show all' },
               { key: 'starter',  label: 'Starter',  badge: 'bg-gray-100 text-gray-600' },
-              { key: 'growth',   label: 'Growth',   badge: 'bg-[#2D3748]/10 text-[#9BA1AE]' },
+              { key: 'growth',   label: 'Growth',   badge: 'bg-[#2D3748]/10 text-[#64748B]' },
               { key: 'proagent', label: 'ProAgent', badge: 'bg-purple-100 text-purple-700' },
             ] as const).map(tier => (
               <button
@@ -658,7 +658,7 @@ export default function AIToolkitClient({
                     </div>
                   </div>
 
-                  <h3 className={`text-sm font-semibold mb-1 transition-colors ${locked ? 'text-gray-600' : 'text-gray-900 group-hover:text-[#9BA1AE]'}`}>
+                  <h3 className={`text-sm font-semibold mb-1 transition-colors ${locked ? 'text-gray-600' : 'text-gray-900 group-hover:text-[#64748B]'}`}>
                     {prompt.title}
                   </h3>
                   <p className="text-xs leading-relaxed mb-4 text-gray-500">
@@ -675,7 +675,7 @@ export default function AIToolkitClient({
                     </Tooltip>
 
                     {!locked && (
-                      <div className="flex items-center gap-1 text-xs font-medium text-[#9BA1AE]">
+                      <div className="flex items-center gap-1 text-xs font-medium text-[#64748B]">
                         Use prompt <ChevronRight size={11} />
                       </div>
                     )}
@@ -688,7 +688,7 @@ export default function AIToolkitClient({
                       <a
                         href="/pricing"
                         onClick={e => e.stopPropagation()}
-                        className="text-xs font-semibold text-[#9BA1AE] hover:underline"
+                        className="text-xs font-semibold text-[#64748B] hover:underline"
                       >
                         Upgrade →
                       </a>
@@ -697,7 +697,7 @@ export default function AIToolkitClient({
                       <a
                         href="/pricing"
                         onClick={e => e.stopPropagation()}
-                        className="text-xs font-semibold text-[#9BA1AE] hover:underline"
+                        className="text-xs font-semibold text-[#64748B] hover:underline"
                       >
                         Subscribe →
                       </a>
@@ -729,7 +729,7 @@ export default function AIToolkitClient({
               <p className="text-xs text-gray-300 mt-1">Run a prompt and save it to find it here.</p>
               <button
                 onClick={() => setActiveTab('library')}
-                className="mt-4 text-sm font-medium text-[#9BA1AE] hover:text-[#b04623] transition-colors"
+                className="mt-4 text-sm font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
               >
                 Browse prompt library →
               </button>

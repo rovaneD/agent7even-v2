@@ -16,7 +16,7 @@ export default function TermsPage() {
       <header className="border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="https://agent7even.com" className="text-lg font-bold text-gray-900 tracking-tight">
-            Agent<span className="text-[#9BA1AE]">7even</span>
+            Agent<span className="text-[#64748B]">7even</span>
           </Link>
           <Link href={APP_URL} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
             ← Back to app
@@ -27,7 +27,7 @@ export default function TermsPage() {
       {/* Content */}
       <main className="max-w-3xl mx-auto px-6 py-14">
         <div className="mb-10">
-          <p className="text-xs font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Legal</p>
+          <p className="text-xs font-semibold tracking-widest uppercase text-[#64748B] mb-2">Legal</p>
           <h1 className="text-4xl font-bold text-gray-900 mb-3">Terms of Service</h1>
           <p className="text-sm text-gray-400">Last updated: {LAST_UPDATED}</p>
         </div>
@@ -38,7 +38,7 @@ export default function TermsPage() {
             <p>
               These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of the Agent7even
               client platform at{' '}
-              <a href={APP_URL} className="text-[#9BA1AE] no-underline hover:underline">{APP_URL}</a>.
+              <a href={APP_URL} className="text-[#64748B] no-underline hover:underline">{APP_URL}</a>.
               By creating an account or using the platform, you agree to these Terms.
             </p>
           </section>
@@ -69,7 +69,7 @@ export default function TermsPage() {
               <li>Payments are processed by Stripe. By subscribing, you authorize recurring charges.</li>
               <li>You may cancel your subscription at any time via the Billing tab. Access continues until the end of the current billing period.</li>
               <li>Refunds are handled on a case-by-case basis. Contact us at{' '}
-                <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#9BA1AE] no-underline hover:underline">{CONTACT_EMAIL}</a>{' '}
+                <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#64748B] no-underline hover:underline">{CONTACT_EMAIL}</a>{' '}
                 within 7 days of a charge if you believe an error occurred.
               </li>
             </ul>
@@ -150,8 +150,8 @@ export default function TermsPage() {
             </p>
             <div className="mt-4 bg-gray-50 rounded-2xl p-5 space-y-1">
               <p className="font-semibold text-gray-900">Agent7even</p>
-              <p><a href={`mailto:${CONTACT_EMAIL}`} className="text-[#9BA1AE] no-underline hover:underline">{CONTACT_EMAIL}</a></p>
-              <p><a href="https://agent7even.com" className="text-[#9BA1AE] no-underline hover:underline">agent7even.com</a></p>
+              <p><a href={`mailto:${CONTACT_EMAIL}`} className="text-[#64748B] no-underline hover:underline">{CONTACT_EMAIL}</a></p>
+              <p><a href="https://agent7even.com" className="text-[#64748B] no-underline hover:underline">agent7even.com</a></p>
             </div>
           </section>
 

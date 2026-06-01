@@ -127,7 +127,7 @@ export default function BrandDocument({ document, onBack, onSaved, onRegenerate 
           <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
           <span className="ml-2 text-xs text-gray-400 font-medium">{document.title}</span>
-          {isDirty && <span className="text-xs text-[#9BA1AE] font-medium ml-auto">Unsaved changes</span>}
+          {isDirty && <span className="text-xs text-[#64748B] font-medium ml-auto">Unsaved changes</span>}
         </div>
 
         <textarea
@@ -141,7 +141,7 @@ export default function BrandDocument({ document, onBack, onSaved, onRegenerate 
 
       {/* Tip */}
       <div className="mt-4 flex items-start gap-2 text-xs text-gray-400">
-        <span className="text-[#9BA1AE] font-bold flex-shrink-0">→</span>
+        <span className="text-[#64748B] font-bold flex-shrink-0">→</span>
         <span>
           This document is yours to edit freely. Click anywhere in the text to make changes,
           then save. To start fresh with new answers, click Regenerate.

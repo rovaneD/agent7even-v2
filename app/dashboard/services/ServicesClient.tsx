@@ -152,7 +152,7 @@ function RequestModal({ service, onClose, onSubmit }: RequestModalProps) {
         <div className="flex items-start justify-between p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#2D3748]/8 flex items-center justify-center">
-              <Icon size={18} className="text-[#9BA1AE]" />
+              <Icon size={18} className="text-[#64748B]" />
             </div>
             <div>
               <h2 className="text-sm font-semibold text-gray-900">{service.name}</h2>
@@ -268,7 +268,7 @@ The user can request new marketing services or track existing orders.`
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#9BA1AE] mb-2">Services</p>
+          <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Services</p>
           <h1 className="text-2xl font-bold text-gray-900">Marketing services</h1>
           <p className="text-gray-500 text-sm mt-1">Request a service or track your active orders.</p>
         </div>
@@ -319,7 +319,7 @@ The user can request new marketing services or track existing orders.`
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-900 leading-snug">{service.name}</p>
-                      <p className="text-xs text-[#9BA1AE] font-medium">{service.price}</p>
+                      <p className="text-xs text-[#64748B] font-medium">{service.price}</p>
                     </div>
                   </div>
                   <span className={`flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full ${
@@ -345,14 +345,14 @@ The user can request new marketing services or track existing orders.`
                   ) : service.requiresScope ? (
                     <button
                       onClick={() => router.push('/dashboard/services/inquiry')}
-                      className="flex items-center gap-1.5 text-xs font-medium text-[#9BA1AE] hover:text-[#b04623] transition-colors"
+                      className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
                     >
                       <ArrowRight size={12} /> Get a quote
                     </button>
                   ) : (
                     <button
                       onClick={() => setRequestingService(service)}
-                      className="flex items-center gap-1.5 text-xs font-medium text-[#9BA1AE] hover:text-[#b04623] transition-colors"
+                      className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
                     >
                       <Plus size={12} /> Request
                     </button>
@@ -376,7 +376,7 @@ The user can request new marketing services or track existing orders.`
               <p className="text-xs text-gray-400 mb-4">Request a service to get started.</p>
               <button
                 onClick={() => setActiveTab('browse')}
-                className="text-sm font-medium text-[#9BA1AE] hover:text-[#b04623] transition-colors"
+                className="text-sm font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
               >
                 Browse services →
               </button>
