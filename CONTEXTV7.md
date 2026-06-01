@@ -182,7 +182,7 @@ interface Profile {
 2. **Agent scheduling UI** — clients can set frequency/day/hour per agent
 3. **Credit top-up** — Stripe checkout for purchasing additional credits mid-month
 4. **Orchestration progress UI** — real-time progress as parallel subagents complete
-5. **Maya cost tracking** — Maya chat currently bypasses the runner; should log tokens + deduct credits
+5. **Maya cost tracking** — Maya chat currently bypasses the runner; should log tokens + deduct credits. *(Note: Foundation generate no longer bypasses the runner — routed through `lib/agents/runner.ts` + OpenRouter as of 2026-06-01.)*
 6. **Agent output history** — full searchable history of outputs per client
 7. **Admin panel for `agent_skills`** — currently seeded via SQL; eventually editable in `/admin/settings`
 8. **"New campaign" button** — reset mode + chat state to start fresh session

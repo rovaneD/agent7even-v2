@@ -1,9 +1,13 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { createServiceClient } from '@/lib/supabase/server'
+import {
+  runAgent,
+  createOrchestrationSession,
+  completeOrchestration,
+} from '@/lib/agents/runner'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const FOUNDATION_MODEL = 'anthropic/claude-sonnet-4'
 
 export const maxDuration = 120
 
@@ -21,7 +25,7 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, plan')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -75,62 +79,89 @@ Monthly goal: ${answers.monthlyGoal}
     },
   ]
 
+  const userPlan: string = (profile as Record<string, unknown>).plan as string ?? 'starter'
   const saved: string[] = []
+  let orchestrationId: string | undefined
 
   try {
-    // Generate all 5 documents in parallel to stay within function timeout
+    orchestrationId = await createOrchestrationSession({
+      userId:        profile.id,
+      triggeredBy:   'foundation_generate',
+      plan:          userPlan,
+      subagentCount: docsToGenerate.length,
+      agentIds:      docsToGenerate.map(d => `foundation_generate_${d.type}`),
+    })
+
+    // Generate all 5 docs in parallel — one failure doesn't kill the rest
     const results = await Promise.allSettled(
       docsToGenerate.map(async (doc) => {
-        const response = await anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `${doc.prompt}\n\nBUSINESS CONTEXT:\n${context}`,
-          }],
+        const result = await runAgent({
+          userId:          profile.id,
+          agentId:         `foundation_generate_${doc.type}`,
+          model:           FOUNDATION_MODEL,
+          messages:        [{ role: 'user', content: `${doc.prompt}\n\nBUSINESS CONTEXT:\n${context}` }],
+          plan:            userPlan,
+          orchestrationId,
+          maxTokens:       1000,
         })
-        const content = response.content[0].type === 'text' ? response.content[0].text : ''
-        return { ...doc, content }
+        if (!result.content) throw new Error(`Empty content returned for ${doc.type}`)
+        return { ...doc, content: result.content }
       })
     )
 
+    let creditError = false
     for (const result of results) {
       if (result.status === 'fulfilled') {
         const { type, title, content } = result.value
         const { error: upsertError } = await supabase
           .from('foundation_documents')
-          .upsert({
-            user_id: profile.id,
-            type,
-            title,
-            markdown: content,
-            version: 1,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'user_id,type' })
+          .upsert(
+            { user_id: profile.id, type, title, markdown: content, version: 1, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id,type' }
+          )
         if (upsertError) {
           console.error('Document upsert failed:', type, upsertError)
         } else {
           saved.push(type)
         }
+      } else {
+        const msg: string = result.reason?.message ?? ''
+        console.error('Doc generation failed:', msg)
+        if (msg === 'INSUFFICIENT_CREDITS' || msg === 'BUDGET_EXCEEDED') creditError = true
       }
     }
+
+    if (creditError && saved.length === 0) {
+      return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
+    }
+
+    const missing = docsToGenerate.map(d => d.type).filter(t => !saved.includes(t))
+    const allSaved = saved.length === docsToGenerate.length
+
+    if (allSaved) {
+      await supabase
+        .from('profiles')
+        .update({
+          foundation_complete: true,
+          onboarding_complete: true,
+          foundation_step:     5,
+          updated_at:          new Date().toISOString(),
+        })
+        .eq('id', profile.id)
+    }
+
+    return NextResponse.json({ success: allSaved, generated: saved, missing })
+
   } catch (err) {
-    console.error('Anthropic generation failed:', err)
+    const msg = err instanceof Error ? err.message : ''
+    if (msg === 'INSUFFICIENT_CREDITS' || msg === 'BUDGET_EXCEEDED') {
+      return NextResponse.json({ error: msg }, { status: 402 })
+    }
+    console.error('Foundation generate failed:', err)
     return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
+  } finally {
+    if (orchestrationId) {
+      await completeOrchestration(orchestrationId).catch(console.error)
+    }
   }
-
-  // Only mark foundation complete if at least 3 of 5 documents saved successfully
-  if (saved.length >= 3) {
-    await supabase
-      .from('profiles')
-      .update({
-        foundation_complete: true,
-        onboarding_complete: true,
-        foundation_step: 5,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', profile.id)
-  }
-
-  return NextResponse.json({ success: true, generated: saved })
 }
