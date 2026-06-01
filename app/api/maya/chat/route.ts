@@ -7,6 +7,7 @@ import { models } from '@/lib/ai/client'
 import { logActivity } from '@/lib/activity'
 import { createTask, updateTaskStatus } from '@/lib/agents/runner'
 import { calculateCost, CREDIT_COST } from '@/lib/agents/cost'
+import { loadFoundationContext } from '@/lib/agents/loadFoundationContext'
 
 const CHAT_CREDITS = CREDIT_COST.light  // 2 credits per turn
 const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
@@ -113,65 +114,72 @@ You are completing a specific task, not building a new campaign. Never say "spin
       return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
     }
 
-    // ── 3. Fetch foundation docs (for system prompt only) ──────────────────
-    let brief = '', icp = '', positioning = '', voice = ''
-    const { data: docs, error: docsError } = await supabase
-      .from('foundation_documents')
-      .select('type, markdown')
-      .eq('user_id', profile.id)
-    if (docsError) console.error('[maya/chat] foundation_documents error:', docsError.message)
-
-    brief       = docs?.find(d => d.type === 'brief')?.markdown       ?? ''
-    icp         = docs?.find(d => d.type === 'icp')?.markdown         ?? ''
-    positioning = docs?.find(d => d.type === 'positioning')?.markdown ?? ''
-    voice       = docs?.find(d => d.type === 'voice')?.markdown       ?? ''
-
-    const hasFoundation = !!(brief || icp || positioning || voice)
-    console.log('[maya/chat] hasFoundation:', hasFoundation)
+    // ── 3. Load Foundation context ─────────────────────────────────────────
+    // profile.id is the Supabase UUID — same key as foundation_answers + foundation_documents.
+    // Do NOT branch on foundation_complete; that flag is unreliable (can be true with 0 docs).
+    const foundation = await loadFoundationContext(profile.id)
+    const { hasFoundation, documents, competitorsFreetext, answers: fAnswers } = foundation
+    console.log('[maya/chat] hasFoundation:', hasFoundation, '| hasDocs:', Object.values(documents).some(v => v.length > 0))
 
     // ── 4. Build system prompt ─────────────────────────────────────────────
-    const companyName   = profile?.company_name    || 'this business'
-    const businessType  = profile?.business_type   || 'not specified'
-    const idealCustomer = profile?.ideal_customer  || 'not specified'
-    const sellVia       = profile?.sell_locations?.length ? profile.sell_locations.join(', ') : 'not specified'
-    const budget        = profile?.marketing_budget || 'not specified'
-    const goals         = profile?.top_goals?.length ? profile.top_goals.join(', ') : 'not specified'
-    const challenge     = profile?.marketing_challenge || 'not specified'
-    const comfort       = profile?.content_comfort || 'not specified'
-    const watchList     = profile?.competitors?.length ? profile.competitors.map((c: string) => `@${c}`).join(', ') : 'none yet'
-    const website       = profile?.website_url || 'not provided'
-    const instagram     = profile?.instagram_handle ? `@${profile.instagram_handle}` : 'not provided'
+    const companyName = profile?.company_name || 'this business'
+    const website     = profile?.website_url || 'not provided'
+    const instagram   = profile?.instagram_handle ? `@${profile.instagram_handle}` : 'not provided'
+    // Competitors: answers.competitors freetext — profiles.competitors array is unreliable
+    const watchList   = competitorsFreetext || 'none yet'
 
-    const contextSection = hasFoundation
+    const hasGeneratedDocs = Object.values(documents).some(v => v.length > 0)
+
+    const contextSection = hasGeneratedDocs
       ? `You have already built this business's foundation. Here is everything you know:
 
 BUSINESS BRIEF:
-${brief}
+${documents.brief}
 
 IDEAL CUSTOMER PROFILE:
-${icp}
+${documents.icp}
 
 POSITIONING:
-${positioning}
+${documents.positioning}
 
 BRAND VOICE:
-${voice}
+${documents.voice}
 
 Never ask for information covered above. Reference specific details in your opening — goals, frustrations, differentiators. Make the user feel like you've been thinking about their business before they said a word.`
-      : `WHAT YOU KNOW ABOUT THIS BUSINESS:
+      : hasFoundation
+        ? `You have all the context you need about this business from their Foundation answers:
+
+BUSINESS:
+${fAnswers.businessDescription || '—'}
+
+PROBLEM THEY SOLVE:
+${fAnswers.problemSolved || '—'}
+
+IDEAL CUSTOMER:
+${fAnswers.customerWho || '—'}
+
+THEIR FRUSTRATION:
+${fAnswers.customerFrustration || '—'}
+
+DIFFERENTIATOR:
+${fAnswers.differentiator || '—'}${fAnswers.differentiatorOwn ? `\nIn their words: ${fAnswers.differentiatorOwn}` : ''}
+
+TONE:
+${fAnswers.toneTraits || '—'}
+
+COMPETITORS:
+${watchList}
+
+GOAL THIS MONTH:
+${fAnswers.monthlyGoal || '—'}
+
+Never ask for information covered above. Reference specific details in your opening — goals, frustrations, differentiators. Make the user feel like you've been thinking about their business before they said a word.`
+        : `WHAT YOU KNOW ABOUT THIS BUSINESS:
 - Company: ${companyName}
-- Type: ${businessType}
-- Ideal customer: ${idealCustomer}
-- Sells via: ${sellVia}
-- Monthly budget: ${budget}
-- Goals: ${goals}
-- Biggest challenge: ${challenge}
-- Content comfort: ${comfort}
-- Competitors: ${watchList}
 - Website: ${website}
 - Instagram: ${instagram}
 
-Reference these specifics in your opening. Never ask for information already listed above.`
+Reference these specifics. Ask one focused question to learn more about their business.`
 
     const modeSection = modeInstruction
       ? `\nYOUR TASK FOR THIS SESSION:\n${modeInstruction}`

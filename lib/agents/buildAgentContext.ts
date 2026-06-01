@@ -1,13 +1,17 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { loadFoundationContext } from './loadFoundationContext'
 
 export async function buildAgentContext(userId: string): Promise<string> {
   const supabase = createServiceClient()
 
+  // Brand context + Foundation run in parallel.
+  // loadFoundationContext queries profiles.foundation_answers + foundation_documents.
+  // profileId = userId here (both are the Supabase profiles.id UUID).
   const [
     { data: docs },
     { data: profile },
-    { data: answers },
-    { data: foundationDocs },
+    { data: brandAnswers },
+    foundation,
   ] = await Promise.all([
     supabase
       .from('brand_documents')
@@ -17,7 +21,7 @@ export async function buildAgentContext(userId: string): Promise<string> {
 
     supabase
       .from('profiles')
-      .select('company_name, business_type, website_url, instagram_handle, competitors')
+      .select('company_name, business_type, website_url, instagram_handle')
       .eq('id', userId)
       .single(),
 
@@ -27,29 +31,26 @@ export async function buildAgentContext(userId: string): Promise<string> {
       .eq('user_id', userId)
       .single(),
 
-    supabase
-      .from('foundation_documents')
-      .select('type, title, markdown')
-      .eq('user_id', userId)
-      .in('type', ['brief', 'icp', 'positioning', 'voice', 'plan']),
+    loadFoundationContext(userId),
   ])
 
-  if (!docs?.length && !profile) return ''
+  if (!docs?.length && !profile && !foundation.hasFoundation) return ''
 
   const p = profile as Record<string, unknown> | null
 
   const sections: string[] = [
     `## Client: ${p?.company_name ?? 'Unknown'}`,
-    p?.business_type    ? `**Business type:** ${p.business_type}`    : '',
-    p?.website_url      ? `**Website:** ${p.website_url}`            : '',
-    p?.instagram_handle ? `**Instagram:** @${p.instagram_handle}`    : '',
+    p?.business_type    ? `**Business type:** ${p.business_type}`  : '',
+    p?.website_url      ? `**Website:** ${p.website_url}`          : '',
+    p?.instagram_handle ? `**Instagram:** @${p.instagram_handle}`  : '',
   ]
 
-  const competitors = p?.competitors as string[] | null
-  if (competitors?.length) {
-    sections.push(`\n## Competitors\n${competitors.map(c => `- ${c}`).join('\n')}`)
+  // Competitors — from foundation_answers.competitors freetext (not the null profiles.competitors array)
+  if (foundation.competitorsFreetext) {
+    sections.push(`\n## Competitors\n${foundation.competitorsFreetext}`)
   }
 
+  // Brand documents (voice guide, positioning, persona, story)
   for (const doc of docs ?? []) {
     if (doc.content) {
       const label = doc.type.charAt(0).toUpperCase() + doc.type.slice(1)
@@ -57,8 +58,9 @@ export async function buildAgentContext(userId: string): Promise<string> {
     }
   }
 
-  if (answers?.answers && typeof answers.answers === 'object') {
-    const raw = answers.answers as Record<string, unknown>
+  // Brand Q&A answers
+  if (brandAnswers?.answers && typeof brandAnswers.answers === 'object') {
+    const raw = brandAnswers.answers as Record<string, unknown>
     const extras = Object.entries(raw)
       .filter(([, v]) => v && String(v).trim().length > 0)
       .map(([k, v]) => `- **${k}:** ${v}`)
@@ -67,10 +69,31 @@ export async function buildAgentContext(userId: string): Promise<string> {
     }
   }
 
-  // Foundation documents — generated from Foundation setup flow
-  for (const doc of foundationDocs ?? []) {
-    if (doc.markdown?.trim()) {
-      sections.push(`\n## Foundation: ${doc.title}\n${doc.markdown}`)
+  // Foundation — documents are canonical; answers are the fallback while generate is unfixed.
+  const { documents, answers } = foundation
+  const hasGeneratedDocs = Object.values(documents).some(v => v.length > 0)
+
+  if (hasGeneratedDocs) {
+    if (documents.brief)       sections.push(`\n## Foundation: Business Brief\n${documents.brief}`)
+    if (documents.icp)         sections.push(`\n## Foundation: Ideal Customer Profile\n${documents.icp}`)
+    if (documents.positioning) sections.push(`\n## Foundation: Positioning\n${documents.positioning}`)
+    if (documents.voice)       sections.push(`\n## Foundation: Brand Voice\n${documents.voice}`)
+    if (documents.plan)        sections.push(`\n## Foundation: 30-Day Plan\n${documents.plan}`)
+  } else if (foundation.hasFoundation) {
+    // Temporary fallback: render raw Foundation answers until generate produces documents
+    const answerLines = [
+      answers.businessDescription && `**What they do:** ${answers.businessDescription}`,
+      answers.problemSolved       && `**Problem solved:** ${answers.problemSolved}`,
+      answers.transformation      && `**Transformation:** ${answers.transformation}`,
+      answers.customerWho         && `**Ideal customer:** ${answers.customerWho}`,
+      answers.customerFrustration && `**Customer frustration:** ${answers.customerFrustration}`,
+      answers.differentiator      && `**Differentiator:** ${answers.differentiator}`,
+      answers.differentiatorOwn   && `**In their words:** ${answers.differentiatorOwn}`,
+      answers.toneTraits          && `**Tone:** ${answers.toneTraits}`,
+      answers.monthlyGoal         && `**Goal this month:** ${answers.monthlyGoal}`,
+    ].filter(Boolean)
+    if (answerLines.length) {
+      sections.push(`\n## Foundation Answers (documents pending)\n${answerLines.join('\n')}`)
     }
   }
 
