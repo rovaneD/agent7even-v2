@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
-import { Rocket, PenLine, BarChart2, MessageCircle, X, ArrowUp } from 'lucide-react'
+import { Rocket, PenLine, BarChart2, MessageCircle, X, ArrowUp, Paperclip, FileText, Loader2 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -54,6 +54,16 @@ const PLAIN_MD: Record<string, React.ComponentType<{ children?: React.ReactNode 
   h3:     ({ children }) => <p style={{ fontSize: 13, fontWeight: 500, color: '#64748B', margin: '0 0 6px 0' }}>{children}</p>,
 }
 
+interface PendingAttachment {
+  id: string
+  url?: string
+  name: string
+  mimeType: string
+  size: number
+  uploading: boolean
+  error?: string
+}
+
 // ── Modes ─────────────────────────────────────────────────────────────────
 
 const MODES = [
@@ -95,6 +105,10 @@ export default function MayChatPanel({
   const [isDragging, setIsDragging] = useState(false)
   const panelWidthRef = useRef(panelWidth)
 
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([])
+  const attachmentsRef = useRef<Array<{ url: string; name: string; mimeType: string }>>([])
+  const fileInputRef   = useRef<HTMLInputElement>(null)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesRef    = useRef<UIMessage[]>([])
   const modeRef        = useRef<string | null>(initialMode)
@@ -135,6 +149,10 @@ export default function MayChatPanel({
     fetch: async (url, init) => {
       const body = JSON.parse((init?.body as string) ?? '{}')
       if (canvasDataRef.current) body.canvasData = canvasDataRef.current
+      if (attachmentsRef.current.length) {
+        body.attachments = attachmentsRef.current
+        attachmentsRef.current = []
+      }
       return fetch(url, { ...init, body: JSON.stringify(body) })
     },
   }), [])
@@ -209,11 +227,52 @@ export default function MayChatPanel({
     sendMessage({ text: `__MODE__${modeId}__` })
   }
 
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    if (fileInputRef.current) fileInputRef.current.value = ''
+
+    const newItems: PendingAttachment[] = files.map(f => ({
+      id: Math.random().toString(36).slice(2),
+      name: f.name,
+      mimeType: f.type,
+      size: f.size,
+      uploading: true,
+    }))
+    setPendingAttachments(prev => [...prev, ...newItems])
+
+    await Promise.all(newItems.map(async (item, i) => {
+      const fd = new FormData()
+      fd.append('file', files[i])
+      try {
+        const res  = await fetch('/api/maya/upload', { method: 'POST', body: fd })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Upload failed')
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === item.id ? { ...a, url: data.url, uploading: false } : a
+        ))
+      } catch {
+        setPendingAttachments(prev => prev.map(a =>
+          a.id === item.id ? { ...a, uploading: false, error: 'Failed' } : a
+        ))
+      }
+    }))
+  }
+
+  function removeAttachment(id: string) {
+    setPendingAttachments(prev => prev.filter(a => a.id !== id))
+  }
+
   function submitMessage(text?: string) {
     const content = (text ?? chatInput).trim()
     if (!content || isLoading) return
+    const ready = pendingAttachments.filter(a => a.url && !a.uploading && !a.error)
+    if (ready.length) {
+      attachmentsRef.current = ready.map(a => ({ url: a.url!, name: a.name, mimeType: a.mimeType }))
+    }
     sendMessage({ text: content })
     setChatInput('')
+    setPendingAttachments([])
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -327,9 +386,70 @@ export default function MayChatPanel({
 
       {/* Input */}
       <div style={{ flexShrink: 0, borderTop: '1px solid #E2E8F0', padding: '12px 14px', background: '#fff' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: '#F8FAFC', borderRadius: 14, padding: '10px 14px', border: '1px solid #E2E8F0', transition: 'border-color 0.12s' }}
-          onFocus={() => {}} // for future focus-within styling
-        >
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*,.pdf,.txt,.md,.csv,.doc,.docx"
+          style={{ display: 'none' }}
+          onChange={handleFileSelect}
+        />
+
+        {/* Attachment chips */}
+        {pendingAttachments.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+            {pendingAttachments.map(att => (
+              <div
+                key={att.id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: att.error ? '#FEF2F2' : '#F1F5F9',
+                  border: `1px solid ${att.error ? '#FECACA' : '#E2E8F0'}`,
+                  borderRadius: 8, padding: '4px 7px', maxWidth: 180,
+                }}
+              >
+                {att.uploading ? (
+                  <Loader2 size={11} color="#94A3B8" className="animate-spin" />
+                ) : att.mimeType.startsWith('image/') ? (
+                  <span style={{ fontSize: 11 }}>🖼</span>
+                ) : (
+                  <FileText size={11} color={att.error ? '#EF4444' : '#64748B'} />
+                )}
+                <span style={{
+                  fontSize: 11.5,
+                  color: att.error ? '#EF4444' : '#2D3748',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  maxWidth: 110,
+                }}>
+                  {att.error ? 'Upload failed' : att.name}
+                </span>
+                {!att.uploading && (
+                  <button
+                    onClick={() => removeAttachment(att.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                  >
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: '#F8FAFC', borderRadius: 14, padding: '10px 14px', border: '1px solid #E2E8F0', transition: 'border-color 0.12s' }}>
+          {/* Paperclip button */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            title="Attach image or document"
+            style={{ background: 'none', border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer', color: '#94A3B8', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0, marginBottom: 2, opacity: isLoading ? 0.4 : 1, transition: 'color 0.12s' }}
+            onMouseEnter={e => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.color = '#64748B' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#94A3B8' }}
+          >
+            <Paperclip size={15} />
+          </button>
+
           <textarea
             value={chatInput}
             onChange={e => setChatInput(e.target.value)}

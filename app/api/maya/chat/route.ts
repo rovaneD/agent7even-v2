@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas, isHelpMode } = await req.json()
+  const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas, isHelpMode, attachments } = await req.json()
   const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
   if (!converted?.length) {
@@ -279,7 +279,33 @@ Never use markdown in conversation. Save structure for the plan.`
     console.log('[maya/chat] 4. task created:', task.id)
     await updateTaskStatus(task.id, 'running')
 
-    const result = await streamText({ model: models.maya, system, messages, maxOutputTokens: 2000 })
+    // Inject file/image attachment parts into the last user message
+    type AttachmentInput = { url: string; name: string; mimeType: string }
+    const attachmentList: AttachmentInput[] = Array.isArray(attachments) ? attachments : []
+    const finalMessages = attachmentList.length
+      ? (() => {
+          const lastUserIdx = messages.reduce((acc: number, msg: { role: string }, i: number) => msg.role === 'user' ? i : acc, -1)
+          if (lastUserIdx < 0) return messages
+          return messages.map((msg: { role: string; content: unknown }, i: number) => {
+            if (i !== lastUserIdx) return msg
+            const existing: unknown[] = Array.isArray(msg.content)
+              ? [...(msg.content as unknown[])]
+              : [{ type: 'text', text: typeof msg.content === 'string' ? msg.content : '' }]
+            for (const att of attachmentList) {
+              if (att.mimeType?.startsWith('image/')) {
+                existing.push({ type: 'image', image: new URL(att.url) })
+              } else if (att.mimeType === 'application/pdf') {
+                existing.push({ type: 'file', data: new URL(att.url), mimeType: 'application/pdf' })
+              } else {
+                existing.push({ type: 'text', text: `\n[Attached file: "${att.name}" — ${att.url}]` })
+              }
+            }
+            return { ...msg, content: existing }
+          })
+        })()
+      : messages
+
+    const result = await streamText({ model: models.maya, system, messages: finalMessages as typeof messages, maxOutputTokens: 2000 })
     console.log('[maya/chat] 5. stream starting')
 
     const profileId      = profile.id
