@@ -6,6 +6,7 @@ import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
 import ReactMarkdown from 'react-markdown'
 import { CheckCircle2, Circle } from 'lucide-react'
+import OrchestrationProgress from '@/components/agents/OrchestrationProgress'
 
 const TRIGGER_PHRASE = "I have what I need to build this"
 
@@ -56,6 +57,8 @@ export default function OpenCanvasFlow() {
   const [isCreating, setIsCreating]         = useState(false)
   const [genStep, setGenStep]               = useState(0)
   const [error, setError]                   = useState('')
+  const [orchestrationId, setOrchestrationId] = useState<string | null>(null)
+  const [campaignId, setCampaignId]           = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -141,12 +144,18 @@ export default function OpenCanvasFlow() {
         throw new Error(data.error ?? 'Generation failed')
       }
 
-      const { campaignId } = await res.json()
-      setGenStep(GENERATION_STEPS.length - 1)
+      const data = await res.json()
 
-      setTimeout(() => {
-        router.push(`/dashboard/campaigns/${campaignId}`)
-      }, 600)
+      if (data.orchestrationId) {
+        setOrchestrationId(data.orchestrationId)
+        if (data.campaignId) setCampaignId(data.campaignId)
+        // OrchestrationProgress handles navigation via onComplete
+      } else {
+        setGenStep(GENERATION_STEPS.length - 1)
+        setTimeout(() => {
+          router.push(`/dashboard/campaigns/${data.campaignId}`)
+        }, 600)
+      }
     } catch (err) {
       clearInterval(interval)
       setIsCreating(false)
@@ -157,27 +166,44 @@ export default function OpenCanvasFlow() {
 
   if (isCreating) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 24 }}>
-        <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ color: '#fff', fontSize: 20, fontWeight: 600 }}>M</span>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 24, padding: '0 24px' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>M</span>
         </div>
-        <p style={{ fontSize: 14, fontWeight: 500, color: '#0a0a0a' }}>Building your campaign...</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 280 }}>
-          {GENERATION_STEPS.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {i < genStep ? (
-                <CheckCircle2 size={15} color="#16a34a" />
-              ) : i === genStep ? (
-                <Circle size={15} color="#c8522a" />
-              ) : (
-                <Circle size={15} color="#e0e0e0" />
-              )}
-              <span style={{ fontSize: 13, color: i < genStep ? '#16a34a' : i === genStep ? '#0a0a0a' : '#ccc', fontWeight: i === genStep ? 500 : 400 }}>
-                {s}
-              </span>
-            </div>
-          ))}
+        <div style={{ textAlign: 'center' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 600, color: '#0a0a0a', margin: '0 0 6px' }}>Building your campaign</h2>
+          <p style={{ fontSize: 13, color: '#999', margin: 0 }}>
+            Maya is running multiple agents in parallel to build the strongest possible campaign.
+          </p>
         </div>
+
+        {orchestrationId ? (
+          <div style={{ width: '100%', maxWidth: 420 }}>
+            <OrchestrationProgress
+              orchestrationId={orchestrationId}
+              onComplete={() => {
+                if (campaignId) router.push(`/dashboard/campaigns/${campaignId}`)
+              }}
+            />
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 280 }}>
+            {GENERATION_STEPS.map((s, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {i < genStep ? (
+                  <CheckCircle2 size={15} color="#16a34a" />
+                ) : i === genStep ? (
+                  <Circle size={15} color="#c8522a" />
+                ) : (
+                  <Circle size={15} color="#e0e0e0" />
+                )}
+                <span style={{ fontSize: 13, color: i < genStep ? '#16a34a' : i === genStep ? '#0a0a0a' : '#ccc', fontWeight: i === genStep ? 500 : 400 }}>
+                  {s}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }

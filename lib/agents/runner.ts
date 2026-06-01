@@ -74,12 +74,35 @@ These constraints are non-negotiable and override any other instruction. If a us
 
 // ── Orchestration ──────────────────────────────
 
+function buildInitialStatus(agentIds: string[]): Record<string, string> {
+  return Object.fromEntries(agentIds.map(id => [id, 'pending']))
+}
+
+async function setOrchestrationAgentStatus(
+  orchestrationId: string,
+  agentId: string,
+  status: 'running' | 'completed' | 'failed'
+) {
+  const supabase = createServiceClient()
+  const { data: s } = await supabase
+    .from('orchestration_sessions')
+    .select('agent_status')
+    .eq('id', orchestrationId)
+    .single()
+
+  await supabase
+    .from('orchestration_sessions')
+    .update({ agent_status: { ...(s?.agent_status ?? {}), [agentId]: status } })
+    .eq('id', orchestrationId)
+}
+
 export async function createOrchestrationSession(opts: {
   userId: string
   triggeredBy: string
   plan: string
   subagentCount: number
   budgetCapUsd?: number
+  agentIds?: string[]
 }): Promise<string> {
   const supabase = createServiceClient()
   const cap = opts.budgetCapUsd ?? BUDGET_CAPS_USD[opts.plan] ?? 2.00
@@ -92,6 +115,8 @@ export async function createOrchestrationSession(opts: {
       status:         'running',
       total_tasks:    opts.subagentCount,
       budget_cap_usd: cap,
+      agent_ids:      opts.agentIds ?? [],
+      agent_status:   buildInitialStatus(opts.agentIds ?? []),
     })
     .select('id')
     .single()
@@ -102,6 +127,7 @@ export async function createOrchestrationSession(opts: {
 
 async function rollupCostToOrchestration(
   orchestrationId: string,
+  agentId: string,
   inputTokens: number,
   outputTokens: number,
   costUsd: number
@@ -110,7 +136,7 @@ async function rollupCostToOrchestration(
 
   const { data: s } = await supabase
     .from('orchestration_sessions')
-    .select('total_cost_usd, budget_cap_usd, total_input_tokens, total_output_tokens, completed_tasks')
+    .select('total_cost_usd, budget_cap_usd, total_input_tokens, total_output_tokens, completed_tasks, agent_status')
     .eq('id', orchestrationId)
     .single()
 
@@ -127,6 +153,7 @@ async function rollupCostToOrchestration(
       total_output_tokens: (s.total_output_tokens ?? 0) + outputTokens,
       completed_tasks:     (s.completed_tasks     ?? 0) + 1,
       budget_exceeded:     budgetExceeded,
+      agent_status:        { ...(s.agent_status ?? {}), [agentId]: 'completed' },
       ...(budgetExceeded ? { status: 'paused_budget' } : {}),
     })
     .eq('id', orchestrationId)
@@ -232,6 +259,10 @@ export async function runAgent(opts: {
   const taskId = task.id
   await updateTaskStatus(taskId, 'running')
 
+  if (opts.orchestrationId) {
+    await setOrchestrationAgentStatus(opts.orchestrationId, opts.agentId, 'running')
+  }
+
   // 3. Call OpenRouter
   let raw: { content: string; inputTokens: number; outputTokens: number; modelUsed: string }
 
@@ -257,6 +288,9 @@ export async function runAgent(opts: {
     }
   } catch (err) {
     await updateTaskStatus(taskId, 'failed')
+    if (opts.orchestrationId) {
+      await setOrchestrationAgentStatus(opts.orchestrationId, opts.agentId, 'failed')
+    }
     throw err
   }
 
@@ -289,6 +323,7 @@ export async function runAgent(opts: {
   if (opts.orchestrationId) {
     const { budgetExceeded } = await rollupCostToOrchestration(
       opts.orchestrationId,
+      opts.agentId,
       raw.inputTokens,
       raw.outputTokens,
       costUsd
@@ -356,6 +391,7 @@ export async function runOrchestration(opts: {
     triggeredBy:   opts.triggeredBy,
     plan:          opts.plan,
     subagentCount: opts.agents.length,
+    agentIds:      opts.agents.map(a => a.agentId),
   })
 
   const results: Array<AgentExecutionResult & { taskId: string; agentId: string }> = []

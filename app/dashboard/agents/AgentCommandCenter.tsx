@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { AGENTS, AgentId, AgentDefinition } from '@/lib/agents/registry'
+import OrchestrationProgress from '@/components/agents/OrchestrationProgress'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -101,6 +102,18 @@ export default function AgentCommandCenter({
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
+  // Orchestration state
+  const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
+  const [recentOrchestrations, setRecentOrchestrations] = useState<Array<{
+    id: string
+    triggered_by: string
+    total_tasks: number
+    completed_tasks: number
+    total_cost_usd: number
+    budget_exceeded: boolean
+    completed_at: string | null
+  }>>([])
+
   // Constraints state
   const [constraints, setConstraints] = useState('')
   const [savedConstraints, setSavedConstraints] = useState('')
@@ -133,6 +146,19 @@ Agents:
 ${scorecardLines || '- No agent activity yet'}
 The user can run agents, approve/reject pending outputs, and manage agent constraints.`
     window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch active + recent orchestrations on mount
+  useEffect(() => {
+    fetch('/api/agents/orchestrations/active')
+      .then(r => r.json())
+      .then(data => { if (data.orchestration?.id) setActiveOrchestration(data.orchestration.id) })
+      .catch(() => {})
+
+    fetch('/api/agents/orchestrations/recent')
+      .then(r => r.json())
+      .then(data => { if (data.orchestrations) setRecentOrchestrations(data.orchestrations) })
+      .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Realtime
@@ -305,68 +331,117 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: 20 }}>
           <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#bbb', marginBottom: 16 }}>Live activity</p>
 
-          {runningTasks.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Running now</p>
-              {runningTasks.map(t => {
-                const def = AGENTS[t.agent as AgentId]
-                return (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #f5f5f5' }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'dotPulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
-                    <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#555' }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 12.5, fontWeight: 500, color: '#0a0a0a' }}>{def?.name}</p>
-                    </div>
-                    <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(t.started_at)}</span>
-                  </div>
-                )
-              })}
-            </div>
+          {activeOrchestration ? (
+            <OrchestrationProgress
+              orchestrationId={activeOrchestration}
+              onComplete={(session) => {
+                setActiveOrchestration(null)
+                setRecentOrchestrations(prev => [{
+                  id: session.id,
+                  triggered_by: session.triggered_by,
+                  total_tasks: session.total_tasks,
+                  completed_tasks: session.completed_tasks,
+                  total_cost_usd: session.total_cost_usd,
+                  budget_exceeded: session.budget_exceeded,
+                  completed_at: session.completed_at,
+                }, ...prev].slice(0, 5))
+              }}
+            />
+          ) : (
+            <>
+              {runningTasks.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Running now</p>
+                  {runningTasks.map(t => {
+                    const def = AGENTS[t.agent as AgentId]
+                    return (
+                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #f5f5f5' }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'dotPulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
+                        <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#555' }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12.5, fontWeight: 500, color: '#0a0a0a' }}>{def?.name}</p>
+                        </div>
+                        <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(t.started_at)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {queuedTasks.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Queued</p>
+                  {queuedTasks.map(t => {
+                    const def = AGENTS[t.agent as AgentId]
+                    return (
+                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #f5f5f5' }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e5e5e5', flexShrink: 0 }} />
+                        <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#bbb' }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12.5, color: '#888' }}>{def?.name}</p>
+                        </div>
+                        <span style={{ fontSize: 11, color: '#bbb' }}>Waiting</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {completedToday.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Completed today</p>
+                  {completedToday.map(t => {
+                    const def = AGENTS[t.agent as AgentId]
+                    return (
+                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #f5f5f5' }}>
+                        <i className="ti ti-check" style={{ fontSize: 13, color: '#22c55e' }} />
+                        <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#bbb' }} />
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: 12.5, color: '#555' }}>{def?.name}</p>
+                        </div>
+                        <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(t.completed_at)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {activeTasks.length === 0 && completedToday.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <i className="ti ti-robot" style={{ fontSize: 28, color: '#e0e0e0', display: 'block', marginBottom: 8 }} />
+                  <p style={{ fontSize: 13, color: '#ccc' }}>No activity yet</p>
+                  <p style={{ fontSize: 12, color: '#ddd' }}>Run an agent to get started</p>
+                </div>
+              )}
+            </>
           )}
 
-          {queuedTasks.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Queued</p>
-              {queuedTasks.map(t => {
-                const def = AGENTS[t.agent as AgentId]
-                return (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #f5f5f5' }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e5e5e5', flexShrink: 0 }} />
-                    <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#bbb' }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 12.5, color: '#888' }}>{def?.name}</p>
-                    </div>
-                    <span style={{ fontSize: 11, color: '#bbb' }}>Waiting</span>
+          {/* Recent orchestrations */}
+          {!activeOrchestration && recentOrchestrations.length > 0 && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '0.5px solid #f0f0f0' }}>
+              <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Recent runs</p>
+              {recentOrchestrations.map(orch => (
+                <div key={orch.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '0.5px solid #f8f8f8' }}>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 500, color: '#333', margin: 0 }}>
+                      {orch.triggered_by.replace(/_/g, ' ')}
+                    </p>
+                    <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>
+                      {orch.completed_tasks} agents · {relativeTime(orch.completed_at)}
+                    </p>
                   </div>
-                )
-              })}
-            </div>
-          )}
-
-          {completedToday.length > 0 && (
-            <div>
-              <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Completed today</p>
-              {completedToday.map(t => {
-                const def = AGENTS[t.agent as AgentId]
-                return (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #f5f5f5' }}>
-                    <i className="ti ti-check" style={{ fontSize: 13, color: '#22c55e' }} />
-                    <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#bbb' }} />
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 12.5, color: '#555' }}>{def?.name}</p>
-                    </div>
-                    <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(t.completed_at)}</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontSize: 11, color: '#888', margin: 0 }}>${(orch.total_cost_usd ?? 0).toFixed(4)}</p>
+                    <span style={{
+                      fontSize: 10, padding: '1px 7px', borderRadius: 20,
+                      background: orch.budget_exceeded ? '#fff7ed' : '#f0fdf4',
+                      color: orch.budget_exceeded ? '#c2410c' : '#16a34a',
+                    }}>
+                      {orch.budget_exceeded ? 'budget hit' : 'completed'}
+                    </span>
                   </div>
-                )
-              })}
-            </div>
-          )}
-
-          {activeTasks.length === 0 && completedToday.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <i className="ti ti-robot" style={{ fontSize: 28, color: '#e0e0e0', display: 'block', marginBottom: 8 }} />
-              <p style={{ fontSize: 13, color: '#ccc' }}>No activity yet</p>
-              <p style={{ fontSize: 12, color: '#ddd' }}>Run an agent to get started</p>
+                </div>
+              ))}
             </div>
           )}
         </div>
