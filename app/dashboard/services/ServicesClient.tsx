@@ -263,7 +263,7 @@ The user can request new marketing services or track existing orders.`
   const completedOrders = orders.filter(o => ['approved', 'cancelled'].includes(o.status))
 
   return (
-    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl">
+    <div className="px-8 pt-8 pb-6 max-w-[1200px]">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">

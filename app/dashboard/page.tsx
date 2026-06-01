@@ -88,7 +88,7 @@ The user is on their main dashboard overview.
 ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents and campaigns.' : `Plan is active: ${profile.plan}.`}`
 
   return (
-    <div className="px-8 py-8 max-w-5xl">
+    <div className="px-8 pt-8 pb-6 max-w-[1200px]">
       <CanvasContextDispatcher context={contextString} />
 
       {profile && (

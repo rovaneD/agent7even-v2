@@ -158,7 +158,7 @@ The user can mark notifications as read and follow links to relevant pages.`
   })
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-6">
 
       {/* Header */}
       <div className="flex items-start justify-between">

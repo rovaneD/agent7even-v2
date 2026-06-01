@@ -157,7 +157,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
   // ── New ticket form ──────────────────────────────────────────────────────────
   if (view === 'new') {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-8">
+      <div className="max-w-[1200px] px-8 pt-8 pb-6">
         <button
           onClick={() => setView('list')}
           className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 mb-8 transition-colors"
@@ -247,7 +247,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
   // ── Thread view ──────────────────────────────────────────────────────────────
   if (view === 'thread' && activeTicket) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-8">
+      <div className="max-w-[1200px] px-8 pt-8 pb-6">
         <button
           onClick={() => setView('list')}
           className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 mb-8 transition-colors"
@@ -332,7 +332,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
 
   // ── Ticket list ──────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Support</h1>

@@ -7,7 +7,7 @@ export default async function CalendarPage() {
   if (!userId) redirect('/sign-in')
 
   return (
-    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl">
+    <div className="px-8 pt-8 pb-6 max-w-[1200px]">
       <CanvasContextDispatcher context="CONTENT CALENDAR PAGE
 This feature is coming soon — the content calendar is not yet active.
 When available, it will show a week-by-week view of all planned content across campaigns." />

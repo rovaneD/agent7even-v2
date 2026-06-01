@@ -137,7 +137,7 @@ export default function BrandKitView({
   }
 
   return (
-    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl">
+    <div className="px-8 pt-8 pb-6 max-w-[1200px]">
 
       {/* Header */}
       <div className="flex items-start justify-between mb-6">

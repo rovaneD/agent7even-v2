@@ -169,7 +169,7 @@ The user can download files from Agent7even and upload their own briefs and asse
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-6">
 
       {/* Header */}
       <div className="flex items-start justify-between">

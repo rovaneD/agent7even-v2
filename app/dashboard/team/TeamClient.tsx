@@ -208,7 +208,7 @@ The user can invite new team members and manage their roles and permissions.`
   const totalSeats = activeMembers + pendingMembers
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-6">
 
       {/* Header */}
       <div className="flex items-start justify-between">

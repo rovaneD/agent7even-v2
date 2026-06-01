@@ -809,13 +809,14 @@ export default function DashboardShell({
           </div>
         </header>
 
-        {/* Desktop canvas header — shows page context menu */}
+        {/* Desktop canvas header */}
         <div
           className="hidden lg:flex"
-          style={{ flexShrink: 0, height: 44, borderBottom: '1px solid #E2E8F0', background: '#fff', paddingRight: 16, alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}
+          style={{ flexShrink: 0, height: 56, borderBottom: '1px solid #E2E8F0', background: '#fff', paddingRight: 20, alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}
         >
           <NotificationBell profileId={profileId} initialNotifications={initialNotifications} />
           <ContextMenu pageName={currentPageKey} />
+          <UserButton />
         </div>
 
         <main style={{ flex: 1, overflowY: 'auto' }}>

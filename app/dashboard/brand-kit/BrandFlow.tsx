@@ -102,7 +102,7 @@ export default function BrandFlow({
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8">
+    <div className="max-w-[1200px] px-8 pt-8 pb-6">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">

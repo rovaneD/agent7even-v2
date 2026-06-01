@@ -148,7 +148,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-8">
 
       {/* Header */}
       <div>

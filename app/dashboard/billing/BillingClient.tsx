@@ -141,7 +141,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-8">
 
       <div>
         <h1 className="text-xl font-semibold text-gray-900">Billing</h1>

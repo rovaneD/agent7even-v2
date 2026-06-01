@@ -226,7 +226,7 @@ export default function FoundationEditor({
 
   if (!initialAnswers) {
     return (
-      <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-5xl">
+      <div className="px-8 pt-8 pb-6 max-w-[1200px]">
         <div className="mb-8">
           <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Foundation</p>
           <h1 className="text-2xl font-bold text-gray-900">Your business foundation</h1>
@@ -258,7 +258,7 @@ export default function FoundationEditor({
   // ── Main editor ──────────────────────────────────────────────────────────
 
   return (
-    <div className="px-4 py-6 sm:px-8 sm:py-8 max-w-6xl">
+    <div className="px-8 pt-8 pb-6 max-w-[1200px]">
 
       {/* Header */}
       <div className="mb-8">

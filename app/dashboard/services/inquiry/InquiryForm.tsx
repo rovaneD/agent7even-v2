@@ -135,7 +135,7 @@ export default function InquiryForm({ companyName }: Props) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className="max-w-[1200px] px-8 pt-8 pb-6">
 
       {/* Header */}
       <button
