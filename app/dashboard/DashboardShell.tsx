@@ -794,8 +794,8 @@ export default function DashboardShell({
 
         {/* Mobile top bar */}
         <header
-          className="lg:hidden"
-          style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+          className="flex items-center justify-between lg:hidden"
+          style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '12px 16px' }}
         >
           <button onClick={() => setMobileOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2D3748', display: 'flex' }}>
             <Menu size={18} />
