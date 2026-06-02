@@ -79,6 +79,19 @@ function getContentPreview(output: AgentOutput): string {
   return raw.length > 120 ? raw.slice(0, 120) + '…' : raw
 }
 
+function getOutputDescription(output: AgentOutput): string {
+  const raw = getOutputText(output)
+  const firstHeading = raw
+    .split('\n')
+    .map(line => line.trim())
+    .find(line => line.startsWith('#'))
+    ?.replace(/^#+\s*/, '')
+
+  if (firstHeading) return firstHeading
+  if (output.title) return output.title
+  return getContentPreview(output) || 'Saved agent output'
+}
+
 function getOutputText(output: AgentOutput): string {
   const content = output.content
   if (!content) return ''
@@ -98,10 +111,6 @@ export default function AgentCommandCenter({
   const [pendingApprovals, setPendingApprovals] = useState(initPendingApprovals)
   const [recentTasks] = useState(initRecent)
   const [recentOutputs, setRecentOutputs] = useState(initRecentOutputs)
-  const [selectedOutputAgent, setSelectedOutputAgent] = useState<string | null>(
-    scorecard.find(entry => entry.totalOutputs > 0)?.agentId ?? null
-  )
-  const [selectedOutputId, setSelectedOutputId] = useState<string | null>(initRecentOutputs[0]?.id ?? null)
 
   // New task form state
   const [selectedAgent, setSelectedAgent] = useState<AgentId | null>(null)
@@ -226,8 +235,6 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
             if (prev.some(existing => existing.id === output.id)) return prev
             return [output, ...prev].slice(0, 50)
           })
-          setSelectedOutputAgent(prev => prev ?? output.agent)
-          setSelectedOutputId(prev => prev ?? output.id)
         }
       )
       .subscribe()
@@ -304,14 +311,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
     ...entry,
     totalOutputs: Math.max(entry.totalOutputs, recentOutputs.filter(output => output.agent === entry.agentId).length),
   }))
-  const selectedAgentDef = selectedOutputAgent ? AGENTS[selectedOutputAgent as AgentId] : null
-  const selectedAgentOutputs = selectedOutputAgent
-    ? recentOutputs.filter(output => output.agent === selectedOutputAgent)
-    : []
-  const selectedOutput =
-    selectedAgentOutputs.find(output => output.id === selectedOutputId) ??
-    selectedAgentOutputs[0] ??
-    null
+  const latestOutputs = recentOutputs.slice(0, 5)
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -327,6 +327,139 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         <p style={{ fontSize: 14, color: '#64748B' }}>
           {companyName} · {agentList.length} agents available
         </p>
+      </div>
+
+      {/* ═══ ZONE 1: Create New Task ═══ */}
+      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 24, marginBottom: 24 }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>Run an agent</p>
+        <p style={{ fontSize: 13, color: '#64748B', marginBottom: 20 }}>Choose an agent and tell it what you need.</p>
+
+        {/* Agent grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+          {agentList.map((agent: AgentDefinition) => {
+            const isSelected = selectedAgent === agent.id
+            return (
+              <button
+                key={agent.id}
+                onClick={() => setSelectedAgent(isSelected ? null : agent.id as AgentId)}
+                style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 10, border: isSelected ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: isSelected ? 'rgba(59,130,246,0.04)' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#64748B' }}
+                onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <i className={`ti ${agent.icon}`} style={{ fontSize: 20, color: isSelected ? '#3B82F6' : '#64748B' }} />
+                  <span style={{
+                    fontSize: 10, borderRadius: 20, padding: '2px 7px', fontWeight: 500,
+                    background: agent.autonomyLevel === 'autonomous' ? 'rgba(59,130,246,0.1)' : 'rgba(45,55,72,0.1)',
+                    color: agent.autonomyLevel === 'autonomous' ? '#3B82F6' : '#2D3748',
+                  }}>
+                    {agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
+                  </span>
+                </div>
+                <p style={{ fontSize: 12.5, fontWeight: 500, color: '#2D3748', margin: 0 }}>{agent.name}</p>
+                <p style={{ fontSize: 11, color: '#999', lineHeight: 1.4, margin: 0 }}>{agent.description}</p>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Instructions + submit */}
+        {selectedAgent && (
+          <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: 18 }}>
+            <textarea
+              value={taskInstructions}
+              onChange={e => setTaskInstructions(e.target.value)}
+              placeholder={`Tell ${AGENTS[selectedAgent].name} what you need — plain language...`}
+              rows={3}
+              style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', marginBottom: 12, boxSizing: 'border-box', color: '#2D3748' }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {(['normal', 'high'] as const).map(p => (
+                  <button key={p} onClick={() => setTaskPriority(p)}
+                    style={{ padding: '5px 12px', borderRadius: 20, border: taskPriority === p ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: taskPriority === p ? 'rgba(59,130,246,0.06)' : '#F8FAFC', color: '#2D3748', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={handleCreateTask}
+                disabled={submitting || submitted}
+                style={{ marginLeft: 'auto', padding: '8px 24px', background: submitted ? '#10B981' : '#2D3748', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: submitting || submitted ? 'not-allowed' : 'pointer', fontFamily: 'inherit', minWidth: 160 }}
+              >
+                {submitted ? 'Task queued' : submitting ? 'Queuing...' : `Run ${AGENTS[selectedAgent].name}`}
+              </button>
+            </div>
+
+            {/* Constraints section */}
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '0.5px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#888', margin: 0 }}>
+                    What this agent will never do
+                  </p>
+                  <p style={{ fontSize: 11.5, color: '#bbb', marginTop: 3 }}>
+                    Brand safety guardrails — applied to every run
+                  </p>
+                </div>
+                {isCustomized && (
+                  <span style={{ fontSize: 11, padding: '2px 8px', background: '#f0fdf4', color: '#16a34a', borderRadius: 20, fontWeight: 500, flexShrink: 0 }}>
+                    Customized
+                  </span>
+                )}
+              </div>
+
+              {/* Template quick-insert buttons */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                {CONSTRAINT_TEMPLATES.map(t => (
+                  <button
+                    key={t.label}
+                    onClick={() => setConstraints(prev => prev ? `${prev}\n${t.text}` : t.text)}
+                    style={{ padding: '3px 10px', borderRadius: 20, border: '0.5px solid #E2E8F0', background: '#fafafa', color: '#555', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#2D3748' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
+                  >
+                    + {t.label}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={constraints}
+                onChange={e => setConstraints(e.target.value)}
+                rows={4}
+                placeholder={AGENTS[selectedAgent].defaultConstraints}
+                style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#2D3748', lineHeight: 1.6 }}
+              />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                {constraints !== savedConstraints && (
+                  <button
+                    onClick={handleSaveConstraints}
+                    disabled={savingConstraints}
+                    style={{ padding: '6px 16px', background: '#2D3748', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: savingConstraints ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: savingConstraints ? 0.6 : 1 }}
+                  >
+                    {savingConstraints ? 'Saving…' : 'Save constraints'}
+                  </button>
+                )}
+                {constraintsSaved && (
+                  <span style={{ fontSize: 12, color: '#10B981' }}>Constraints saved</span>
+                )}
+                {constraintsLastUpdated && !constraintsSaved && (
+                  <span style={{ fontSize: 11, color: '#ccc' }}>
+                    Last updated {relativeTime(constraintsLastUpdated)}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!selectedAgent && (
+          <div style={{ textAlign: 'center', color: '#ccc', fontSize: 13, padding: '8px 0' }}>
+            Select an agent above to get started
+          </div>
+        )}
       </div>
 
       {/* ═══ ZONE 1: Approval Queue Banner ═══ */}
@@ -501,51 +634,23 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
 
             {scorecardWithLiveCounts.map(entry => (
               <Fragment key={entry.agentId}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedOutputAgent(entry.agentId)
-                    setSelectedOutputId(recentOutputs.find(output => output.agent === entry.agentId)?.id ?? null)
-                  }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', border: 0, borderBottom: '0.5px solid #f8f8f8', background: selectedOutputAgent === entry.agentId ? '#F8FAFC' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
-                >
+                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', textDecoration: 'none' }}>
                   <i className={`ti ${entry.icon}`} style={{ fontSize: 14, color: '#888', flexShrink: 0 }} />
                   <span style={{ fontSize: 12.5, color: '#333', whiteSpace: 'nowrap' }}>{entry.name}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedOutputAgent(entry.agentId)
-                    setSelectedOutputId(recentOutputs.find(output => output.agent === entry.agentId)?.id ?? null)
-                  }}
-                  style={{ fontSize: 12, color: '#888', padding: '9px 0', border: 0, borderBottom: '0.5px solid #f8f8f8', background: selectedOutputAgent === entry.agentId ? '#F8FAFC' : 'transparent', whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
-                >
+                </Link>
+                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} style={{ fontSize: 12, color: '#888', padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', whiteSpace: 'nowrap', textDecoration: 'none' }}>
                   {relativeTime(entry.lastRunAt)}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedOutputAgent(entry.agentId)
-                    setSelectedOutputId(recentOutputs.find(output => output.agent === entry.agentId)?.id ?? null)
-                  }}
-                  style={{ fontSize: 12, color: entry.totalOutputs > 0 ? '#3B82F6' : '#555', padding: '9px 0', border: 0, borderBottom: '0.5px solid #f8f8f8', background: selectedOutputAgent === entry.agentId ? '#F8FAFC' : 'transparent', textAlign: 'center', cursor: 'pointer', fontFamily: 'inherit', fontWeight: entry.totalOutputs > 0 ? 600 : 400 }}
-                >
+                </Link>
+                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} style={{ fontSize: 12, color: entry.totalOutputs > 0 ? '#3B82F6' : '#555', padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', textAlign: 'center', textDecoration: 'none', fontWeight: entry.totalOutputs > 0 ? 600 : 400 }}>
                   {entry.totalOutputs}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedOutputAgent(entry.agentId)
-                    setSelectedOutputId(recentOutputs.find(output => output.agent === entry.agentId)?.id ?? null)
-                  }}
-                  style={{ padding: '9px 0', border: 0, borderBottom: '0.5px solid #f8f8f8', background: selectedOutputAgent === entry.agentId ? '#F8FAFC' : 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
-                >
+                </Link>
+                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} style={{ padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', textDecoration: 'none' }}>
                   {entry.isScheduled ? (
                     <span style={{ fontSize: 11, background: 'rgba(16,185,129,0.1)', color: '#10B981', borderRadius: 20, padding: '2px 8px', fontWeight: 500 }}>Active</span>
                   ) : (
                     <span style={{ fontSize: 11, background: '#F8FAFC', color: '#64748B', borderRadius: 20, padding: '2px 8px', border: '1px solid #E2E8F0', fontWeight: 500 }}>Idle</span>
                   )}
-                </button>
+                </Link>
               </Fragment>
             ))}
           </div>
@@ -556,201 +661,42 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 20, marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
           <div>
-            <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 4 }}>Agent outputs</p>
-            <p style={{ fontSize: 13, color: '#2D3748', margin: 0 }}>
-              {selectedAgentDef ? selectedAgentDef.name : 'Select an agent'} {selectedAgentOutputs.length > 0 ? `· ${selectedAgentOutputs.length} recent output${selectedAgentOutputs.length !== 1 ? 's' : ''}` : ''}
-            </p>
+            <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 4 }}>Recent outputs</p>
+            <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>Open an output archive to read the full result.</p>
           </div>
-          {selectedOutput && (
-            <Link href="/dashboard/agents/approvals" style={{ fontSize: 12.5, color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}>
-              Review approvals
-            </Link>
-          )}
+          <Link href="/dashboard/agents/approvals" style={{ fontSize: 12.5, color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}>
+            Review approvals
+          </Link>
         </div>
 
-        {selectedOutputAgent && selectedAgentOutputs.length > 0 && selectedOutput ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16 }}>
-            <div style={{ border: '1px solid #E2E8F0', borderRadius: 12, overflow: 'hidden', maxHeight: 380, overflowY: 'auto' }}>
-              {selectedAgentOutputs.map(output => {
-                const selected = output.id === selectedOutput.id
-                return (
-                  <button
-                    key={output.id}
-                    type="button"
-                    onClick={() => setSelectedOutputId(output.id)}
-                    style={{ width: '100%', display: 'block', padding: '12px 14px', border: 0, borderBottom: '1px solid #F1F5F9', background: selected ? '#EFF6FF' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
-                  >
-                    <p style={{ fontSize: 12.5, fontWeight: 600, color: '#2D3748', margin: '0 0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {output.title || AGENTS[output.agent as AgentId]?.name || output.agent}
+        {latestOutputs.length > 0 ? (
+          <div style={{ display: 'grid', gap: 8 }}>
+            {latestOutputs.map(output => {
+              const agent = AGENTS[output.agent as AgentId]
+              return (
+                <Link
+                  key={output.id}
+                  href={`/dashboard/agents/${output.agent}/outputs?output=${output.id}`}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 14px', border: '1px solid #E2E8F0', borderRadius: 10, textDecoration: 'none', background: '#fff' }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 13, color: '#2D3748', fontWeight: 600, margin: '0 0 3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {getOutputDescription(output)}
                     </p>
-                    <p style={{ fontSize: 11, color: '#64748B', margin: '0 0 6px' }}>
-                      {relativeTime(output.created_at)} · {output.status.replace(/_/g, ' ')}
+                    <p style={{ fontSize: 11.5, color: '#64748B', margin: 0 }}>
+                      {agent?.name ?? output.agent} · {relativeTime(output.created_at)} · {output.status.replace(/_/g, ' ')}
                     </p>
-                    <p style={{ fontSize: 11.5, color: '#94A3B8', margin: 0, lineHeight: 1.35 }}>
-                      {getContentPreview(output)}
-                    </p>
-                  </button>
-                )
-              })}
-            </div>
-
-            <article style={{ border: '1px solid #E2E8F0', borderRadius: 12, padding: 18, minHeight: 300, maxHeight: 520, overflowY: 'auto' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
-                <div>
-                  <h2 style={{ fontSize: 15, fontWeight: 600, color: '#2D3748', margin: '0 0 4px' }}>
-                    {selectedOutput.title || selectedAgentDef?.name || 'Agent output'}
-                  </h2>
-                  <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>
-                    {relativeTime(selectedOutput.created_at)} · {selectedOutput.status.replace(/_/g, ' ')}
-                  </p>
-                </div>
-                <span style={{ fontSize: 11, borderRadius: 20, padding: '3px 8px', background: selectedOutput.status === 'approved' ? '#F0FDF4' : '#FEF3C7', color: selectedOutput.status === 'approved' ? '#16A34A' : '#B45309', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                  {selectedOutput.status.replace(/_/g, ' ')}
-                </span>
-              </div>
-              <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontFamily: 'var(--font-geist), system-ui, sans-serif', fontSize: 13, lineHeight: 1.6, color: '#334155' }}>
-                {getOutputText(selectedOutput)}
-              </pre>
-            </article>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#3B82F6', fontWeight: 500, whiteSpace: 'nowrap' }}>Open</span>
+                </Link>
+              )
+            })}
           </div>
         ) : (
           <div style={{ border: '1px dashed #CBD5E1', borderRadius: 12, padding: '24px 16px', textAlign: 'center' }}>
             <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
-              {selectedOutputAgent ? 'No saved outputs for this agent yet.' : 'Click an agent in the scorecard to view its saved outputs.'}
+              Saved auto-agent outputs will appear here as one-line links.
             </p>
-          </div>
-        )}
-      </div>
-
-      {/* ═══ ZONE 3: Create New Task ═══ */}
-      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 24 }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>Run an agent</p>
-        <p style={{ fontSize: 13, color: '#64748B', marginBottom: 20 }}>Choose an agent and tell it what you need.</p>
-
-        {/* Agent grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
-          {agentList.map((agent: AgentDefinition) => {
-            const isSelected = selectedAgent === agent.id
-            return (
-              <button
-                key={agent.id}
-                onClick={() => setSelectedAgent(isSelected ? null : agent.id as AgentId)}
-                style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 10, border: isSelected ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: isSelected ? 'rgba(59,130,246,0.04)' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'border-color 0.15s' }}
-                onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#64748B' }}
-                onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <i className={`ti ${agent.icon}`} style={{ fontSize: 20, color: isSelected ? '#3B82F6' : '#64748B' }} />
-                  <span style={{
-                    fontSize: 10, borderRadius: 20, padding: '2px 7px', fontWeight: 500,
-                    background: agent.autonomyLevel === 'autonomous' ? 'rgba(59,130,246,0.1)' : 'rgba(45,55,72,0.1)',
-                    color: agent.autonomyLevel === 'autonomous' ? '#3B82F6' : '#2D3748',
-                  }}>
-                    {agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
-                  </span>
-                </div>
-                <p style={{ fontSize: 12.5, fontWeight: 500, color: '#2D3748', margin: 0 }}>{agent.name}</p>
-                <p style={{ fontSize: 11, color: '#999', lineHeight: 1.4, margin: 0 }}>{agent.description}</p>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Instructions + submit */}
-        {selectedAgent && (
-          <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: 18 }}>
-            <textarea
-              value={taskInstructions}
-              onChange={e => setTaskInstructions(e.target.value)}
-              placeholder={`Tell ${AGENTS[selectedAgent].name} what you need — plain language...`}
-              rows={3}
-              style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', marginBottom: 12, boxSizing: 'border-box', color: '#2D3748' }}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {(['normal', 'high'] as const).map(p => (
-                  <button key={p} onClick={() => setTaskPriority(p)}
-                    style={{ padding: '5px 12px', borderRadius: 20, border: taskPriority === p ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: taskPriority === p ? 'rgba(59,130,246,0.06)' : '#F8FAFC', color: '#2D3748', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}>
-                    {p}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={handleCreateTask}
-                disabled={submitting || submitted}
-                style={{ marginLeft: 'auto', padding: '8px 24px', background: submitted ? '#10B981' : '#2D3748', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: submitting || submitted ? 'not-allowed' : 'pointer', fontFamily: 'inherit', minWidth: 160 }}
-              >
-                {submitted ? 'Task queued' : submitting ? 'Queuing...' : `Run ${AGENTS[selectedAgent].name}`}
-              </button>
-            </div>
-
-            {/* Constraints section */}
-            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '0.5px solid #f0f0f0' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#888', margin: 0 }}>
-                    What this agent will never do
-                  </p>
-                  <p style={{ fontSize: 11.5, color: '#bbb', marginTop: 3 }}>
-                    Brand safety guardrails — applied to every run
-                  </p>
-                </div>
-                {isCustomized && (
-                  <span style={{ fontSize: 11, padding: '2px 8px', background: '#f0fdf4', color: '#16a34a', borderRadius: 20, fontWeight: 500, flexShrink: 0 }}>
-                    Customized
-                  </span>
-                )}
-              </div>
-
-              {/* Template quick-insert buttons */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                {CONSTRAINT_TEMPLATES.map(t => (
-                  <button
-                    key={t.label}
-                    onClick={() => setConstraints(prev => prev ? `${prev}\n${t.text}` : t.text)}
-                    style={{ padding: '3px 10px', borderRadius: 20, border: '0.5px solid #E2E8F0', background: '#fafafa', color: '#555', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#2D3748' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
-                  >
-                    + {t.label}
-                  </button>
-                ))}
-              </div>
-
-              <textarea
-                value={constraints}
-                onChange={e => setConstraints(e.target.value)}
-                rows={4}
-                placeholder={AGENTS[selectedAgent].defaultConstraints}
-                style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#2D3748', lineHeight: 1.6 }}
-              />
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-                {constraints !== savedConstraints && (
-                  <button
-                    onClick={handleSaveConstraints}
-                    disabled={savingConstraints}
-                    style={{ padding: '6px 16px', background: '#2D3748', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: savingConstraints ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: savingConstraints ? 0.6 : 1 }}
-                  >
-                    {savingConstraints ? 'Saving…' : 'Save constraints'}
-                  </button>
-                )}
-                {constraintsSaved && (
-                  <span style={{ fontSize: 12, color: '#10B981' }}>Constraints saved</span>
-                )}
-                {constraintsLastUpdated && !constraintsSaved && (
-                  <span style={{ fontSize: 11, color: '#ccc' }}>
-                    Last updated {relativeTime(constraintsLastUpdated)}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!selectedAgent && (
-          <div style={{ textAlign: 'center', color: '#ccc', fontSize: 13, padding: '8px 0' }}>
-            Select an agent above to get started
           </div>
         )}
       </div>
