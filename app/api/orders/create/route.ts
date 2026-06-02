@@ -4,9 +4,11 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { createNotification } from '@/lib/createNotification'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
+import { openRouterComplete } from '@/lib/agents/openrouter'
+import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
 
 function displayBrief(brief: string) {
-  return brief.split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0].trim()
+  return displayServiceBrief(brief)
 }
 
 export async function POST(req: NextRequest) {
@@ -25,13 +27,146 @@ export async function POST(req: NextRequest) {
     // Get profile id
     const { data: profileRows } = await supabase
       .from('profiles')
-      .select('id, email, full_name, company_name')
+      .select('id, email, full_name, company_name, foundation_answers, business_type, ideal_customer, top_goals, marketing_challenge')
       .eq('clerk_user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
     const profile = profileRows?.[0]
 
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+    const visibleBrief = displayBrief(brief)
+
+    if (service_type === 'viral_hooks') {
+      const { data: brandDocs } = await supabase
+        .from('brand_documents')
+        .select('type, content')
+        .eq('user_id', profile.id)
+        .in('type', ['voice', 'positioning', 'persona'])
+
+      const brandContext = (brandDocs ?? [])
+        .map(doc => `## ${doc.type}\n${doc.content}`)
+        .join('\n\n')
+
+      const result = await openRouterComplete({
+        model: 'anthropic/claude-haiku-4',
+        messages: [{
+          role: 'user',
+          content: `You are Maya, Agent7even's marketing strategist. Generate a self-serve Viral Hooks output inside the user's Services page.
+
+Business context:
+- Company: ${profile.company_name ?? profile.full_name ?? 'Unknown'}
+- Business type: ${profile.business_type ?? 'Not provided'}
+- Ideal customer: ${profile.ideal_customer ?? 'Not provided'}
+- Top goals: ${profile.top_goals ?? 'Not provided'}
+- Marketing challenge: ${profile.marketing_challenge ?? 'Not provided'}
+- Foundation answers: ${JSON.stringify(profile.foundation_answers ?? {})}
+
+Brand context:
+${brandContext || 'No Brand Kit documents found.'}
+
+Customer request:
+${visibleBrief}
+
+${VIRAL_HOOKS_FRAMEWORK}
+
+Return a polished self-serve deliverable with:
+1. A short "How to use these hooks" note.
+2. Five sections matching the hook families.
+3. At least 5 finished hooks per family.
+4. A format label for each hook.
+5. A final "Strongest 5 to test first" section with one-sentence rationale for each.
+
+Do not ask follow-up questions. Make practical assumptions and produce the hooks now.`,
+        }],
+        max_tokens: 2400,
+        temperature: 0.8,
+      })
+
+      const { data: order, error } = await supabase
+        .from('orders')
+        .insert({
+          user_id: profile.id,
+          service_type,
+          title,
+          brief,
+          status: 'delivered',
+          priority: 'medium',
+          delivered_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Viral Hooks order creation error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      const orderNumber = formatOrderNumber(order)
+      const supportBody = `Order ID: ${order.id}
+Order number: ${orderNumber}
+Service: ${title}
+Client: ${profile.company_name || profile.full_name || profile.email}
+
+Request brief:
+${brief}`
+
+      const { data: ticket, error: ticketError } = await supabase
+        .from('support_tickets')
+        .insert({
+          user_id: profile.id,
+          subject: `Self-serve service: ${title}`,
+          body: supportBody,
+          priority: 'low',
+          status: 'closed',
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+
+      let supportMessages: unknown[] = []
+
+      if (ticketError || !ticket) {
+        console.error('Viral Hooks ticket creation error:', ticketError)
+      } else {
+        const { data: messages, error: messageError } = await supabase
+          .from('support_messages')
+          .insert([
+            {
+              ticket_id: ticket.id,
+              sender_id: profile.id,
+              sender_role: 'client',
+              body: visibleBrief,
+            },
+            {
+              ticket_id: ticket.id,
+              sender_id: profile.id,
+              sender_role: 'admin',
+              body: result.content,
+            },
+          ])
+          .select('id, sender_role, body, created_at')
+
+        if (messageError) console.error('Viral Hooks message creation error:', messageError)
+        supportMessages = messages ?? []
+      }
+
+      await createNotification({
+        userId: profile.id,
+        title: 'Your Viral Hooks are ready',
+        body: `${orderNumber} is ready to review in Services.`,
+        type: 'order_status',
+        link: `/dashboard/services?order=${order.id}`,
+        sendEmail: false,
+      })
+
+      return NextResponse.json({
+        success: true,
+        order,
+        supportTicketId: ticket?.id ?? null,
+        supportMessages,
+      })
+    }
 
     // Create order
     const { data: order, error } = await supabase
@@ -53,7 +188,6 @@ export async function POST(req: NextRequest) {
     }
 
     const orderNumber = formatOrderNumber(order)
-    const visibleBrief = displayBrief(brief)
     const supportBody = `Order ID: ${order.id}
 Order number: ${orderNumber}
 Service: ${title}

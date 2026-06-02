@@ -8,6 +8,7 @@ import {
   Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send, Flame
 } from 'lucide-react'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
+import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
 
 const SERVICES = [
   {
@@ -111,62 +112,6 @@ const SERVICES = [
     requiresScope: false,
   },
 ]
-
-const VIRAL_HOOKS_FRAMEWORK = `VIRAL HOOKS SERVICE FRAMEWORK
-Use this request to craft hook ideas, not a generic content plan.
-
-Goal:
-- Create short-form content hooks that can open Reels, TikToks, YouTube Shorts, carousels, captions, or emails.
-- Use the customer's business, offer, audience, pain points, desired result, and Foundation/Brand Kit context when available.
-- If the customer gives limited detail, make reasonable assumptions and produce usable hooks anyway.
-
-Hook families to use:
-1. Cost-Narration Hooks
-- "It took me [x] years to master [a skill], but I'm going to teach you the [x] most powerful lessons in the next [x] seconds."
-- "I spent [$] on [goal], so you don't have to. Here's what was worth it and definitely not worth it."
-- "It took me [x] years to learn this but I'll teach it to you in less than 1 minute."
-- "After over [x] years [doing action], here's what I wish someone would've told me from day one."
-- "I spent [x] hours researching and testing every [tool]. Here are the only [x] you actually need."
-
-2. False-Statement Hooks
-- "The number 1 weakness of [tool] is that it can't [do action]... just kidding, of course it can."
-- "If you don't [do action] then you will never [get dream result]. And that statement is completely wrong."
-- "[Thing] is not a good [option] for [situation]. It's the best for [situation]."
-- "[Controversial thing] is the biggest scam ever pulled on us... or is it?"
-- "Never [do action]... unless you want to [get desirable result]."
-
-3. Comparison Hooks
-- "The only difference between [negative] and [positive] is [thing]."
-- "This is how [thing] used to work. This is how it works today."
-- "Do you want [popular desire] or do you want [deeper desire]?"
-- "This is [common option] vs [new option]."
-- "Do you want to be [common label] or do you want to be [desirable label]?"
-
-4. Callout Hooks
-- "If you can't [achieve result], it's not because you're not [positive trait], it's because you don't know how to [action]."
-- "Your [common excuse] isn't the problem, [actual reason] is."
-- "Everybody tells you to [do action] but nobody shows you how to do it, so let's [do action] together, step by step."
-- "If you want [results] for free, with literally 0 extra effort, here's what you need to do."
-- "So you wanna [achieve outcome] but hate [required painful action]."
-
-5. Bold Statement Hooks
-- "[Desirable outcome] for dummies."
-- "There are only [x] different [things] you need to [action] to [achieve goal]."
-- "Everyone tells you to [common advice] but nobody tells you how, so here's how to [do action] in [x] easy steps."
-- "If I had [x] days to [achieve goal], this is exactly what I would do."
-- "I genuinely believe anybody can [accomplish goal] if you just learn [unique solution]."
-
-Output expectation:
-- Return at least 25 hooks, grouped by the 5 hook families.
-- Replace all placeholders with specific language for this customer.
-- For each hook, include suggested format: Reel, TikTok, Short, carousel, caption, or email.
-- Include a short note on why the strongest 5 hooks should work.
-- Avoid fake claims, guaranteed results, or unverifiable numbers unless the customer provided them.`
-
-function displayBrief(brief: string | null | undefined) {
-  if (!brief) return ''
-  return brief.split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0].trim()
-}
 
 const STATUS_CONFIG = {
   submitted: { label: 'Submitted', color: 'bg-blue-50 text-blue-600', icon: Clock },
@@ -331,6 +276,7 @@ The user can request new marketing services or track existing orders.`
   const [errorMsg, setErrorMsg] = useState('')
   const [replyBody, setReplyBody] = useState('')
   const [replying, setReplying] = useState(false)
+  const [completingOrder, setCompletingOrder] = useState(false)
 
   const handleRequest = async (brief: string) => {
     if (!requestingService || !profile) return
@@ -403,6 +349,27 @@ ${VIRAL_HOOKS_FRAMEWORK}`
     }
   }
 
+  async function completeSelfServeOrder() {
+    if (!selectedOrder || selectedOrder.service_type !== 'viral_hooks') return
+    setCompletingOrder(true)
+    setErrorMsg('')
+    try {
+      const res = await fetch('/api/orders/complete-self-serve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: selectedOrder.id }),
+      })
+      if (!res.ok) throw new Error('Failed to complete order')
+      setLocalOrders(prev => prev.map(order =>
+        order.id === selectedOrder.id ? { ...order, status: 'approved' } : order
+      ))
+    } catch {
+      setErrorMsg('Could not mark this order complete. Try again.')
+    } finally {
+      setCompletingOrder(false)
+    }
+  }
+
   if (selectedOrder) {
     const status = STATUS_CONFIG[selectedOrder.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.submitted
     const StatusIcon = status.icon
@@ -435,16 +402,29 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                 </p>
               </div>
             </div>
-            <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full ${status.color}`}>
-              <StatusIcon size={11} />
-              {status.label}
-            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {selectedOrder.service_type === 'viral_hooks' && !CLOSED_STATUSES.includes(selectedOrder.status) && (
+                <button
+                  type="button"
+                  onClick={completeSelfServeOrder}
+                  disabled={completingOrder}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#2D3748] hover:bg-[#1E293B] px-3 py-1.5 rounded-full disabled:opacity-50"
+                >
+                  {completingOrder ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
+                  Mark complete
+                </button>
+              )}
+              <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full ${status.color}`}>
+                <StatusIcon size={11} />
+                {status.label}
+              </span>
+            </div>
           </div>
 
           {selectedOrder.brief && (
             <div className="p-6 border-b border-gray-100 bg-gray-50/50">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Original request</p>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{displayBrief(selectedOrder.brief)}</p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{displayServiceBrief(selectedOrder.brief)}</p>
             </div>
           )}
 
@@ -468,7 +448,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                       {message.sender_role === 'client' ? 'You' : 'Agent7even Services'}
                     </p>
                     <p className={`text-sm leading-relaxed whitespace-pre-wrap ${message.sender_role === 'client' ? 'text-white' : 'text-gray-700'}`}>
-                      {displayBrief(message.body)}
+                      {displayServiceBrief(message.body)}
                     </p>
                   </div>
                 </div>
@@ -477,7 +457,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           </div>
 
           <div className="p-4 border-t border-gray-100 bg-white">
-            {selectedOrder.support_ticket_id ? (
+            {selectedOrder.support_ticket_id && selectedOrder.service_type !== 'viral_hooks' ? (
               <div>
                 <textarea
                   value={replyBody}
@@ -499,7 +479,11 @@ ${VIRAL_HOOKS_FRAMEWORK}`
               </div>
             ) : (
               <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
-                <p className="text-sm text-amber-700">This older order does not have a service conversation attached yet.</p>
+                <p className="text-sm text-amber-700">
+                  {selectedOrder.service_type === 'viral_hooks'
+                    ? 'This is a self-serve service. Review the generated hooks above and mark complete when you are done.'
+                    : 'This older order does not have a service conversation attached yet.'}
+                </p>
               </div>
             )}
           </div>
@@ -699,7 +683,7 @@ function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversa
             {formatOrderNumber(order)} · Submitted {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
           {order.brief && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{displayBrief(order.brief)}</p>
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{displayServiceBrief(order.brief)}</p>
           )}
           <button
             type="button"

@@ -50,6 +50,7 @@ export default async function AdminOrdersPage({
   const { data: orderRows, error: ordersError } = await supabase
     .from('orders')
     .select('*')
+    .neq('service_type', 'viral_hooks')
     .order('created_at', { ascending: false })
 
   if (ordersError) console.error('[admin/orders] orders query error:', ordersError.message)

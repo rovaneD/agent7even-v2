@@ -28,7 +28,7 @@ export default async function AdminPage() {
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'client'),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'client').eq('status', 'active'),
-    supabase.from('orders').select('*, profiles(full_name, company_name, email)').order('created_at', { ascending: false }).limit(5),
+    supabase.from('orders').select('*, profiles(full_name, company_name, email)').neq('service_type', 'viral_hooks').order('created_at', { ascending: false }).limit(5),
     supabase.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'open'),
     supabase.from('profiles').select('*').eq('role', 'client').order('created_at', { ascending: false }).limit(5),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).not('plan', 'is', null).or(`engagement_score.lt.30,last_active_at.lt.${fortyEightHoursAgo}`),

@@ -43,7 +43,7 @@ export default async function ServicesPage({
         )
       `)
       .eq('user_id', profile.id)
-      .ilike('subject', 'Service request:%')
+      .or('subject.ilike.Service request:%,subject.ilike.Self-serve service:%')
       .order('updated_at', { ascending: false })
     : { data: [] }
 
