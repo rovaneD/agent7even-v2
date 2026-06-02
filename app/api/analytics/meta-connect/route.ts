@@ -1,13 +1,14 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { createOAuthState } from '@/lib/oauth-state'
 
 export async function GET() {
   const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
+  if (!userId) return redirect('/sign-in')
 
-  const appId = process.env.META_APP_ID!
+  const nonce = await createOAuthState(userId, 'meta')
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
-  const redirectUri = `${appUrl}/api/analytics/meta-callback`
 
   const scopes = [
     'ads_read',
@@ -19,12 +20,12 @@ export async function GET() {
   ].join(',')
 
   const params = new URLSearchParams({
-    client_id: appId,
-    redirect_uri: redirectUri,
-    scope: scopes,
+    client_id:     process.env.META_APP_ID!,
+    redirect_uri:  `${appUrl}/api/analytics/meta-callback`,
+    scope:         scopes,
     response_type: 'code',
-    state: userId,
+    state:         nonce,
   })
 
-  redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`)
+  return redirect(`https://www.facebook.com/v19.0/dialog/oauth?${params.toString()}`)
 }
