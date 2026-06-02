@@ -115,9 +115,11 @@ interface Order {
   id: string
   service_type: string
   title: string
+  brief?: string | null
   status: string
   created_at: string
   due_date?: string
+  support_ticket_id?: string | null
 }
 
 interface Profile {
@@ -127,11 +129,12 @@ interface Profile {
 
 interface RequestModalProps {
   service: typeof SERVICES[0]
+  error?: string
   onClose: () => void
   onSubmit: (brief: string) => Promise<void>
 }
 
-function RequestModal({ service, onClose, onSubmit }: RequestModalProps) {
+function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) {
   const [brief, setBrief] = useState('')
   const [loading, setLoading] = useState(false)
   const Icon = service.icon
@@ -179,6 +182,12 @@ function RequestModal({ service, onClose, onSubmit }: RequestModalProps) {
           <p className="text-xs text-gray-400 mt-2">
             Our team will review and respond within 1 business day.
           </p>
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mt-4">
+              <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+              <p className="text-xs text-red-700">{error}</p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -212,9 +221,10 @@ export default function ServicesClient({
 }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'browse' | 'orders'>('browse')
+  const [localOrders, setLocalOrders] = useState<Order[]>(orders)
 
   useEffect(() => {
-    const activeOrders = orders.filter(o => !['approved', 'cancelled'].includes(o.status))
+    const activeOrders = localOrders.filter(o => !['approved', 'cancelled'].includes(o.status))
     const activeOrderLines = activeOrders.length
       ? activeOrders.map(o => `- ${o.title} (status: ${o.status})`).join('\n')
       : '- No active orders'
@@ -227,14 +237,16 @@ Available services:
 ${serviceLines}
 The user can request new marketing services or track existing orders.`
     window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [localOrders, profile?.plan])
   const [requestingService, setRequestingService] = useState<typeof SERVICES[0] | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
 
   const handleRequest = async (brief: string) => {
     if (!requestingService || !profile) return
     setSubmitting(true)
+    setErrorMsg('')
 
     try {
       const res = await fetch('/api/orders/create', {
@@ -246,21 +258,29 @@ The user can request new marketing services or track existing orders.`
           brief,
         }),
       })
+      const data = await res.json().catch(() => ({}))
 
       if (res.ok) {
+        const nextOrder = data.order
+          ? { ...data.order, support_ticket_id: data.supportTicketId ?? null }
+          : null
         setRequestingService(null)
-        setSuccessMsg(`Your ${requestingService.name} request has been submitted. We'll be in touch within 1 business day.`)
+        if (nextOrder) setLocalOrders(prev => [nextOrder, ...prev])
+        setSuccessMsg(`Your ${requestingService.name} request has been submitted. A follow-up conversation is open in Support.`)
         setActiveTab('orders')
         setTimeout(() => setSuccessMsg(''), 5000)
-        window.location.reload()
+      } else {
+        setErrorMsg(data.error ?? 'Could not submit that service request. Try again.')
       }
+    } catch {
+      setErrorMsg('Could not submit that service request. Try again.')
     } finally {
       setSubmitting(false)
     }
   }
 
-  const activeOrders = orders.filter(o => !['approved', 'cancelled'].includes(o.status))
-  const completedOrders = orders.filter(o => ['approved', 'cancelled'].includes(o.status))
+  const activeOrders = localOrders.filter(o => !['approved', 'cancelled'].includes(o.status))
+  const completedOrders = localOrders.filter(o => ['approved', 'cancelled'].includes(o.status))
 
   return (
     <div className="px-8 pt-8 pb-6 max-w-[1200px]">
@@ -272,7 +292,7 @@ The user can request new marketing services or track existing orders.`
           <h1 className="text-2xl font-bold text-gray-900">Marketing services</h1>
           <p className="text-gray-500 text-sm mt-1">Request a service or track your active orders.</p>
         </div>
-        {orders.length > 0 && (
+        {localOrders.length > 0 && (
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit">
             {(['browse', 'orders'] as const).map(tab => (
               <button
@@ -284,7 +304,7 @@ The user can request new marketing services or track existing orders.`
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
-                {tab === 'orders' ? `Orders${orders.length > 0 ? ` (${activeOrders.length})` : ''}` : 'Browse'}
+                {tab === 'orders' ? `Orders${localOrders.length > 0 ? ` (${activeOrders.length})` : ''}` : 'Browse'}
               </button>
             ))}
           </div>
@@ -299,12 +319,19 @@ The user can request new marketing services or track existing orders.`
         </div>
       )}
 
+      {errorMsg && (
+        <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6 flex items-center gap-3">
+          <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
+          <p className="text-sm text-red-700">{errorMsg}</p>
+        </div>
+      )}
+
       {/* Browse tab */}
       {activeTab === 'browse' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {SERVICES.map(service => {
             const Icon = service.icon
-            const hasActiveOrder = orders.some(
+            const hasActiveOrder = localOrders.some(
               o => o.service_type === service.id && !['approved', 'cancelled'].includes(o.status)
             )
             return (
@@ -351,7 +378,10 @@ The user can request new marketing services or track existing orders.`
                     </button>
                   ) : (
                     <button
-                      onClick={() => setRequestingService(service)}
+                      onClick={() => {
+                        setErrorMsg('')
+                        setRequestingService(service)
+                      }}
                       className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
                     >
                       <Plus size={12} /> Request
@@ -367,7 +397,7 @@ The user can request new marketing services or track existing orders.`
       {/* Orders tab */}
       {activeTab === 'orders' && (
         <div className="space-y-4">
-          {orders.length === 0 ? (
+          {localOrders.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
               <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
                 <ShoppingBag size={20} className="text-gray-300" />
@@ -404,6 +434,7 @@ The user can request new marketing services or track existing orders.`
       {requestingService && (
         <RequestModal
           service={requestingService}
+          error={errorMsg}
           onClose={() => setRequestingService(null)}
           onSubmit={handleRequest}
         />
@@ -439,6 +470,15 @@ function OrderCard({ order }: { order: Order }) {
           <p className="text-xs text-gray-400 mt-0.5">
             Submitted {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
+          {order.brief && (
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{order.brief}</p>
+          )}
+          <a
+            href="/dashboard/support"
+            className="inline-flex text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8] mt-2"
+          >
+            Open follow-up conversation
+          </a>
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">

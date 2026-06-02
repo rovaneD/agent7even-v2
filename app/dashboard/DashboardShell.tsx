@@ -65,6 +65,7 @@ interface Props {
   foundationScore?: number | null
   brandKitCompleted?: number
   pendingApprovalsCount?: number
+  activeOrdersCount?: number
   role?: string | null
   isAdmin?: boolean
 }
@@ -228,6 +229,7 @@ export default function DashboardShell({
   foundationScore: initialFoundationScore = null,
   brandKitCompleted: initialBrandKitCompleted = 0,
   pendingApprovalsCount: initialPendingApprovalsCount = 0,
+  activeOrdersCount: initialActiveOrdersCount = 0,
   role = null,
   isAdmin: isAdminProp = false,
 }: Props) {
@@ -241,6 +243,7 @@ export default function DashboardShell({
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
   const [brandKitCompleted, setBrandKitCompleted] = useState(initialBrandKitCompleted)
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(initialPendingApprovalsCount)
+  const [activeOrdersCount, setActiveOrdersCount] = useState(initialActiveOrdersCount)
   const [showNewCampaign, setShowNewCampaign] = useState(false)
   const [helpMode, setHelpMode] = useState(false)
   const [mayaPendingTask, setMayaPendingTask] = useState<string | null>(null)
@@ -252,6 +255,7 @@ export default function DashboardShell({
   const [activeMode, setActiveMode]             = useState<string | null>(null)
   const [loadingSession, setLoadingSession]     = useState<string | null>(null)
   const [deletingSession, setDeletingSession]   = useState<string | null>(null)
+  const [hoveredSession, setHoveredSession]     = useState<string | null>(null)
 
   function toggleSidebar() {
     const next = !sidebarCollapsed
@@ -306,6 +310,30 @@ export default function DashboardShell({
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [profileId])
+
+  useEffect(() => {
+    if (!isAdmin || !profileId) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`admin-orders:${profileId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          const order = payload.new as { status?: string }
+          if (!['approved', 'cancelled'].includes(order.status ?? 'submitted')) {
+            setActiveOrdersCount(prev => prev + 1)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [isAdmin, profileId])
 
   useEffect(() => {
     function onOpenTask(e: Event) {
@@ -423,6 +451,7 @@ export default function DashboardShell({
     const isFoundation = item.href === '/dashboard/foundation'
     const isBrandKit   = item.href === '/dashboard/brand-kit'
     const isAgents     = item.href === '/dashboard/agents'
+    const isAdminOrders = item.href === '/admin/orders'
     const brandKitPct  = Math.round((brandKitCompleted / 6) * 100)
     const approvalsActive = pathname.startsWith('/dashboard/agents/approvals')
 
@@ -443,7 +472,12 @@ export default function DashboardShell({
             onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#F1F5F9'; (e.currentTarget as HTMLAnchorElement).style.color = '#2D3748' } }}
             onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#64748B' } }}
           >
-            <Icon size={16} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : 'currentColor'} />
+            <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon size={16} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : 'currentColor'} />
+              {isAdminOrders && activeOrdersCount > 0 && (
+                <span style={{ position: 'absolute', top: -2, right: -5, width: 7, height: 7, borderRadius: '50%', background: '#10B981', border: '1px solid #fff' }} />
+              )}
+            </span>
             {isAgents && pendingApprovalsCount > 0 && (
               <span style={{ position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: '50%', background: '#3B82F6' }} />
             )}
@@ -475,7 +509,12 @@ export default function DashboardShell({
           onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLAnchorElement).style.color = '#2D3748' } }}
           onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#64748B' } }}
         >
-          <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : '#94A3B8'} />
+          <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {isAdminOrders && activeOrdersCount > 0 && (
+              <span style={{ position: 'absolute', left: -8, width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+            )}
+            <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : '#94A3B8'} />
+          </span>
           {item.label}
           {isFoundation && foundationScore !== null && (
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -496,6 +535,11 @@ export default function DashboardShell({
           {isAgents && pendingApprovalsCount > 0 && (
             <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, borderRadius: 9, background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
               <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>{pendingApprovalsCount}</span>
+            </span>
+          )}
+          {isAdminOrders && activeOrdersCount > 0 && (
+            <span style={{ marginLeft: 'auto', minWidth: 34, height: 24, borderRadius: 8, border: '1px solid #E2E8F0', background: active ? '#F8FAFC' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px' }}>
+              <span style={{ color: '#2D3748', fontSize: 13, fontWeight: 500, lineHeight: 1 }}>{activeOrdersCount}</span>
             </span>
           )}
         </Link>
@@ -594,6 +638,7 @@ export default function DashboardShell({
                   const isActive  = session.id === activeSessionId
                   const isLoading = session.id === loadingSession
                   const isDeleting = session.id === deletingSession
+                  const showDelete = hoveredSession === session.id || isDeleting
                   return (
                     <div
                       key={session.id}
@@ -603,8 +648,14 @@ export default function DashboardShell({
                         opacity: isLoading || isDeleting ? 0.5 : 1,
                         marginBottom: 1,
                       }}
-                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = '#F8FAFC' }}
-                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+                      onMouseEnter={e => {
+                        setHoveredSession(session.id)
+                        if (!isActive) (e.currentTarget as HTMLDivElement).style.background = '#F8FAFC'
+                      }}
+                      onMouseLeave={e => {
+                        setHoveredSession(prev => prev === session.id ? null : prev)
+                        if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent'
+                      }}
                     >
                       <button
                         onClick={() => loadSession(session.id)}
@@ -636,6 +687,9 @@ export default function DashboardShell({
                           background: 'transparent', color: '#CBD5E1',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           cursor: isDeleting ? 'not-allowed' : 'pointer', flexShrink: 0,
+                          opacity: showDelete ? 1 : 0,
+                          pointerEvents: showDelete ? 'auto' : 'none',
+                          transition: 'opacity 0.12s, color 0.12s',
                         }}
                         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#EF4444' }}
                         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#CBD5E1' }}

@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/requireAdmin'
 import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ChevronRight, ShoppingBag } from 'lucide-react'
+import { ChevronRight, Mail, MessageSquare, ShoppingBag } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -20,6 +20,11 @@ const PRIORITY_COLORS: Record<string, string> = {
   high: 'bg-red-50 text-red-500',
 }
 
+function briefPreview(brief: string | null | undefined) {
+  if (!brief) return 'No brief provided.'
+  return brief.length > 180 ? `${brief.slice(0, 180)}...` : brief
+}
+
 export default async function AdminOrdersPage() {
   await requireAdmin()
   const supabase = createServiceClient()
@@ -28,6 +33,25 @@ export default async function AdminOrdersPage() {
     .from('orders')
     .select('*, profiles(full_name, company_name, email)')
     .order('created_at', { ascending: false })
+
+  const userIds = [...new Set((orders ?? []).map((order: any) => order.user_id).filter(Boolean))]
+  const { data: serviceTickets } = userIds.length
+    ? await supabase
+      .from('support_tickets')
+      .select('id, user_id, subject, body, status')
+      .in('user_id', userIds)
+      .ilike('subject', 'Service request:%')
+      .order('updated_at', { ascending: false })
+    : { data: [] }
+
+  const supportTicketByOrderId = new Map<string, any>()
+  for (const ticket of serviceTickets ?? []) {
+    const match = typeof ticket.body === 'string' ? ticket.body.match(/Order ID:\s*([a-f0-9-]+)/i) : null
+    const orderId = match?.[1]
+    if (orderId && !supportTicketByOrderId.has(orderId)) {
+      supportTicketByOrderId.set(orderId, ticket)
+    }
+  }
 
   const active = orders?.filter(o => !['approved', 'cancelled'].includes(o.status)) ?? []
   const completed = orders?.filter(o => ['approved', 'cancelled'].includes(o.status)) ?? []
@@ -72,15 +96,21 @@ export default async function AdminOrdersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {active.map((order: any) => (
-                      <tr key={order.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                    {active.map((order: any) => {
+                      const clientName = order.profiles?.company_name || order.profiles?.full_name || order.profiles?.email || 'Unknown client'
+                      const clientEmail = order.profiles?.email
+                      const ticket = supportTicketByOrderId.get(order.id)
+                      return (
+                      <tr key={order.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors align-top">
                         <td className="px-6 py-4">
                           <p className="text-sm font-medium text-gray-900">{order.title}</p>
+                          <p className="text-xs text-gray-400 mt-1 max-w-xs leading-relaxed">{briefPreview(order.brief)}</p>
                         </td>
                         <td className="px-6 py-4">
                           <p className="text-sm text-gray-600">
-                            {order.profiles?.company_name || order.profiles?.full_name || order.profiles?.email}
+                            {clientName}
                           </p>
+                          {clientEmail && <p className="text-xs text-gray-400 mt-1">{clientEmail}</p>}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${STATUS_COLORS[order.status] ?? 'bg-gray-50 text-gray-400'}`}>
@@ -98,12 +128,32 @@ export default async function AdminOrdersPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <Link href={`/admin/clients/${order.user_id}`}>
-                            <ChevronRight size={14} className="text-gray-300 hover:text-gray-500 transition-colors" />
-                          </Link>
+                          <div className="flex items-center justify-end gap-2">
+                            {ticket && (
+                              <Link
+                                href={`/admin/support/${ticket.id}`}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8]"
+                              >
+                                <MessageSquare size={13} />
+                                Follow up
+                              </Link>
+                            )}
+                            {clientEmail && (
+                              <a
+                                href={`mailto:${clientEmail}?subject=${encodeURIComponent(`Re: ${order.title} request`)}`}
+                                className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-gray-100 text-gray-400 hover:text-gray-600 hover:border-gray-200"
+                                title="Email client"
+                              >
+                                <Mail size={13} />
+                              </a>
+                            )}
+                            <Link href={`/admin/clients/${order.user_id}`} title="View client">
+                              <ChevronRight size={14} className="text-gray-300 hover:text-gray-500 transition-colors" />
+                            </Link>
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
@@ -120,6 +170,7 @@ export default async function AdminOrdersPage() {
                       <tr key={order.id} className="border-b border-gray-50 last:border-0">
                         <td className="px-6 py-3">
                           <p className="text-sm text-gray-600">{order.title}</p>
+                          <p className="text-xs text-gray-400 mt-1">{briefPreview(order.brief)}</p>
                         </td>
                         <td className="px-6 py-3">
                           <p className="text-sm text-gray-400">
