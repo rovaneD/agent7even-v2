@@ -98,7 +98,7 @@ ${providedSnapshot ? stringify(providedSnapshot) : 'No raw analytics snapshot wa
 ${campaigns}`
 }
 
-async function websiteSnapshotContext(userId: string): Promise<string> {
+async function websiteSnapshotContext(userId: string, input: AgentInput): Promise<string> {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
@@ -106,7 +106,7 @@ async function websiteSnapshotContext(userId: string): Promise<string> {
     .eq('id', userId)
     .single()
 
-  const websiteUrl = profile?.website_url
+  const websiteUrl = inputText(input, 'websiteUrl') || profile?.website_url
   if (!websiteUrl) return 'No website URL is saved on the profile.'
 
   try {
@@ -134,7 +134,7 @@ async function websiteSnapshotContext(userId: string): Promise<string> {
 }
 
 async function brandReviewContext(userId: string, input: AgentInput): Promise<string> {
-  const explicitContent = inputText(input, 'content') || inputText(input, 'reviewContent')
+  const explicitContent = inputText(input, 'content') || inputText(input, 'reviewContent') || inputText(input, 'contentToReview')
   if (explicitContent) return `## Content To Review\n${explicitContent}`
 
   const supabase = createServiceClient()

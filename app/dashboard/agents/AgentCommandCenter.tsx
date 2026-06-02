@@ -58,7 +58,155 @@ interface Props {
   scorecard: ScorecardEntry[]
 }
 
+type GuidedFieldType = 'text' | 'textarea' | 'select'
+
+interface GuidedField {
+  key: string
+  label: string
+  placeholder?: string
+  type?: GuidedFieldType
+  options?: string[]
+  columns?: 1 | 2 | 3
+}
+
+interface AgentGuidedConfig {
+  intro: string
+  fields: GuidedField[]
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+const AGENT_GUIDED_CONFIG: Record<AgentId, AgentGuidedConfig> = {
+  competitor_watcher: {
+    intro: 'Set the competitive angle so the watcher returns a decision-ready read instead of asking who to watch.',
+    fields: [
+      { key: 'watchFocus', label: 'Watch focus', type: 'select', options: ['General market watch', 'Pricing/offers', 'Social content', 'Positioning/messaging', 'Website/landing pages'], columns: 3 },
+      { key: 'timeWindow', label: 'Time window', type: 'select', options: ['This week', 'Last 30 days', 'Current campaigns', 'Always-on watch'], columns: 3 },
+      { key: 'decisionGoal', label: 'Decision this should inform', placeholder: 'What should we change, launch, test, or protect?', columns: 3 },
+      { key: 'competitors', label: 'Competitors to watch', type: 'textarea', placeholder: 'Optional. Leave blank to use Foundation competitors.', columns: 2 },
+      { key: 'channels', label: 'Sources to prioritize', type: 'textarea', placeholder: 'Websites, pricing pages, Instagram, email, ads, reviews...', columns: 2 },
+      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Claims, competitor callouts, tactics, or sensitive areas to avoid.', columns: 1 },
+    ],
+  },
+  weekly_content: {
+    intro: 'Define the week so the agent produces usable posts and emails, not a generic content brainstorm.',
+    fields: [
+      { key: 'weekGoal', label: 'Week goal', placeholder: 'Lead generation, nurture, launch support, retention...', columns: 3 },
+      { key: 'contentMix', label: 'Content mix', type: 'select', options: ['Balanced', 'Education-heavy', 'Sales/promo', 'Community/engagement', 'Launch support'], columns: 3 },
+      { key: 'platforms', label: 'Platforms', placeholder: 'Instagram, LinkedIn, email, blog, Facebook...', columns: 3 },
+      { key: 'audience', label: 'Audience', placeholder: 'Who should this week speak to?', columns: 2 },
+      { key: 'offer', label: 'Offer / product', placeholder: 'What should the content move people toward?', columns: 2 },
+      { key: 'mustInclude', label: 'Must include', type: 'textarea', placeholder: 'Proof, events, links, product details, campaign notes...', columns: 2 },
+      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Topics, phrases, claims, or angles to avoid.', columns: 2 },
+    ],
+  },
+  campaign_builder: {
+    intro: 'Give the campaign enough operating constraints to return a real plan with actions, timing, and metrics.',
+    fields: [
+      { key: 'campaignGoal', label: 'Campaign goal', type: 'select', options: ['Leads', 'Trials', 'Sales', 'Awareness', 'Retention', 'Launch'], columns: 3 },
+      { key: 'timeline', label: 'Timeline', type: 'select', options: ['14 days', '30 days', '60 days', '90 days'], columns: 3 },
+      { key: 'successMetric', label: 'Success metric', placeholder: 'Booked calls, trials, purchases, replies, traffic...', columns: 3 },
+      { key: 'audience', label: 'Audience', placeholder: 'Target customer segment or ICP.', columns: 2 },
+      { key: 'offer', label: 'Offer / product', placeholder: 'Primary offer, package, launch, or feature.', columns: 2 },
+      { key: 'channels', label: 'Channels', placeholder: 'Email, paid social, organic social, search, events...', columns: 2 },
+      { key: 'budget', label: 'Budget / constraints', placeholder: 'Budget, team capacity, assets available, timing constraints...', columns: 2 },
+    ],
+  },
+  performance_digest: {
+    intro: 'Point the analyst at the decision you need. If connected analytics are limited, it will use the snapshot you provide.',
+    fields: [
+      { key: 'dateRange', label: 'Date range', type: 'select', options: ['7 days', '30 days', '90 days', 'Current campaign'], columns: 3 },
+      { key: 'decisionNeed', label: 'Decision needed', type: 'select', options: ['Full digest', 'What to double down on', 'What to fix', 'Budget allocation', 'Content performance'], columns: 3 },
+      { key: 'channels', label: 'Channels', placeholder: 'GA, Meta, Instagram, email, ads, website...', columns: 3 },
+      { key: 'campaignFocus', label: 'Campaign focus', placeholder: 'Optional campaign, launch, or funnel to evaluate.', columns: 2 },
+      { key: 'analyticsSnapshot', label: 'Analytics snapshot', type: 'textarea', placeholder: 'Paste any key metrics, observations, or dashboard notes.', columns: 2 },
+    ],
+  },
+  trend_spotter: {
+    intro: 'Set the niche and risk level so trend recommendations stay useful and on brand.',
+    fields: [
+      { key: 'industry', label: 'Industry / niche', placeholder: 'Business category or niche to monitor.', columns: 3 },
+      { key: 'riskTolerance', label: 'Risk level', type: 'select', options: ['Conservative', 'Balanced', 'Aggressive/experimental'], columns: 3 },
+      { key: 'contentFormats', label: 'Useful formats', placeholder: 'Reels, carousels, newsletters, paid ads, blog posts...', columns: 3 },
+      { key: 'trendSources', label: 'Sources to consider', type: 'textarea', placeholder: 'TikTok, Instagram, newsletters, competitors, search, communities...', columns: 2 },
+      { key: 'brandFitRules', label: 'Brand-fit rules', type: 'textarea', placeholder: 'What trends should be excluded even if popular?', columns: 2 },
+    ],
+  },
+  email_sequence_builder: {
+    intro: 'Build the sequence from the workflow details so the output is ready to review and edit.',
+    fields: [
+      { key: 'sequenceType', label: 'Sequence type', type: 'select', options: ['Welcome', 'Lead nurture', 'Prospect response', 'Demo follow-up', 'Abandoned checkout', 'Re-engagement', 'Launch/promo'], columns: 3 },
+      { key: 'emailCount', label: 'Email count', type: 'select', options: ['3', '4', '5', '6', '7'], columns: 3 },
+      { key: 'desiredOutcome', label: 'Goal', type: 'select', options: ['Schedule a demo', 'Start a trial', 'Book a consultation', 'Purchase', 'Reply to email', 'Move to next conversation stage'], columns: 3 },
+      { key: 'leadSource', label: 'Lead/source', placeholder: 'Website form, social DM, referral, demo, existing list...', columns: 2 },
+      { key: 'audience', label: 'Audience / lead type', placeholder: 'Warm lead, new subscriber, trial user, past client...', columns: 2 },
+      { key: 'offer', label: 'Offer / product', placeholder: 'What should the sequence move them toward?', columns: 2 },
+      { key: 'ctaDestination', label: 'CTA destination', placeholder: 'Booking link, pricing page, reply, checkout, trial page...', columns: 2 },
+      { key: 'cadence', label: 'Send cadence', placeholder: 'Every 2 days, daily for 3 days, weekly...', columns: 2 },
+      { key: 'tone', label: 'Tone', placeholder: 'Warm and direct, premium, playful, consultative...', columns: 2 },
+      { key: 'painPoints', label: 'Pain points', type: 'textarea', placeholder: 'What objections or frustrations should it address?', columns: 3 },
+      { key: 'mustInclude', label: 'Must include', type: 'textarea', placeholder: 'Proof, offer details, links, deadlines, product facts...', columns: 3 },
+      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Discounts, guarantees, competitor names, certain claims...', columns: 3 },
+    ],
+  },
+  ad_variations: {
+    intro: 'Set the test conditions so the agent creates platform-ready variants with clear angles.',
+    fields: [
+      { key: 'platform', label: 'Platform', type: 'select', options: ['Meta', 'Instagram', 'Google Search', 'LinkedIn', 'TikTok', 'Multi-platform'], columns: 3 },
+      { key: 'objective', label: 'Objective', type: 'select', options: ['Leads', 'Trials', 'Sales', 'Retargeting', 'Awareness'], columns: 3 },
+      { key: 'format', label: 'Format', type: 'select', options: ['Feed', 'Story/Reel', 'Search', 'Carousel', 'Short video script'], columns: 3 },
+      { key: 'offer', label: 'Offer / product', placeholder: 'What is the ad selling or promoting?', columns: 2 },
+      { key: 'audience', label: 'Audience', placeholder: 'Who should the ad target?', columns: 2 },
+      { key: 'proofPoints', label: 'Proof points', type: 'textarea', placeholder: 'Testimonials, outcomes, differentiators, features, credibility...', columns: 2 },
+      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Claims, phrases, angles, protected attributes, compliance risks...', columns: 2 },
+    ],
+  },
+  seo_scanner: {
+    intro: 'Define the audit lens. The scanner uses your saved website unless you provide an override.',
+    fields: [
+      { key: 'scanFocus', label: 'Scan focus', type: 'select', options: ['Full audit', 'Quick wins', 'Content gaps', 'Technical basics', 'Local SEO'], columns: 3 },
+      { key: 'websiteUrl', label: 'Website URL', placeholder: 'Optional override. Leave blank to use profile website.', columns: 3 },
+      { key: 'businessNiche', label: 'Business niche', placeholder: 'What market should the SEO advice fit?', columns: 3 },
+      { key: 'targetKeywords', label: 'Target keywords', type: 'textarea', placeholder: 'Keywords, services, locations, topics, or search terms.', columns: 2 },
+      { key: 'priorityPages', label: 'Priority pages', type: 'textarea', placeholder: 'Homepage, pricing, product pages, service pages, blog URLs...', columns: 2 },
+      { key: 'competitors', label: 'SEO competitors', type: 'textarea', placeholder: 'Optional competitors to compare against.', columns: 1 },
+    ],
+  },
+  brand_voice_guardian: {
+    intro: 'Paste the content and set the review standard so the guardian can approve, flag, or rewrite.',
+    fields: [
+      { key: 'reviewMode', label: 'Review mode', type: 'select', options: ['Full review', 'Tone only', 'Compliance/risk', 'Rewrite suggestions', 'Approval check'], columns: 3 },
+      { key: 'strictness', label: 'Strictness', type: 'select', options: ['Light', 'Standard', 'Strict'], columns: 3 },
+      { key: 'channel', label: 'Channel', placeholder: 'Email, ad, landing page, Instagram, LinkedIn...', columns: 3 },
+      { key: 'intendedAudience', label: 'Intended audience', placeholder: 'Who is this content for?', columns: 2 },
+      { key: 'mustPreserve', label: 'Must preserve', type: 'textarea', placeholder: 'Lines, claims, tone notes, offer details, or structure to keep.', columns: 2 },
+      { key: 'contentToReview', label: 'Content to review', type: 'textarea', placeholder: 'Paste the draft, caption, email, ad, or page copy here.', columns: 1 },
+    ],
+  },
+}
+
+const INITIAL_AGENT_FORMS = Object.fromEntries(
+  Object.entries(AGENT_GUIDED_CONFIG).map(([agentId, config]) => [
+    agentId,
+    Object.fromEntries(config.fields.map(field => [field.key, field.options?.[0] ?? ''])),
+  ])
+) as Record<AgentId, Record<string, string>>
+
+function buildGuidedInstructions(agentId: AgentId, form: Record<string, string>, extraInstructions: string): string {
+  const agent = AGENTS[agentId]
+  const config = AGENT_GUIDED_CONFIG[agentId]
+  const details = config.fields
+    .map(field => `${field.label}: ${form[field.key]?.trim() || 'Use best assumption from Foundation/Brand context'}`)
+    .join('\n')
+
+  return `Run ${agent.name} using these setup details.
+
+${details}
+
+Additional instructions: ${extraInstructions.trim() || 'None'}
+
+Return a complete, ready-to-review output that follows this agent's output contract. Do not ask setup questions. If anything is missing, state your assumption and continue.`
+}
 
 function relativeTime(iso: string | null): string {
   if (!iso) return 'Never'
@@ -118,20 +266,7 @@ export default function AgentCommandCenter({
   const [taskPriority, setTaskPriority] = useState<'normal' | 'high'>('normal')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [emailSequenceForm, setEmailSequenceForm] = useState({
-    sequenceType: 'Prospect response',
-    leadSource: '',
-    audience: '',
-    offer: '',
-    desiredOutcome: 'Schedule a demo',
-    emailCount: '3',
-    cadence: 'Every 2 days',
-    tone: 'Warm and direct',
-    painPoints: '',
-    ctaDestination: '',
-    mustInclude: '',
-    mustAvoid: '',
-  })
+  const [agentForms, setAgentForms] = useState<Record<AgentId, Record<string, string>>>(INITIAL_AGENT_FORMS)
 
   // Orchestration state
   const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
@@ -154,6 +289,8 @@ export default function AgentCommandCenter({
   const [constraintsSaved, setConstraintsSaved] = useState(false)
 
   const agentList = Object.values(AGENTS)
+  const selectedAgentConfig = selectedAgent ? AGENT_GUIDED_CONFIG[selectedAgent] : null
+  const selectedAgentForm = selectedAgent ? agentForms[selectedAgent] : {}
 
   const CONSTRAINT_TEMPLATES = [
     { label: 'No discounting', text: 'Never offer discounts, promotions, or reduced pricing without explicit client approval.' },
@@ -298,32 +435,15 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
     if (!selectedAgent) return
     setSubmitting(true)
     try {
-      const isEmailSequence = selectedAgent === 'email_sequence_builder'
-      const emailInstructions = isEmailSequence
-        ? `Build a ${emailSequenceForm.emailCount}-email ${emailSequenceForm.sequenceType.toLowerCase()} sequence.
-
-Lead/source: ${emailSequenceForm.leadSource || 'Use best assumption from Foundation context'}
-Audience/lead type: ${emailSequenceForm.audience || 'Use ICP from Foundation context'}
-Offer/product: ${emailSequenceForm.offer || 'Use the primary offer from Foundation context'}
-Desired outcome: ${emailSequenceForm.desiredOutcome}
-Send cadence: ${emailSequenceForm.cadence}
-Tone: ${emailSequenceForm.tone}
-Pain points to address: ${emailSequenceForm.painPoints || 'Use pain points from Foundation context'}
-CTA destination: ${emailSequenceForm.ctaDestination || 'Use a low-friction next step'}
-Must include: ${emailSequenceForm.mustInclude || 'None specified'}
-Must avoid: ${emailSequenceForm.mustAvoid || 'None specified'}
-
-Return a complete, ready-to-review sequence. Do not ask setup questions. If anything is missing, state your assumption and continue.`
-        : taskInstructions
+      const form = agentForms[selectedAgent] ?? {}
+      const instructions = buildGuidedInstructions(selectedAgent, form, taskInstructions)
 
       await fetch('/api/agents/tasks/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           agent: selectedAgent,
-          input: isEmailSequence
-            ? { instructions: emailInstructions, ...emailSequenceForm }
-            : { instructions: taskInstructions },
+          input: { instructions, ...form },
           priority: taskPriority,
         }),
       })
@@ -334,6 +454,16 @@ Return a complete, ready-to-review sequence. Do not ask setup questions. If anyt
     } finally {
       setSubmitting(false)
     }
+  }
+
+  function updateAgentForm(agentId: AgentId, key: string, value: string) {
+    setAgentForms(prev => ({
+      ...prev,
+      [agentId]: {
+        ...prev[agentId],
+        [key]: value,
+      },
+    }))
   }
 
   const runningTasks = activeTasks.filter(t => t.status === 'running')
@@ -400,93 +530,81 @@ Return a complete, ready-to-review sequence. Do not ask setup questions. If anyt
         {/* Instructions + submit */}
         {selectedAgent && (
           <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: 18 }}>
-            {selectedAgent === 'email_sequence_builder' ? (
+            {selectedAgentConfig && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
-                  <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sequence type</span>
-                    <select
-                      value={emailSequenceForm.sequenceType}
-                      onChange={e => setEmailSequenceForm(prev => ({ ...prev, sequenceType: e.target.value }))}
-                      style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', background: '#fff', fontFamily: 'inherit' }}
-                    >
-                      {['Welcome', 'Lead nurture', 'Prospect response', 'Demo follow-up', 'Abandoned checkout', 'Re-engagement', 'Launch/promo'].map(option => (
-                        <option key={option}>{option}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Email count</span>
-                    <select
-                      value={emailSequenceForm.emailCount}
-                      onChange={e => setEmailSequenceForm(prev => ({ ...prev, emailCount: e.target.value }))}
-                      style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', background: '#fff', fontFamily: 'inherit' }}
-                    >
-                      {['3', '4', '5', '6', '7'].map(option => <option key={option}>{option}</option>)}
-                    </select>
-                  </label>
-                  <label style={{ display: 'grid', gap: 5 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Goal</span>
-                    <select
-                      value={emailSequenceForm.desiredOutcome}
-                      onChange={e => setEmailSequenceForm(prev => ({ ...prev, desiredOutcome: e.target.value }))}
-                      style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', background: '#fff', fontFamily: 'inherit' }}
-                    >
-                      {['Schedule a demo', 'Start a trial', 'Book a consultation', 'Purchase', 'Reply to email', 'Move to next conversation stage'].map(option => (
-                        <option key={option}>{option}</option>
-                      ))}
-                    </select>
-                  </label>
+                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#2D3748', margin: '0 0 3px' }}>
+                    {AGENTS[selectedAgent].name} setup
+                  </p>
+                  <p style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5, margin: 0 }}>
+                    {selectedAgentConfig.intro}
+                  </p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-                  {[
-                    ['leadSource', 'Lead/source', 'Website form, social DM, referral, demo, existing list...'],
-                    ['audience', 'Audience / lead type', 'Warm lead, new subscriber, trial user, past client...'],
-                    ['offer', 'Offer / product', 'What should the sequence move them toward?'],
-                    ['ctaDestination', 'CTA destination', 'Booking link, pricing page, reply, checkout, trial page...'],
-                    ['cadence', 'Send cadence', 'Every 2 days, daily for 3 days, weekly...'],
-                    ['tone', 'Tone', 'Warm and direct, premium, playful, consultative...'],
-                  ].map(([key, label, placeholder]) => (
-                    <label key={key} style={{ display: 'grid', gap: 5 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
-                      <input
-                        value={emailSequenceForm[key as keyof typeof emailSequenceForm]}
-                        onChange={e => setEmailSequenceForm(prev => ({ ...prev, [key]: e.target.value }))}
-                        placeholder={placeholder}
-                        style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', fontFamily: 'inherit' }}
-                      />
-                    </label>
-                  ))}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 10, marginBottom: 12 }}>
+                  {selectedAgentConfig.fields.map(field => {
+                    const type = field.type ?? 'text'
+                    const columnSpan = field.columns === 1 ? 6 : field.columns === 3 ? 2 : 3
+                    const fieldStyle = { gridColumn: `span ${columnSpan}` }
+                    const controlStyle = {
+                      border: '1px solid #E2E8F0',
+                      borderRadius: 8,
+                      padding: '9px 10px',
+                      fontSize: 13,
+                      color: '#2D3748',
+                      background: '#fff',
+                      fontFamily: 'inherit',
+                      width: '100%',
+                      boxSizing: 'border-box' as const,
+                    }
+
+                    return (
+                      <label key={field.key} style={{ display: 'grid', gap: 5, ...fieldStyle }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          {field.label}
+                        </span>
+                        {type === 'select' ? (
+                          <select
+                            value={selectedAgentForm[field.key] ?? ''}
+                            onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
+                            style={controlStyle}
+                          >
+                            {(field.options ?? []).map(option => <option key={option}>{option}</option>)}
+                          </select>
+                        ) : type === 'textarea' ? (
+                          <textarea
+                            value={selectedAgentForm[field.key] ?? ''}
+                            onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
+                            rows={field.columns === 1 ? 4 : 3}
+                            placeholder={field.placeholder}
+                            style={{ ...controlStyle, resize: 'vertical', lineHeight: 1.5 }}
+                          />
+                        ) : (
+                          <input
+                            value={selectedAgentForm[field.key] ?? ''}
+                            onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
+                            placeholder={field.placeholder}
+                            style={controlStyle}
+                          />
+                        )}
+                      </label>
+                    )
+                  })}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                  {[
-                    ['painPoints', 'Pain points', 'What objections or frustrations should it address?'],
-                    ['mustInclude', 'Must include', 'Proof, offer details, links, deadlines, product facts...'],
-                    ['mustAvoid', 'Must avoid', 'Discounts, guarantees, competitor names, certain claims...'],
-                  ].map(([key, label, placeholder]) => (
-                    <label key={key} style={{ display: 'grid', gap: 5 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
-                      <textarea
-                        value={emailSequenceForm[key as keyof typeof emailSequenceForm]}
-                        onChange={e => setEmailSequenceForm(prev => ({ ...prev, [key]: e.target.value }))}
-                        rows={3}
-                        placeholder={placeholder}
-                        style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', fontFamily: 'inherit', resize: 'vertical' }}
-                      />
-                    </label>
-                  ))}
-                </div>
+                <label style={{ display: 'grid', gap: 5 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Additional instructions
+                  </span>
+                  <textarea
+                    value={taskInstructions}
+                    onChange={e => setTaskInstructions(e.target.value)}
+                    placeholder={`Optional: add anything specific ${AGENTS[selectedAgent].name} should know for this run.`}
+                    rows={3}
+                    style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#2D3748', lineHeight: 1.5 }}
+                  />
+                </label>
               </div>
-            ) : (
-              <textarea
-                value={taskInstructions}
-                onChange={e => setTaskInstructions(e.target.value)}
-                placeholder={`Tell ${AGENTS[selectedAgent].name} what you need — plain language...`}
-                rows={3}
-                style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', marginBottom: 12, boxSizing: 'border-box', color: '#2D3748' }}
-              />
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ display: 'flex', gap: 6 }}>
