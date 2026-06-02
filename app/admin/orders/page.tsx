@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ChevronRight, Mail, MessageSquare, ShoppingBag } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import AdminOrderConversation from './AdminOrderConversation'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,8 +28,13 @@ function briefPreview(brief: string | null | undefined) {
   return brief.length > 180 ? `${brief.slice(0, 180)}...` : brief
 }
 
-export default async function AdminOrdersPage() {
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ order?: string }>
+}) {
   await requireAdmin()
+  const { order: selectedOrderId } = await searchParams
   const supabase = createServiceClient()
 
   const { data: orderRows, error: ordersError } = await supabase
@@ -57,7 +63,16 @@ export default async function AdminOrdersPage() {
   const { data: serviceTickets } = userIds.length
     ? await supabase
       .from('support_tickets')
-      .select('id, user_id, subject, body, status')
+      .select(`
+        id,
+        user_id,
+        subject,
+        body,
+        status,
+        support_messages (
+          id, sender_role, body, created_at
+        )
+      `)
       .in('user_id', userIds)
       .ilike('subject', 'Service request:%')
       .order('updated_at', { ascending: false })
@@ -74,6 +89,8 @@ export default async function AdminOrdersPage() {
 
   const active = orders?.filter(o => !['approved', 'cancelled'].includes(o.status)) ?? []
   const completed = orders?.filter(o => ['approved', 'cancelled'].includes(o.status)) ?? []
+  const selectedOrder = selectedOrderId ? orders.find((order: any) => order.id === selectedOrderId) : null
+  const selectedTicket = selectedOrder ? supportTicketByOrderId.get(selectedOrder.id) : null
 
   const contextStr = [
     'ADMIN — ORDERS',
@@ -91,6 +108,39 @@ export default async function AdminOrdersPage() {
         <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
         <p className="text-gray-500 text-sm mt-1">{active.length} active · {completed.length} completed</p>
       </div>
+
+      {selectedOrder && (
+        <div className="bg-white rounded-2xl border border-gray-100 mb-8 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Order conversation</p>
+              <h2 className="text-xl font-semibold text-gray-900">{selectedOrder.title}</h2>
+              <p className="text-sm text-gray-400 mt-1">
+                {selectedOrder.profiles?.company_name || selectedOrder.profiles?.full_name || selectedOrder.profiles?.email || 'Unknown client'}
+              </p>
+            </div>
+            <Link href="/admin/orders" className="text-sm text-gray-400 hover:text-gray-700">Close</Link>
+          </div>
+          {selectedOrder.brief && (
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Original request</p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedOrder.brief}</p>
+            </div>
+          )}
+          <div className="p-6">
+            {selectedTicket ? (
+              <AdminOrderConversation
+                ticketId={selectedTicket.id}
+                initialMessages={selectedTicket.support_messages ?? []}
+              />
+            ) : (
+              <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
+                <p className="text-sm text-amber-700">This older order does not have a service conversation attached yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {orders?.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
@@ -150,7 +200,7 @@ export default async function AdminOrdersPage() {
                           <div className="flex items-center justify-end gap-2">
                             {ticket && (
                               <Link
-                                href={`/admin/support/${ticket.id}`}
+                                href={`/admin/orders?order=${order.id}`}
                                 className="inline-flex items-center gap-1 text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8]"
                               >
                                 <MessageSquare size={13} />

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Globe, Hash, Camera, Mail, Search,
   Brush, Video, Megaphone, Plus, X, ChevronRight,
-  Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2
+  Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send
 } from 'lucide-react'
 
 const SERVICES = [
@@ -111,6 +111,13 @@ const STATUS_CONFIG = {
   cancelled: { label: 'Cancelled', color: 'bg-gray-50 text-gray-400', icon: X },
 }
 
+interface Message {
+  id: string
+  sender_role: string
+  body: string
+  created_at: string
+}
+
 interface Order {
   id: string
   service_type: string
@@ -120,6 +127,7 @@ interface Order {
   created_at: string
   due_date?: string
   support_ticket_id?: string | null
+  support_messages?: Message[]
 }
 
 interface Profile {
@@ -215,13 +223,16 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
 export default function ServicesClient({
   profile,
   orders,
+  initialOrderId,
 }: {
   profile: Profile | null
   orders: Order[]
+  initialOrderId?: string | null
 }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'browse' | 'orders'>('browse')
   const [localOrders, setLocalOrders] = useState<Order[]>(orders)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(initialOrderId ?? null)
 
   useEffect(() => {
     const activeOrders = localOrders.filter(o => !['approved', 'cancelled'].includes(o.status))
@@ -242,6 +253,8 @@ The user can request new marketing services or track existing orders.`
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [replyBody, setReplyBody] = useState('')
+  const [replying, setReplying] = useState(false)
 
   const handleRequest = async (brief: string) => {
     if (!requestingService || !profile) return
@@ -262,11 +275,12 @@ The user can request new marketing services or track existing orders.`
 
       if (res.ok) {
         const nextOrder = data.order
-          ? { ...data.order, support_ticket_id: data.supportTicketId ?? null }
+          ? { ...data.order, support_ticket_id: data.supportTicketId ?? null, support_messages: data.supportMessages ?? [] }
           : null
         setRequestingService(null)
         if (nextOrder) setLocalOrders(prev => [nextOrder, ...prev])
-        setSuccessMsg(`Your ${requestingService.name} request has been submitted. A follow-up conversation is open in Support.`)
+        if (nextOrder) setSelectedOrderId(nextOrder.id)
+        setSuccessMsg(`Your ${requestingService.name} request has been submitted. A follow-up conversation is open here in Services.`)
         setActiveTab('orders')
         setTimeout(() => setSuccessMsg(''), 5000)
       } else {
@@ -281,6 +295,135 @@ The user can request new marketing services or track existing orders.`
 
   const activeOrders = localOrders.filter(o => !['approved', 'cancelled'].includes(o.status))
   const completedOrders = localOrders.filter(o => ['approved', 'cancelled'].includes(o.status))
+  const selectedOrder = selectedOrderId ? localOrders.find(order => order.id === selectedOrderId) ?? null : null
+
+  async function handleServiceReply() {
+    if (!selectedOrder?.support_ticket_id || !replyBody.trim()) return
+    setReplying(true)
+    setErrorMsg('')
+    try {
+      const res = await fetch('/api/support/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketId: selectedOrder.support_ticket_id, body: replyBody, role: 'client' }),
+      })
+      if (!res.ok) throw new Error('Failed to send reply')
+      const { message } = await res.json()
+      setLocalOrders(prev => prev.map(order =>
+        order.id === selectedOrder.id
+          ? { ...order, support_messages: [...(order.support_messages ?? []), message] }
+          : order
+      ))
+      setReplyBody('')
+    } catch {
+      setErrorMsg('Could not send that reply. Try again.')
+    } finally {
+      setReplying(false)
+    }
+  }
+
+  if (selectedOrder) {
+    const status = STATUS_CONFIG[selectedOrder.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.submitted
+    const StatusIcon = status.icon
+    const service = SERVICES.find(s => s.id === selectedOrder.service_type)
+    const ServiceIcon = service?.icon ?? Globe
+
+    return (
+      <div className="px-8 pt-8 pb-6 max-w-[1200px]">
+        <button
+          onClick={() => setSelectedOrderId(null)}
+          className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 mb-8 transition-colors"
+        >
+          <ChevronLeft size={16} />
+          Back to orders
+        </button>
+
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
+                <ServiceIcon size={17} className="text-gray-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-1">Service conversation</p>
+                <h1 className="text-2xl font-bold text-gray-900">{selectedOrder.title}</h1>
+                <p className="text-sm text-gray-400 mt-1">
+                  Submitted {new Date(selectedOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full ${status.color}`}>
+              <StatusIcon size={11} />
+              {status.label}
+            </span>
+          </div>
+
+          {selectedOrder.brief && (
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Original request</p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedOrder.brief}</p>
+            </div>
+          )}
+
+          <div className="p-6 space-y-4">
+            {(selectedOrder.support_messages ?? []).length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+                <p className="text-sm text-gray-400">No conversation messages yet.</p>
+              </div>
+            ) : (
+              selectedOrder.support_messages?.map(message => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender_role === 'client' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[80%] rounded-2xl px-5 py-4 ${
+                    message.sender_role === 'client'
+                      ? 'bg-[#2D3748] text-white rounded-br-none'
+                      : 'bg-gray-50 border border-gray-100 text-gray-800 rounded-bl-none'
+                  }`}>
+                    <p className={`text-xs font-semibold mb-2 ${message.sender_role === 'client' ? 'text-white/75' : 'text-[#3B82F6]'}`}>
+                      {message.sender_role === 'client' ? 'You' : 'Agent7even Services'}
+                    </p>
+                    <p className={`text-sm leading-relaxed whitespace-pre-wrap ${message.sender_role === 'client' ? 'text-white' : 'text-gray-700'}`}>
+                      {message.body}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="p-4 border-t border-gray-100 bg-white">
+            {selectedOrder.support_ticket_id ? (
+              <div>
+                <textarea
+                  value={replyBody}
+                  onChange={e => setReplyBody(e.target.value)}
+                  placeholder="Write a follow-up message about this service request..."
+                  rows={4}
+                  className="w-full text-sm text-gray-800 placeholder:text-gray-300 resize-none focus:outline-none border border-gray-100 rounded-xl px-4 py-3"
+                />
+                <div className="flex justify-end mt-3">
+                  <button
+                    onClick={handleServiceReply}
+                    disabled={!replyBody.trim() || replying}
+                    className="flex items-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1E293B] px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {replying ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    {replying ? 'Sending...' : 'Send message'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
+                <p className="text-sm text-amber-700">This older order does not have a service conversation attached yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="px-8 pt-8 pb-6 max-w-[1200px]">
@@ -416,13 +559,13 @@ The user can request new marketing services or track existing orders.`
               {activeOrders.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Active</p>
-                  {activeOrders.map(order => <OrderCard key={order.id} order={order} />)}
+                  {activeOrders.map(order => <OrderCard key={order.id} order={order} onOpenConversation={() => setSelectedOrderId(order.id)} />)}
                 </div>
               )}
               {completedOrders.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 mt-6">Completed</p>
-                  {completedOrders.map(order => <OrderCard key={order.id} order={order} />)}
+                  {completedOrders.map(order => <OrderCard key={order.id} order={order} onOpenConversation={() => setSelectedOrderId(order.id)} />)}
                 </div>
               )}
             </>
@@ -453,12 +596,11 @@ function ShoppingBag({ size, className }: { size: number; className: string }) {
   )
 }
 
-function OrderCard({ order }: { order: Order }) {
+function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversation: () => void }) {
   const status = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.submitted
   const StatusIcon = status.icon
   const service = SERVICES.find(s => s.id === order.service_type)
   const ServiceIcon = service?.icon ?? Globe
-  const supportHref = order.support_ticket_id ? `/dashboard/support?ticket=${order.support_ticket_id}` : '/dashboard/support'
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 flex items-center justify-between gap-3 hover:border-gray-200 transition-all">
@@ -474,12 +616,13 @@ function OrderCard({ order }: { order: Order }) {
           {order.brief && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{order.brief}</p>
           )}
-          <a
-            href={supportHref}
+          <button
+            type="button"
+            onClick={onOpenConversation}
             className="inline-flex text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8] mt-2"
           >
             Open follow-up conversation
-          </a>
+          </button>
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">

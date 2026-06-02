@@ -67,10 +67,12 @@ ${brief}`
       .select()
       .single()
 
+    let supportMessage = null
+
     if (ticketError || !ticket) {
       console.error('Support ticket creation error:', ticketError)
     } else {
-      const { error: messageError } = await supabase
+      const { data: message, error: messageError } = await supabase
         .from('support_messages')
         .insert({
           ticket_id: ticket.id,
@@ -78,8 +80,11 @@ ${brief}`
           sender_role: 'client',
           body: supportBody,
         })
+        .select('id, sender_role, body, created_at')
+        .single()
 
       if (messageError) console.error('Support message creation error:', messageError)
+      supportMessage = message ?? null
     }
 
     // Notify client — request confirmed
@@ -141,7 +146,12 @@ ${brief}`
       }
     }
 
-    return NextResponse.json({ success: true, order, supportTicketId: ticket?.id ?? null })
+    return NextResponse.json({
+      success: true,
+      order,
+      supportTicketId: ticket?.id ?? null,
+      supportMessages: supportMessage ? [supportMessage] : [],
+    })
   } catch (err) {
     console.error('Create order error:', err)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })

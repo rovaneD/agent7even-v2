@@ -4,9 +4,14 @@ import { createServiceClient } from '@/lib/supabase/server'
 import ServicesClient from './ServicesClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 
-export default async function ServicesPage() {
+export default async function ServicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ order?: string }>
+}) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
+  const { order: initialOrderId } = await searchParams
 
   const supabase = createServiceClient()
 
@@ -30,30 +35,41 @@ export default async function ServicesPage() {
   const { data: serviceTickets } = profile?.id
     ? await supabase
       .from('support_tickets')
-      .select('id, body')
+      .select(`
+        id,
+        body,
+        support_messages (
+          id, sender_role, body, created_at
+        )
+      `)
       .eq('user_id', profile.id)
       .ilike('subject', 'Service request:%')
       .order('updated_at', { ascending: false })
     : { data: [] }
 
-  const supportTicketByOrderId = new Map<string, string>()
+  const supportTicketByOrderId = new Map<string, { id: string; support_messages: unknown[] }>()
   for (const ticket of serviceTickets ?? []) {
     const match = typeof ticket.body === 'string' ? ticket.body.match(/Order ID:\s*([a-f0-9-]+)/i) : null
     const orderId = match?.[1]
     if (orderId && !supportTicketByOrderId.has(orderId)) {
-      supportTicketByOrderId.set(orderId, ticket.id)
+      supportTicketByOrderId.set(orderId, {
+        id: ticket.id,
+        support_messages: ticket.support_messages ?? [],
+      })
     }
   }
 
   const ordersWithTickets = (orders ?? []).map(order => ({
     ...order,
-    support_ticket_id: supportTicketByOrderId.get(order.id) ?? null,
+    support_ticket_id: supportTicketByOrderId.get(order.id)?.id ?? null,
+    support_messages: supportTicketByOrderId.get(order.id)?.support_messages ?? [],
   }))
 
   return (
     <ServicesClient
       profile={profile}
       orders={ordersWithTickets}
+      initialOrderId={initialOrderId ?? null}
     />
   )
 }
