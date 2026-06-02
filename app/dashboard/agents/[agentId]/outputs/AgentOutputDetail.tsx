@@ -39,11 +39,167 @@ type CampaignWeek = {
   days: CampaignDay[]
 }
 
+type OutputSection = {
+  title: string
+  body: string[]
+  bullets: string[]
+}
+
 function stripMarkdown(value: string) {
   return value
     .replace(/^#+\s*/g, '')
     .replace(/\*\*/g, '')
     .trim()
+}
+
+function markdownComponents() {
+  return {
+    h1: (props: any) => <h1 style={{ fontSize: 22, lineHeight: 1.25, margin: '0 0 14px', color: '#2D3748' }} {...props} />,
+    h2: (props: any) => <h2 style={{ fontSize: 18, lineHeight: 1.35, margin: '22px 0 10px', color: '#2D3748' }} {...props} />,
+    h3: (props: any) => <h3 style={{ fontSize: 15, lineHeight: 1.4, margin: '18px 0 8px', color: '#2D3748' }} {...props} />,
+    p: (props: any) => <p style={{ margin: '0 0 14px' }} {...props} />,
+    ul: (props: any) => <ul style={{ margin: '0 0 16px', paddingLeft: 22 }} {...props} />,
+    ol: (props: any) => <ol style={{ margin: '0 0 16px', paddingLeft: 22 }} {...props} />,
+    li: (props: any) => <li style={{ marginBottom: 6 }} {...props} />,
+    strong: (props: any) => <strong style={{ color: '#2D3748', fontWeight: 700 }} {...props} />,
+  }
+}
+
+function parseStructuredSections(content: string): OutputSection[] {
+  const lines = content.replace(/\r\n/g, '\n').split('\n')
+  const sections: OutputSection[] = []
+  let current: OutputSection | null = null
+
+  function startSection(title: string) {
+    if (current && (current.body.length || current.bullets.length)) sections.push(current)
+    current = { title: stripMarkdown(title), body: [], bullets: [] }
+  }
+
+  function activeSection() {
+    if (!current) startSection('Summary')
+    return current as OutputSection
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+    if (!line) continue
+
+    const heading = line.match(/^#{1,3}\s+(.+)$/)
+    const labeledHeading = line.match(/^\**([A-Z][A-Z0-9 /&'()-]{2,}):\**\s*(.*)$/)
+
+    if (heading) {
+      startSection(heading[1])
+      continue
+    }
+
+    if (labeledHeading && line.length < 90) {
+      startSection(labeledHeading[1])
+      if (labeledHeading[2]) activeSection().body.push(stripMarkdown(labeledHeading[2]))
+      continue
+    }
+
+    if (/^[-•*]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
+      activeSection().bullets.push(stripMarkdown(line.replace(/^[-•*]\s+/, '').replace(/^\d+\.\s+/, '')))
+    } else {
+      activeSection().body.push(stripMarkdown(line))
+    }
+  }
+
+  const finalSection = current as OutputSection | null
+  if (finalSection && (finalSection.body.length || finalSection.bullets.length)) sections.push(finalSection)
+  return sections
+}
+
+function sectionAccent(index: number) {
+  const accents = [
+    { background: '#EFF6FF', color: '#2563EB' },
+    { background: '#ECFDF5', color: '#059669' },
+    { background: '#FFF7ED', color: '#EA580C' },
+    { background: '#F5F3FF', color: '#7C3AED' },
+    { background: '#F8FAFC', color: '#64748B' },
+  ]
+  return accents[index % accents.length]
+}
+
+function agentAction(agentName: string) {
+  if (agentName === 'Weekly Content') return 'Turn this into schedule-ready posts and emails.'
+  if (agentName === 'Email Sequence Builder') return 'Help me edit this sequence and prepare it for sending.'
+  if (agentName === 'Ad Variations') return 'Help me choose the best ad variations to test.'
+  if (agentName === 'Brand Voice Guardian') return 'Apply these brand voice edits to the content.'
+  if (agentName === 'SEO Scanner') return 'Turn these SEO findings into a prioritized fix list.'
+  if (agentName === 'Performance Digest') return 'Turn this performance digest into next actions.'
+  if (agentName === 'Competitor Watcher') return 'Turn this competitor read into moves we should make.'
+  if (agentName === 'Trend Spotter') return 'Turn these trend opportunities into content ideas.'
+  return 'Help me turn this agent output into clear next actions.'
+}
+
+function GenericOutputView({ agentName, content }: { agentName: string; content: string }) {
+  const sections = useMemo(() => parseStructuredSections(content), [content])
+  const meaningfulSections = sections.filter(section => section.title || section.body.length || section.bullets.length)
+
+  if (meaningfulSections.length < 2) {
+    return (
+      <ReactMarkdown components={markdownComponents()}>
+        {content || 'No content saved for this output.'}
+      </ReactMarkdown>
+    )
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 18 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <button
+          type="button"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('maya:open-task', {
+              detail: { task: agentAction(agentName) },
+            }))
+          }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, borderRadius: 10, background: '#2D3748', color: '#fff', padding: '9px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: 'none' }}
+        >
+          <i className="ti ti-sparkles" style={{ fontSize: 14 }} />
+          Work on this with Maya
+        </button>
+      </div>
+
+      {meaningfulSections.map((section, index) => {
+        const accent = sectionAccent(index)
+        return (
+          <section key={`${section.title}-${index}`} style={{ border: '1px solid #E2E8F0', borderRadius: 16, overflow: 'hidden', background: '#fff' }}>
+            <div style={{ padding: '15px 18px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 999, background: accent.color, flexShrink: 0 }} />
+              <h3 style={{ fontSize: 15, color: '#2D3748', fontWeight: 800, margin: 0 }}>
+                {section.title || `Section ${index + 1}`}
+              </h3>
+            </div>
+            <div style={{ padding: 18 }}>
+              {section.body.length > 0 && (
+                <div style={{ display: 'grid', gap: 10, marginBottom: section.bullets.length ? 14 : 0 }}>
+                  {section.body.map((paragraph, paragraphIndex) => (
+                    <p key={paragraphIndex} style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.65, margin: 0 }}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              )}
+              {section.bullets.length > 0 && (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {section.bullets.map((bullet, bulletIndex) => (
+                    <div key={bulletIndex} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 9, alignItems: 'start', border: '1px solid #F1F5F9', borderRadius: 12, padding: 11, background: '#F8FAFC' }}>
+                      <span style={{ marginTop: 5, width: 5, height: 5, borderRadius: 999, background: accent.color }} />
+                      <p style={{ fontSize: 12.8, color: '#334155', lineHeight: 1.55, margin: 0 }}>
+                        {bullet}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )
+      })}
+    </div>
+  )
 }
 
 function parseCampaignOutput(content: string): { overview: string; weeks: CampaignWeek[]; remainder: string } {
@@ -347,20 +503,7 @@ export default function AgentOutputDetail({
         ) : useCampaignView ? (
           <CampaignOutputView content={draftContent || 'No content saved for this output.'} />
         ) : (
-          <ReactMarkdown
-            components={{
-              h1: props => <h1 style={{ fontSize: 22, lineHeight: 1.25, margin: '0 0 14px', color: '#2D3748' }} {...props} />,
-              h2: props => <h2 style={{ fontSize: 18, lineHeight: 1.35, margin: '22px 0 10px', color: '#2D3748' }} {...props} />,
-              h3: props => <h3 style={{ fontSize: 15, lineHeight: 1.4, margin: '18px 0 8px', color: '#2D3748' }} {...props} />,
-              p: props => <p style={{ margin: '0 0 14px' }} {...props} />,
-              ul: props => <ul style={{ margin: '0 0 16px', paddingLeft: 22 }} {...props} />,
-              ol: props => <ol style={{ margin: '0 0 16px', paddingLeft: 22 }} {...props} />,
-              li: props => <li style={{ marginBottom: 6 }} {...props} />,
-              strong: props => <strong style={{ color: '#2D3748', fontWeight: 700 }} {...props} />,
-            }}
-          >
-            {draftContent || 'No content saved for this output.'}
-          </ReactMarkdown>
+          <GenericOutputView agentName={agentName} content={draftContent || 'No content saved for this output.'} />
         )}
       </div>
 
