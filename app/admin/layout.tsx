@@ -31,7 +31,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     const [{ data: notifs }, { data: sessionRows }, { count: orderCount }] = await Promise.all([
       supabase.from('notifications').select('*').eq('user_id', p.id).order('created_at', { ascending: false }).limit(20),
       supabase.from('maya_sessions').select('id, title, canvas_context, updated_at').eq('user_id', p.id).order('updated_at', { ascending: false }).limit(20),
-      supabase.from('orders').select('id', { count: 'exact', head: true }).not('status', 'in', '(approved,cancelled)'),
+      supabase.from('orders').select('id', { count: 'exact', head: true }).not('status', 'in', '(approved,cancelled,completed)'),
       logActivity(p.id, 'page_view'),
     ])
     notifications   = notifs ?? []

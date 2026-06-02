@@ -36,7 +36,7 @@ export default async function AdminPage() {
     supabase.from('agent_tasks').select('cost_usd').gte('created_at', monthStart),
   ])
 
-  const pendingOrders = recentOrders?.filter(o => ['submitted', 'in_review'].includes(o.status)) ?? []
+  const pendingOrders = recentOrders?.filter(o => !['approved', 'cancelled', 'completed'].includes(o.status)) ?? []
 
   const apiCostThisMonth = (agentCostData ?? []).reduce((sum: number, row: any) => sum + (row.cost_usd ?? 0), 0)
 
@@ -45,6 +45,7 @@ export default async function AdminPage() {
     in_review: 'bg-yellow-50 text-yellow-600',
     in_progress: 'bg-purple-50 text-purple-600',
     delivered: 'bg-green-50 text-green-600',
+    completed: 'bg-green-50 text-green-600',
     approved: 'bg-green-50 text-green-600',
     cancelled: 'bg-gray-50 text-gray-400',
     revision_requested: 'bg-orange-50 text-orange-600',
@@ -143,7 +144,7 @@ export default async function AdminPage() {
               {recentOrders.map((order: any) => (
                 <Link
                   key={order.id}
-                  href={`/admin/orders/${order.id}`}
+                  href={`/admin/orders?order=${order.id}`}
                   className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded-lg transition-colors"
                 >
                   <div>

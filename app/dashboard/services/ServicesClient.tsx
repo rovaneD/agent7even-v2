@@ -7,6 +7,7 @@ import {
   Brush, Video, Megaphone, Plus, X, ChevronRight,
   Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send
 } from 'lucide-react'
+import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 
 const SERVICES = [
   {
@@ -106,10 +107,13 @@ const STATUS_CONFIG = {
   in_review: { label: 'In Review', color: 'bg-yellow-50 text-yellow-600', icon: Loader2 },
   in_progress: { label: 'In Progress', color: 'bg-purple-50 text-purple-600', icon: Loader2 },
   delivered: { label: 'Delivered', color: 'bg-green-50 text-green-600', icon: CheckCircle },
+  completed: { label: 'Completed', color: 'bg-green-50 text-green-600', icon: CheckCircle },
   revision_requested: { label: 'Revision Requested', color: 'bg-orange-50 text-orange-600', icon: AlertCircle },
   approved: { label: 'Approved', color: 'bg-green-50 text-green-600', icon: CheckCircle },
   cancelled: { label: 'Cancelled', color: 'bg-gray-50 text-gray-400', icon: X },
 }
+
+const CLOSED_STATUSES = ['approved', 'cancelled', 'completed']
 
 interface Message {
   id: string
@@ -235,7 +239,7 @@ export default function ServicesClient({
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(initialOrderId ?? null)
 
   useEffect(() => {
-    const activeOrders = localOrders.filter(o => !['approved', 'cancelled'].includes(o.status))
+    const activeOrders = localOrders.filter(o => !CLOSED_STATUSES.includes(o.status))
     const activeOrderLines = activeOrders.length
       ? activeOrders.map(o => `- ${o.title} (status: ${o.status})`).join('\n')
       : '- No active orders'
@@ -293,8 +297,8 @@ The user can request new marketing services or track existing orders.`
     }
   }
 
-  const activeOrders = localOrders.filter(o => !['approved', 'cancelled'].includes(o.status))
-  const completedOrders = localOrders.filter(o => ['approved', 'cancelled'].includes(o.status))
+  const activeOrders = localOrders.filter(o => !CLOSED_STATUSES.includes(o.status))
+  const completedOrders = localOrders.filter(o => CLOSED_STATUSES.includes(o.status))
   const selectedOrder = selectedOrderId ? localOrders.find(order => order.id === selectedOrderId) ?? null : null
 
   async function handleServiceReply() {
@@ -347,8 +351,10 @@ The user can request new marketing services or track existing orders.`
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-1">Service conversation</p>
                 <h1 className="text-2xl font-bold text-gray-900">{selectedOrder.title}</h1>
-                <p className="text-sm text-gray-400 mt-1">
-                  Submitted {new Date(selectedOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                <p className="text-sm text-gray-400 mt-1 flex flex-wrap items-center gap-2">
+                  <span>{formatOrderNumber(selectedOrder)}</span>
+                  <span>•</span>
+                  <span>Submitted {new Date(selectedOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </p>
               </div>
             </div>
@@ -475,7 +481,7 @@ The user can request new marketing services or track existing orders.`
           {SERVICES.map(service => {
             const Icon = service.icon
             const hasActiveOrder = localOrders.some(
-              o => o.service_type === service.id && !['approved', 'cancelled'].includes(o.status)
+              o => o.service_type === service.id && !CLOSED_STATUSES.includes(o.status)
             )
             return (
               <div
@@ -611,7 +617,7 @@ function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversa
         <div className="min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">{order.title}</p>
           <p className="text-xs text-gray-400 mt-0.5">
-            Submitted {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            {formatOrderNumber(order)} · Submitted {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
           {order.brief && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{order.brief}</p>

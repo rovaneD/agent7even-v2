@@ -41,6 +41,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
+  const serviceOrderId = typeof ticket.body === 'string'
+    ? ticket.body.match(/Order ID:\s*([a-f0-9-]+)/i)?.[1] ?? null
+    : null
+  const isServiceOrder = Boolean(ticket.subject?.startsWith('Service request:') && serviceOrderId)
+  const serviceTitle = isServiceOrder ? ticket.subject.replace(/^Service request:\s*/, '') : ticket.subject
+  const clientName = profile.company_name ?? profile.full_name ?? profile.email ?? 'Client'
+
   const { data: message, error: msgError } = await supabase
     .from('support_messages')
     .insert({
@@ -64,38 +71,34 @@ export async function POST(req: Request) {
     // Notify the client
     await createNotification({
       userId: ticket.user_id,
-      title: 'New reply on your support ticket',
-      body: `Agent7even replied to: ${ticket.subject}`,
-      type: 'support_reply',
-      link: '/dashboard/support',
+      title: isServiceOrder ? 'New reply on your service order' : 'New reply on your support ticket',
+      body: isServiceOrder ? `Agent7even replied to your ${serviceTitle} order.` : `Agent7even replied to: ${ticket.subject}`,
+      type: isServiceOrder ? 'order_status' : 'support_reply',
+      link: isServiceOrder ? `/dashboard/services?order=${serviceOrderId}` : '/dashboard/support',
       sendEmail: false, // email handled below
     })
   } else {
     // Notify admin
-    const { data: adminProfile } = await supabase
+    const { data: adminProfiles } = await supabase
       .from('profiles')
       .select('id')
       .in('role', ['admin', 'owner'])
-      .limit(1)
-      .single()
 
-    if (adminProfile) {
-      await createNotification({
-        userId: adminProfile.id,
-        title: 'New reply on support ticket',
-        body: `${profile.full_name} replied to: ${ticket.subject}`,
-        type: 'support_reply',
-        link: `/admin/support/${ticketId}`,
-        sendEmail: false, // email handled below
-      })
-    }
+    await Promise.all((adminProfiles ?? []).map(adminProfile => createNotification({
+      userId: adminProfile.id,
+      title: isServiceOrder ? 'Client replied on service order' : 'New reply on support ticket',
+      body: isServiceOrder ? `${clientName} replied to the ${serviceTitle} order.` : `${clientName} replied to: ${ticket.subject}`,
+      type: isServiceOrder ? 'order_status' : 'support_reply',
+      link: isServiceOrder ? `/admin/orders?order=${serviceOrderId}` : `/admin/support/${ticketId}`,
+      sendEmail: false, // email handled below
+    })))
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
 
   if (isAdmin) {
     const clientEmail = (ticket.profiles as { email: string })?.email
-    const clientName = (ticket.profiles as { full_name: string })?.full_name ?? 'there'
+    const ticketClientName = (ticket.profiles as { full_name: string })?.full_name ?? 'there'
     if (clientEmail) {
       try {
         await resend.emails.send({
@@ -104,13 +107,13 @@ export async function POST(req: Request) {
           subject: `Re: ${ticket.subject}`,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #c8522a;">New reply on your support ticket</h2>
-              <p>Hi ${clientName},</p>
-              <p>The Agent7even team has replied to your ticket: <strong>${ticket.subject}</strong></p>
+              <h2 style="color: #c8522a;">${isServiceOrder ? 'New reply on your service order' : 'New reply on your support ticket'}</h2>
+              <p>Hi ${ticketClientName},</p>
+              <p>The Agent7even team has replied to your ${isServiceOrder ? 'service order' : 'ticket'}: <strong>${serviceTitle}</strong></p>
               <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
               <p style="white-space: pre-wrap; color: #444;">${body}</p>
               <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-              <a href="${appUrl}/dashboard/support" style="background: #c8522a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              <a href="${appUrl}${isServiceOrder ? `/dashboard/services?order=${serviceOrderId}` : '/dashboard/support'}" style="background: #c8522a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
                 View conversation →
               </a>
             </div>
@@ -129,13 +132,13 @@ export async function POST(req: Request) {
         subject: `Re: ${ticket.subject} — ${profile.company_name ?? profile.full_name}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #c8522a;">Client replied to support ticket</h2>
+            <h2 style="color: #c8522a;">${isServiceOrder ? 'Client replied to service order' : 'Client replied to support ticket'}</h2>
             <p><strong>From:</strong> ${profile.full_name} (${profile.company_name ?? ''})</p>
-            <p><strong>Ticket:</strong> ${ticket.subject}</p>
+            <p><strong>${isServiceOrder ? 'Order' : 'Ticket'}:</strong> ${serviceTitle}</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
             <p style="white-space: pre-wrap; color: #444;">${body}</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-            <a href="${appUrl}/admin/support/${ticketId}" style="background: #c8522a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+            <a href="${appUrl}${isServiceOrder ? `/admin/orders?order=${serviceOrderId}` : `/admin/support/${ticketId}`}" style="background: #c8522a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
               View &amp; Reply →
             </a>
           </div>

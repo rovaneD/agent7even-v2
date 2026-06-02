@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ChevronRight, Mail, MessageSquare, ShoppingBag } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 import AdminOrderConversation from './AdminOrderConversation'
+import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,10 +13,13 @@ const STATUS_COLORS: Record<string, string> = {
   in_review: 'bg-yellow-50 text-yellow-600',
   in_progress: 'bg-purple-50 text-purple-600',
   delivered: 'bg-green-50 text-green-600',
+  completed: 'bg-green-50 text-green-600',
   approved: 'bg-green-50 text-green-600',
   cancelled: 'bg-gray-50 text-gray-400',
   revision_requested: 'bg-orange-50 text-orange-600',
 }
+
+const CLOSED_STATUSES = ['approved', 'cancelled', 'completed']
 
 const PRIORITY_COLORS: Record<string, string> = {
   low: 'bg-gray-50 text-gray-400',
@@ -87,8 +91,8 @@ export default async function AdminOrdersPage({
     }
   }
 
-  const active = orders?.filter(o => !['approved', 'cancelled'].includes(o.status)) ?? []
-  const completed = orders?.filter(o => ['approved', 'cancelled'].includes(o.status)) ?? []
+  const active = orders?.filter(o => !CLOSED_STATUSES.includes(o.status)) ?? []
+  const completed = orders?.filter(o => CLOSED_STATUSES.includes(o.status)) ?? []
   const selectedOrder = selectedOrderId ? orders.find((order: any) => order.id === selectedOrderId) : null
   const selectedTicket = selectedOrder ? supportTicketByOrderId.get(selectedOrder.id) : null
 
@@ -115,8 +119,10 @@ export default async function AdminOrdersPage({
             <div>
               <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Order conversation</p>
               <h2 className="text-xl font-semibold text-gray-900">{selectedOrder.title}</h2>
-              <p className="text-sm text-gray-400 mt-1">
-                {selectedOrder.profiles?.company_name || selectedOrder.profiles?.full_name || selectedOrder.profiles?.email || 'Unknown client'}
+              <p className="text-sm text-gray-400 mt-1 flex flex-wrap items-center gap-2">
+                <span>{formatOrderNumber(selectedOrder)}</span>
+                <span>•</span>
+                <span>{selectedOrder.profiles?.company_name || selectedOrder.profiles?.full_name || selectedOrder.profiles?.email || 'Unknown client'}</span>
               </p>
             </div>
             <Link href="/admin/orders" className="text-sm text-gray-400 hover:text-gray-700">Close</Link>
@@ -130,6 +136,8 @@ export default async function AdminOrdersPage({
           <div className="p-6">
             {selectedTicket ? (
               <AdminOrderConversation
+                orderId={selectedOrder.id}
+                initialStatus={selectedOrder.status}
                 ticketId={selectedTicket.id}
                 initialMessages={selectedTicket.support_messages ?? []}
               />
@@ -173,6 +181,7 @@ export default async function AdminOrdersPage({
                       <tr key={order.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors align-top">
                         <td className="px-6 py-4">
                           <p className="text-sm font-medium text-gray-900">{order.title}</p>
+                          <p className="text-[11px] font-semibold text-gray-400 mt-1">{formatOrderNumber(order)}</p>
                           <p className="text-xs text-gray-400 mt-1 max-w-xs leading-relaxed">{briefPreview(order.brief)}</p>
                         </td>
                         <td className="px-6 py-4">
@@ -239,6 +248,7 @@ export default async function AdminOrdersPage({
                       <tr key={order.id} className="border-b border-gray-50 last:border-0">
                         <td className="px-6 py-3">
                           <p className="text-sm text-gray-600">{order.title}</p>
+                          <p className="text-[11px] font-semibold text-gray-400 mt-1">{formatOrderNumber(order)}</p>
                           <p className="text-xs text-gray-400 mt-1">{briefPreview(order.brief)}</p>
                         </td>
                         <td className="px-6 py-3">

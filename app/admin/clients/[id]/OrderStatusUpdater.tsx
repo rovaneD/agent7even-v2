@@ -10,6 +10,7 @@ const STATUSES = [
   { value: 'delivered', label: 'Delivered' },
   { value: 'revision_requested', label: 'Revision Requested' },
   { value: 'approved', label: 'Approved' },
+  { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
 ]
 
@@ -19,6 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
   in_progress: 'bg-purple-50 text-purple-600',
   delivered: 'bg-green-50 text-green-600',
   approved: 'bg-green-50 text-green-600',
+  completed: 'bg-green-50 text-green-600',
   cancelled: 'bg-gray-50 text-gray-400',
   revision_requested: 'bg-orange-50 text-orange-600',
 }

@@ -325,7 +325,7 @@ export default function DashboardShell({
         },
         (payload) => {
           const order = payload.new as { status?: string }
-          if (!['approved', 'cancelled'].includes(order.status ?? 'submitted')) {
+          if (!['approved', 'cancelled', 'completed'].includes(order.status ?? 'submitted')) {
             setActiveOrdersCount(prev => prev + 1)
           }
         }
