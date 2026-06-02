@@ -21,6 +21,10 @@ function formatDate(str: string) {
   })
 }
 
+function displayMessageBody(body: string) {
+  return body.split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0].trim()
+}
+
 export default function AdminOrderConversation({ ticketId, initialMessages }: Props) {
   const [messages, setMessages] = useState(initialMessages)
   const [replyBody, setReplyBody] = useState('')
@@ -69,7 +73,7 @@ export default function AdminOrderConversation({ ticketId, initialMessages }: Pr
               </span>
             </div>
             <p className={`text-sm leading-relaxed whitespace-pre-wrap ${message.sender_role === 'admin' ? 'text-white' : 'text-gray-700'}`}>
-              {message.body}
+              {displayMessageBody(message.body)}
             </p>
           </div>
         </div>

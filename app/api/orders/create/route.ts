@@ -5,6 +5,10 @@ import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { createNotification } from '@/lib/createNotification'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 
+function displayBrief(brief: string) {
+  return brief.split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0].trim()
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth()
@@ -49,6 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     const orderNumber = formatOrderNumber(order)
+    const visibleBrief = displayBrief(brief)
     const supportBody = `Order ID: ${order.id}
 Order number: ${orderNumber}
 Service: ${title}
@@ -136,7 +141,7 @@ ${brief}`
                 <p style="margin: 0 0 8px; font-size: 13px; color: #555;"><strong>Client:</strong> ${profile.company_name || profile.full_name || profile.email}</p>
                 <p style="margin: 0 0 16px; font-size: 13px; color: #555;"><strong>Email:</strong> ${profile.email}</p>
                 <div style="background: white; border: 1px solid #eee; border-radius: 8px; padding: 16px; font-size: 13px; color: #333; line-height: 1.6;">
-                  <strong>Brief:</strong><br/>${brief}
+                  <strong>Brief:</strong><br/>${visibleBrief}
                 </div>
                 <p style="margin: 16px 0 0; font-size: 13px;">
                   <a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'}/admin/orders?order=${order.id}" style="color: #c8522a; font-weight: 600;">Open admin order →</a>

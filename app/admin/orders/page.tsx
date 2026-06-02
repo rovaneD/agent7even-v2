@@ -29,8 +29,13 @@ const PRIORITY_COLORS: Record<string, string> = {
 }
 
 function briefPreview(brief: string | null | undefined) {
-  if (!brief) return 'No brief provided.'
-  return brief.length > 180 ? `${brief.slice(0, 180)}...` : brief
+  const displayBrief = brief?.split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0].trim()
+  if (!displayBrief) return 'No brief provided.'
+  return displayBrief.length > 180 ? `${displayBrief.slice(0, 180)}...` : displayBrief
+}
+
+function fullDisplayBrief(brief: string | null | undefined) {
+  return brief?.split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0].trim() ?? ''
 }
 
 export default async function AdminOrdersPage({
@@ -134,7 +139,7 @@ export default async function AdminOrdersPage({
           {selectedOrder.brief && (
             <div className="p-6 border-b border-gray-100 bg-gray-50/50">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Original request</p>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedOrder.brief}</p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{fullDisplayBrief(selectedOrder.brief)}</p>
             </div>
           )}
           <div className="p-6">

@@ -5,11 +5,21 @@ import { useRouter } from 'next/navigation'
 import {
   Globe, Hash, Camera, Mail, Search,
   Brush, Video, Megaphone, Plus, X, ChevronRight,
-  Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send
+  Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send, Flame
 } from 'lucide-react'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 
 const SERVICES = [
+  {
+    id: 'viral_hooks',
+    icon: Flame,
+    name: 'Viral Hooks',
+    desc: 'Free hook ideation for Reels, TikToks, Shorts, carousels, and social posts using proven hook frameworks.',
+    price: 'Free',
+    type: 'free',
+    deliveryDays: 1,
+    requiresScope: false,
+  },
   {
     id: 'design_dev',
     icon: Code2,
@@ -102,6 +112,62 @@ const SERVICES = [
   },
 ]
 
+const VIRAL_HOOKS_FRAMEWORK = `VIRAL HOOKS SERVICE FRAMEWORK
+Use this request to craft hook ideas, not a generic content plan.
+
+Goal:
+- Create short-form content hooks that can open Reels, TikToks, YouTube Shorts, carousels, captions, or emails.
+- Use the customer's business, offer, audience, pain points, desired result, and Foundation/Brand Kit context when available.
+- If the customer gives limited detail, make reasonable assumptions and produce usable hooks anyway.
+
+Hook families to use:
+1. Cost-Narration Hooks
+- "It took me [x] years to master [a skill], but I'm going to teach you the [x] most powerful lessons in the next [x] seconds."
+- "I spent [$] on [goal], so you don't have to. Here's what was worth it and definitely not worth it."
+- "It took me [x] years to learn this but I'll teach it to you in less than 1 minute."
+- "After over [x] years [doing action], here's what I wish someone would've told me from day one."
+- "I spent [x] hours researching and testing every [tool]. Here are the only [x] you actually need."
+
+2. False-Statement Hooks
+- "The number 1 weakness of [tool] is that it can't [do action]... just kidding, of course it can."
+- "If you don't [do action] then you will never [get dream result]. And that statement is completely wrong."
+- "[Thing] is not a good [option] for [situation]. It's the best for [situation]."
+- "[Controversial thing] is the biggest scam ever pulled on us... or is it?"
+- "Never [do action]... unless you want to [get desirable result]."
+
+3. Comparison Hooks
+- "The only difference between [negative] and [positive] is [thing]."
+- "This is how [thing] used to work. This is how it works today."
+- "Do you want [popular desire] or do you want [deeper desire]?"
+- "This is [common option] vs [new option]."
+- "Do you want to be [common label] or do you want to be [desirable label]?"
+
+4. Callout Hooks
+- "If you can't [achieve result], it's not because you're not [positive trait], it's because you don't know how to [action]."
+- "Your [common excuse] isn't the problem, [actual reason] is."
+- "Everybody tells you to [do action] but nobody shows you how to do it, so let's [do action] together, step by step."
+- "If you want [results] for free, with literally 0 extra effort, here's what you need to do."
+- "So you wanna [achieve outcome] but hate [required painful action]."
+
+5. Bold Statement Hooks
+- "[Desirable outcome] for dummies."
+- "There are only [x] different [things] you need to [action] to [achieve goal]."
+- "Everyone tells you to [common advice] but nobody tells you how, so here's how to [do action] in [x] easy steps."
+- "If I had [x] days to [achieve goal], this is exactly what I would do."
+- "I genuinely believe anybody can [accomplish goal] if you just learn [unique solution]."
+
+Output expectation:
+- Return at least 25 hooks, grouped by the 5 hook families.
+- Replace all placeholders with specific language for this customer.
+- For each hook, include suggested format: Reel, TikTok, Short, carousel, caption, or email.
+- Include a short note on why the strongest 5 hooks should work.
+- Avoid fake claims, guaranteed results, or unverifiable numbers unless the customer provided them.`
+
+function displayBrief(brief: string | null | undefined) {
+  if (!brief) return ''
+  return brief.split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0].trim()
+}
+
 const STATUS_CONFIG = {
   submitted: { label: 'Submitted', color: 'bg-blue-50 text-blue-600', icon: Clock },
   in_review: { label: 'In Review', color: 'bg-yellow-50 text-yellow-600', icon: Loader2 },
@@ -158,6 +224,8 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
     setLoading(false)
   }
 
+  const isViralHooks = service.id === 'viral_hooks'
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -182,17 +250,21 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
         {/* Body */}
         <div className="p-6">
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
-            Tell us about your project
+            {isViralHooks ? 'Tell us what the hooks are for' : 'Tell us about your project'}
           </label>
           <textarea
             value={brief}
             onChange={e => setBrief(e.target.value)}
-            placeholder={`Describe what you need for ${service.name.toLowerCase()}. Include any relevant details about your business, goals, timeline preferences, and any existing assets we should know about.`}
+            placeholder={isViralHooks
+              ? 'Example: I need hooks for Instagram Reels promoting Maya to small business owners who are tired of agencies, complex tools, and inconsistent marketing. Goal: book trials or demos.'
+              : `Describe what you need for ${service.name.toLowerCase()}. Include any relevant details about your business, goals, timeline preferences, and any existing assets we should know about.`}
             rows={5}
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 resize-none transition-colors"
           />
           <p className="text-xs text-gray-400 mt-2">
-            Our team will review and respond within 1 business day.
+            {isViralHooks
+              ? 'Maya will use the saved brand context plus viral hook frameworks to shape the output.'
+              : 'Our team will review and respond within 1 business day.'}
           </p>
           {error && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mt-4">
@@ -216,7 +288,7 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
             className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-2.5 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-            Submit request
+            {isViralHooks ? 'Request hooks' : 'Submit request'}
           </button>
         </div>
       </div>
@@ -264,6 +336,11 @@ The user can request new marketing services or track existing orders.`
     if (!requestingService || !profile) return
     setSubmitting(true)
     setErrorMsg('')
+    const serviceBrief = requestingService.id === 'viral_hooks'
+      ? `${brief.trim()}
+
+${VIRAL_HOOKS_FRAMEWORK}`
+      : brief
 
     try {
       const res = await fetch('/api/orders/create', {
@@ -272,7 +349,7 @@ The user can request new marketing services or track existing orders.`
         body: JSON.stringify({
           service_type: requestingService.id,
           title: requestingService.name,
-          brief,
+          brief: serviceBrief,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -367,7 +444,7 @@ The user can request new marketing services or track existing orders.`
           {selectedOrder.brief && (
             <div className="p-6 border-b border-gray-100 bg-gray-50/50">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Original request</p>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{selectedOrder.brief}</p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{displayBrief(selectedOrder.brief)}</p>
             </div>
           )}
 
@@ -391,7 +468,7 @@ The user can request new marketing services or track existing orders.`
                       {message.sender_role === 'client' ? 'You' : 'Agent7even Services'}
                     </p>
                     <p className={`text-sm leading-relaxed whitespace-pre-wrap ${message.sender_role === 'client' ? 'text-white' : 'text-gray-700'}`}>
-                      {message.body}
+                      {displayBrief(message.body)}
                     </p>
                   </div>
                 </div>
@@ -499,11 +576,13 @@ The user can request new marketing services or track existing orders.`
                     </div>
                   </div>
                   <span className={`flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full ${
-                    service.type === 'retainer'
-                      ? 'bg-purple-50 text-purple-500'
-                      : 'bg-blue-50 text-blue-500'
+                    service.type === 'free'
+                      ? 'bg-green-50 text-green-600'
+                      : service.type === 'retainer'
+                        ? 'bg-purple-50 text-purple-500'
+                        : 'bg-blue-50 text-blue-500'
                   }`}>
-                    {service.type === 'retainer' ? 'Monthly' : 'One-time'}
+                    {service.type === 'free' ? 'Free' : service.type === 'retainer' ? 'Monthly' : 'One-time'}
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed mb-4">{service.desc}</p>
@@ -620,7 +699,7 @@ function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversa
             {formatOrderNumber(order)} · Submitted {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
           {order.brief && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{order.brief}</p>
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{displayBrief(order.brief)}</p>
           )}
           <button
             type="button"
