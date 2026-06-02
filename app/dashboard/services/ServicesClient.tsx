@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import {
   Globe, Hash, Camera, Mail, Search,
   Brush, Video, Megaphone, Plus, X, ChevronRight,
-  Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send, Flame
+  Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send, Flame,
+  Sparkles, Target, Layers, FileText
 } from 'lucide-react'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
@@ -157,6 +158,194 @@ interface RequestModalProps {
   onSubmit: (brief: string) => Promise<void>
 }
 
+function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: RequestModalProps) {
+  const [topic, setTopic] = useState('')
+  const [audience, setAudience] = useState('')
+  const [goal, setGoal] = useState('Drive interest')
+  const [format, setFormat] = useState('Instagram Reel')
+  const [tone, setTone] = useState('Direct and useful')
+  const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(false)
+  const Icon = service.icon
+
+  const handleSubmit = async () => {
+    if (!topic.trim()) return
+    setLoading(true)
+    await onSubmit([
+      `Topic or offer: ${topic.trim()}`,
+      audience.trim() ? `Target audience: ${audience.trim()}` : '',
+      `Primary goal: ${goal}`,
+      `Best format: ${format}`,
+      `Tone: ${tone}`,
+      notes.trim() ? `Extra context: ${notes.trim()}` : '',
+    ].filter(Boolean).join('\n'))
+    setLoading(false)
+  }
+
+  const chips = [
+    'Cost-Narration',
+    'False Statement',
+    'Comparison',
+    'Callout',
+    'Bold Statement',
+  ]
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden">
+        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center">
+              <Icon size={20} className="text-green-600" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-green-600 mb-1">Free self-serve tool</p>
+              <h2 className="text-xl font-bold text-gray-900">Generate Viral Hooks</h2>
+              <p className="text-sm text-gray-500 mt-1">Maya will create hooks now. No admin handoff needed.</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px]">
+          <div className="p-6 space-y-5">
+            <div>
+              <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
+                <Sparkles size={13} />
+                What are these hooks for?
+              </label>
+              <textarea
+                value={topic}
+                onChange={e => setTopic(e.target.value)}
+                placeholder="Example: Instagram video promoting Maya to small business owners tired of agencies and complex marketing tools."
+                rows={4}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 resize-none transition-colors"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">
+                  <Target size={13} />
+                  Audience
+                </label>
+                <input
+                  value={audience}
+                  onChange={e => setAudience(e.target.value)}
+                  placeholder="Small business owners, creators, coaches..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#3B82F6]/40"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">
+                  <Layers size={13} />
+                  Format
+                </label>
+                <select
+                  value={format}
+                  onChange={e => setFormat(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
+                >
+                  <option>Instagram Reel</option>
+                  <option>TikTok</option>
+                  <option>YouTube Short</option>
+                  <option>Carousel</option>
+                  <option>Caption</option>
+                  <option>Email</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 block">Goal</label>
+                <select
+                  value={goal}
+                  onChange={e => setGoal(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
+                >
+                  <option>Drive interest</option>
+                  <option>Book demos</option>
+                  <option>Start trials</option>
+                  <option>Grow followers</option>
+                  <option>Educate the audience</option>
+                  <option>Launch an offer</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2 block">Tone</label>
+                <select
+                  value={tone}
+                  onChange={e => setTone(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
+                >
+                  <option>Direct and useful</option>
+                  <option>Bold and punchy</option>
+                  <option>Warm and educational</option>
+                  <option>Contrarian</option>
+                  <option>Premium and polished</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">
+                <FileText size={13} />
+                Extra context
+              </label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Optional: pain points, claims to avoid, product details, examples, competitors, or exact words to include."
+                rows={3}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 resize-none"
+              />
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+                <p className="text-xs text-red-700">{error}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-100 p-6">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Frameworks included</p>
+            <div className="space-y-2">
+              {chips.map(chip => (
+                <div key={chip} className="rounded-xl bg-white border border-gray-100 px-3 py-2 text-xs font-medium text-gray-600">
+                  {chip}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed mt-4">
+              The output is saved in Services so you can revisit it or generate another set later.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between px-6 py-5 border-t border-gray-100">
+          <button
+            onClick={onClose}
+            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!topic.trim() || loading}
+            className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-2.5 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors"
+          >
+            {loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {loading ? 'Generating...' : 'Generate hooks'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) {
   const [brief, setBrief] = useState('')
   const [loading, setLoading] = useState(false)
@@ -168,8 +357,6 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
     await onSubmit(brief)
     setLoading(false)
   }
-
-  const isViralHooks = service.id === 'viral_hooks'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -195,21 +382,17 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
         {/* Body */}
         <div className="p-6">
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
-            {isViralHooks ? 'Tell us what the hooks are for' : 'Tell us about your project'}
+            Tell us about your project
           </label>
           <textarea
             value={brief}
             onChange={e => setBrief(e.target.value)}
-            placeholder={isViralHooks
-              ? 'Example: I need hooks for Instagram Reels promoting Maya to small business owners who are tired of agencies, complex tools, and inconsistent marketing. Goal: book trials or demos.'
-              : `Describe what you need for ${service.name.toLowerCase()}. Include any relevant details about your business, goals, timeline preferences, and any existing assets we should know about.`}
+            placeholder={`Describe what you need for ${service.name.toLowerCase()}. Include any relevant details about your business, goals, timeline preferences, and any existing assets we should know about.`}
             rows={5}
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 resize-none transition-colors"
           />
           <p className="text-xs text-gray-400 mt-2">
-            {isViralHooks
-              ? 'Maya will use the saved brand context plus viral hook frameworks to shape the output.'
-              : 'Our team will review and respond within 1 business day.'}
+            Our team will review and respond within 1 business day.
           </p>
           {error && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mt-4">
@@ -233,7 +416,7 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
             className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-2.5 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : null}
-            {isViralHooks ? 'Request hooks' : 'Submit request'}
+            Submit request
           </button>
         </div>
       </div>
@@ -307,7 +490,10 @@ ${VIRAL_HOOKS_FRAMEWORK}`
         setRequestingService(null)
         if (nextOrder) setLocalOrders(prev => [nextOrder, ...prev])
         if (nextOrder) setSelectedOrderId(nextOrder.id)
-        setSuccessMsg(`Your ${requestingService.name} request has been submitted. A follow-up conversation is open here in Services.`)
+        setSuccessMsg(requestingService.id === 'viral_hooks'
+          ? 'Your Viral Hooks are ready. The generated output is saved here in Services.'
+          : `Your ${requestingService.name} request has been submitted. A follow-up conversation is open here in Services.`
+        )
         setActiveTab('orders')
         setTimeout(() => setSuccessMsg(''), 5000)
       } else {
@@ -375,6 +561,8 @@ ${VIRAL_HOOKS_FRAMEWORK}`
     const StatusIcon = status.icon
     const service = SERVICES.find(s => s.id === selectedOrder.service_type)
     const ServiceIcon = service?.icon ?? Globe
+    const isViralHooksOrder = selectedOrder.service_type === 'viral_hooks'
+    const generatedMessages = (selectedOrder.support_messages ?? []).filter(message => message.sender_role !== 'client')
 
     return (
       <div className="px-8 pt-8 pb-6 max-w-[1200px]">
@@ -393,7 +581,9 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                 <ServiceIcon size={17} className="text-gray-500" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-1">Service conversation</p>
+                <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-1">
+                  {isViralHooksOrder ? 'Generated asset' : 'Service conversation'}
+                </p>
                 <h1 className="text-2xl font-bold text-gray-900">{selectedOrder.title}</h1>
                 <p className="text-sm text-gray-400 mt-1 flex flex-wrap items-center gap-2">
                   <span>{formatOrderNumber(selectedOrder)}</span>
@@ -403,7 +593,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {selectedOrder.service_type === 'viral_hooks' && !CLOSED_STATUSES.includes(selectedOrder.status) && (
+              {isViralHooksOrder && !CLOSED_STATUSES.includes(selectedOrder.status) && (
                 <button
                   type="button"
                   onClick={completeSelfServeOrder}
@@ -429,7 +619,28 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           )}
 
           <div className="p-6 space-y-4">
-            {(selectedOrder.support_messages ?? []).length === 0 ? (
+            {isViralHooksOrder ? (
+              generatedMessages.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+                  <p className="text-sm text-gray-400">No generated hooks found for this request.</p>
+                </div>
+              ) : (
+                generatedMessages.map(message => (
+                  <div key={message.id} className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+                    <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-green-600">Maya generated hooks</p>
+                        <p className="text-xs text-gray-400 mt-1">Use these as openings for short-form content, captions, or carousel slides.</p>
+                      </div>
+                      <Sparkles size={16} className="text-green-500 flex-shrink-0" />
+                    </div>
+                    <div className="p-5">
+                      <p className="text-sm leading-7 whitespace-pre-wrap text-gray-700">{displayServiceBrief(message.body)}</p>
+                    </div>
+                  </div>
+                ))
+              )
+            ) : (selectedOrder.support_messages ?? []).length === 0 ? (
               <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
                 <p className="text-sm text-gray-400">No conversation messages yet.</p>
               </div>
@@ -457,7 +668,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           </div>
 
           <div className="p-4 border-t border-gray-100 bg-white">
-            {selectedOrder.support_ticket_id && selectedOrder.service_type !== 'viral_hooks' ? (
+            {selectedOrder.support_ticket_id && !isViralHooksOrder ? (
               <div>
                 <textarea
                   value={replyBody}
@@ -480,7 +691,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             ) : (
               <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
                 <p className="text-sm text-amber-700">
-                  {selectedOrder.service_type === 'viral_hooks'
+                  {isViralHooksOrder
                     ? 'This is a self-serve service. Review the generated hooks above and mark complete when you are done.'
                     : 'This older order does not have a service conversation attached yet.'}
                 </p>
@@ -543,6 +754,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             const Icon = service.icon
             const serviceOrders = localOrders.filter(o => o.service_type === service.id)
             const activeServiceOrders = serviceOrders.filter(o => !CLOSED_STATUSES.includes(o.status))
+            const isViralHooks = service.id === 'viral_hooks'
             return (
               <div
                 key={service.id}
@@ -581,7 +793,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                         onClick={() => setActiveTab('orders')}
                         className="flex items-center gap-1.5 text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
                       >
-                        View order{serviceOrders.length === 1 ? '' : 's'} <ArrowRight size={11} />
+                        {isViralHooks ? 'View generated hooks' : `View order${serviceOrders.length === 1 ? '' : 's'}`} <ArrowRight size={11} />
                       </button>
                     )}
                     {service.requiresScope ? (
@@ -599,7 +811,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                         }}
                         className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
                       >
-                        <Plus size={12} /> Request
+                        <Plus size={12} /> {isViralHooks ? 'Generate' : 'Request'}
                       </button>
                     )}
                   </div>
@@ -648,12 +860,21 @@ ${VIRAL_HOOKS_FRAMEWORK}`
 
       {/* Request modal */}
       {requestingService && (
-        <RequestModal
-          service={requestingService}
-          error={errorMsg}
-          onClose={() => setRequestingService(null)}
-          onSubmit={handleRequest}
-        />
+        requestingService.id === 'viral_hooks' ? (
+          <ViralHooksGeneratorModal
+            service={requestingService}
+            error={errorMsg}
+            onClose={() => setRequestingService(null)}
+            onSubmit={handleRequest}
+          />
+        ) : (
+          <RequestModal
+            service={requestingService}
+            error={errorMsg}
+            onClose={() => setRequestingService(null)}
+            onSubmit={handleRequest}
+          />
+        )
       )}
     </div>
   )
@@ -674,6 +895,7 @@ function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversa
   const StatusIcon = status.icon
   const service = SERVICES.find(s => s.id === order.service_type)
   const ServiceIcon = service?.icon ?? Globe
+  const isViralHooks = order.service_type === 'viral_hooks'
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 flex items-center justify-between gap-3 hover:border-gray-200 transition-all">
@@ -694,7 +916,7 @@ function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversa
             onClick={onOpenConversation}
             className="inline-flex text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8] mt-2"
           >
-            Open follow-up conversation
+            {isViralHooks ? 'Open generated hooks' : 'Open follow-up conversation'}
           </button>
         </div>
       </div>

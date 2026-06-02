@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { createNotification } from '@/lib/createNotification'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
-import { openRouterComplete } from '@/lib/agents/openrouter'
+import { openRouterCompleteWithFallback } from '@/lib/agents/openrouter'
 import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
 
 function displayBrief(brief: string) {
@@ -48,11 +48,15 @@ export async function POST(req: NextRequest) {
         .map(doc => `## ${doc.type}\n${doc.content}`)
         .join('\n\n')
 
-      const result = await openRouterComplete({
-        model: 'anthropic/claude-haiku-4',
-        messages: [{
-          role: 'user',
-          content: `You are Maya, Agent7even's marketing strategist. Generate a self-serve Viral Hooks output inside the user's Services page.
+      let result: { content: string; inputTokens: number; outputTokens: number; modelUsed: string }
+
+      try {
+        result = await openRouterCompleteWithFallback(
+          {
+            model: 'anthropic/claude-haiku-4-5',
+            messages: [{
+              role: 'user',
+              content: `You are Maya, Agent7even's marketing strategist. Generate a self-serve Viral Hooks output inside the user's Services page.
 
 Business context:
 - Company: ${profile.company_name ?? profile.full_name ?? 'Unknown'}
@@ -78,10 +82,19 @@ Return a polished self-serve deliverable with:
 5. A final "Strongest 5 to test first" section with one-sentence rationale for each.
 
 Do not ask follow-up questions. Make practical assumptions and produce the hooks now.`,
-        }],
-        max_tokens: 2400,
-        temperature: 0.8,
-      })
+            }],
+            max_tokens: 2400,
+            temperature: 0.8,
+          },
+          ['google/gemini-2.5-flash']
+        )
+      } catch (generationError) {
+        console.error('Viral Hooks generation error:', generationError)
+        return NextResponse.json(
+          { error: 'Viral Hooks generation failed. Try again in a moment.' },
+          { status: 502 }
+        )
+      }
 
       const { data: order, error } = await supabase
         .from('orders')
