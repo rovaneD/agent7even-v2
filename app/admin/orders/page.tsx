@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ChevronRight, Mail, MessageSquare, ShoppingBag } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 import AdminOrderConversation from './AdminOrderConversation'
+import AdminOrderStatusControls from './AdminOrderStatusControls'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 
 export const dynamic = 'force-dynamic'
@@ -127,6 +128,9 @@ export default async function AdminOrdersPage({
             </div>
             <Link href="/admin/orders" className="text-sm text-gray-400 hover:text-gray-700">Close</Link>
           </div>
+          <div className="p-6 border-b border-gray-100">
+            <AdminOrderStatusControls orderId={selectedOrder.id} initialStatus={selectedOrder.status} />
+          </div>
           {selectedOrder.brief && (
             <div className="p-6 border-b border-gray-100 bg-gray-50/50">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Original request</p>
@@ -136,8 +140,6 @@ export default async function AdminOrdersPage({
           <div className="p-6">
             {selectedTicket ? (
               <AdminOrderConversation
-                orderId={selectedOrder.id}
-                initialStatus={selectedOrder.status}
                 ticketId={selectedTicket.id}
                 initialMessages={selectedTicket.support_messages ?? []}
               />
@@ -176,7 +178,6 @@ export default async function AdminOrdersPage({
                     {active.map((order: any) => {
                       const clientName = order.profiles?.company_name || order.profiles?.full_name || order.profiles?.email || 'Unknown client'
                       const clientEmail = order.profiles?.email
-                      const ticket = supportTicketByOrderId.get(order.id)
                       return (
                       <tr key={order.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors align-top">
                         <td className="px-6 py-4">
@@ -191,9 +192,7 @@ export default async function AdminOrdersPage({
                           {clientEmail && <p className="text-xs text-gray-400 mt-1">{clientEmail}</p>}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${STATUS_COLORS[order.status] ?? 'bg-gray-50 text-gray-400'}`}>
-                            {order.status.replace(/_/g, ' ')}
-                          </span>
+                          <AdminOrderStatusControls orderId={order.id} initialStatus={order.status} variant="inline" />
                         </td>
                         <td className="px-6 py-4">
                           <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${PRIORITY_COLORS[order.priority] ?? 'bg-gray-50 text-gray-400'}`}>
@@ -207,15 +206,13 @@ export default async function AdminOrdersPage({
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
-                            {ticket && (
-                              <Link
-                                href={`/admin/orders?order=${order.id}`}
-                                className="inline-flex items-center gap-1 text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8]"
-                              >
-                                <MessageSquare size={13} />
-                                Follow up
-                              </Link>
-                            )}
+                            <Link
+                              href={`/admin/orders?order=${order.id}`}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8]"
+                            >
+                              <MessageSquare size={13} />
+                              Follow up
+                            </Link>
                             {clientEmail && (
                               <a
                                 href={`mailto:${clientEmail}?subject=${encodeURIComponent(`Re: ${order.title} request`)}`}
