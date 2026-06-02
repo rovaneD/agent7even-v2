@@ -541,9 +541,8 @@ ${VIRAL_HOOKS_FRAMEWORK}`
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {SERVICES.map(service => {
             const Icon = service.icon
-            const hasActiveOrder = localOrders.some(
-              o => o.service_type === service.id && !CLOSED_STATUSES.includes(o.status)
-            )
+            const serviceOrders = localOrders.filter(o => o.service_type === service.id)
+            const activeServiceOrders = serviceOrders.filter(o => !CLOSED_STATUSES.includes(o.status))
             return (
               <div
                 key={service.id}
@@ -570,35 +569,40 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed mb-4">{service.desc}</p>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-xs text-gray-400">
-                    {service.deliveryDays ? `~${service.deliveryDays} day delivery` : 'Custom timeline'}
+                    {activeServiceOrders.length > 0
+                      ? `${activeServiceOrders.length} active`
+                      : service.deliveryDays ? `~${service.deliveryDays} day delivery` : 'Custom timeline'}
                   </span>
-                  {hasActiveOrder ? (
-                    <button
-                      onClick={() => setActiveTab('orders')}
-                      className="flex items-center gap-1.5 text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
-                    >
-                      View order <ArrowRight size={11} />
-                    </button>
-                  ) : service.requiresScope ? (
-                    <button
-                      onClick={() => router.push('/dashboard/services/inquiry')}
-                      className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
-                    >
-                      <ArrowRight size={12} /> Get a quote
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setErrorMsg('')
-                        setRequestingService(service)
-                      }}
-                      className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
-                    >
-                      <Plus size={12} /> Request
-                    </button>
-                  )}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    {serviceOrders.length > 0 && (
+                      <button
+                        onClick={() => setActiveTab('orders')}
+                        className="flex items-center gap-1.5 text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
+                      >
+                        View order{serviceOrders.length === 1 ? '' : 's'} <ArrowRight size={11} />
+                      </button>
+                    )}
+                    {service.requiresScope ? (
+                      <button
+                        onClick={() => router.push('/dashboard/services/inquiry')}
+                        className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
+                      >
+                        <ArrowRight size={12} /> Get a quote
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setErrorMsg('')
+                          setRequestingService(service)
+                        }}
+                        className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
+                      >
+                        <Plus size={12} /> Request
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )
