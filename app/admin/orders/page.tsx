@@ -106,7 +106,7 @@ export default async function AdminOrdersPage({
   ].join('\n')
 
   return (
-    <div className="px-8 py-8 max-w-6xl">
+    <div className="px-8 py-8 max-w-[1440px]">
       <CanvasContextDispatcher context={contextStr} />
       <div className="mb-8">
         <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Admin</p>
@@ -162,16 +162,16 @@ export default async function AdminOrdersPage({
           {active.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Active</p>
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <table className="w-full">
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+                <table className="w-full min-w-[1120px]">
                   <thead>
                     <tr className="border-b border-gray-100">
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Service</th>
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Client</th>
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Status</th>
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Priority</th>
-                      <th className="text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Date</th>
-                      <th />
+                      <th className="w-[34%] text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Service</th>
+                      <th className="w-[20%] text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Client</th>
+                      <th className="w-[15%] text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Status</th>
+                      <th className="w-[10%] text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Priority</th>
+                      <th className="w-[8%] text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Date</th>
+                      <th className="w-[13%]" />
                     </tr>
                   </thead>
                   <tbody>
@@ -200,15 +200,15 @@ export default async function AdminOrdersPage({
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm text-gray-400">
+                          <span className="text-sm text-gray-400 whitespace-nowrap">
                             {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-3 whitespace-nowrap">
                             <Link
                               href={`/admin/orders?order=${order.id}`}
-                              className="inline-flex items-center gap-1 text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8]"
+                              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8] whitespace-nowrap"
                             >
                               <MessageSquare size={13} />
                               Follow up

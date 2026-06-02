@@ -27,12 +27,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 
+  const dbStatus = status === 'completed' ? 'approved' : status
+
   const { error } = await supabase
     .from('orders')
     .update({
-      status,
-      ...(status === 'delivered' ? { delivered_at: new Date().toISOString() } : {}),
-      ...(status === 'approved' || status === 'completed' ? { approved_at: new Date().toISOString() } : {}),
+      status: dbStatus,
+      ...(dbStatus === 'delivered' ? { delivered_at: new Date().toISOString() } : {}),
+      ...(dbStatus === 'approved' ? { approved_at: new Date().toISOString() } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq('id', order_id)

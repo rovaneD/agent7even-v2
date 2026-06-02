@@ -10,7 +10,7 @@ const STATUS_OPTIONS = [
   { value: 'in_progress', label: 'In Progress' },
   { value: 'delivered', label: 'Delivered' },
   { value: 'revision_requested', label: 'Revision Requested' },
-  { value: 'completed', label: 'Completed' },
+  { value: 'approved', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
 ]
 
@@ -38,11 +38,14 @@ export default function AdminOrderStatusControls({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId, status: nextStatus }),
       })
-      if (!res.ok) throw new Error('Failed to update status')
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Failed to update status')
+      }
       setStatus(nextStatus)
       router.refresh()
-    } catch {
-      setError('Could not update status.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update status.')
     } finally {
       setSaving(false)
     }
@@ -52,16 +55,16 @@ export default function AdminOrderStatusControls({
     return (
       <div className="flex flex-col gap-2">
         <select
-          value={status}
+          value={status === 'completed' ? 'approved' : status}
           disabled={saving}
           onChange={e => updateStatus(e.target.value)}
-          className="rounded-full border border-gray-100 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-600 outline-none disabled:opacity-60"
+          className="w-full min-w-[132px] rounded-full border border-gray-100 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-600 outline-none disabled:opacity-60"
         >
           {STATUS_OPTIONS.map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
-        {status !== 'completed' && (
+        {status !== 'completed' && status !== 'approved' && (
           <button
             type="button"
             onClick={() => updateStatus('completed')}
@@ -101,7 +104,7 @@ export default function AdminOrderStatusControls({
         className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2D3748] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1E293B] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-        {status === 'completed' ? 'Order completed' : 'Mark complete'}
+        {status === 'completed' || status === 'approved' ? 'Order completed' : 'Mark complete'}
       </button>
       {error && <p className="text-xs text-red-600 sm:self-center">{error}</p>}
     </div>
