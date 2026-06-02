@@ -9,7 +9,7 @@ import { useUser } from '@clerk/nextjs'
 const FAQS = [
   {
     q: "What's a credit, and what uses them?",
-    a: "Credits are the fuel for Maya's AI work. Each agent run, campaign generation, or Generate with Maya action costs credits — typically 2–25 depending on the task. Maya chat is separate and doesn't consume credits. Your credits reset on the 1st of every month. Starter gets 100, Growth gets 350, ProAgent gets 1,000.",
+    a: "Credits are the fuel for Maya's AI work. Maya chat uses 2 credits per message, and agent runs, campaign generation, or Generate with Maya actions typically cost 2–25 credits depending on the task. Your credits reset on the 1st of every month. Starter gets 100, Growth gets 350, ProAgent gets 1,000.",
   },
   {
     q: "How does the 3-day free trial work?",

@@ -247,3 +247,65 @@ The `POST /api/brand-kit/generate-fonts` route was already built. This session a
 | 19 | Rebuild Foundation content (both accounts) | ⚠️ Data recovery — fill form + rescore |
 | 20 | Profile dedup (still 2 rows/account) | ⚠️ Run dedup SQL |
 | 21 | Merge to production | 🔴 After validation |
+
+---
+
+## 7. Security, Credit Integrity, and Build Fixes — June 2, 2026
+
+Read-only audit findings were implemented in the v2 app.
+
+### Auth and ownership hardening
+
+- `app/api/agents/run/[agentId]/route.ts`
+  - Requires `INTERNAL_JOB_SECRET` for internal job execution.
+  - Verifies `agent_tasks.user_id` matches the requested profile before running.
+  - Reserves credits before calling OpenRouter/AI SDK and refunds on failure.
+- `app/api/agents/tasks/create/route.ts`
+  - Already forwards `x-internal-secret` when `INTERNAL_JOB_SECRET` is set.
+- `app/api/maya/task-complete/route.ts`
+  - Scoped campaign fetch and update by `user_id`.
+- `app/api/maya/session/route.ts`
+  - Uses session-derived profile ID, not body-supplied user ID.
+- OAuth callbacks now use single-use nonce state:
+  - `lib/oauth-state.ts`
+  - `app/api/analytics/ga-connect/route.ts`
+  - `app/api/analytics/ga-callback/route.ts`
+  - `app/api/analytics/meta-connect/route.ts`
+  - `app/api/analytics/meta-callback/route.ts`
+
+### Atomic credit model
+
+- New RPC helpers:
+  - `07_deduct_credits_rpc.sql`
+  - `04_refund_credits_rpc.sql`
+  - `06_oauth_states.sql`
+- `lib/credits.ts` now calls `deduct_credits()` and `refund_credits()` RPCs.
+- AI routes now reserve credits before model calls and refund on generation/parse/save failure:
+  - `app/api/campaigns/generate/route.ts`
+  - `app/api/brand-kit/generate-colors/route.ts`
+  - `app/api/brand-kit/generate-fonts/route.ts`
+  - `app/api/maya/chat/route.ts`
+  - `lib/agents/runner.ts`
+
+### Env and build
+
+- `lib/env.ts` now requires `INTERNAL_JOB_SECRET`.
+- `.env.example` added with all required and feature-gated variables.
+- `.env.local` now has a local `INTERNAL_JOB_SECRET`.
+- `app/api/stripe/portal/route.ts` has a safe `NEXT_PUBLIC_APP_URL` fallback.
+- Removed `next/font/google` from `app/layout.tsx`; system font fallback avoids Google Fonts build fetch failures.
+- Cleaned stale font variables in `app/globals.css` and `app/dashboard/DashboardShell.tsx`.
+- Pricing FAQ now states Maya chat costs 2 credits per message, matching `app/api/maya/chat/route.ts`.
+
+### Verification
+
+- `./node_modules/.bin/tsc --noEmit --incremental false --pretty false` passes.
+- `npm run build` passes with Next.js 16.2.6 / Turbopack after allowing build sandbox escalation.
+
+### Required deploy steps
+
+- Apply SQL in Supabase before deploying credit changes:
+  1. `06_oauth_states.sql`
+  2. `07_deduct_credits_rpc.sql`
+  3. `04_refund_credits_rpc.sql`
+- Add `INTERNAL_JOB_SECRET` to Vercel production/preview environment variables.

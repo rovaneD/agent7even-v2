@@ -737,7 +737,7 @@ export default function DashboardShell({
   // ── Canvas header ──────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'var(--font-geist-sans), system-ui, sans-serif', background: '#F1F5F9' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, sans-serif', background: '#F1F5F9' }}>
       <NewCampaignModal open={showNewCampaign} onClose={() => setShowNewCampaign(false)} />
 
       {/* Sidebar — desktop always visible */}

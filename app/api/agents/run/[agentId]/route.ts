@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { generateText } from 'ai'
 import { openrouter } from '@/lib/ai/client'
 import { createServiceClient } from '@/lib/supabase/server'
+import { deductCredits, refundCredits } from '@/lib/credits'
 import {
   updateTaskStatus,
   saveAgentOutput,
@@ -9,6 +10,7 @@ import {
   chargeAgentRun,
 } from '@/lib/agents/runner'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
+import { CREDIT_COST } from '@/lib/agents/cost'
 
 export const maxDuration = 120
 
@@ -16,9 +18,8 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ agentId: string }> }
 ) {
-  // Internal-secret check — active once INTERNAL_JOB_SECRET is set in env
   const secret = process.env.INTERNAL_JOB_SECRET
-  if (secret && req.headers.get('x-internal-secret') !== secret) {
+  if (!secret || req.headers.get('x-internal-secret') !== secret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -51,8 +52,13 @@ export async function POST(
   }
 
   await updateTaskStatus(taskId, 'running')
+  const creditsNeeded = CREDIT_COST.light
+  let creditsReserved = false
 
   try {
+    await deductCredits(userId, creditsNeeded, `agent_run — ${agentId} reserved`, taskId)
+    creditsReserved = true
+
     let system = await buildSystemPrompt(userId, agentId)
 
     if (input.rejection_feedback) {
@@ -85,6 +91,7 @@ export async function POST(
       inputTokens:  usage.inputTokens  ?? 0,
       outputTokens: usage.outputTokens ?? 0,
       model:        agent.model,
+      creditsAlreadyDeducted: true,
     })
 
     await updateTaskStatus(taskId, 'completed')
@@ -92,6 +99,9 @@ export async function POST(
 
   } catch (err) {
     await updateTaskStatus(taskId, 'failed').catch(() => {})
+    if (creditsReserved) {
+      await refundCredits(userId, creditsNeeded, `agent_run — ${agentId} failed refund`, taskId).catch(() => {})
+    }
     const msg = err instanceof Error ? err.message : ''
     if (msg === 'INSUFFICIENT_CREDITS') {
       return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })

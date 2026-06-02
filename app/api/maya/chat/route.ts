@@ -8,6 +8,7 @@ import { logActivity } from '@/lib/activity'
 import { createTask, updateTaskStatus } from '@/lib/agents/runner'
 import { calculateCost, CREDIT_COST } from '@/lib/agents/cost'
 import { loadFoundationContext } from '@/lib/agents/loadFoundationContext'
+import { deductCredits, refundCredits } from '@/lib/credits'
 
 const CHAT_CREDITS = CREDIT_COST.light  // 2 credits per turn
 const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
@@ -99,17 +100,6 @@ You are completing a specific task, not building a new campaign. Never say "spin
   // Task creation and credit deduction happen here, before foundation fetch,
   // so a missing/empty foundation never prevents cost recording.
   if (profile?.id) {
-    const { data: bal, error: balError } = await supabase
-      .from('credit_balances')
-      .select('balance')
-      .eq('user_id', profile.id)
-      .single()
-
-
-    if ((bal?.balance ?? 0) < CHAT_CREDITS) {
-      return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
-    }
-
     // ── 3. Load Foundation context ─────────────────────────────────────────
     // profile.id is the Supabase UUID — same key as foundation_answers + foundation_documents.
     // Do NOT branch on foundation_complete; that flag is unreliable (can be true with 0 docs).
@@ -282,6 +272,18 @@ Never use markdown in conversation. Save structure for the plan.`
     })
     await updateTaskStatus(task.id, 'running')
 
+    try {
+      await deductCredits(profile.id, CHAT_CREDITS, `Maya chat — task ${task.id}`, task.id)
+    } catch (err) {
+      await updateTaskStatus(task.id, 'failed').catch(() => {})
+      const msg = err instanceof Error ? err.message : ''
+      if (msg === 'INSUFFICIENT_CREDITS') {
+        return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
+      }
+      console.error('[maya/chat] credit deduction failed:', err)
+      return NextResponse.json({ error: 'Credit deduction failed' }, { status: 500 })
+    }
+
     // Inject file/image attachment parts into the last user message
     type AttachmentInput = { url: string; name: string; mimeType: string }
     const attachmentList: AttachmentInput[] = Array.isArray(attachments) ? attachments : []
@@ -308,11 +310,17 @@ Never use markdown in conversation. Save structure for the plan.`
         })()
       : messages
 
-    const result = await streamText({ model: models.maya, system, messages: finalMessages as typeof messages, maxOutputTokens: 2000 })
+    let result: Awaited<ReturnType<typeof streamText>>
+    try {
+      result = await streamText({ model: models.maya, system, messages: finalMessages as typeof messages, maxOutputTokens: 2000 })
+    } catch (err) {
+      await refundCredits(profile.id, CHAT_CREDITS, `Maya chat failed — task ${task.id} refund`, task.id).catch(() => {})
+      await updateTaskStatus(task.id, 'failed').catch(() => {})
+      console.error('[maya/chat] stream failed:', err)
+      return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
+    }
 
-    const profileId      = profile.id
-    const taskId         = task.id
-    const currentBalance = bal?.balance ?? 0
+    const taskId = task.id
 
     waitUntil((async () => {
       try {
@@ -333,23 +341,6 @@ Never use markdown in conversation. Save structure for the plan.`
           })
           .eq('id', taskId)
         if (taskErr) console.error('[maya/chat] agent_tasks update error:', taskErr.message)
-
-        const newBalance = currentBalance - CHAT_CREDITS
-        const { error: balErr } = await supabase
-          .from('credit_balances')
-          .update({ balance: newBalance, updated_at: new Date().toISOString() })
-          .eq('user_id', profileId)
-        if (balErr) console.error('[maya/chat] credit_balances update error:', balErr.message)
-
-        const { error: ledgerErr } = await supabase.from('credit_ledger').insert({
-          user_id:       profileId,
-          type:          'usage',
-          credits:       -CHAT_CREDITS,
-          balance_after: newBalance,
-          description:   `Maya chat — task ${taskId}`,
-          task_id:       taskId,
-        })
-        if (ledgerErr) console.error('[maya/chat] credit_ledger insert error:', ledgerErr.message)
 
       } catch (err) {
         console.error('[maya/chat] post-stream recording failed:', err)

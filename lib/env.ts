@@ -32,6 +32,8 @@ const SPEC: EnvSpec = {
     'RESEND_API_KEY',
     // Cron
     'CRON_SECRET',
+    // Internal job execution
+    'INTERNAL_JOB_SECRET',
   ],
   featureGated: [
     {
@@ -61,10 +63,6 @@ const SPEC: EnvSpec = {
     {
       feature: 'Foundation generate (Anthropic direct)',
       vars: ['ANTHROPIC_API_KEY'],
-    },
-    {
-      feature: 'Internal agent job path',
-      vars: ['INTERNAL_JOB_SECRET'],
     },
   ],
 }

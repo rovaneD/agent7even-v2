@@ -8,6 +8,7 @@ import { calculateCost, classifyRunTier, BUDGET_CAPS_USD, CREDIT_COST, type RunT
 import { openRouterComplete, openRouterCompleteWithFallback, type OpenRouterMessage } from './openrouter'
 import { buildAgentContext } from './buildAgentContext'
 import { AGENTS, type AgentId } from './registry'
+import { deductCredits, refundCredits } from '@/lib/credits'
 
 export type TaskStatus =
   | 'pending'
@@ -237,18 +238,7 @@ export async function runAgent(opts: {
   const { CREDIT_COST } = await import('./cost')
   const creditsNeeded = CREDIT_COST[tier]
 
-  // 1. Check credit balance
-  const { data: bal } = await supabase
-    .from('credit_balances')
-    .select('balance, lifetime_used')
-    .eq('user_id', opts.userId)
-    .single()
-
-  if ((bal?.balance ?? 0) < creditsNeeded) {
-    throw new Error('INSUFFICIENT_CREDITS')
-  }
-
-  // 2. Create task record
+  // 1. Create task record, then atomically reserve credits before model spend.
   const task = await createTask({
     userId:          opts.userId,
     agentId:         opts.agentId,
@@ -263,7 +253,15 @@ export async function runAgent(opts: {
     await setOrchestrationAgentStatus(opts.orchestrationId, opts.agentId, 'running')
   }
 
-  // 3. Call OpenRouter
+  await deductCredits(
+    opts.userId,
+    creditsNeeded,
+    `${opts.agentId} — ${tier} reserved`,
+    taskId,
+    opts.orchestrationId
+  )
+
+  // 2. Call OpenRouter
   let raw: { content: string; inputTokens: number; outputTokens: number; modelUsed: string }
 
   try {
@@ -288,16 +286,17 @@ export async function runAgent(opts: {
     }
   } catch (err) {
     await updateTaskStatus(taskId, 'failed')
+    await refundCredits(opts.userId, creditsNeeded, `${opts.agentId} failed — refund`, taskId).catch(() => {})
     if (opts.orchestrationId) {
       await setOrchestrationAgentStatus(opts.orchestrationId, opts.agentId, 'failed')
     }
     throw err
   }
 
-  // 4. Calculate cost using live OpenRouter pricing
+  // 3. Calculate cost using live OpenRouter pricing
   const costUsd = await calculateCost(raw.modelUsed, raw.inputTokens, raw.outputTokens)
 
-  // 5. Save output row
+  // 4. Save output row
   await supabase.from('agent_outputs').insert({
     task_id:       taskId,
     content:       raw.content,
@@ -306,7 +305,7 @@ export async function runAgent(opts: {
     cost_usd:      costUsd,
   })
 
-  // 6. Update task — completed + cost data
+  // 5. Update task — completed + cost data
   await supabase
     .from('agent_tasks')
     .update({
@@ -319,7 +318,7 @@ export async function runAgent(opts: {
     })
     .eq('id', taskId)
 
-  // 7. Roll up to orchestration — throws if budget exceeded
+  // 6. Roll up to orchestration — throws if budget exceeded
   if (opts.orchestrationId) {
     const { budgetExceeded } = await rollupCostToOrchestration(
       opts.orchestrationId,
@@ -329,31 +328,10 @@ export async function runAgent(opts: {
       costUsd
     )
     if (budgetExceeded) {
+      await refundCredits(opts.userId, creditsNeeded, `${opts.agentId} budget exceeded — refund`, taskId).catch(() => {})
       throw new Error('BUDGET_EXCEEDED')
     }
   }
-
-  // 8. Deduct credits + log to ledger
-  const newBalance = (bal?.balance ?? 0) - creditsNeeded
-  const newLifetimeUsed = (bal?.lifetime_used ?? 0) + creditsNeeded
-  await supabase
-    .from('credit_balances')
-    .upsert({
-      user_id:       opts.userId,
-      balance:       newBalance,
-      lifetime_used: newLifetimeUsed,
-      updated_at:    new Date().toISOString(),
-    })
-
-  await supabase.from('credit_ledger').insert({
-    user_id:          opts.userId,
-    type:             'usage',
-    credits:          -creditsNeeded,
-    balance_after:    newBalance,
-    description:      `${opts.agentId} — ${tier} run via ${raw.modelUsed}`,
-    task_id:          taskId,
-    orchestration_id: opts.orchestrationId ?? null,
-  })
 
   return {
     content:         raw.content,
@@ -444,18 +422,20 @@ export async function chargeAgentRun(opts: {
   inputTokens:  number
   outputTokens: number
   model:        string
+  creditsAlreadyDeducted?: boolean
 }): Promise<{ costUsd: number; creditsDeducted: number }> {
   const supabase = createServiceClient()
   const tier = classifyRunTier(1)        // single agent run = light
   const creditsNeeded = CREDIT_COST[tier]
 
-  const { data: bal } = await supabase
-    .from('credit_balances')
-    .select('balance, lifetime_used')
-    .eq('user_id', opts.userId)
-    .single()
-
-  if ((bal?.balance ?? 0) < creditsNeeded) throw new Error('INSUFFICIENT_CREDITS')
+  if (!opts.creditsAlreadyDeducted) {
+    await deductCredits(
+      opts.userId,
+      creditsNeeded,
+      `agent_run — ${tier} reserved`,
+      opts.taskId
+    )
+  }
 
   const costUsd = await calculateCost(opts.model, opts.inputTokens, opts.outputTokens)
 
@@ -469,21 +449,6 @@ export async function chargeAgentRun(opts: {
       updated_at:    new Date().toISOString(),
     })
     .eq('id', opts.taskId)
-
-  const newBalance = (bal?.balance ?? 0) - creditsNeeded
-  const newLifetimeUsed = (bal?.lifetime_used ?? 0) + creditsNeeded
-  await supabase
-    .from('credit_balances')
-    .upsert({ user_id: opts.userId, balance: newBalance, lifetime_used: newLifetimeUsed, updated_at: new Date().toISOString() })
-
-  await supabase.from('credit_ledger').insert({
-    user_id:       opts.userId,
-    type:          'usage',
-    credits:       -creditsNeeded,
-    balance_after: newBalance,
-    description:   `agent_run — ${tier} via ${opts.model}`,
-    task_id:       opts.taskId,
-  })
 
   return { costUsd, creditsDeducted: creditsNeeded }
 }

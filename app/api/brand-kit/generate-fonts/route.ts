@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
-import { deductCredits } from '@/lib/credits'
+import { deductCredits, refundCredits } from '@/lib/credits'
 
 const COST = 2
 
@@ -24,13 +24,15 @@ export async function POST() {
   const profile = profileRows?.[0] ?? null
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-  const { data: bal } = await supabase
-    .from('credit_balances')
-    .select('balance')
-    .eq('user_id', profile.id)
-    .single()
-  if ((bal?.balance ?? 0) < COST) {
-    return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
+  try {
+    await deductCredits(profile.id, COST, 'Brand Kit — generate font pairings reserved')
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : ''
+    if (msg === 'INSUFFICIENT_CREDITS') {
+      return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
+    }
+    console.error('[generate-fonts] credit deduction failed:', err)
+    return NextResponse.json({ error: 'Credit deduction failed' }, { status: 500 })
   }
 
   const answers = (profile.foundation_answers ?? {}) as Record<string, unknown>
@@ -83,6 +85,7 @@ ${context}`
     })
     raw = result.content.trim()
   } catch (err) {
+    await refundCredits(profile.id, COST, 'Brand Kit — font pairings generation failed refund').catch(() => {})
     console.error('[generate-fonts] openRouterComplete error:', err)
     return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
   }
@@ -93,14 +96,9 @@ ${context}`
     parsed = JSON.parse(cleaned)
     if (!Array.isArray(parsed.pairings) || parsed.pairings.length === 0) throw new Error('Empty pairings')
   } catch (err) {
+    await refundCredits(profile.id, COST, 'Brand Kit — font pairings parse failed refund').catch(() => {})
     console.error('[generate-fonts] JSON parse error:', err, '\nRaw:', raw)
     return NextResponse.json({ error: 'Failed to parse font suggestions' }, { status: 500 })
-  }
-
-  try {
-    await deductCredits(profile.id, COST, 'Brand Kit — generate font pairings')
-  } catch {
-    console.warn('[generate-fonts] credit deduction failed')
   }
 
   return NextResponse.json({ pairings: parsed.pairings })

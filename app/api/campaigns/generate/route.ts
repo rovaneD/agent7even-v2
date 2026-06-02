@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
-import { deductCredits } from '@/lib/credits'
+import { deductCredits, refundCredits } from '@/lib/credits'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -26,6 +26,17 @@ export async function POST(req: Request) {
     ? buildGuidedPrompt(body, profile)
     : buildOpenCanvasPrompt(body, profile)
 
+  try {
+    await deductCredits(profile.id, credits, `Campaign generation — ${model} reserved`)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : ''
+    if (msg === 'INSUFFICIENT_CREDITS') {
+      return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
+    }
+    console.error('[campaigns/generate] credit deduction failed:', err)
+    return NextResponse.json({ error: 'Credit deduction failed' }, { status: 500 })
+  }
+
   let result: { content: string; modelUsed: string }
   try {
     result = await openRouterComplete({
@@ -35,6 +46,7 @@ export async function POST(req: Request) {
       temperature: 0.7,
     })
   } catch (err) {
+    await refundCredits(profile.id, credits, `Campaign generation failed — ${model} refund`).catch(() => {})
     console.error('[campaigns/generate] openrouter error:', err)
     return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
   }
@@ -44,6 +56,7 @@ export async function POST(req: Request) {
     const clean = result.content.replace(/```json|```/g, '').trim()
     campaign = JSON.parse(clean)
   } catch {
+    await refundCredits(profile.id, credits, `Campaign parse failed — ${model} refund`).catch(() => {})
     console.error('[campaigns/generate] JSON parse failed:', result.content.slice(0, 200))
     return NextResponse.json({ error: 'Failed to parse campaign plan' }, { status: 500 })
   }
@@ -67,15 +80,9 @@ export async function POST(req: Request) {
     .single()
 
   if (insertError) {
+    await refundCredits(profile.id, credits, `Campaign save failed — ${model} refund`).catch(() => {})
     console.error('[campaigns/generate] insert error:', insertError.message)
     return NextResponse.json({ error: insertError.message }, { status: 500 })
-  }
-
-  try {
-    await deductCredits(profile.id, credits, `Campaign generation — ${model}`)
-  } catch (err) {
-    // Non-fatal — campaign is saved, just log the credit deduction failure
-    console.error('[campaigns/generate] credit deduction failed:', err)
   }
 
   return NextResponse.json({ campaignId: saved.id })
