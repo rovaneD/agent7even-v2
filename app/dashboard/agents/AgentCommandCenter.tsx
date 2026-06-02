@@ -118,6 +118,20 @@ export default function AgentCommandCenter({
   const [taskPriority, setTaskPriority] = useState<'normal' | 'high'>('normal')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [emailSequenceForm, setEmailSequenceForm] = useState({
+    sequenceType: 'Prospect response',
+    leadSource: '',
+    audience: '',
+    offer: '',
+    desiredOutcome: 'Schedule a demo',
+    emailCount: '3',
+    cadence: 'Every 2 days',
+    tone: 'Warm and direct',
+    painPoints: '',
+    ctaDestination: '',
+    mustInclude: '',
+    mustAvoid: '',
+  })
 
   // Orchestration state
   const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
@@ -284,12 +298,32 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
     if (!selectedAgent) return
     setSubmitting(true)
     try {
+      const isEmailSequence = selectedAgent === 'email_sequence_builder'
+      const emailInstructions = isEmailSequence
+        ? `Build a ${emailSequenceForm.emailCount}-email ${emailSequenceForm.sequenceType.toLowerCase()} sequence.
+
+Lead/source: ${emailSequenceForm.leadSource || 'Use best assumption from Foundation context'}
+Audience/lead type: ${emailSequenceForm.audience || 'Use ICP from Foundation context'}
+Offer/product: ${emailSequenceForm.offer || 'Use the primary offer from Foundation context'}
+Desired outcome: ${emailSequenceForm.desiredOutcome}
+Send cadence: ${emailSequenceForm.cadence}
+Tone: ${emailSequenceForm.tone}
+Pain points to address: ${emailSequenceForm.painPoints || 'Use pain points from Foundation context'}
+CTA destination: ${emailSequenceForm.ctaDestination || 'Use a low-friction next step'}
+Must include: ${emailSequenceForm.mustInclude || 'None specified'}
+Must avoid: ${emailSequenceForm.mustAvoid || 'None specified'}
+
+Return a complete, ready-to-review sequence. Do not ask setup questions. If anything is missing, state your assumption and continue.`
+        : taskInstructions
+
       await fetch('/api/agents/tasks/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           agent: selectedAgent,
-          input: { instructions: taskInstructions },
+          input: isEmailSequence
+            ? { instructions: emailInstructions, ...emailSequenceForm }
+            : { instructions: taskInstructions },
           priority: taskPriority,
         }),
       })
@@ -366,13 +400,94 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         {/* Instructions + submit */}
         {selectedAgent && (
           <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: 18 }}>
-            <textarea
-              value={taskInstructions}
-              onChange={e => setTaskInstructions(e.target.value)}
-              placeholder={`Tell ${AGENTS[selectedAgent].name} what you need — plain language...`}
-              rows={3}
-              style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', marginBottom: 12, boxSizing: 'border-box', color: '#2D3748' }}
-            />
+            {selectedAgent === 'email_sequence_builder' ? (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sequence type</span>
+                    <select
+                      value={emailSequenceForm.sequenceType}
+                      onChange={e => setEmailSequenceForm(prev => ({ ...prev, sequenceType: e.target.value }))}
+                      style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', background: '#fff', fontFamily: 'inherit' }}
+                    >
+                      {['Welcome', 'Lead nurture', 'Prospect response', 'Demo follow-up', 'Abandoned checkout', 'Re-engagement', 'Launch/promo'].map(option => (
+                        <option key={option}>{option}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Email count</span>
+                    <select
+                      value={emailSequenceForm.emailCount}
+                      onChange={e => setEmailSequenceForm(prev => ({ ...prev, emailCount: e.target.value }))}
+                      style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', background: '#fff', fontFamily: 'inherit' }}
+                    >
+                      {['3', '4', '5', '6', '7'].map(option => <option key={option}>{option}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: 5 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Goal</span>
+                    <select
+                      value={emailSequenceForm.desiredOutcome}
+                      onChange={e => setEmailSequenceForm(prev => ({ ...prev, desiredOutcome: e.target.value }))}
+                      style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', background: '#fff', fontFamily: 'inherit' }}
+                    >
+                      {['Schedule a demo', 'Start a trial', 'Book a consultation', 'Purchase', 'Reply to email', 'Move to next conversation stage'].map(option => (
+                        <option key={option}>{option}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                  {[
+                    ['leadSource', 'Lead/source', 'Website form, social DM, referral, demo, existing list...'],
+                    ['audience', 'Audience / lead type', 'Warm lead, new subscriber, trial user, past client...'],
+                    ['offer', 'Offer / product', 'What should the sequence move them toward?'],
+                    ['ctaDestination', 'CTA destination', 'Booking link, pricing page, reply, checkout, trial page...'],
+                    ['cadence', 'Send cadence', 'Every 2 days, daily for 3 days, weekly...'],
+                    ['tone', 'Tone', 'Warm and direct, premium, playful, consultative...'],
+                  ].map(([key, label, placeholder]) => (
+                    <label key={key} style={{ display: 'grid', gap: 5 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+                      <input
+                        value={emailSequenceForm[key as keyof typeof emailSequenceForm]}
+                        onChange={e => setEmailSequenceForm(prev => ({ ...prev, [key]: e.target.value }))}
+                        placeholder={placeholder}
+                        style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', fontFamily: 'inherit' }}
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  {[
+                    ['painPoints', 'Pain points', 'What objections or frustrations should it address?'],
+                    ['mustInclude', 'Must include', 'Proof, offer details, links, deadlines, product facts...'],
+                    ['mustAvoid', 'Must avoid', 'Discounts, guarantees, competitor names, certain claims...'],
+                  ].map(([key, label, placeholder]) => (
+                    <label key={key} style={{ display: 'grid', gap: 5 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+                      <textarea
+                        value={emailSequenceForm[key as keyof typeof emailSequenceForm]}
+                        onChange={e => setEmailSequenceForm(prev => ({ ...prev, [key]: e.target.value }))}
+                        rows={3}
+                        placeholder={placeholder}
+                        style={{ border: '1px solid #E2E8F0', borderRadius: 8, padding: '9px 10px', fontSize: 13, color: '#2D3748', fontFamily: 'inherit', resize: 'vertical' }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <textarea
+                value={taskInstructions}
+                onChange={e => setTaskInstructions(e.target.value)}
+                placeholder={`Tell ${AGENTS[selectedAgent].name} what you need — plain language...`}
+                rows={3}
+                style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', marginBottom: 12, boxSizing: 'border-box', color: '#2D3748' }}
+              />
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ display: 'flex', gap: 6 }}>
                 {(['normal', 'high'] as const).map(p => (

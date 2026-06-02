@@ -39,6 +39,8 @@ export default function AgentOutputDetail({
   const [status, setStatus] = useState(initialStatus)
   const [showRevision, setShowRevision] = useState(false)
   const [revisionNote, setRevisionNote] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [draftContent, setDraftContent] = useState(content)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -53,10 +55,11 @@ export default function AgentOutputDetail({
       const res = await fetch(`/api/agents/tasks/${taskId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ outputId }),
+        body: JSON.stringify({ outputId, editedContent: isEditing ? draftContent : undefined }),
       })
       if (!res.ok) throw new Error(await res.text())
       setStatus('approved')
+      setIsEditing(false)
       setMessage('Approved.')
     } catch {
       setMessage('Approval failed. Try again from the approval queue.')
@@ -105,9 +108,24 @@ export default function AgentOutputDetail({
             {subtitle}
           </p>
         </div>
-        <span style={{ fontSize: 11, borderRadius: 20, padding: '4px 10px', background: badge.background, color: badge.color, fontWeight: 700, whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
-          {status.replace(/_/g, ' ')}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {isPending && (
+            <button
+              type="button"
+              onClick={() => {
+                setDraftContent(content)
+                setIsEditing(prev => !prev)
+                setMessage(null)
+              }}
+              style={{ border: '1px solid #CBD5E1', background: '#fff', color: '#2D3748', borderRadius: 20, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+            >
+              {isEditing ? 'Preview' : 'Edit'}
+            </button>
+          )}
+          <span style={{ fontSize: 11, borderRadius: 20, padding: '4px 10px', background: badge.background, color: badge.color, fontWeight: 700, whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
+            {status.replace(/_/g, ' ')}
+          </span>
+        </div>
       </div>
 
       {asksForInput && isPending && (
@@ -121,28 +139,38 @@ export default function AgentOutputDetail({
         </div>
       )}
 
-      <div
-        style={{
-          padding: '22px 24px',
-          fontSize: 14,
-          lineHeight: 1.7,
-          color: '#334155',
-        }}
-      >
-        <ReactMarkdown
-          components={{
-            h1: props => <h1 style={{ fontSize: 22, lineHeight: 1.25, margin: '0 0 14px', color: '#2D3748' }} {...props} />,
-            h2: props => <h2 style={{ fontSize: 18, lineHeight: 1.35, margin: '22px 0 10px', color: '#2D3748' }} {...props} />,
-            h3: props => <h3 style={{ fontSize: 15, lineHeight: 1.4, margin: '18px 0 8px', color: '#2D3748' }} {...props} />,
-            p: props => <p style={{ margin: '0 0 14px' }} {...props} />,
-            ul: props => <ul style={{ margin: '0 0 16px', paddingLeft: 22 }} {...props} />,
-            ol: props => <ol style={{ margin: '0 0 16px', paddingLeft: 22 }} {...props} />,
-            li: props => <li style={{ marginBottom: 6 }} {...props} />,
-            strong: props => <strong style={{ color: '#2D3748', fontWeight: 700 }} {...props} />,
-          }}
-        >
-          {content || 'No content saved for this output.'}
-        </ReactMarkdown>
+      <div style={{ padding: '22px 24px', fontSize: 14, lineHeight: 1.7, color: '#334155' }}>
+        {isEditing ? (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                Editing mode
+              </p>
+              <span style={{ fontSize: 12, color: '#94A3B8' }}>Changes are saved when you approve.</span>
+            </div>
+            <textarea
+              value={draftContent}
+              onChange={event => setDraftContent(event.target.value)}
+              rows={24}
+              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #CBD5E1', borderRadius: 12, padding: '14px 16px', resize: 'vertical', font: 'inherit', fontSize: 13.5, lineHeight: 1.65, color: '#2D3748', outline: 'none', background: '#fff' }}
+            />
+          </div>
+        ) : (
+          <ReactMarkdown
+            components={{
+              h1: props => <h1 style={{ fontSize: 22, lineHeight: 1.25, margin: '0 0 14px', color: '#2D3748' }} {...props} />,
+              h2: props => <h2 style={{ fontSize: 18, lineHeight: 1.35, margin: '22px 0 10px', color: '#2D3748' }} {...props} />,
+              h3: props => <h3 style={{ fontSize: 15, lineHeight: 1.4, margin: '18px 0 8px', color: '#2D3748' }} {...props} />,
+              p: props => <p style={{ margin: '0 0 14px' }} {...props} />,
+              ul: props => <ul style={{ margin: '0 0 16px', paddingLeft: 22 }} {...props} />,
+              ol: props => <ol style={{ margin: '0 0 16px', paddingLeft: 22 }} {...props} />,
+              li: props => <li style={{ marginBottom: 6 }} {...props} />,
+              strong: props => <strong style={{ color: '#2D3748', fontWeight: 700 }} {...props} />,
+            }}
+          >
+            {draftContent || 'No content saved for this output.'}
+          </ReactMarkdown>
+        )}
       </div>
 
       {isPending && (
@@ -179,6 +207,19 @@ export default function AgentOutputDetail({
             >
               {showRevision ? 'Send revision request' : 'Request revision'}
             </button>
+            {isEditing && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDraftContent(content)
+                  setIsEditing(false)
+                }}
+                disabled={busy}
+                style={{ padding: '9px 10px', border: 'none', background: 'transparent', color: '#64748B', fontSize: 13, cursor: busy ? 'not-allowed' : 'pointer' }}
+              >
+                Discard edits
+              </button>
+            )}
             {showRevision && (
               <button
                 type="button"
