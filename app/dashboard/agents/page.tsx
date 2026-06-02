@@ -26,6 +26,7 @@ export default async function AgentsPage() {
     { data: recentTasks },
     { data: schedules },
     { data: allOutputs },
+    { data: recentOutputs },
   ] = await Promise.all([
     supabase
       .from('agent_tasks')
@@ -39,7 +40,7 @@ export default async function AgentsPage() {
       .select('*, agent_outputs(*)')
       .eq('user_id', profile.id)
       .eq('requires_approval', true)
-      .eq('status', 'complete')
+      .eq('status', 'completed')
       .is('approved_at', null)
       .is('rejected_at', null)
       .order('created_at', { ascending: false }),
@@ -60,6 +61,13 @@ export default async function AgentsPage() {
       .from('agent_outputs')
       .select('agent, status')
       .eq('user_id', profile.id),
+
+    supabase
+      .from('agent_outputs')
+      .select('id, task_id, agent, output_type, title, content, status, created_at')
+      .eq('user_id', profile.id)
+      .order('created_at', { ascending: false })
+      .limit(50),
   ])
 
   // Build scorecard stats per agent
@@ -76,7 +84,7 @@ export default async function AgentsPage() {
       agentId: agent.id,
       name: agent.name,
       icon: agent.icon,
-      lastRunAt: lastTask?.completed_at ?? null,
+      lastRunAt: lastTask?.completed_at ?? lastTask?.updated_at ?? lastTask?.created_at ?? null,
       totalOutputs: outputs.length,
       approvalRate: approvalRequired > 0 ? Math.round((approved / approvalRequired) * 100) : null,
       isScheduled: !!schedule?.is_active,
@@ -91,6 +99,7 @@ export default async function AgentsPage() {
       activeTasks={activeTasks ?? []}
       pendingApprovals={pendingApprovals ?? []}
       recentTasks={recentTasks ?? []}
+      recentOutputs={recentOutputs ?? []}
       scorecard={scorecard}
     />
   )

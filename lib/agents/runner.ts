@@ -212,9 +212,15 @@ export async function createTask(opts: {
 
 export async function updateTaskStatus(taskId: string, status: TaskStatus) {
   const supabase = createServiceClient()
+  const now = new Date().toISOString()
+  const update: Record<string, string> = { status, updated_at: now }
+
+  if (status === 'running') update.started_at = now
+  if (status === 'completed' || status === 'failed') update.completed_at = now
+
   await supabase
     .from('agent_tasks')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(update)
     .eq('id', taskId)
 }
 
@@ -315,6 +321,7 @@ export async function runAgent(opts: {
       cost_usd:      costUsd,
       model:         raw.modelUsed,
       updated_at:    new Date().toISOString(),
+      completed_at:  new Date().toISOString(),
     })
     .eq('id', taskId)
 

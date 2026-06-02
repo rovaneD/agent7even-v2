@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { AGENTS, AgentId, AgentDefinition } from '@/lib/agents/registry'
@@ -22,6 +22,7 @@ interface AgentTask {
   created_at: string
   started_at: string | null
   completed_at: string | null
+  updated_at: string | null
   agent_outputs?: AgentOutput[]
 }
 
@@ -31,7 +32,7 @@ interface AgentOutput {
   agent: string
   output_type: string
   title: string
-  content: { raw?: string; parsed?: Record<string, string> }
+  content: { raw?: string; parsed?: Record<string, unknown> } | string | null
   status: string
   created_at: string
 }
@@ -53,6 +54,7 @@ interface Props {
   activeTasks: AgentTask[]
   pendingApprovals: AgentTask[]
   recentTasks: AgentTask[]
+  recentOutputs: AgentOutput[]
   scorecard: ScorecardEntry[]
 }
 
@@ -73,27 +75,33 @@ function relativeTime(iso: string | null): string {
 }
 
 function getContentPreview(output: AgentOutput): string {
-  const raw = output.content?.raw ?? ''
+  const raw = getOutputText(output)
   return raw.length > 120 ? raw.slice(0, 120) + '…' : raw
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  running: '#22c55e',
-  pending: '#f59e0b',
-  complete: '#6b7280',
-  failed: '#ef4444',
-  scheduled: '#3b82f6',
+function getOutputText(output: AgentOutput): string {
+  const content = output.content
+  if (!content) return ''
+  if (typeof content === 'string') return content
+  if (typeof content.raw === 'string') return content.raw
+  if (content.parsed) return JSON.stringify(content.parsed, null, 2)
+  return JSON.stringify(content, null, 2)
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
 export default function AgentCommandCenter({
   profileId, companyName, activeTasks: initActiveTasks,
-  pendingApprovals: initPendingApprovals, recentTasks: initRecent, scorecard,
+  pendingApprovals: initPendingApprovals, recentTasks: initRecent, recentOutputs: initRecentOutputs, scorecard,
 }: Props) {
   const [activeTasks, setActiveTasks] = useState(initActiveTasks)
   const [pendingApprovals, setPendingApprovals] = useState(initPendingApprovals)
   const [recentTasks] = useState(initRecent)
+  const [recentOutputs, setRecentOutputs] = useState(initRecentOutputs)
+  const [selectedOutputAgent, setSelectedOutputAgent] = useState<string | null>(
+    scorecard.find(entry => entry.totalOutputs > 0)?.agentId ?? null
+  )
+  const [selectedOutputId, setSelectedOutputId] = useState<string | null>(initRecentOutputs[0]?.id ?? null)
 
   // New task form state
   const [selectedAgent, setSelectedAgent] = useState<AgentId | null>(null)
@@ -191,7 +199,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
 
           if (
             updated.requires_approval &&
-            updated.status === 'complete' &&
+            updated.status === 'completed' &&
             !updated.approved_at &&
             !updated.rejected_at
           ) {
@@ -200,6 +208,26 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               return exists ? prev : [updated, ...prev]
             })
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'agent_outputs',
+          filter: `user_id=eq.${profileId}`,
+        },
+        (payload) => {
+          const output = payload.new as AgentOutput
+          if (!output) return
+
+          setRecentOutputs(prev => {
+            if (prev.some(existing => existing.id === output.id)) return prev
+            return [output, ...prev].slice(0, 50)
+          })
+          setSelectedOutputAgent(prev => prev ?? output.agent)
+          setSelectedOutputId(prev => prev ?? output.id)
         }
       )
       .subscribe()
@@ -270,8 +298,20 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
   const runningTasks = activeTasks.filter(t => t.status === 'running')
   const queuedTasks = activeTasks.filter(t => t.status === 'pending')
   const completedToday = recentTasks
-    .filter(t => t.status === 'complete' && t.completed_at && (Date.now() - new Date(t.completed_at).getTime()) < 86400000)
+    .filter(t => t.status === 'completed' && t.completed_at && (Date.now() - new Date(t.completed_at).getTime()) < 86400000)
     .slice(0, 5)
+  const scorecardWithLiveCounts = scorecard.map(entry => ({
+    ...entry,
+    totalOutputs: Math.max(entry.totalOutputs, recentOutputs.filter(output => output.agent === entry.agentId).length),
+  }))
+  const selectedAgentDef = selectedOutputAgent ? AGENTS[selectedOutputAgent as AgentId] : null
+  const selectedAgentOutputs = selectedOutputAgent
+    ? recentOutputs.filter(output => output.agent === selectedOutputAgent)
+    : []
+  const selectedOutput =
+    selectedAgentOutputs.find(output => output.id === selectedOutputId) ??
+    selectedAgentOutputs[0] ??
+    null
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -459,29 +499,127 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
             <span style={{ fontSize: 10, color: '#ccc', textTransform: 'uppercase', paddingBottom: 8, borderBottom: '0.5px solid #f0f0f0' }}>Outputs</span>
             <span style={{ fontSize: 10, color: '#ccc', textTransform: 'uppercase', paddingBottom: 8, borderBottom: '0.5px solid #f0f0f0' }}>Status</span>
 
-            {scorecard.map(entry => (
-              <>
-                <div key={`${entry.agentId}-name`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderBottom: '0.5px solid #f8f8f8' }}>
+            {scorecardWithLiveCounts.map(entry => (
+              <Fragment key={entry.agentId}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOutputAgent(entry.agentId)
+                    setSelectedOutputId(recentOutputs.find(output => output.agent === entry.agentId)?.id ?? null)
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', border: 0, borderBottom: '0.5px solid #f8f8f8', background: selectedOutputAgent === entry.agentId ? '#F8FAFC' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                >
                   <i className={`ti ${entry.icon}`} style={{ fontSize: 14, color: '#888', flexShrink: 0 }} />
                   <span style={{ fontSize: 12.5, color: '#333', whiteSpace: 'nowrap' }}>{entry.name}</span>
-                </div>
-                <span key={`${entry.agentId}-last`} style={{ fontSize: 12, color: '#888', padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', whiteSpace: 'nowrap' }}>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOutputAgent(entry.agentId)
+                    setSelectedOutputId(recentOutputs.find(output => output.agent === entry.agentId)?.id ?? null)
+                  }}
+                  style={{ fontSize: 12, color: '#888', padding: '9px 0', border: 0, borderBottom: '0.5px solid #f8f8f8', background: selectedOutputAgent === entry.agentId ? '#F8FAFC' : 'transparent', whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                >
                   {relativeTime(entry.lastRunAt)}
-                </span>
-                <span key={`${entry.agentId}-count`} style={{ fontSize: 12, color: '#555', padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', textAlign: 'center' }}>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOutputAgent(entry.agentId)
+                    setSelectedOutputId(recentOutputs.find(output => output.agent === entry.agentId)?.id ?? null)
+                  }}
+                  style={{ fontSize: 12, color: entry.totalOutputs > 0 ? '#3B82F6' : '#555', padding: '9px 0', border: 0, borderBottom: '0.5px solid #f8f8f8', background: selectedOutputAgent === entry.agentId ? '#F8FAFC' : 'transparent', textAlign: 'center', cursor: 'pointer', fontFamily: 'inherit', fontWeight: entry.totalOutputs > 0 ? 600 : 400 }}
+                >
                   {entry.totalOutputs}
-                </span>
-                <div key={`${entry.agentId}-status`} style={{ padding: '9px 0', borderBottom: '0.5px solid #f8f8f8' }}>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOutputAgent(entry.agentId)
+                    setSelectedOutputId(recentOutputs.find(output => output.agent === entry.agentId)?.id ?? null)
+                  }}
+                  style={{ padding: '9px 0', border: 0, borderBottom: '0.5px solid #f8f8f8', background: selectedOutputAgent === entry.agentId ? '#F8FAFC' : 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                >
                   {entry.isScheduled ? (
                     <span style={{ fontSize: 11, background: 'rgba(16,185,129,0.1)', color: '#10B981', borderRadius: 20, padding: '2px 8px', fontWeight: 500 }}>Active</span>
                   ) : (
                     <span style={{ fontSize: 11, background: '#F8FAFC', color: '#64748B', borderRadius: 20, padding: '2px 8px', border: '1px solid #E2E8F0', fontWeight: 500 }}>Idle</span>
                   )}
-                </div>
-              </>
+                </button>
+              </Fragment>
             ))}
           </div>
         </div>
+      </div>
+
+      {/* ═══ ZONE 2B: Agent Outputs ═══ */}
+      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
+          <div>
+            <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 4 }}>Agent outputs</p>
+            <p style={{ fontSize: 13, color: '#2D3748', margin: 0 }}>
+              {selectedAgentDef ? selectedAgentDef.name : 'Select an agent'} {selectedAgentOutputs.length > 0 ? `· ${selectedAgentOutputs.length} recent output${selectedAgentOutputs.length !== 1 ? 's' : ''}` : ''}
+            </p>
+          </div>
+          {selectedOutput && (
+            <Link href="/dashboard/agents/approvals" style={{ fontSize: 12.5, color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}>
+              Review approvals
+            </Link>
+          )}
+        </div>
+
+        {selectedOutputAgent && selectedAgentOutputs.length > 0 && selectedOutput ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16 }}>
+            <div style={{ border: '1px solid #E2E8F0', borderRadius: 12, overflow: 'hidden', maxHeight: 380, overflowY: 'auto' }}>
+              {selectedAgentOutputs.map(output => {
+                const selected = output.id === selectedOutput.id
+                return (
+                  <button
+                    key={output.id}
+                    type="button"
+                    onClick={() => setSelectedOutputId(output.id)}
+                    style={{ width: '100%', display: 'block', padding: '12px 14px', border: 0, borderBottom: '1px solid #F1F5F9', background: selected ? '#EFF6FF' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+                  >
+                    <p style={{ fontSize: 12.5, fontWeight: 600, color: '#2D3748', margin: '0 0 4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {output.title || AGENTS[output.agent as AgentId]?.name || output.agent}
+                    </p>
+                    <p style={{ fontSize: 11, color: '#64748B', margin: '0 0 6px' }}>
+                      {relativeTime(output.created_at)} · {output.status.replace(/_/g, ' ')}
+                    </p>
+                    <p style={{ fontSize: 11.5, color: '#94A3B8', margin: 0, lineHeight: 1.35 }}>
+                      {getContentPreview(output)}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+
+            <article style={{ border: '1px solid #E2E8F0', borderRadius: 12, padding: 18, minHeight: 300, maxHeight: 520, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+                <div>
+                  <h2 style={{ fontSize: 15, fontWeight: 600, color: '#2D3748', margin: '0 0 4px' }}>
+                    {selectedOutput.title || selectedAgentDef?.name || 'Agent output'}
+                  </h2>
+                  <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>
+                    {relativeTime(selectedOutput.created_at)} · {selectedOutput.status.replace(/_/g, ' ')}
+                  </p>
+                </div>
+                <span style={{ fontSize: 11, borderRadius: 20, padding: '3px 8px', background: selectedOutput.status === 'approved' ? '#F0FDF4' : '#FEF3C7', color: selectedOutput.status === 'approved' ? '#16A34A' : '#B45309', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                  {selectedOutput.status.replace(/_/g, ' ')}
+                </span>
+              </div>
+              <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontFamily: 'var(--font-geist), system-ui, sans-serif', fontSize: 13, lineHeight: 1.6, color: '#334155' }}>
+                {getOutputText(selectedOutput)}
+              </pre>
+            </article>
+          </div>
+        ) : (
+          <div style={{ border: '1px dashed #CBD5E1', borderRadius: 12, padding: '24px 16px', textAlign: 'center' }}>
+            <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
+              {selectedOutputAgent ? 'No saved outputs for this agent yet.' : 'Click an agent in the scorecard to view its saved outputs.'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* ═══ ZONE 3: Create New Task ═══ */}

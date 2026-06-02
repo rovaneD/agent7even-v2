@@ -22,7 +22,7 @@ export async function GET() {
     .select('*, agent_outputs(*)')
     .eq('user_id', profile.id)
     .eq('requires_approval', true)
-    .eq('status', 'complete')
+    .eq('status', 'completed')
     .is('approved_at', null)
     .is('rejected_at', null)
     .order('created_at', { ascending: false })

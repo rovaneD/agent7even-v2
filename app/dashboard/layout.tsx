@@ -71,7 +71,7 @@ export default async function DashboardLayout({
           .select('id', { count: 'exact', head: true })
           .eq('user_id', p.id)
           .eq('requires_approval', true)
-          .eq('status', 'complete')
+          .eq('status', 'completed')
           .is('approved_at', null)
           .is('rejected_at', null),
 
