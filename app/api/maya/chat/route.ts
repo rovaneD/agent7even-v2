@@ -48,6 +48,12 @@ export async function POST(req: Request) {
       modeInstruction = 'Respond EXACTLY with this message and nothing else: "What can I help you with? I can walk you through any part of Maya."'
       return { ...msg, content: 'Hi, I need some help.' }
     }
+    if (text === '__PAGE_CONTEXT__') {
+      modeInstruction = `The user opened Maya from the page they are currently working on. Use the PAGE CONTEXT/CANVAS CONTEXT below as your primary frame.
+
+Start by naming the page or workflow they are in and offer the most useful next-step help for that exact screen. Do not show the generic Maya mode menu. Do not ask what business they run. Ask one practical question that helps them get a better outcome from the current page.`
+      return { ...msg, content: "I'm working on this page." }
+    }
     if (text.startsWith('__TASK__')) {
       const task = text.replace(/^__TASK__/, '').replace(/__$/, '').trim()
       modeInstruction = `The user wants to complete this specific marketing task right now: "${task}"

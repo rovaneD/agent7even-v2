@@ -114,6 +114,7 @@ export default function MayChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesRef    = useRef<UIMessage[]>([])
   const modeRef        = useRef<string | null>(initialMode)
+  const pageContextStartedRef = useRef(false)
 
   function handleDragMouseDown(e: React.MouseEvent) {
     e.preventDefault()
@@ -199,7 +200,7 @@ export default function MayChatPanel({
 
   const visibleMessages = messages.filter(msg => {
     const t = getMsgText(msg)
-    return !t.startsWith('__SYSTEM_INIT__') && !t.startsWith('__MODE__') && !t.startsWith('__TASK__') && t !== '__HELP__'
+    return !t.startsWith('__SYSTEM_INIT__') && !t.startsWith('__MODE__') && !t.startsWith('__TASK__') && !t.startsWith('__PAGE_CONTEXT__') && t !== '__HELP__'
   })
 
   const chatStarted    = visibleMessages.length > 0 || mode !== null
@@ -223,6 +224,14 @@ export default function MayChatPanel({
     if (!isHelpMode) return
     sendMessage({ text: '__HELP__' })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (pageContextStartedRef.current || isHelpMode || pendingTask || initialMessages.length || initialMode) return
+    if (!canvasContext && !canvasData) return
+    pageContextStartedRef.current = true
+    setMode('page')
+    sendMessage({ text: '__PAGE_CONTEXT__' })
+  }, [canvasContext, canvasData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectMode(modeId: string) {
     setMode(modeId)

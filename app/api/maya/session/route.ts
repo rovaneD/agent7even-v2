@@ -80,7 +80,9 @@ export async function POST(req: Request) {
   const firstUserText = extractFirstUserText(messages ?? [])
   let title = 'New conversation'
 
-  if (firstUserText && !firstUserText.startsWith('__')) {
+  if (mode === 'page' && canvasContext) {
+    title = `${canvasContext} help`
+  } else if (firstUserText && !firstUserText.startsWith('__')) {
     try {
       const result = await openRouterComplete({
         model: 'anthropic/claude-haiku-4-5',
