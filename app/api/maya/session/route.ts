@@ -33,6 +33,40 @@ export async function GET(req: Request) {
   return NextResponse.json({ session: session ?? null })
 }
 
+// DELETE /api/maya/session?id=<sessionId>
+export async function DELETE(req: Request) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { searchParams } = new URL(req.url)
+  const sessionId = searchParams.get('id')
+  if (!sessionId) return NextResponse.json({ error: 'Missing session id' }, { status: 400 })
+
+  const supabase = createServiceClient()
+
+  const { data: profileRows } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('clerk_user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const profile = profileRows?.[0]
+  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+  const { error } = await supabase
+    .from('maya_sessions')
+    .delete()
+    .eq('id', sessionId)
+    .eq('user_id', profile.id)
+
+  if (error) {
+    console.error('[session] delete error:', error.message)
+    return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true })
+}
+
 // POST /api/maya/session
 // Body: { sessionId?, messages, mode?, canvasContext? }
 // - sessionId provided → update that session

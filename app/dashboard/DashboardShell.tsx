@@ -30,6 +30,7 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
@@ -250,6 +251,7 @@ export default function DashboardShell({
   const [activeMessages, setActiveMessages]     = useState<unknown[]>([])
   const [activeMode, setActiveMode]             = useState<string | null>(null)
   const [loadingSession, setLoadingSession]     = useState<string | null>(null)
+  const [deletingSession, setDeletingSession]   = useState<string | null>(null)
 
   function toggleSidebar() {
     const next = !sidebarCollapsed
@@ -369,6 +371,30 @@ export default function DashboardShell({
       setPanelKey(k => k + 1)
     } finally {
       setLoadingSession(null)
+    }
+  }
+
+  async function deleteSession(session: Session) {
+    const title = session.title ?? 'Untitled'
+    if (!window.confirm(`Delete "${title}"? This removes the chat from your history.`)) return
+
+    setDeletingSession(session.id)
+    try {
+      const res = await fetch(`/api/maya/session?id=${session.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete session')
+      setSessions(prev => prev.filter(s => s.id !== session.id))
+
+      if (session.id === activeSessionId) {
+        setActiveSessionId(null)
+        setActiveMessages([])
+        setActiveMode(null)
+        setMayaPendingTask(null)
+        setPanelKey(k => k + 1)
+      }
+    } catch {
+      window.alert('Could not delete that chat. Try again.')
+    } finally {
+      setDeletingSession(null)
     }
   }
 
@@ -567,31 +593,56 @@ export default function DashboardShell({
                 {group.sessions.map(session => {
                   const isActive  = session.id === activeSessionId
                   const isLoading = session.id === loadingSession
+                  const isDeleting = session.id === deletingSession
                   return (
-                    <button
+                    <div
                       key={session.id}
-                      onClick={() => loadSession(session.id)}
                       style={{
-                        width: '100%', display: 'block', textAlign: 'left', padding: '4px 6px 4px 10px',
-                        borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        fontSize: 11.5, color: isActive ? '#2D3748' : '#64748B',
+                        display: 'flex', alignItems: 'center', gap: 3, borderRadius: 6,
                         background: isActive ? '#F8FAFC' : 'transparent',
-                        opacity: isLoading ? 0.5 : 1,
-                        transition: 'background 0.1s, color 0.1s',
-                        marginBottom: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                        opacity: isLoading || isDeleting ? 0.5 : 1,
+                        marginBottom: 1,
                       }}
-                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC' }}
-                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
-                      title={session.title ?? 'Untitled'}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = '#F8FAFC' }}
+                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
                     >
-                      <span style={{ color: '#CBD5E1', marginRight: 5, fontSize: 10 }}>›</span>
-                      {session.canvas_context && (
-                        <span style={{ fontSize: 9.5, color: '#3B82F6', marginRight: 4, fontWeight: 500 }}>
-                          {session.canvas_context} ·{' '}
-                        </span>
-                      )}
-                      {session.title ?? 'Untitled'}
-                    </button>
+                      <button
+                        onClick={() => loadSession(session.id)}
+                        disabled={isDeleting}
+                        style={{
+                          minWidth: 0, flex: 1, display: 'block', textAlign: 'left', padding: '4px 2px 4px 10px',
+                          borderRadius: 6, border: 'none', cursor: isDeleting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                          fontSize: 11.5, color: isActive ? '#2D3748' : '#64748B',
+                          background: 'transparent',
+                          transition: 'color 0.1s',
+                          overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                        }}
+                        title={session.title ?? 'Untitled'}
+                      >
+                        <span style={{ color: '#CBD5E1', marginRight: 5, fontSize: 10 }}>›</span>
+                        {session.canvas_context && (
+                          <span style={{ fontSize: 9.5, color: '#3B82F6', marginRight: 4, fontWeight: 500 }}>
+                            {session.canvas_context} ·{' '}
+                          </span>
+                        )}
+                        {session.title ?? 'Untitled'}
+                      </button>
+                      <button
+                        onClick={() => deleteSession(session)}
+                        disabled={isDeleting}
+                        title="Delete chat"
+                        style={{
+                          width: 22, height: 22, borderRadius: 6, border: 'none',
+                          background: 'transparent', color: '#CBD5E1',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: isDeleting ? 'not-allowed' : 'pointer', flexShrink: 0,
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#EF4444' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#CBD5E1' }}
+                      >
+                        <Trash2 size={11} strokeWidth={1.8} />
+                      </button>
+                    </div>
                   )
                 })}
               </div>
