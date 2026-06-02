@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
+import AgentOutputDetail from './AgentOutputDetail'
 
 type AgentOutput = {
   id: string
@@ -146,23 +147,15 @@ export default async function AgentOutputsPage({
             </div>
           </aside>
 
-          <article style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 22 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 18 }}>
-              <div>
-                <h2 style={{ fontSize: 18, fontWeight: 600, color: '#2D3748', margin: '0 0 5px' }}>
-                  {getOutputDescription(selectedOutput)}
-                </h2>
-                <p style={{ fontSize: 12.5, color: '#64748B', margin: 0 }}>
-                  {selectedOutput.title || agent.name} · {relativeTime(selectedOutput.created_at)}
-                </p>
-              </div>
-              <span style={{ fontSize: 11, borderRadius: 20, padding: '3px 9px', background: selectedOutput.status === 'approved' ? '#F0FDF4' : '#FEF3C7', color: selectedOutput.status === 'approved' ? '#16A34A' : '#B45309', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                {selectedOutput.status.replace(/_/g, ' ')}
-              </span>
-            </div>
-
-            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontFamily: 'var(--font-geist), system-ui, sans-serif', fontSize: 13.5, lineHeight: 1.65, color: '#334155' }}>{getOutputText(selectedOutput)}</pre>
-          </article>
+          <AgentOutputDetail
+            agentName={agent.name}
+            taskId={selectedOutput.task_id}
+            outputId={selectedOutput.id}
+            title={getOutputDescription(selectedOutput)}
+            subtitle={`${selectedOutput.title || agent.name} · ${relativeTime(selectedOutput.created_at)}`}
+            status={selectedOutput.status}
+            content={getOutputText(selectedOutput)}
+          />
         </div>
       ) : (
         <div style={{ background: '#FFFFFF', border: '1px dashed #CBD5E1', borderRadius: 16, padding: '48px 24px', textAlign: 'center' }}>
