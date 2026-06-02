@@ -240,7 +240,7 @@ export async function runAgent(opts: {
   // 1. Check credit balance
   const { data: bal } = await supabase
     .from('credit_balances')
-    .select('balance')
+    .select('balance, lifetime_used')
     .eq('user_id', opts.userId)
     .single()
 
@@ -335,12 +335,13 @@ export async function runAgent(opts: {
 
   // 8. Deduct credits + log to ledger
   const newBalance = (bal?.balance ?? 0) - creditsNeeded
+  const newLifetimeUsed = (bal?.lifetime_used ?? 0) + creditsNeeded
   await supabase
     .from('credit_balances')
     .upsert({
       user_id:       opts.userId,
       balance:       newBalance,
-      lifetime_used: creditsNeeded,
+      lifetime_used: newLifetimeUsed,
       updated_at:    new Date().toISOString(),
     })
 
@@ -450,7 +451,7 @@ export async function chargeAgentRun(opts: {
 
   const { data: bal } = await supabase
     .from('credit_balances')
-    .select('balance')
+    .select('balance, lifetime_used')
     .eq('user_id', opts.userId)
     .single()
 
@@ -470,9 +471,10 @@ export async function chargeAgentRun(opts: {
     .eq('id', opts.taskId)
 
   const newBalance = (bal?.balance ?? 0) - creditsNeeded
+  const newLifetimeUsed = (bal?.lifetime_used ?? 0) + creditsNeeded
   await supabase
     .from('credit_balances')
-    .upsert({ user_id: opts.userId, balance: newBalance, updated_at: new Date().toISOString() })
+    .upsert({ user_id: opts.userId, balance: newBalance, lifetime_used: newLifetimeUsed, updated_at: new Date().toISOString() })
 
   await supabase.from('credit_ledger').insert({
     user_id:       opts.userId,
