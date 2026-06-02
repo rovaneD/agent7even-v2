@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { ChevronRight, Mail, MessageSquare, ShoppingBag } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 
+export const dynamic = 'force-dynamic'
+
 const STATUS_COLORS: Record<string, string> = {
   submitted: 'bg-blue-50 text-blue-600',
   in_review: 'bg-yellow-50 text-yellow-600',
@@ -29,10 +31,27 @@ export default async function AdminOrdersPage() {
   await requireAdmin()
   const supabase = createServiceClient()
 
-  const { data: orders } = await supabase
+  const { data: orderRows, error: ordersError } = await supabase
     .from('orders')
-    .select('*, profiles(full_name, company_name, email)')
+    .select('*')
     .order('created_at', { ascending: false })
+
+  if (ordersError) console.error('[admin/orders] orders query error:', ordersError.message)
+
+  const rawOrders = orderRows ?? []
+  const profileIds = [...new Set(rawOrders.map((order: any) => order.user_id).filter(Boolean))]
+  const { data: profiles } = profileIds.length
+    ? await supabase
+      .from('profiles')
+      .select('id, full_name, company_name, email')
+      .in('id', profileIds)
+    : { data: [] }
+
+  const profilesById = new Map((profiles ?? []).map((profile: any) => [profile.id, profile]))
+  const orders = rawOrders.map((order: any) => ({
+    ...order,
+    profiles: profilesById.get(order.user_id) ?? null,
+  }))
 
   const userIds = [...new Set((orders ?? []).map((order: any) => order.user_id).filter(Boolean))]
   const { data: serviceTickets } = userIds.length

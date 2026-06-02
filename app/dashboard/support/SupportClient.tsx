@@ -31,6 +31,7 @@ interface Props {
   clientEmail: string
   clientName: string
   tickets: Ticket[]
+  initialTicketId?: string | null
 }
 
 function priorityBadge(priority: string | null) {
@@ -70,10 +71,11 @@ function formatDate(str: string) {
 }
 
 export default function SupportClient({
-  profileId: _profileId, companyName, clientEmail: _clientEmail, clientName: _clientName, tickets: initial,
+  profileId: _profileId, companyName, clientEmail: _clientEmail, clientName: _clientName, tickets: initial, initialTicketId = null,
 }: Props) {
   const [tickets, setTickets] = useState<Ticket[]>(initial)
-  const [view, setView] = useState<'list' | 'new' | 'thread'>('list')
+  const initialTicket = initialTicketId ? initial.find(t => t.id === initialTicketId) ?? null : null
+  const [view, setView] = useState<'list' | 'new' | 'thread'>(initialTicket ? 'thread' : 'list')
 
   useEffect(() => {
     const openTickets = initial.filter(t => t.status === 'open')
@@ -88,7 +90,7 @@ ${ticketLines}
 The user can view existing tickets or open a new support ticket with the Agent7even team.`
     window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  const [activeTicket, setActiveTicket] = useState<Ticket | null>(null)
+  const [activeTicket, setActiveTicket] = useState<Ticket | null>(initialTicket)
 
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')

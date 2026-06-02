@@ -27,10 +27,33 @@ export default async function ServicesPage() {
     .eq('user_id', profile?.id)
     .order('created_at', { ascending: false })
 
+  const { data: serviceTickets } = profile?.id
+    ? await supabase
+      .from('support_tickets')
+      .select('id, body')
+      .eq('user_id', profile.id)
+      .ilike('subject', 'Service request:%')
+      .order('updated_at', { ascending: false })
+    : { data: [] }
+
+  const supportTicketByOrderId = new Map<string, string>()
+  for (const ticket of serviceTickets ?? []) {
+    const match = typeof ticket.body === 'string' ? ticket.body.match(/Order ID:\s*([a-f0-9-]+)/i) : null
+    const orderId = match?.[1]
+    if (orderId && !supportTicketByOrderId.has(orderId)) {
+      supportTicketByOrderId.set(orderId, ticket.id)
+    }
+  }
+
+  const ordersWithTickets = (orders ?? []).map(order => ({
+    ...order,
+    support_ticket_id: supportTicketByOrderId.get(order.id) ?? null,
+  }))
+
   return (
     <ServicesClient
       profile={profile}
-      orders={orders ?? []}
+      orders={ordersWithTickets}
     />
   )
 }

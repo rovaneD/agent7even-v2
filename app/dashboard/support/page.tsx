@@ -3,9 +3,14 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import SupportClient from './SupportClient'
 
-export default async function SupportPage() {
+export default async function SupportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ticket?: string }>
+}) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
+  const { ticket: initialTicketId } = await searchParams
 
   const supabase = createServiceClient()
 
@@ -35,6 +40,7 @@ export default async function SupportPage() {
       clientEmail={profile.email ?? ''}
       clientName={profile.full_name ?? ''}
       tickets={tickets ?? []}
+      initialTicketId={initialTicketId ?? null}
     />
   )
 }

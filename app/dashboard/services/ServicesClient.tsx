@@ -458,6 +458,7 @@ function OrderCard({ order }: { order: Order }) {
   const StatusIcon = status.icon
   const service = SERVICES.find(s => s.id === order.service_type)
   const ServiceIcon = service?.icon ?? Globe
+  const supportHref = order.support_ticket_id ? `/dashboard/support?ticket=${order.support_ticket_id}` : '/dashboard/support'
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 flex items-center justify-between gap-3 hover:border-gray-200 transition-all">
@@ -474,7 +475,7 @@ function OrderCard({ order }: { order: Order }) {
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{order.brief}</p>
           )}
           <a
-            href="/dashboard/support"
+            href={supportHref}
             className="inline-flex text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8] mt-2"
           >
             Open follow-up conversation
