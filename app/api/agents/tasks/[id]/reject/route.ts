@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(
@@ -61,13 +62,22 @@ export async function POST(
   // Re-queue with rejection note as additional context
   if (task && rejectionText) {
     const { createTask } = await import('@/lib/agents/runner')
-    await createTask({
+    const { dispatchAgentTask } = await import('@/lib/agents/dispatch')
+    const replacement = await createTask({
       userId:      profile.id,
       agent:       task.agent,
       input:       { ...(task.input as Record<string, unknown>), rejection_feedback: rejectionText },
       triggerType: 'user',
       priority:    task.priority,
     })
+    waitUntil(
+      dispatchAgentTask({
+        taskId: replacement.id,
+        agent: task.agent,
+        input: { ...(task.input as Record<string, unknown>), rejection_feedback: rejectionText },
+        userId: profile.id,
+      })
+    )
   }
 
   return NextResponse.json({ success: true })

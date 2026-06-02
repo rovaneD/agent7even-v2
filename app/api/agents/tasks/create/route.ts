@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createTask } from '@/lib/agents/runner'
+import { dispatchAgentTask } from '@/lib/agents/dispatch'
 import { AgentId } from '@/lib/agents/registry'
 import { logActivity } from '@/lib/activity'
 
@@ -39,33 +40,12 @@ export async function POST(req: Request) {
     // waitUntil keeps the execution context alive so the fetch isn't GC'd when the response returns.
     // On any failure, mark the task failed so it surfaces in the UI instead of hanging at pending.
     if (!scheduledFor) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-      const runUrl = `${baseUrl}/api/agents/run/${agent.replace(/_/g, '-')}`
       waitUntil(
-        fetch(runUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(process.env.INTERNAL_JOB_SECRET
-              ? { 'x-internal-secret': process.env.INTERNAL_JOB_SECRET }
-              : {}),
-          },
-          body: JSON.stringify({ taskId: task.id, input: { ...input, userId: profile.id } }),
-        }).then(async (res) => {
-          if (!res.ok) {
-            const text = await res.text().catch(() => `HTTP ${res.status}`)
-            console.error('Agent run failed:', runUrl, res.status, text)
-            await supabase
-              .from('agent_tasks')
-              .update({ status: 'failed', error: `run-route error ${res.status}: ${text.slice(0, 200)}`, completed_at: new Date().toISOString() })
-              .eq('id', task.id)
-          }
-        }).catch(async (err) => {
-          console.error('Agent fire error:', err)
-          await supabase
-            .from('agent_tasks')
-            .update({ status: 'failed', error: String(err).slice(0, 200), completed_at: new Date().toISOString() })
-            .eq('id', task.id)
+        dispatchAgentTask({
+          taskId: task.id,
+          agent,
+          input,
+          userId: profile.id,
         })
       )
     }

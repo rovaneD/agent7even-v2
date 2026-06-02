@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createTask } from '@/lib/agents/runner'
+import { dispatchAgentTask } from '@/lib/agents/dispatch'
 import { AgentId } from '@/lib/agents/registry'
 
 export async function GET(req: NextRequest) {
@@ -25,11 +26,18 @@ export async function GET(req: NextRequest) {
 
   for (const schedule of schedules) {
     try {
-      await createTask({
+      const task = await createTask({
         userId: schedule.user_id,
         agent: schedule.agent as AgentId,
         input: schedule.config ?? {},
         triggerType: 'scheduled',
+      })
+
+      await dispatchAgentTask({
+        taskId: task.id,
+        agent: schedule.agent,
+        input: schedule.config ?? {},
+        userId: schedule.user_id,
       })
 
       // Compute next run time

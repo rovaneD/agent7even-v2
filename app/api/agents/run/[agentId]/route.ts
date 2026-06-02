@@ -11,6 +11,7 @@ import {
 } from '@/lib/agents/runner'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
 import { CREDIT_COST } from '@/lib/agents/cost'
+import { buildAgentFlowPrompt, buildAgentUserMessage } from '@/lib/agents/flows'
 
 export const maxDuration = 120
 
@@ -59,15 +60,18 @@ export async function POST(
     await deductCredits(userId, creditsNeeded, `agent_run — ${agentId} reserved`, taskId)
     creditsReserved = true
 
-    let system = await buildSystemPrompt(userId, agentId)
+    const [baseSystem, flowSystem] = await Promise.all([
+      buildSystemPrompt(userId, agentId),
+      buildAgentFlowPrompt(userId, agentId, input ?? {}),
+    ])
+
+    let system = [baseSystem, flowSystem].filter(Boolean).join('\n\n---\n\n')
 
     if (input.rejection_feedback) {
       system += `\n\nIMPORTANT — Previous version was rejected with this feedback: "${input.rejection_feedback}". Address this directly before anything else.`
     }
 
-    const userMessage = input.instructions
-      ? String(input.instructions)
-      : `Run your standard ${agent.name} analysis now.`
+    const userMessage = buildAgentUserMessage(agentId, input ?? {})
 
     const { text, usage } = await generateText({
       model:            openrouter(agent.model),

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
 
@@ -83,16 +84,26 @@ export async function POST(req: Request) {
 
     if (feedback && tasksToRequeue) {
       const { createTask } = await import('@/lib/agents/runner')
+      const { dispatchAgentTask } = await import('@/lib/agents/dispatch')
       await Promise.all(
-        tasksToRequeue.map(task =>
-          createTask({
+        tasksToRequeue.map(async task => {
+          const input = { ...(task.input as Record<string, unknown>), rejection_feedback: feedback }
+          const replacement = await createTask({
             userId: profile.id,
             agent: task.agent,
-            input: { ...(task.input as Record<string, unknown>), rejection_feedback: feedback },
+            input,
             triggerType: 'user',
             priority: task.priority,
           })
-        )
+          waitUntil(
+            dispatchAgentTask({
+              taskId: replacement.id,
+              agent: task.agent,
+              input,
+              userId: profile.id,
+            })
+          )
+        })
       )
     }
     logActivity(profile.id, 'agent_bulk_rejected', { count: taskIds.length }).catch(() => {})
