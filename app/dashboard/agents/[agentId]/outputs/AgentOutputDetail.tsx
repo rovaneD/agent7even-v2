@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 
 type AgentOutputDetailProps = {
@@ -27,6 +28,193 @@ function looksLikeInputRequest(content: string): boolean {
   return /required inputs|need a few details|quick context questions|i need/i.test(content)
 }
 
+type CampaignDay = {
+  day: string
+  items: string[]
+}
+
+type CampaignWeek = {
+  number: string
+  theme: string
+  days: CampaignDay[]
+}
+
+function stripMarkdown(value: string) {
+  return value
+    .replace(/^#+\s*/g, '')
+    .replace(/\*\*/g, '')
+    .trim()
+}
+
+function parseCampaignOutput(content: string): { overview: string; weeks: CampaignWeek[]; remainder: string } {
+  const normalized = content.replace(/\r\n/g, '\n')
+  const overviewMatch = normalized.match(/(?:^|\n)\s*\**OVERVIEW:\**\s*([\s\S]*?)(?=\n\s*-{3,}|\n\s*\**WEEK\s+\d+|$)/i)
+  const overview = overviewMatch?.[1]?.trim() ?? ''
+  const weekRegex = /(?:^|\n)\s*\**WEEK\s+(\d+):?\**\s*([^\n]*)/gi
+  const weekMatches = [...normalized.matchAll(weekRegex)]
+  const weeks: CampaignWeek[] = []
+
+  for (let index = 0; index < weekMatches.length; index += 1) {
+    const match = weekMatches[index]
+    const start = (match.index ?? 0) + match[0].length
+    const end = weekMatches[index + 1]?.index ?? normalized.length
+    const block = normalized.slice(start, end)
+    const dayRegex = /(?:^|\n)\s*\**(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun):\**\s*/gi
+    const dayMatches = [...block.matchAll(dayRegex)]
+    const days: CampaignDay[] = []
+
+    for (let dayIndex = 0; dayIndex < dayMatches.length; dayIndex += 1) {
+      const dayMatch = dayMatches[dayIndex]
+      const dayStart = (dayMatch.index ?? 0) + dayMatch[0].length
+      const dayEnd = dayMatches[dayIndex + 1]?.index ?? block.length
+      const dayBlock = block.slice(dayStart, dayEnd)
+      const items = dayBlock
+        .split('\n')
+        .map(line => stripMarkdown(line.replace(/^[-•]\s*/, '')))
+        .filter(Boolean)
+
+      days.push({
+        day: stripMarkdown(dayMatch[1]),
+        items,
+      })
+    }
+
+    weeks.push({
+      number: match[1],
+      theme: stripMarkdown(match[2] || `Week ${match[1]}`),
+      days,
+    })
+  }
+
+  const remainderStart = weekMatches.length
+    ? (weekMatches[weekMatches.length - 1].index ?? normalized.length)
+    : overviewMatch
+      ? (overviewMatch.index ?? 0) + overviewMatch[0].length
+      : 0
+  const remainder = normalized.slice(remainderStart).trim()
+
+  return { overview, weeks, remainder }
+}
+
+function actionLabel(item: string) {
+  const lower = item.toLowerCase()
+  if (lower.includes('reel')) return 'Reel'
+  if (lower.includes('carousel')) return 'Carousel'
+  if (lower.includes('stories') || lower.includes('story')) return 'Story'
+  if (lower.includes('email')) return 'Email'
+  if (lower.includes('ad')) return 'Ad'
+  if (lower.includes('comment')) return 'Engage'
+  if (lower.includes('post')) return 'Post'
+  return 'Action'
+}
+
+function actionColor(label: string) {
+  if (label === 'Email') return { background: '#EFF6FF', color: '#2563EB' }
+  if (label === 'Ad') return { background: '#F5F3FF', color: '#7C3AED' }
+  if (label === 'Engage') return { background: '#ECFDF5', color: '#059669' }
+  if (label === 'Reel' || label === 'Story') return { background: '#FFF7ED', color: '#EA580C' }
+  return { background: '#F8FAFC', color: '#64748B' }
+}
+
+function CampaignOutputView({ content }: { content: string }) {
+  const parsed = useMemo(() => parseCampaignOutput(content), [content])
+
+  if (!parsed.overview && parsed.weeks.length === 0) {
+    return (
+      <ReactMarkdown>
+        {content || 'No content saved for this output.'}
+      </ReactMarkdown>
+    )
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 18 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <Link
+          href="/dashboard/calendar"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, borderRadius: 10, background: '#2D3748', color: '#fff', padding: '9px 13px', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}
+        >
+          <i className="ti ti-calendar" style={{ fontSize: 14 }} />
+          Open calendar
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('maya:open-task', {
+              detail: {
+                task: 'Turn this approved campaign into schedule-ready captions, emails, creative prompts, and a production checklist.',
+              },
+            }))
+          }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: '1px solid #CBD5E1', borderRadius: 10, background: '#fff', color: '#2D3748', padding: '9px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
+        >
+          <i className="ti ti-sparkles" style={{ fontSize: 14 }} />
+          Build assets with Maya
+        </button>
+      </div>
+
+      {parsed.overview && (
+        <section style={{ border: '1px solid #E2E8F0', background: '#F8FAFC', borderRadius: 14, padding: 18 }}>
+          <p style={{ fontSize: 10, color: '#64748B', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>
+            Campaign Brief
+          </p>
+          <p style={{ fontSize: 14, color: '#334155', lineHeight: 1.7, margin: 0 }}>
+            {parsed.overview}
+          </p>
+        </section>
+      )}
+
+      {parsed.weeks.map(week => (
+        <section key={week.number} style={{ border: '1px solid #E2E8F0', borderRadius: 16, overflow: 'hidden', background: '#fff' }}>
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <p style={{ fontSize: 10, color: '#3B82F6', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px' }}>
+                Week {week.number}
+              </p>
+              <h3 style={{ fontSize: 16, color: '#2D3748', fontWeight: 700, margin: 0 }}>
+                {week.theme}
+              </h3>
+            </div>
+            <span style={{ fontSize: 12, color: '#64748B', whiteSpace: 'nowrap' }}>
+              {week.days.reduce((sum, day) => sum + day.items.length, 0)} actions
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 0 }}>
+            {week.days.map(day => (
+              <div key={`${week.number}-${day.day}`} style={{ padding: 16, borderRight: '1px solid #F1F5F9', borderBottom: '1px solid #F1F5F9' }}>
+                <p style={{ fontSize: 12, color: '#2D3748', fontWeight: 800, margin: '0 0 10px' }}>
+                  {day.day}
+                </p>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {day.items.map((item, index) => {
+                    const label = actionLabel(item)
+                    const color = actionColor(label)
+                    return (
+                      <div key={`${day.day}-${index}`} style={{ border: '1px solid #F1F5F9', borderRadius: 12, padding: 12, background: '#fff' }}>
+                        <span style={{ display: 'inline-flex', background: color.background, color: color.color, borderRadius: 999, padding: '2px 7px', fontSize: 10, fontWeight: 800, marginBottom: 7 }}>
+                          {label}
+                        </span>
+                        <p style={{ fontSize: 12.5, color: '#334155', lineHeight: 1.55, margin: 0 }}>
+                          {item}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      {parsed.weeks.length === 0 && parsed.remainder && (
+        <ReactMarkdown>{parsed.remainder}</ReactMarkdown>
+      )}
+    </div>
+  )
+}
+
 export default function AgentOutputDetail({
   agentName,
   taskId,
@@ -45,6 +233,7 @@ export default function AgentOutputDetail({
   const [message, setMessage] = useState<string | null>(null)
 
   const asksForInput = useMemo(() => looksLikeInputRequest(content), [content])
+  const useCampaignView = agentName === 'Campaign Builder'
   const isPending = status === 'pending_approval'
   const badge = statusStyles(status)
 
@@ -155,6 +344,8 @@ export default function AgentOutputDetail({
               style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #CBD5E1', borderRadius: 12, padding: '14px 16px', resize: 'vertical', font: 'inherit', fontSize: 13.5, lineHeight: 1.65, color: '#2D3748', outline: 'none', background: '#fff' }}
             />
           </div>
+        ) : useCampaignView ? (
+          <CampaignOutputView content={draftContent || 'No content saved for this output.'} />
         ) : (
           <ReactMarkdown
             components={{
