@@ -34,17 +34,27 @@ export async function GET(req: Request) {
 }
 
 // POST /api/maya/session
-// Body: { userId, sessionId?, messages, mode?, canvasContext? }
+// Body: { sessionId?, messages, mode?, canvasContext? }
 // - sessionId provided → update that session
 // - no sessionId → create new session with generated title
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { userId: profileId, sessionId, messages, mode, canvasContext } = await req.json()
-  if (!profileId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
-
   const supabase = createServiceClient()
+
+  const { data: profileRows } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('clerk_user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+  const profile = profileRows?.[0]
+  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+  const profileId = profile.id
+
+  const { sessionId, messages, mode, canvasContext } = await req.json()
 
   // ── Update existing session ────────────────────────────────────────────────
   if (sessionId) {

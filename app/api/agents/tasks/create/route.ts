@@ -44,7 +44,12 @@ export async function POST(req: Request) {
       waitUntil(
         fetch(runUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(process.env.INTERNAL_JOB_SECRET
+              ? { 'x-internal-secret': process.env.INTERNAL_JOB_SECRET }
+              : {}),
+          },
           body: JSON.stringify({ taskId: task.id, input: { ...input, userId: profile.id } }),
         }).then(async (res) => {
           if (!res.ok) {

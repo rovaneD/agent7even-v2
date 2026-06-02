@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { generateText } from 'ai'
 import { openrouter } from '@/lib/ai/client'
+import { createServiceClient } from '@/lib/supabase/server'
 import {
   updateTaskStatus,
   saveAgentOutput,
@@ -15,6 +16,12 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ agentId: string }> }
 ) {
+  // Internal-secret check — active once INTERNAL_JOB_SECRET is set in env
+  const secret = process.env.INTERNAL_JOB_SECRET
+  if (secret && req.headers.get('x-internal-secret') !== secret) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { agentId: rawAgentId } = await params
   const { taskId, input } = await req.json()
 
@@ -30,6 +37,18 @@ export async function POST(
   if (!taskId) return NextResponse.json({ error: 'taskId required' }, { status: 400 })
 
   const userId = input.userId as string
+
+  // Verify task belongs to the claimed userId — prevents forged body identity
+  const supabase = createServiceClient()
+  const { data: taskRow } = await supabase
+    .from('agent_tasks')
+    .select('user_id')
+    .eq('id', taskId)
+    .single()
+
+  if (!taskRow || taskRow.user_id !== userId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 
   await updateTaskStatus(taskId, 'running')
 

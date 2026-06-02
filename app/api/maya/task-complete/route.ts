@@ -46,7 +46,10 @@ export async function POST(req: Request) {
     .from('campaigns')
     .select('tasks')
     .eq('id', targetCampaignId)
+    .eq('user_id', profile.id)
     .single()
+
+  if (!campaignData) return NextResponse.json({ error: 'No campaign found' }, { status: 404 })
 
   const currentTasks: unknown[] = Array.isArray(campaignData?.tasks) ? campaignData.tasks : []
   console.log('current tasks:', currentTasks.length)
@@ -68,6 +71,7 @@ export async function POST(req: Request) {
     .from('campaigns')
     .update({ tasks: newTasks, updated_at: new Date().toISOString() })
     .eq('id', targetCampaignId)
+    .eq('user_id', profile.id)
 
   if (updateError) {
     console.error('[task-complete] update error:', updateError.message)
