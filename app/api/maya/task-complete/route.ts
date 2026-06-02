@@ -8,7 +8,6 @@ export async function POST(req: Request) {
 
   const { campaignId, task, selectedOption, messages } = await req.json()
 
-  console.log('task-complete called, campaignId:', campaignId)
 
   const supabase = createServiceClient()
 
@@ -24,7 +23,6 @@ export async function POST(req: Request) {
   let targetCampaignId: string | null = campaignId ?? null
 
   if (!targetCampaignId) {
-    console.log('task-complete: no campaignId provided, looking up most recent')
     const { data: recent, error } = await supabase
       .from('campaigns')
       .select('id')
@@ -40,7 +38,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No campaign found' }, { status: 404 })
   }
 
-  console.log('task-complete: targeting campaign:', targetCampaignId)
 
   const { data: campaignData } = await supabase
     .from('campaigns')
@@ -52,7 +49,6 @@ export async function POST(req: Request) {
   if (!campaignData) return NextResponse.json({ error: 'No campaign found' }, { status: 404 })
 
   const currentTasks: unknown[] = Array.isArray(campaignData?.tasks) ? campaignData.tasks : []
-  console.log('current tasks:', currentTasks.length)
 
   const newTask = {
     id: crypto.randomUUID(),
@@ -63,7 +59,6 @@ export async function POST(req: Request) {
     message_count: Array.isArray(messages) ? messages.length : 0,
   }
 
-  console.log('saving new task:', newTask)
 
   const newTasks = [...currentTasks, newTask]
 
@@ -78,7 +73,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to save task' }, { status: 500 })
   }
 
-  console.log('task-complete success, taskId:', newTask.id)
 
   return NextResponse.json({ success: true, taskId: newTask.id })
 }

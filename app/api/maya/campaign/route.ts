@@ -40,7 +40,6 @@ export async function POST(req: Request) {
 
   // Verify campaigns table exists
   const { data: tableCheck, error: tableError } = await supabase.from('campaigns').select('id').limit(1)
-  console.log('campaigns table check:', tableCheck, tableError)
 
   // Build conversation summary from user messages
   const conversationSummary = (messages as { role: string; content: string }[])

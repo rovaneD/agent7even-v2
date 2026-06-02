@@ -13,7 +13,6 @@ const CHAT_CREDITS = CREDIT_COST.light  // 2 credits per turn
 const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
 
 export async function POST(req: Request) {
-  console.log('[maya/chat] 1. route hit')
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -94,7 +93,6 @@ You are completing a specific task, not building a new campaign. Never say "spin
     profile = fullRows?.[0] ?? null
   }
 
-  console.log('[maya/chat] 2. profile id:', profile?.id ?? 'NONE')
   if (profile?.id) logActivity(profile.id, 'maya_message').catch(() => {})
 
   // ── 2. Cost tracking — runs regardless of foundation status ───────────────
@@ -107,10 +105,8 @@ You are completing a specific task, not building a new campaign. Never say "spin
       .eq('user_id', profile.id)
       .single()
 
-    console.log('[maya/chat] 3. balance:', bal?.balance ?? `NO ROW (${balError?.message})`)
 
     if ((bal?.balance ?? 0) < CHAT_CREDITS) {
-      console.log('[maya/chat] INSUFFICIENT_CREDITS — returning 402')
       return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
     }
 
@@ -119,7 +115,6 @@ You are completing a specific task, not building a new campaign. Never say "spin
     // Do NOT branch on foundation_complete; that flag is unreliable (can be true with 0 docs).
     const foundation = await loadFoundationContext(profile.id)
     const { hasFoundation, documents, competitorsFreetext, answers: fAnswers } = foundation
-    console.log('[maya/chat] hasFoundation:', hasFoundation, '| hasDocs:', Object.values(documents).some(v => v.length > 0))
 
     // ── 4. Build system prompt ─────────────────────────────────────────────
     const companyName = profile?.company_name || 'this business'
@@ -285,7 +280,6 @@ Never use markdown in conversation. Save structure for the plan.`
       model:   MAYA_MODEL,
       input:   { messageCount: messages.length },
     })
-    console.log('[maya/chat] 4. task created:', task.id)
     await updateTaskStatus(task.id, 'running')
 
     // Inject file/image attachment parts into the last user message
@@ -315,22 +309,18 @@ Never use markdown in conversation. Save structure for the plan.`
       : messages
 
     const result = await streamText({ model: models.maya, system, messages: finalMessages as typeof messages, maxOutputTokens: 2000 })
-    console.log('[maya/chat] 5. stream starting')
 
     const profileId      = profile.id
     const taskId         = task.id
     const currentBalance = bal?.balance ?? 0
 
     waitUntil((async () => {
-      console.log('[maya/chat] 6. waitUntil fired, task:', taskId)
       try {
         const usage        = await result.usage
         const inputTokens  = usage.inputTokens  ?? 0
         const outputTokens = usage.outputTokens ?? 0
-        console.log('[maya/chat] 7. tokens:', inputTokens, outputTokens)
 
         const costUsd = await calculateCost(MAYA_MODEL, inputTokens, outputTokens)
-        console.log('[maya/chat] 8. cost recorded:', costUsd)
 
         const { error: taskErr } = await supabase
           .from('agent_tasks')
@@ -361,7 +351,6 @@ Never use markdown in conversation. Save structure for the plan.`
         })
         if (ledgerErr) console.error('[maya/chat] credit_ledger insert error:', ledgerErr.message)
 
-        console.log('[maya/chat] 9. credits deducted, new balance:', newBalance)
       } catch (err) {
         console.error('[maya/chat] post-stream recording failed:', err)
         void supabase
@@ -375,7 +364,6 @@ Never use markdown in conversation. Save structure for the plan.`
   }
 
   // ── Fallback: no profile — stream without cost tracking (should not happen) ─
-  console.log('[maya/chat] WARNING: no profile found for userId:', userId)
   const fallback = await streamText({
     model: models.maya,
     system: 'You are Maya, a marketing strategist at Agent7even.',
