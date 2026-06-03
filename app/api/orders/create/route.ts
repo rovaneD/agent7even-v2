@@ -5,7 +5,7 @@ import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { createNotification } from '@/lib/createNotification'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import { openRouterCompleteWithFallback } from '@/lib/agents/openrouter'
-import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
+import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK, VIRAL_HOOKS_OUTPUT_MARKER } from '@/lib/services/viralHooks'
 import { saveViralHooksDeliverable } from '@/lib/services/saveViralHooksDeliverable'
 
 function displayBrief(brief: string) {
@@ -97,13 +97,27 @@ Do not ask follow-up questions. Make practical assumptions and produce the hooks
         )
       }
 
+      if (!result.content?.trim()) {
+        return NextResponse.json(
+          { error: 'Viral Hooks generation returned no content. Please try again.' },
+          { status: 502 }
+        )
+      }
+
+      const storedBrief = `${visibleBrief}
+
+${VIRAL_HOOKS_OUTPUT_MARKER}
+${result.content.trim()}
+
+${VIRAL_HOOKS_FRAMEWORK}`
+
       const { data: order, error } = await supabase
         .from('orders')
         .insert({
           user_id: profile.id,
           service_type,
           title,
-          brief,
+          brief: storedBrief,
           status: 'delivered',
           priority: 'medium',
           delivered_at: new Date().toISOString(),
@@ -123,10 +137,10 @@ Service: ${title}
 Client: ${profile.company_name || profile.full_name || profile.email}
 
 Request brief:
-${brief}
+${visibleBrief}
 
 Generated output:
-${result.content}`
+${result.content.trim()}`
 
       const { data: ticket, error: ticketError } = await supabase
         .from('support_tickets')
@@ -170,7 +184,7 @@ ${result.content}`
               ticket_id: ticket.id,
               sender_id: profile.id,
               sender_role: 'admin',
-              body: result.content,
+              body: result.content.trim(),
             },
           ])
           .select('id, sender_role, body, created_at')
@@ -181,7 +195,7 @@ ${result.content}`
           : [{
             id: `${ticket.id}-generated`,
             sender_role: 'admin',
-            body: result.content,
+            body: result.content.trim(),
             created_at: new Date().toISOString(),
           }]
       }
@@ -193,7 +207,7 @@ ${result.content}`
           supabase,
           profileId: profile.id,
           order,
-          generatedOutput: result.content,
+          generatedOutput: result.content.trim(),
         })
       } catch (deliverableError) {
         console.error('Viral Hooks auto-save deliverable error:', deliverableError)

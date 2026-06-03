@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { saveViralHooksDeliverable } from '@/lib/services/saveViralHooksDeliverable'
+import { extractViralHooksGeneratedOutput } from '@/lib/services/viralHooks'
 
 function generatedOutputFromTicketBody(body: string | null | undefined) {
   if (!body) return ''
@@ -58,7 +59,9 @@ export async function POST(req: NextRequest) {
       .order('created_at', { ascending: true })
     : { data: [] }
 
-  const generatedOutput = messages?.[0]?.body?.trim() || generatedOutputFromTicketBody(ticket?.body)
+  const generatedOutput = extractViralHooksGeneratedOutput(order.brief)
+    || messages?.[0]?.body?.trim()
+    || generatedOutputFromTicketBody(ticket?.body)
 
   let deliverable = null
   let warning: string | null = null

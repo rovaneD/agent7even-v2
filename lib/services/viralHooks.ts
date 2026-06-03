@@ -49,7 +49,23 @@ Output expectation:
 - Include a short note on why the strongest 5 hooks should work.
 - Avoid fake claims, guaranteed results, or unverifiable numbers unless the customer provided them.`
 
+export const VIRAL_HOOKS_OUTPUT_MARKER = 'VIRAL HOOKS GENERATED OUTPUT'
+
 export function displayServiceBrief(brief: string | null | undefined) {
   if (!brief) return ''
-  return brief.split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0].trim()
+  return brief
+    .split(`\n\n${VIRAL_HOOKS_OUTPUT_MARKER}`)[0]
+    .split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0]
+    .trim()
+}
+
+export function extractViralHooksGeneratedOutput(brief: string | null | undefined) {
+  if (!brief) return ''
+  const marker = `\n\n${VIRAL_HOOKS_OUTPUT_MARKER}\n`
+  const markerIndex = brief.indexOf(marker)
+  if (markerIndex < 0) return ''
+  return brief
+    .slice(markerIndex + marker.length)
+    .split('\n\nVIRAL HOOKS SERVICE FRAMEWORK')[0]
+    .trim()
 }

@@ -9,7 +9,7 @@ import {
   Sparkles, Target, Layers, FileText, Download
 } from 'lucide-react'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
-import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
+import { displayServiceBrief, extractViralHooksGeneratedOutput, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
 import { buildTextPdf } from '@/lib/pdf/textPdf'
 
 const SERVICES = [
@@ -628,15 +628,16 @@ ${VIRAL_HOOKS_FRAMEWORK}`
     const service = SERVICES.find(s => s.id === selectedOrder.service_type)
     const ServiceIcon = service?.icon ?? Globe
     const isViralHooksOrder = selectedOrder.service_type === 'viral_hooks'
+    const orderGeneratedOutput = extractViralHooksGeneratedOutput(selectedOrder.brief)
     const ticketGeneratedOutput = generatedOutputFromTicketBody(selectedOrder.support_ticket_body)
     const generatedMessages = (selectedOrder.support_messages ?? []).filter(message => message.sender_role !== 'client')
     const generatedAssets = generatedMessages.length > 0
       ? generatedMessages
-      : ticketGeneratedOutput
+      : orderGeneratedOutput || ticketGeneratedOutput
         ? [{
           id: `${selectedOrder.id}-generated`,
           sender_role: 'admin',
-          body: ticketGeneratedOutput,
+          body: orderGeneratedOutput || ticketGeneratedOutput,
           created_at: selectedOrder.created_at,
         }]
         : []
@@ -1021,6 +1022,7 @@ function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversa
   const isViralHooks = order.service_type === 'viral_hooks'
   const hasGeneratedOutput = !isViralHooks
     || (order.support_messages ?? []).some(message => message.sender_role !== 'client' && message.body?.trim())
+    || Boolean(extractViralHooksGeneratedOutput(order.brief))
     || Boolean(generatedOutputFromTicketBody(order.support_ticket_body))
   const displayStatus = isViralHooks && !hasGeneratedOutput
     ? { label: 'Needs regenerate', color: 'bg-orange-50 text-orange-600', icon: AlertCircle }
