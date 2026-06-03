@@ -11,6 +11,13 @@ function generatedOutputFromTicketBody(body: string | null | undefined) {
   return index >= 0 ? body.slice(index + marker.length).trim() : ''
 }
 
+function errorMessage(error: unknown) {
+  if (!error) return 'Unknown error'
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && 'message' in error && typeof error.message === 'string') return error.message
+  return String(error)
+}
+
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -75,7 +82,7 @@ export async function POST(req: NextRequest) {
       })
     } catch (deliverableError) {
       console.error('Viral Hooks deliverable save error:', deliverableError)
-      warning = 'Marked complete, but the PDF could not be saved to Deliverables.'
+      warning = `Marked complete, but the PDF could not be saved to Deliverables: ${errorMessage(deliverableError)}`
     }
   } else {
     warning = 'Marked complete, but no generated hooks output was found to save as a PDF.'

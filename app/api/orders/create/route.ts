@@ -12,6 +12,13 @@ function displayBrief(brief: string) {
   return displayServiceBrief(brief)
 }
 
+function errorMessage(error: unknown) {
+  if (!error) return 'Unknown error'
+  if (error instanceof Error) return error.message
+  if (typeof error === 'object' && 'message' in error && typeof error.message === 'string') return error.message
+  return String(error)
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth()
@@ -211,7 +218,7 @@ ${result.content.trim()}`
         })
       } catch (deliverableError) {
         console.error('Viral Hooks auto-save deliverable error:', deliverableError)
-        deliverableWarning = 'Generated hooks are saved in Services, but the PDF could not be saved to Deliverables.'
+        deliverableWarning = `Generated hooks are saved in Services, but the PDF could not be saved to Deliverables: ${errorMessage(deliverableError)}`
       }
 
       await createNotification({
