@@ -6,7 +6,7 @@ import {
   Globe, Hash, Camera, Mail, Search,
   Brush, Video, Megaphone, Plus, X, ChevronRight,
   Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send, Flame,
-  Sparkles, Target, Layers, FileText, Download
+  Sparkles, Target, Layers, FileText, Download, Trash2
 } from 'lucide-react'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import { displayServiceBrief, extractViralHooksGeneratedOutput, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
@@ -483,6 +483,7 @@ The user can request new marketing services or track existing orders.`
   const [replying, setReplying] = useState(false)
   const [completingOrder, setCompletingOrder] = useState(false)
   const [regeneratingOrder, setRegeneratingOrder] = useState(false)
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
 
   const handleRequest = async (brief: string) => {
     if (!requestingService || !profile) return
@@ -623,6 +624,32 @@ ${VIRAL_HOOKS_FRAMEWORK}`
     }
   }
 
+  async function deleteViralHooksOrder(order: Order) {
+    if (order.service_type !== 'viral_hooks') return
+    if (!confirm(`Delete ${formatOrderNumber(order)} from Services? The saved PDF in Deliverables will not be deleted.`)) return
+
+    setDeletingOrderId(order.id)
+    setErrorMsg('')
+    try {
+      const res = await fetch('/api/orders/delete-self-serve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: order.id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'Could not delete this Viral Hooks order.')
+
+      setLocalOrders(prev => prev.filter(item => item.id !== order.id))
+      if (selectedOrderId === order.id) setSelectedOrderId(null)
+      setSuccessMsg('Viral Hooks order removed from Services.')
+      setTimeout(() => setSuccessMsg(''), 5000)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Could not delete this Viral Hooks order. Try again.')
+    } finally {
+      setDeletingOrderId(null)
+    }
+  }
+
   if (selectedOrder) {
     const status = STATUS_CONFIG[selectedOrder.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.submitted
     const service = SERVICES.find(s => s.id === selectedOrder.service_type)
@@ -698,6 +725,17 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                 >
                   {completingOrder ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
                   Mark complete
+                </button>
+              )}
+              {isViralHooksOrder && (
+                <button
+                  type="button"
+                  onClick={() => deleteViralHooksOrder(selectedOrder)}
+                  disabled={deletingOrderId === selectedOrder.id}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-full disabled:opacity-50"
+                >
+                  {deletingOrderId === selectedOrder.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                  Delete
                 </button>
               )}
               <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full ${displayStatus.color}`}>
@@ -969,13 +1007,29 @@ ${VIRAL_HOOKS_FRAMEWORK}`
               {activeOrders.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Active</p>
-                  {activeOrders.map(order => <OrderCard key={order.id} order={order} onOpenConversation={() => setSelectedOrderId(order.id)} />)}
+                  {activeOrders.map(order => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      deleting={deletingOrderId === order.id}
+                      onOpenConversation={() => setSelectedOrderId(order.id)}
+                      onDelete={() => deleteViralHooksOrder(order)}
+                    />
+                  ))}
                 </div>
               )}
               {completedOrders.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 mt-6">Completed</p>
-                  {completedOrders.map(order => <OrderCard key={order.id} order={order} onOpenConversation={() => setSelectedOrderId(order.id)} />)}
+                  {completedOrders.map(order => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      deleting={deletingOrderId === order.id}
+                      onOpenConversation={() => setSelectedOrderId(order.id)}
+                      onDelete={() => deleteViralHooksOrder(order)}
+                    />
+                  ))}
                 </div>
               )}
             </>
@@ -1015,7 +1069,17 @@ function ShoppingBag({ size, className }: { size: number; className: string }) {
   )
 }
 
-function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversation: () => void }) {
+function OrderCard({
+  order,
+  deleting,
+  onOpenConversation,
+  onDelete,
+}: {
+  order: Order
+  deleting: boolean
+  onOpenConversation: () => void
+  onDelete: () => void
+}) {
   const status = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.submitted
   const service = SERVICES.find(s => s.id === order.service_type)
   const ServiceIcon = service?.icon ?? Globe
@@ -1057,6 +1121,17 @@ function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversa
           <StatusIcon size={11} />
           <span className="hidden sm:inline">{displayStatus.label}</span>
         </span>
+        {isViralHooks && (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            title="Delete Viral Hooks order"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-300 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+          </button>
+        )}
         <ChevronRight size={14} className="text-gray-300" />
       </div>
     </div>
