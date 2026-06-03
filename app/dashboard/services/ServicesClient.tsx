@@ -482,6 +482,7 @@ The user can request new marketing services or track existing orders.`
   const [replyBody, setReplyBody] = useState('')
   const [replying, setReplying] = useState(false)
   const [completingOrder, setCompletingOrder] = useState(false)
+  const [regeneratingOrder, setRegeneratingOrder] = useState(false)
 
   const handleRequest = async (brief: string) => {
     if (!requestingService || !profile) return
@@ -585,9 +586,44 @@ ${VIRAL_HOOKS_FRAMEWORK}`
     }
   }
 
+  async function regenerateViralHooksOrder() {
+    if (!selectedOrder || selectedOrder.service_type !== 'viral_hooks' || !selectedOrder.brief) return
+    setRegeneratingOrder(true)
+    setErrorMsg('')
+    try {
+      const res = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_type: selectedOrder.service_type,
+          title: selectedOrder.title,
+          brief: selectedOrder.brief,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'Could not regenerate hooks')
+      const nextOrder = data.order
+        ? {
+          ...data.order,
+          support_ticket_id: data.supportTicketId ?? null,
+          support_ticket_body: data.supportTicketBody ?? null,
+          support_messages: data.supportMessages ?? [],
+        }
+        : null
+      if (!nextOrder) throw new Error('Could not regenerate hooks')
+      setLocalOrders(prev => [nextOrder, ...prev])
+      setSelectedOrderId(nextOrder.id)
+      setSuccessMsg('Viral Hooks regenerated. The new output is open now.')
+      setTimeout(() => setSuccessMsg(''), 5000)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Could not regenerate hooks. Try again.')
+    } finally {
+      setRegeneratingOrder(false)
+    }
+  }
+
   if (selectedOrder) {
     const status = STATUS_CONFIG[selectedOrder.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.submitted
-    const StatusIcon = status.icon
     const service = SERVICES.find(s => s.id === selectedOrder.service_type)
     const ServiceIcon = service?.icon ?? Globe
     const isViralHooksOrder = selectedOrder.service_type === 'viral_hooks'
@@ -603,6 +639,10 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           created_at: selectedOrder.created_at,
         }]
         : []
+    const displayStatus = isViralHooksOrder && generatedAssets.length === 0
+      ? { label: 'Needs regenerate', color: 'bg-orange-50 text-orange-600', icon: AlertCircle }
+      : status
+    const DisplayStatusIcon = displayStatus.icon
 
     return (
       <div className="px-8 pt-8 pb-6 max-w-[1200px]">
@@ -613,6 +653,20 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           <ChevronLeft size={16} />
           Back to orders
         </button>
+
+        {successMsg && (
+          <div className="bg-green-50 border border-green-100 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
+            <p className="text-sm text-green-700">{successMsg}</p>
+          </div>
+        )}
+
+        {errorMsg && (
+          <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
+            <p className="text-sm text-red-700">{errorMsg}</p>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex items-start justify-between gap-4">
@@ -633,7 +687,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {isViralHooksOrder && !CLOSED_STATUSES.includes(selectedOrder.status) && (
+              {isViralHooksOrder && generatedAssets.length > 0 && !CLOSED_STATUSES.includes(selectedOrder.status) && (
                 <button
                   type="button"
                   onClick={completeSelfServeOrder}
@@ -644,9 +698,9 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                   Mark complete
                 </button>
               )}
-              <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full ${status.color}`}>
-                <StatusIcon size={11} />
-                {status.label}
+              <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full ${displayStatus.color}`}>
+                <DisplayStatusIcon size={11} />
+                {displayStatus.label}
               </span>
             </div>
           </div>
@@ -662,7 +716,22 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             {isViralHooksOrder ? (
               generatedAssets.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
-                  <p className="text-sm text-gray-400">No generated hooks found for this request.</p>
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle size={18} className="text-orange-500" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800">Generated hooks were not saved for this request.</p>
+                  <p className="text-sm text-gray-400 mt-2 max-w-lg mx-auto">
+                    This order was marked delivered before the output was attached. Regenerate it from the original request to create a new saved result.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={regenerateViralHooksOrder}
+                    disabled={regeneratingOrder}
+                    className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-4 py-2.5 rounded-xl mt-5 hover:bg-[#1E293B] disabled:opacity-50"
+                  >
+                    {regeneratingOrder ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {regeneratingOrder ? 'Regenerating...' : 'Regenerate hooks'}
+                  </button>
                 </div>
               ) : (
                 generatedAssets.map(message => (
@@ -946,10 +1015,16 @@ function ShoppingBag({ size, className }: { size: number; className: string }) {
 
 function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversation: () => void }) {
   const status = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.submitted
-  const StatusIcon = status.icon
   const service = SERVICES.find(s => s.id === order.service_type)
   const ServiceIcon = service?.icon ?? Globe
   const isViralHooks = order.service_type === 'viral_hooks'
+  const hasGeneratedOutput = !isViralHooks
+    || (order.support_messages ?? []).some(message => message.sender_role !== 'client' && message.body?.trim())
+    || Boolean(generatedOutputFromTicketBody(order.support_ticket_body))
+  const displayStatus = isViralHooks && !hasGeneratedOutput
+    ? { label: 'Needs regenerate', color: 'bg-orange-50 text-orange-600', icon: AlertCircle }
+    : status
+  const StatusIcon = displayStatus.icon
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 flex items-center justify-between gap-3 hover:border-gray-200 transition-all">
@@ -975,9 +1050,9 @@ function OrderCard({ order, onOpenConversation }: { order: Order; onOpenConversa
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full ${status.color}`}>
+        <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-full ${displayStatus.color}`}>
           <StatusIcon size={11} />
-          <span className="hidden sm:inline">{status.label}</span>
+          <span className="hidden sm:inline">{displayStatus.label}</span>
         </span>
         <ChevronRight size={14} className="text-gray-300" />
       </div>

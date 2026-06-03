@@ -144,6 +144,17 @@ ${result.content}`
 
       if (ticketError || !ticket) {
         console.error('Viral Hooks ticket creation error:', ticketError)
+        await supabase
+          .from('orders')
+          .update({
+            status: 'cancelled',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', order.id)
+        return NextResponse.json(
+          { error: 'Generated hooks could not be saved. Please try again.' },
+          { status: 500 }
+        )
       } else {
         const { data: messages, error: messageError } = await supabase
           .from('support_messages')
