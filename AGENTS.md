@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: June 2, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: June 3, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -25,7 +25,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV5.md > code in agent7even-app/ > code in agent7even/
+4. Source of truth: instructions in chat > CONTEXTV10.md > MAYA_CONTEXT_V01.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -60,6 +60,11 @@ Next.js 16 uses `proxy.ts` not `middleware.ts`.
 
 ## This app (agent7even-app/) — stable, do not touch unless asked
 Changes are made deliberately and committed before moving on.
+
+## Current docs to read first
+- `CONTEXTV10.md` — latest technical/product handoff for post-V9 work.
+- `MAYA_CONTEXT_V01.md` — current versioned Maya product context.
+- `AUDIT_FIXES_2026-06-02.md` — audit fix ledger plus follow-on testing fixes.
 
 ## Deployment rules — READ BEFORE ANY DEPLOY
 
