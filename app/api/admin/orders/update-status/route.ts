@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/createNotification'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
+import { getResendClient } from '@/lib/resend'
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -67,8 +68,9 @@ export async function POST(req: NextRequest) {
   if (status === 'delivered' || status === 'completed') {
     if (order?.profiles?.email) {
       try {
-        const { Resend } = await import('resend')
-        const resend = new Resend(process.env.RESEND_API_KEY)
+        const resend = getResendClient()
+        if (!resend) throw new Error('Missing RESEND_API_KEY')
+
         const orderNumber = formatOrderNumber(order)
         const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
         await resend.emails.send({

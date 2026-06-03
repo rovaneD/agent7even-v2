@@ -3,9 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/createNotification'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { getResendClient } from '@/lib/resend'
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   uiux: 'UI/UX Design',
@@ -73,6 +71,9 @@ export async function POST(req: Request) {
 
   // Email admin
   try {
+    const resend = getResendClient()
+    if (!resend) throw new Error('Missing RESEND_API_KEY')
+
     await resend.emails.send({
       from: 'Agent7even <hello@agent7even.com>',
       to: notifyEmail,

@@ -1,9 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { getResendClient } from '@/lib/resend'
 
 async function getAdminProfile(userId: string) {
   const supabase = createServiceClient()
@@ -44,6 +42,9 @@ export async function POST(
   if (!client?.email) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
 
   try {
+    const resend = getResendClient()
+    if (!resend) throw new Error('Missing RESEND_API_KEY')
+
     await resend.emails.send({
       from: 'Agent7even <hello@agent7even.com>',
       to: client.email,

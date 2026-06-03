@@ -1,11 +1,10 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
+import { getResendClient } from '@/lib/resend'
 import Stripe from 'stripe'
 import { randomUUID } from 'crypto'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-04-22.dahlia' as any,
 })
@@ -108,6 +107,9 @@ export async function POST(req: Request) {
 
   // Send invite email
   try {
+    const resend = getResendClient()
+    if (!resend) throw new Error('Missing RESEND_API_KEY')
+
     await resend.emails.send({
       from: 'Agent7even <hello@agent7even.com>',
       to: email,

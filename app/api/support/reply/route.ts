@@ -1,11 +1,9 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { createNotification } from '@/lib/createNotification'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { getResendClient } from '@/lib/resend'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -101,6 +99,9 @@ export async function POST(req: Request) {
     const ticketClientName = (ticket.profiles as { full_name: string })?.full_name ?? 'there'
     if (clientEmail) {
       try {
+        const resend = getResendClient()
+        if (!resend) throw new Error('Missing RESEND_API_KEY')
+
         await resend.emails.send({
           from: 'Agent7even Support <hello@agent7even.com>',
           to: clientEmail,
@@ -126,6 +127,9 @@ export async function POST(req: Request) {
   } else {
     const notifyEmail = await getNotifyEmail()
     try {
+      const resend = getResendClient()
+      if (!resend) throw new Error('Missing RESEND_API_KEY')
+
       await resend.emails.send({
         from: 'Agent7even <hello@agent7even.com>',
         to: notifyEmail,
