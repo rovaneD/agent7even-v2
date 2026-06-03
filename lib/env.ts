@@ -1,4 +1,6 @@
-// Fail-fast env validation. Import from instrumentation.ts so this runs at server startup.
+// Env validation. Import from instrumentation.ts so this runs at server startup.
+// Production fails fast. Preview/development warn so branch deploys can boot with
+// feature-specific env gaps while the missing feature remains unavailable.
 // Usage: import { env } from '@/lib/env' — typed accessor, throws if var is missing.
 
 type EnvSpec = {
@@ -9,6 +11,8 @@ type EnvSpec = {
 const SPEC: EnvSpec = {
   required: [
     // Clerk
+    'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
+    'CLERK_SECRET_KEY',
     'CLERK_WEBHOOK_SIGNING_SECRET',
     // Supabase
     'NEXT_PUBLIC_SUPABASE_URL',
@@ -69,12 +73,18 @@ const SPEC: EnvSpec = {
 
 function validateEnv() {
   const missingRequired = SPEC.required.filter((k) => !process.env[k])
+  const isProductionRuntime = process.env.VERCEL_ENV === 'production'
 
   if (missingRequired.length > 0) {
-    throw new Error(
+    const message =
       `[env] Missing required environment variable(s):\n  - ${missingRequired.join('\n  - ')}\n` +
-        `Set these before starting the server. See .env.example.`,
-    )
+        `Set these before starting the server. See .env.example.`
+
+    if (isProductionRuntime) {
+      throw new Error(message)
+    }
+
+    console.warn(message)
   }
 
   for (const group of SPEC.featureGated) {
