@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server'
-import Stripe from 'stripe'
+import type Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/createNotification'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia',
-})
+import { getStripeClient } from '@/lib/stripe'
 
 function getPlanFromPriceId(priceId: string): string | null {
   const map: Record<string, string> = {
@@ -26,6 +23,9 @@ export async function POST(req: Request) {
   if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
   }
+
+  const stripe = getStripeClient()
+  if (!stripe) return NextResponse.json({ error: 'Billing is not configured' }, { status: 500 })
 
   let event: Stripe.Event
 

@@ -2,12 +2,8 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getResendClient } from '@/lib/resend'
-import Stripe from 'stripe'
+import { getStripeClient } from '@/lib/stripe'
 import { randomUUID } from 'crypto'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia' as any,
-})
 
 const PLAN_SEAT_LIMITS: Record<string, number> = {
   starter: 1,
@@ -57,6 +53,9 @@ export async function POST(req: Request) {
   // Add extra seat to Stripe subscription if needed
   if (needsExtraSeat && profile.stripe_subscription_id) {
     try {
+      const stripe = getStripeClient()
+      if (!stripe) throw new Error('Billing is not configured')
+
       const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
       const existingSeatItem = subscription.items.data.find(
         item => item.price.id === process.env.STRIPE_SEAT_PRICE_ID

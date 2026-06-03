@@ -37,12 +37,12 @@ export async function POST(req: Request) {
   let onTrial = false
   if (profile.plan === 'starter' && profile.stripe_subscription_id) {
     try {
-      const { default: Stripe } = await import('stripe')
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: '2026-04-22.dahlia',
-      })
-      const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
-      onTrial = subscription.status === 'trialing'
+      const { getStripeClient } = await import('@/lib/stripe')
+      const stripe = getStripeClient()
+      if (stripe) {
+        const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
+        onTrial = subscription.status === 'trialing'
+      }
     } catch {
       // If we can't check, assume not on trial
     }

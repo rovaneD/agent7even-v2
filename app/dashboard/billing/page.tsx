@@ -2,13 +2,9 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import BillingClient from './BillingClient'
-import Stripe from 'stripe'
+import { getStripeClient } from '@/lib/stripe'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import type { CreditsUsageData, BreakdownItem } from '@/components/billing/CreditsUsage'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia',
-})
 
 export default async function BillingPage() {
   const { userId } = await auth()
@@ -143,6 +139,9 @@ export default async function BillingPage() {
 
   if (profile?.stripe_customer_id) {
     try {
+      const stripe = getStripeClient()
+      if (!stripe) throw new Error('Missing STRIPE_SECRET_KEY')
+
       const [invoiceList, portalSession] = await Promise.all([
         stripe.invoices.list({ customer: profile.stripe_customer_id, limit: 10 }),
         stripe.billingPortal.sessions.create({
