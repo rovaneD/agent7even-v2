@@ -86,20 +86,32 @@ export async function findOrCreateProject({
   if (selectError) throw new Error(`Project lookup failed: ${errorMessage(selectError)}`)
   if (existing) return existing
 
-  const { data: project, error: insertError } = await supabase
-    .from('projects')
-    .insert({
-      user_id: userId,
-      title,
-      description: description ?? null,
-      phase: 'active',
-      progress_percent: 0,
-    })
-    .select('id, title')
-    .single()
+  const phaseCandidates = ['in_progress', 'active', 'planning', 'not_started', 'draft']
+  let lastError: unknown = null
 
-  if (insertError) throw new Error(`Project record insert failed: ${errorMessage(insertError)}`)
-  return project
+  for (const phase of phaseCandidates) {
+    const { data: project, error: insertError } = await supabase
+      .from('projects')
+      .insert({
+        user_id: userId,
+        title,
+        description: description ?? null,
+        phase,
+        progress_percent: 0,
+      })
+      .select('id, title')
+      .single()
+
+    if (!insertError && project) return project
+    lastError = insertError
+
+    const message = errorMessage(insertError)
+    if (!/projects_phase_check|check constraint/i.test(message)) {
+      throw new Error(`Project record insert failed: ${message}`)
+    }
+  }
+
+  throw new Error(`Project record insert failed: ${errorMessage(lastError)}`)
 }
 
 export function normalizeDeliverable(row: any): ProjectBackedDeliverable {
