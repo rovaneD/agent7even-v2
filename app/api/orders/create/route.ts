@@ -6,6 +6,7 @@ import { createNotification } from '@/lib/createNotification'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import { openRouterCompleteWithFallback } from '@/lib/agents/openrouter'
 import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
+import { saveViralHooksDeliverable } from '@/lib/services/saveViralHooksDeliverable'
 
 function displayBrief(brief: string) {
   return displayServiceBrief(brief)
@@ -185,10 +186,26 @@ ${result.content}`
           }]
       }
 
+      let deliverable = null
+      let deliverableWarning: string | null = null
+      try {
+        deliverable = await saveViralHooksDeliverable({
+          supabase,
+          profileId: profile.id,
+          order,
+          generatedOutput: result.content,
+        })
+      } catch (deliverableError) {
+        console.error('Viral Hooks auto-save deliverable error:', deliverableError)
+        deliverableWarning = 'Generated hooks are saved in Services, but the PDF could not be saved to Deliverables.'
+      }
+
       await createNotification({
         userId: profile.id,
         title: 'Your Viral Hooks are ready',
-        body: `${orderNumber} is ready to review in Services.`,
+        body: deliverable
+          ? `${orderNumber} is ready and the PDF was saved to Deliverables.`
+          : `${orderNumber} is ready to review in Services.`,
         type: 'order_status',
         link: `/dashboard/services?order=${order.id}`,
         sendEmail: false,
@@ -200,6 +217,8 @@ ${result.content}`
         supportTicketId: ticket?.id ?? null,
         supportTicketBody: ticket?.body ?? supportBody,
         supportMessages,
+        deliverable,
+        deliverableWarning,
       })
     }
 

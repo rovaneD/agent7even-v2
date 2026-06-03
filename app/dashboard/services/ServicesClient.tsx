@@ -519,7 +519,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
         if (nextOrder) setLocalOrders(prev => [nextOrder, ...prev])
         if (nextOrder) setSelectedOrderId(nextOrder.id)
         setSuccessMsg(requestingService.id === 'viral_hooks'
-          ? 'Your Viral Hooks are ready. The generated output is saved here in Services.'
+          ? data.deliverableWarning ?? 'Your Viral Hooks are ready. The PDF was saved to Deliverables.'
           : `Your ${requestingService.name} request has been submitted. A follow-up conversation is open here in Services.`
         )
         setActiveTab('orders')
@@ -573,14 +573,15 @@ ${VIRAL_HOOKS_FRAMEWORK}`
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: selectedOrder.id }),
       })
-      if (!res.ok) throw new Error('Failed to complete order')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'Failed to complete order')
       setLocalOrders(prev => prev.map(order =>
         order.id === selectedOrder.id ? { ...order, status: 'approved' } : order
       ))
-      setSuccessMsg('Viral Hooks marked complete and saved as a PDF in Deliverables.')
+      setSuccessMsg(data.warning ?? 'Viral Hooks marked complete.')
       setTimeout(() => setSuccessMsg(''), 5000)
-    } catch {
-      setErrorMsg('Could not mark this order complete. Try again.')
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Could not mark this order complete. Try again.')
     } finally {
       setCompletingOrder(false)
     }
@@ -815,7 +816,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
               <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
                 <p className="text-sm text-amber-700">
                   {isViralHooksOrder
-                    ? 'This is a self-serve service. Review the generated hooks above. Mark complete when you are done to save the PDF in Deliverables.'
+                    ? 'This is a self-serve service. The PDF is saved to Deliverables when hooks are generated. Mark complete when you are done reviewing.'
                     : 'This older order does not have a service conversation attached yet.'}
                 </p>
               </div>

@@ -1,23 +1,13 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { createNotification } from '@/lib/createNotification'
-import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
-import { buildTextPdf } from '@/lib/pdf/textPdf'
+import { saveViralHooksDeliverable } from '@/lib/services/saveViralHooksDeliverable'
 
 function generatedOutputFromTicketBody(body: string | null | undefined) {
   if (!body) return ''
   const marker = '\n\nGenerated output:\n'
   const index = body.indexOf(marker)
   return index >= 0 ? body.slice(index + marker.length).trim() : ''
-}
-
-function safeFileSegment(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 80) || 'viral-hooks'
 }
 
 export async function POST(req: NextRequest) {
@@ -70,78 +60,22 @@ export async function POST(req: NextRequest) {
 
   const generatedOutput = messages?.[0]?.body?.trim() || generatedOutputFromTicketBody(ticket?.body)
 
-  if (!generatedOutput) {
-    return NextResponse.json({ error: 'Generated hooks output not found.' }, { status: 400 })
-  }
-
-  const orderNumber = formatOrderNumber(order)
-  const projectName = 'Viral Hooks'
-  const fileName = `${safeFileSegment(orderNumber)}-viral-hooks.pdf`
-  const notes = `Generated from ${orderNumber}.`
-
-  const { data: existingDeliverable } = await supabase
-    .from('deliverables')
-    .select('*')
-    .eq('user_id', profile.id)
-    .eq('project_name', projectName)
-    .eq('file_name', fileName)
-    .maybeSingle()
-
-  let deliverable = existingDeliverable
-
-  if (!deliverable) {
-    const pdf = buildTextPdf(
-      order.title,
-      `${orderNumber} · Generated ${new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-      generatedOutput
-    )
-    const buffer = new TextEncoder().encode(pdf)
-    const filePath = `${profile.id}/${projectName.replace(/\s+/g, '_')}/${Date.now()}_${fileName}`
-
-    const { error: storageError } = await supabase.storage
-      .from('deliverables')
-      .upload(filePath, buffer, {
-        contentType: 'application/pdf',
-        upsert: false,
+  let deliverable = null
+  let warning: string | null = null
+  if (generatedOutput) {
+    try {
+      deliverable = await saveViralHooksDeliverable({
+        supabase,
+        profileId: profile.id,
+        order,
+        generatedOutput,
       })
-
-    if (storageError) {
-      console.error('Viral Hooks deliverable upload error:', storageError)
-      return NextResponse.json({ error: 'Could not save PDF to Deliverables.' }, { status: 500 })
+    } catch (deliverableError) {
+      console.error('Viral Hooks deliverable save error:', deliverableError)
+      warning = 'Marked complete, but the PDF could not be saved to Deliverables.'
     }
-
-    const { data: insertedDeliverable, error: deliverableError } = await supabase
-      .from('deliverables')
-      .insert({
-        user_id: profile.id,
-        uploaded_by: profile.id,
-        project_name: projectName,
-        file_name: fileName,
-        file_path: filePath,
-        file_size: buffer.byteLength,
-        file_type: 'application/pdf',
-        notes,
-        uploaded_by_role: 'admin',
-      })
-      .select()
-      .single()
-
-    if (deliverableError) {
-      console.error('Viral Hooks deliverable record error:', deliverableError)
-      await supabase.storage.from('deliverables').remove([filePath])
-      return NextResponse.json({ error: 'Could not save PDF record.' }, { status: 500 })
-    }
-
-    deliverable = insertedDeliverable
-
-    await createNotification({
-      userId: profile.id,
-      title: 'Viral Hooks saved to Deliverables',
-      body: `${fileName} has been added to your Viral Hooks folder.`,
-      type: 'deliverable_uploaded',
-      link: '/dashboard/deliverables',
-      sendEmail: false,
-    })
+  } else {
+    warning = 'Marked complete, but no generated hooks output was found to save as a PDF.'
   }
 
   const { error } = await supabase
@@ -157,5 +91,5 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ success: true, deliverable })
+  return NextResponse.json({ success: true, deliverable, warning })
 }
