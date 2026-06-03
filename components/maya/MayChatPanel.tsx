@@ -43,15 +43,15 @@ interface Props {
 // ── Markdown components ───────────────────────────────────────────────────
 
 const PLAIN_MD: Record<string, React.ComponentType<{ children?: React.ReactNode }>> = {
-  p:      ({ children }) => <p style={{ margin: '0 0 10px 0', fontSize: 13.5, lineHeight: 1.7, color: '#2D3748' }}>{children}</p>,
-  strong: ({ children }) => <span style={{ fontWeight: 500, color: '#2D3748' }}>{children}</span>,
-  em:     ({ children }) => <span style={{ fontStyle: 'italic', color: '#64748B' }}>{children}</span>,
+  p:      ({ children }) => <p style={{ margin: '0 0 10px 0', fontSize: 13.5, lineHeight: 1.7, color: 'var(--color-text-primary)' }}>{children}</p>,
+  strong: ({ children }) => <span style={{ fontWeight: 500, color: 'var(--color-text-primary)' }}>{children}</span>,
+  em:     ({ children }) => <span style={{ fontStyle: 'italic', color: 'var(--color-text-secondary)' }}>{children}</span>,
   ul:     ({ children }) => <ul style={{ paddingLeft: 16, margin: '0 0 10px 0' }}>{children}</ul>,
   ol:     ({ children }) => <ol style={{ paddingLeft: 16, margin: '0 0 10px 0' }}>{children}</ol>,
-  li:     ({ children }) => <li style={{ marginBottom: 5, fontSize: 13.5, lineHeight: 1.65, color: '#2D3748' }}>{children}</li>,
-  h1:     ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: '#2D3748', margin: '0 0 8px 0' }}>{children}</p>,
-  h2:     ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: '#2D3748', margin: '0 0 8px 0' }}>{children}</p>,
-  h3:     ({ children }) => <p style={{ fontSize: 13, fontWeight: 500, color: '#64748B', margin: '0 0 6px 0' }}>{children}</p>,
+  li:     ({ children }) => <li style={{ marginBottom: 5, fontSize: 13.5, lineHeight: 1.65, color: 'var(--color-text-primary)' }}>{children}</li>,
+  h1:     ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--color-text-primary)', margin: '0 0 8px 0' }}>{children}</p>,
+  h2:     ({ children }) => <p style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--color-text-primary)', margin: '0 0 8px 0' }}>{children}</p>,
+  h3:     ({ children }) => <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text-secondary)', margin: '0 0 6px 0' }}>{children}</p>,
 }
 
 interface PendingAttachment {
@@ -321,7 +321,7 @@ export default function MayChatPanel({
 
   return (
     <div
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', width: panelWidth, flexShrink: 0, position: 'relative', borderRight: '1px solid #E2E8F0' }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-surface)', width: panelWidth, flexShrink: 0, position: 'relative', borderRight: '1px solid var(--color-border)' }}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -332,14 +332,14 @@ export default function MayChatPanel({
       {isDragOver && (
         <div style={{
           position: 'absolute', inset: 0, zIndex: 30,
-          background: 'rgba(248,250,252,0.96)',
+          background: 'color-mix(in srgb, var(--color-surface-2) 96%, transparent)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           gap: 10, pointerEvents: 'none',
-          border: '2px dashed #3B82F6', borderRadius: 0,
+          border: '2px dashed var(--color-brand-primary)', borderRadius: 0,
         }}>
-          <Paperclip size={22} color="#3B82F6" />
-          <p style={{ fontSize: 13.5, fontWeight: 600, color: '#3B82F6' }}>Drop to attach</p>
-          <p style={{ fontSize: 12, color: '#94A3B8' }}>Images, PDFs, and documents</p>
+          <Paperclip size={22} color="var(--color-brand-primary)" />
+          <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--color-brand-primary)' }}>Drop to attach</p>
+          <p style={{ fontSize: 12, color: 'var(--color-menu-muted)' }}>Images, PDFs, and documents</p>
         </div>
       )}
 
@@ -348,28 +348,28 @@ export default function MayChatPanel({
         onMouseDown={handleDragMouseDown}
         style={{
           position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize',
-          zIndex: 10, background: isDragging ? 'rgba(59,130,246,0.4)' : 'transparent',
+          zIndex: 10, background: isDragging ? 'color-mix(in srgb, var(--color-brand-primary) 40%, transparent)' : 'transparent',
           transition: 'background 0.12s',
         }}
-        onMouseEnter={e => { if (!isDragging) (e.currentTarget as HTMLDivElement).style.background = 'rgba(59,130,246,0.2)' }}
+        onMouseEnter={e => { if (!isDragging) (e.currentTarget as HTMLDivElement).style.background = 'color-mix(in srgb, var(--color-brand-primary) 20%, transparent)' }}
         onMouseLeave={e => { if (!isDragging) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
       />
 
       {/* Header */}
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #E2E8F0' }}>
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 8, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>M</span>
+          <div style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--color-brand-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ color: 'var(--color-text-inverse)', fontSize: 11, fontWeight: 700 }}>M</span>
           </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#2D3748' }}>Maya</span>
-          <span style={{ fontSize: 12, color: '#10B981', fontWeight: 500 }}>online</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>Maya</span>
+          <span style={{ fontSize: 12, color: 'var(--color-status-success)', fontWeight: 500 }}>online</span>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)' }}
           >
             <X size={15} />
           </button>
@@ -380,24 +380,24 @@ export default function MayChatPanel({
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
         {showModePicker ? (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: 20 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <span style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>M</span>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--color-brand-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+              <span style={{ color: 'var(--color-text-inverse)', fontSize: 18, fontWeight: 700 }}>M</span>
             </div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: '#2D3748', marginBottom: 3 }}>Hey {companyName !== 'there' ? companyName : 'there'}.</p>
-            <p style={{ fontSize: 12, color: '#64748B', marginBottom: 20 }}>What would you like to work on?</p>
+            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 3 }}>Hey {companyName !== 'there' ? companyName : 'there'}.</p>
+            <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 20 }}>What would you like to work on?</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, width: '100%' }}>
               {MODES.map(({ id, label, description, Icon }) => (
                 <button
                   key={id}
                   onClick={() => selectMode(id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 12, border: '1px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%', transition: 'border-color 0.12s, background 0.12s' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#64748B'; (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9' }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0'; (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 12, border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%', transition: 'border-color 0.12s, background 0.12s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-text-secondary)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-hover)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)' }}
                 >
-                  <Icon size={14} color="#64748B" strokeWidth={1.75} />
+                  <Icon size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
                   <div>
-                    <p style={{ fontSize: 12.5, fontWeight: 500, color: '#2D3748', marginBottom: 1 }}>{label}</p>
-                    <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.4 }}>{description}</p>
+                    <p style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: 1 }}>{label}</p>
+                    <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>{description}</p>
                   </div>
                 </button>
               ))}
@@ -411,14 +411,14 @@ export default function MayChatPanel({
                 <div key={msg.id} style={{ marginBottom: msg.role === 'user' ? 16 : 20 }}>
                   {msg.role === 'user' ? (
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <div style={{ background: '#2D3748', color: '#fff', borderRadius: '16px 16px 4px 16px', padding: '9px 14px', maxWidth: '82%', fontSize: 13.5, lineHeight: 1.55 }}>
+                      <div style={{ background: 'var(--color-brand-secondary)', color: 'var(--color-text-inverse)', borderRadius: '16px 16px 4px 16px', padding: '9px 14px', maxWidth: '82%', fontSize: 13.5, lineHeight: 1.55 }}>
                         {text}
                       </div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 8, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                        <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>M</span>
+                      <div style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--color-brand-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                        <span style={{ color: 'var(--color-text-inverse)', fontSize: 11, fontWeight: 700 }}>M</span>
                       </div>
                       <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
                         <ReactMarkdown components={PLAIN_MD as never}>{text}</ReactMarkdown>
@@ -431,10 +431,10 @@ export default function MayChatPanel({
 
             {showThinking && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 8, background: '#2D3748', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>M</span>
+                <div style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--color-brand-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ color: 'var(--color-text-inverse)', fontSize: 11, fontWeight: 700 }}>M</span>
                 </div>
-                <p style={{ fontSize: 12.5, color: '#64748B', fontStyle: 'italic', paddingTop: 4 }}>Maya is thinking...</p>
+                <p style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontStyle: 'italic', paddingTop: 4 }}>Maya is thinking...</p>
               </div>
             )}
 
@@ -444,7 +444,7 @@ export default function MayChatPanel({
       </div>
 
       {/* Input */}
-      <div style={{ flexShrink: 0, borderTop: '1px solid #E2E8F0', padding: '12px 14px', background: '#fff' }}>
+      <div style={{ flexShrink: 0, borderTop: '1px solid var(--color-border)', padding: '12px 14px', background: 'var(--color-surface)' }}>
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -463,21 +463,21 @@ export default function MayChatPanel({
                 key={att.id}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  background: att.error ? '#FEF2F2' : '#F1F5F9',
-                  border: `1px solid ${att.error ? '#FECACA' : '#E2E8F0'}`,
+                  background: att.error ? 'color-mix(in srgb, var(--color-status-danger) 8%, var(--color-surface))' : 'var(--color-surface-2)',
+                  border: `1px solid ${att.error ? 'color-mix(in srgb, var(--color-status-danger) 28%, var(--color-surface))' : 'var(--color-border)'}`,
                   borderRadius: 8, padding: '4px 7px', maxWidth: 180,
                 }}
               >
                 {att.uploading ? (
-                  <Loader2 size={11} color="#94A3B8" className="animate-spin" />
+                  <Loader2 size={11} color="var(--color-menu-muted)" className="animate-spin" />
                 ) : att.mimeType.startsWith('image/') ? (
                   <span style={{ fontSize: 11 }}>🖼</span>
                 ) : (
-                  <FileText size={11} color={att.error ? '#EF4444' : '#64748B'} />
+                  <FileText size={11} color={att.error ? 'var(--color-status-danger)' : 'var(--color-text-secondary)'} />
                 )}
                 <span style={{
                   fontSize: 11.5,
-                  color: att.error ? '#EF4444' : '#2D3748',
+                  color: att.error ? 'var(--color-status-danger)' : 'var(--color-text-primary)',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   maxWidth: 110,
                 }}>
@@ -486,7 +486,7 @@ export default function MayChatPanel({
                 {!att.uploading && (
                   <button
                     onClick={() => removeAttachment(att.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-menu-muted)', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
                   >
                     <X size={10} />
                   </button>
@@ -496,15 +496,15 @@ export default function MayChatPanel({
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: '#F8FAFC', borderRadius: 14, padding: '10px 14px', border: '1px solid #E2E8F0', transition: 'border-color 0.12s' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'var(--color-surface-2)', borderRadius: 14, padding: '10px 14px', border: '1px solid var(--color-border)', transition: 'border-color 0.12s' }}>
           {/* Paperclip button */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isLoading}
             title="Attach image or document"
-            style={{ background: 'none', border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer', color: '#94A3B8', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0, marginBottom: 2, opacity: isLoading ? 0.4 : 1, transition: 'color 0.12s' }}
-            onMouseEnter={e => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.color = '#64748B' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#94A3B8' }}
+            style={{ background: 'none', border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer', color: 'var(--color-menu-muted)', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0, marginBottom: 2, opacity: isLoading ? 0.4 : 1, transition: 'color 0.12s' }}
+            onMouseEnter={e => { if (!isLoading) (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-menu-muted)' }}
           >
             <Paperclip size={15} />
           </button>
@@ -516,17 +516,17 @@ export default function MayChatPanel({
             placeholder="Ask Maya anything..."
             rows={1}
             disabled={isLoading}
-            style={{ flex: 1, background: 'transparent', color: '#2D3748', resize: 'none', outline: 'none', fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.5, maxHeight: 128, opacity: isLoading ? 0.5 : 1 }}
+            style={{ flex: 1, background: 'transparent', color: 'var(--color-text-primary)', resize: 'none', outline: 'none', fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.5, maxHeight: 128, opacity: isLoading ? 0.5 : 1 }}
           />
           <button
             onClick={() => submitMessage()}
             disabled={isLoading}
-            style={{ width: 28, height: 28, borderRadius: 8, background: isLoading ? '#E2E8F0' : '#2D3748', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLoading ? 'not-allowed' : 'pointer', flexShrink: 0, transition: 'background 0.12s' }}
+            style={{ width: 28, height: 28, borderRadius: 8, background: isLoading ? 'var(--color-border)' : 'var(--color-brand-secondary)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLoading ? 'not-allowed' : 'pointer', flexShrink: 0, transition: 'background 0.12s' }}
           >
-            <ArrowUp size={13} color="#fff" />
+            <ArrowUp size={13} color="var(--color-text-inverse)" />
           </button>
         </div>
-        <p style={{ fontSize: 10.5, color: '#CBD5E1', textAlign: 'center', marginTop: 7 }}>
+        <p style={{ fontSize: 10.5, color: 'var(--color-border-strong)', textAlign: 'center', marginTop: 7 }}>
           Maya makes mistakes. Verify important decisions.
         </p>
       </div>

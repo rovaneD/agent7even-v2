@@ -2,29 +2,40 @@
 @plugin "tailwindcss-animate";
 
 :root {
-  /* Core palette */
-  --color-primary:          #2D3748;
-  --color-interactive:      #3B82F6;
-  --color-positive:         #10B981;
-  --color-negative:         #EF4444;
-  --color-warning:          #F59E0B;
+  /* Brand palette — current source of truth */
+  --color-brand-primary:    #3B82F6;
+  --color-brand-secondary:  #2D3748;
+  --color-brand-accent:     #F5349B;
 
-  /* Surfaces — V2: blue-gray page bg, pure-white cards */
-  --color-bg:               #F1F5F9;
+  /* Semantic status colors */
+  --color-status-success:   #10B981;
+  --color-status-warning:   #FCA509;
+  --color-status-danger:    #EE533B;
+  --color-status-info:      #3B82F6;
+
+  /* Surfaces */
+  --color-bg:               #FCFCFC;
   --color-surface:          #FFFFFF;
   --color-surface-2:        #F8FAFC;
   --color-surface-hover:    #F8FAFC;
   --color-border:           #E2E8F0;
   --color-border-strong:    #CBD5E1;
 
-  /* Text — V2: darker secondary, distinct muted */
+  /* Text */
   --color-text-primary:     #2D3748;
   --color-text-secondary:   #64748B;
-  --color-text-muted:       #94A3B8;
+  --color-text-muted:       #9BA1AE;
   --color-text-inverse:     #FFFFFF;
+  --color-menu-muted:       #9BA1AE;
 
-  /* Logo accent — never used in UI */
-  --color-logo:             #c8522a;
+  /* Backward-compatible aliases — replace in app code over time */
+  --color-primary:          var(--color-brand-primary);
+  --color-secondary:        var(--color-brand-secondary);
+  --color-interactive:      var(--color-brand-primary);
+  --color-positive:         var(--color-status-success);
+  --color-negative:         var(--color-status-danger);
+  --color-warning:          var(--color-status-warning);
+  --color-logo:             var(--color-brand-accent);
 
   /* Spacing */
   --radius-sm:   8px;
@@ -43,12 +54,28 @@
   --color-foreground: var(--color-text-primary);
   --font-sans: system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
   /* Named color utilities */
-  --color-page-bg:    #F1F5F9;
-  --color-surface:    #FFFFFF;
-  --color-surface-2:  #F8FAFC;
-  --color-text-sec:   #64748B;
-  --color-text-muted: #94A3B8;
+  --color-brand-primary:   var(--color-brand-primary);
+  --color-brand-secondary: var(--color-brand-secondary);
+  --color-brand-accent:    var(--color-brand-accent);
+  --color-status-success:  var(--color-status-success);
+  --color-status-warning:  var(--color-status-warning);
+  --color-status-danger:   var(--color-status-danger);
+  --color-status-info:     var(--color-status-info);
+  --color-app-bg:          var(--color-bg);
+  --color-page-bg:         var(--color-bg);
+  --color-surface:         var(--color-surface);
+  --color-surface-2:       var(--color-surface-2);
+  --color-surface-hover:   var(--color-surface-hover);
+  --color-border:          var(--color-border);
+  --color-border-strong:   var(--color-border-strong);
+  --color-text-primary:    var(--color-text-primary);
+  --color-text-sec:        var(--color-text-secondary);
+  --color-text-muted:      var(--color-text-muted);
+  --color-text-inverse:    var(--color-text-inverse);
+  --color-menu-muted:      var(--color-menu-muted);
+
   /* Font sizes */
   --font-size-label:   11px;
   --font-size-body-sm: 13px;
@@ -71,7 +98,7 @@ body {
 .btn-primary {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 10px 16px;
-  background: #2D3748; color: #fff;
+  background: var(--color-brand-secondary); color: var(--color-text-inverse);
   font-size: 15px; font-weight: 500; font-family: inherit;
   border: none; border-radius: 12px; cursor: pointer;
   transition: background 0.12s;
@@ -82,7 +109,7 @@ body {
 .btn-interactive {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 10px 16px;
-  background: #3B82F6; color: #fff;
+  background: var(--color-brand-primary); color: var(--color-text-inverse);
   font-size: 15px; font-weight: 500; font-family: inherit;
   border: none; border-radius: 12px; cursor: pointer;
   transition: background 0.12s;
@@ -93,36 +120,36 @@ body {
 .btn-secondary {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 10px 16px;
-  background: #fff; color: #2D3748;
+  background: var(--color-surface); color: var(--color-brand-secondary);
   font-size: 15px; font-weight: 500; font-family: inherit;
-  border: 1px solid #E2E8F0; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--color-border); border-radius: 12px; cursor: pointer;
   transition: border-color 0.12s;
 }
-.btn-secondary:hover:not(:disabled) { border-color: #94A3B8; }
+.btn-secondary:hover:not(:disabled) { border-color: var(--color-border-strong); }
 .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-destructive {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 10px 16px;
-  background: transparent; color: #EF4444;
+  background: transparent; color: var(--color-status-danger);
   font-size: 15px; font-weight: 500; font-family: inherit;
-  border: 1px solid rgba(239,68,68,0.2); border-radius: 12px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--color-status-danger) 22%, transparent); border-radius: 12px; cursor: pointer;
   transition: background 0.12s;
 }
-.btn-destructive:hover:not(:disabled) { background: rgba(239,68,68,0.05); }
+.btn-destructive:hover:not(:disabled) { background: color-mix(in srgb, var(--color-status-danger) 6%, transparent); }
 .btn-destructive:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Card system ───────────────────────────────────────────────────────────── */
 
 .card {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 .card-hover {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   cursor: pointer;
@@ -130,5 +157,5 @@ body {
 }
 .card-hover:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  border-color: #CBD5E1;
+  border-color: var(--color-border-strong);
 }

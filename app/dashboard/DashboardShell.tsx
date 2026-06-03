@@ -160,18 +160,18 @@ function ContextMenu({ pageName }: { pageName: string }) {
         onClick={() => setOpen(o => !o)}
         style={{
           padding: '6px', borderRadius: 8, background: 'none', border: 'none',
-          cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center',
+          cursor: 'pointer', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center',
           transition: 'color 0.12s, background 0.12s',
         }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748'; (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-hover)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
       >
         <MoreHorizontal size={18} />
       </button>
       {open && (
         <div style={{
           position: 'absolute', right: 0, top: '100%', marginTop: 4,
-          background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0',
+          background: 'var(--color-surface)', borderRadius: 12, border: '1px solid var(--color-border)',
           boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '4px 0',
           minWidth: 160, zIndex: 50,
         }}>
@@ -181,10 +181,10 @@ function ContextMenu({ pageName }: { pageName: string }) {
               onClick={() => handleAction(a.action)}
               style={{
                 width: '100%', textAlign: 'left', padding: '8px 16px',
-                fontSize: 13.5, color: '#2D3748', background: 'none', border: 'none',
+                fontSize: 13.5, color: 'var(--color-text-primary)', background: 'none', border: 'none',
                 cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.1s',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-hover)' }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
             >
               {a.label}
@@ -439,9 +439,9 @@ export default function DashboardShell({
 
   // ── Foundation bar color ──────────────────────────────────────────────────
   function foundationBarColor(score: number): string {
-    if (score >= 80) return '#10B981'
-    if (score >= 60) return '#F59E0B'
-    return '#EF4444'
+    if (score >= 80) return 'var(--color-status-success)'
+    if (score >= 60) return 'var(--color-status-warning)'
+    return 'var(--color-status-danger)'
   }
 
   // ── Nav item ──────────────────────────────────────────────────────────────
@@ -465,21 +465,21 @@ export default function DashboardShell({
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '10px 0', margin: '1px 4px', borderRadius: 8,
-              textDecoration: 'none', color: active ? '#2D3748' : '#64748B',
-              background: active ? '#F1F5F9' : 'transparent',
+              textDecoration: 'none', color: active ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+              background: active ? 'var(--color-surface-2)' : 'transparent',
               transition: 'background 0.12s, color 0.12s', position: 'relative',
             }}
-            onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#F1F5F9'; (e.currentTarget as HTMLAnchorElement).style.color = '#2D3748' } }}
-            onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#64748B' } }}
+            onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-surface-2)'; (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-primary)' } }}
+            onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-secondary)' } }}
           >
             <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon size={16} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : 'currentColor'} />
+              <Icon size={16} strokeWidth={active ? 2 : 1.75} color={active ? 'var(--color-text-primary)' : 'currentColor'} />
               {isAdminOrders && activeOrdersCount > 0 && (
-                <span style={{ position: 'absolute', top: -2, right: -5, width: 7, height: 7, borderRadius: '50%', background: '#10B981', border: '1px solid #fff' }} />
+                <span style={{ position: 'absolute', top: -2, right: -5, width: 7, height: 7, borderRadius: '50%', background: 'var(--color-status-success)', border: '1px solid var(--color-surface)' }} />
               )}
             </span>
             {isAgents && pendingApprovalsCount > 0 && (
-              <span style={{ position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: '50%', background: '#3B82F6' }} />
+              <span style={{ position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: '50%', background: 'var(--color-brand-primary)' }} />
             )}
             {isFoundation && foundationScore !== null && (
               <span style={{
@@ -500,25 +500,25 @@ export default function DashboardShell({
           style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
             borderRadius: 8, textDecoration: 'none', fontSize: 14, fontWeight: active ? 500 : 400,
-            color: active ? '#2D3748' : '#64748B',
-            background: active ? '#F1F5F9' : 'transparent',
-            border: active ? '1px solid #E2E8F0' : '1px solid transparent',
+            color: active ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+            background: active ? 'var(--color-surface-2)' : 'transparent',
+            border: active ? '1px solid var(--color-border)' : '1px solid transparent',
             transition: 'background 0.12s, color 0.12s, border-color 0.12s',
             marginBottom: 1,
           }}
-          onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLAnchorElement).style.color = '#2D3748' } }}
-          onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#64748B' } }}
+          onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--color-surface-hover)'; (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-primary)' } }}
+          onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-secondary)' } }}
         >
           <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {isAdminOrders && activeOrdersCount > 0 && (
-              <span style={{ position: 'absolute', left: -8, width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+              <span style={{ position: 'absolute', left: -8, width: 6, height: 6, borderRadius: '50%', background: 'var(--color-status-success)' }} />
             )}
-            <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? '#2D3748' : '#94A3B8'} />
+            <Icon size={14} strokeWidth={active ? 2 : 1.75} color={active ? 'var(--color-text-primary)' : 'var(--color-menu-muted)'} />
           </span>
           {item.label}
           {isFoundation && foundationScore !== null && (
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span style={{ width: 28, height: 3, background: '#E2E8F0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
+              <span style={{ width: 28, height: 3, background: 'var(--color-border)', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
                 <span style={{ display: 'block', width: `${foundationScore}%`, height: '100%', background: foundationBarColor(foundationScore), borderRadius: 2, transition: 'width 0.4s' }} />
               </span>
               <span style={{ fontSize: 9.5, color: foundationBarColor(foundationScore) }}>{foundationScore}%</span>
@@ -526,20 +526,20 @@ export default function DashboardShell({
           )}
           {isBrandKit && brandKitCompleted > 0 && (
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span style={{ width: 28, height: 3, background: '#E2E8F0', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
-                <span style={{ display: 'block', width: `${brandKitPct}%`, height: '100%', background: brandKitCompleted === 6 ? '#10B981' : '#3B82F6', borderRadius: 2, transition: 'width 0.4s' }} />
+              <span style={{ width: 28, height: 3, background: 'var(--color-border)', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
+                <span style={{ display: 'block', width: `${brandKitPct}%`, height: '100%', background: brandKitCompleted === 6 ? 'var(--color-status-success)' : 'var(--color-brand-primary)', borderRadius: 2, transition: 'width 0.4s' }} />
               </span>
-              <span style={{ fontSize: 9.5, color: brandKitCompleted === 6 ? '#10B981' : '#3B82F6' }}>{brandKitPct}%</span>
+              <span style={{ fontSize: 9.5, color: brandKitCompleted === 6 ? 'var(--color-status-success)' : 'var(--color-brand-primary)' }}>{brandKitPct}%</span>
             </span>
           )}
           {isAgents && pendingApprovalsCount > 0 && (
-            <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, borderRadius: 9, background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
-              <span style={{ color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>{pendingApprovalsCount}</span>
+            <span style={{ marginLeft: 'auto', minWidth: 18, height: 18, borderRadius: 9, background: 'var(--color-brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+              <span style={{ color: 'var(--color-text-inverse)', fontSize: 10, fontWeight: 700, lineHeight: 1 }}>{pendingApprovalsCount}</span>
             </span>
           )}
           {isAdminOrders && activeOrdersCount > 0 && (
-            <span style={{ marginLeft: 'auto', minWidth: 34, height: 24, borderRadius: 8, border: '1px solid #E2E8F0', background: active ? '#F8FAFC' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px' }}>
-              <span style={{ color: '#2D3748', fontSize: 13, fontWeight: 500, lineHeight: 1 }}>{activeOrdersCount}</span>
+            <span style={{ marginLeft: 'auto', minWidth: 34, height: 24, borderRadius: 8, border: '1px solid var(--color-border)', background: active ? 'var(--color-surface-2)' : 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px' }}>
+              <span style={{ color: 'var(--color-text-primary)', fontSize: 13, fontWeight: 500, lineHeight: 1 }}>{activeOrdersCount}</span>
             </span>
           )}
         </Link>
@@ -550,16 +550,16 @@ export default function DashboardShell({
             style={{
               display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px 5px 32px',
               borderRadius: 7, textDecoration: 'none', fontSize: 13, fontWeight: approvalsActive ? 500 : 400,
-              color: approvalsActive ? '#3B82F6' : '#94A3B8',
-              background: approvalsActive ? '#EFF6FF' : 'transparent',
+              color: approvalsActive ? 'var(--color-brand-primary)' : 'var(--color-menu-muted)',
+              background: approvalsActive ? 'color-mix(in srgb, var(--color-brand-primary) 8%, var(--color-surface))' : 'transparent',
               transition: 'background 0.12s, color 0.12s', marginBottom: 1,
             }}
-            onMouseEnter={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = '#EFF6FF'; (e.currentTarget as HTMLAnchorElement).style.color = '#3B82F6' } }}
-            onMouseLeave={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = '#94A3B8' } }}
+            onMouseEnter={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'color-mix(in srgb, var(--color-brand-primary) 8%, var(--color-surface))'; (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-brand-primary)' } }}
+            onMouseLeave={e => { if (!approvalsActive) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-menu-muted)' } }}
           >
-            <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#3B82F6', flexShrink: 0 }} />
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--color-brand-primary)', flexShrink: 0 }} />
             Approvals
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#3B82F6', fontWeight: 600 }}>{pendingApprovalsCount}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--color-brand-primary)', fontWeight: 600 }}>{pendingApprovalsCount}</span>
           </Link>
         )}
       </>
@@ -572,7 +572,7 @@ export default function DashboardShell({
     <aside style={{
       width: sidebarCollapsed ? 56 : 220,
       flexShrink: 0, display: 'flex', flexDirection: 'column',
-      background: '#fff', borderRight: '1px solid #E2E8F0',
+      background: 'var(--color-surface)', borderRight: '1px solid var(--color-border)',
       height: '100%', overflow: 'hidden',
       transition: 'width 0.2s ease',
     }}>
@@ -581,22 +581,22 @@ export default function DashboardShell({
         display: 'flex', alignItems: 'center',
         justifyContent: sidebarCollapsed ? 'center' : 'space-between',
         padding: sidebarCollapsed ? '16px 0' : '16px 14px 12px',
-        borderBottom: '1px solid #E2E8F0',
+        borderBottom: '1px solid var(--color-border)',
       }}>
         {sidebarCollapsed ? (
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#2D3748' }}>
-            <span style={{ color: '#c8522a' }}>7</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            <span style={{ color: 'var(--color-brand-accent)' }}>7</span>
           </span>
         ) : (
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: '#2D3748' }}>
-            AGENT<span style={{ color: '#c8522a' }}>7</span>EVEN
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--color-text-primary)' }}>
+            AGENT<span style={{ color: 'var(--color-brand-accent)' }}>7</span>EVEN
           </span>
         )}
         {!sidebarCollapsed && (
           <button
             onClick={() => setMobileOpen(false)}
             className="lg:hidden"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: 2, display: 'flex' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2, display: 'flex' }}
           >
             <X size={14} />
           </button>
@@ -611,18 +611,18 @@ export default function DashboardShell({
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px',
             borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
-            fontWeight: 500, color: mayaOpen ? '#fff' : '#2D3748',
-            background: mayaOpen ? '#2D3748' : '#F8FAFC',
-            border: mayaOpen ? 'none' : '1px solid #E2E8F0',
+            fontWeight: 500, color: mayaOpen ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
+            background: mayaOpen ? 'var(--color-brand-secondary)' : 'var(--color-surface-2)',
+            border: mayaOpen ? 'none' : '1px solid var(--color-border)',
             transition: 'background 0.12s, color 0.12s',
           } as React.CSSProperties}
-          onMouseEnter={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#CBD5E1' } }}
-          onMouseLeave={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' } }}
+          onMouseEnter={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border-strong)' } }}
+          onMouseLeave={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)' } }}
         >
-          <Sparkles size={13} strokeWidth={1.75} color={mayaOpen ? '#fff' : '#64748B'} />
+          <Sparkles size={13} strokeWidth={1.75} color={mayaOpen ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)'} />
           Maya
           {mayaOpen && activeSessionId === null && (
-            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#64748B', fontWeight: 400 }}>new</span>
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--color-text-secondary)', fontWeight: 400 }}>new</span>
           )}
         </button>
 
@@ -631,7 +631,7 @@ export default function DashboardShell({
           <div style={{ marginTop: 2, marginLeft: 2, marginBottom: 2 }}>
             {sessionGroups.map(group => (
               <div key={group.label} style={{ marginBottom: 6 }}>
-                <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 4px', marginBottom: 2 }}>
+                <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-menu-muted)', padding: '0 4px', marginBottom: 2 }}>
                   {group.label}
                 </p>
                 {group.sessions.map(session => {
@@ -644,13 +644,13 @@ export default function DashboardShell({
                       key={session.id}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 3, borderRadius: 6,
-                        background: isActive ? '#F8FAFC' : 'transparent',
+                        background: isActive ? 'var(--color-surface-2)' : 'transparent',
                         opacity: isLoading || isDeleting ? 0.5 : 1,
                         marginBottom: 1,
                       }}
                       onMouseEnter={e => {
                         setHoveredSession(session.id)
-                        if (!isActive) (e.currentTarget as HTMLDivElement).style.background = '#F8FAFC'
+                        if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'var(--color-surface-2)'
                       }}
                       onMouseLeave={e => {
                         setHoveredSession(prev => prev === session.id ? null : prev)
@@ -663,16 +663,16 @@ export default function DashboardShell({
                         style={{
                           minWidth: 0, flex: 1, display: 'block', textAlign: 'left', padding: '4px 2px 4px 10px',
                           borderRadius: 6, border: 'none', cursor: isDeleting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                          fontSize: 11.5, color: isActive ? '#2D3748' : '#64748B',
+                          fontSize: 11.5, color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                           background: 'transparent',
                           transition: 'color 0.1s',
                           overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
                         }}
                         title={session.title ?? 'Untitled'}
                       >
-                        <span style={{ color: '#CBD5E1', marginRight: 5, fontSize: 10 }}>›</span>
+                        <span style={{ color: 'var(--color-border-strong)', marginRight: 5, fontSize: 10 }}>›</span>
                         {session.canvas_context && (
-                          <span style={{ fontSize: 9.5, color: '#3B82F6', marginRight: 4, fontWeight: 500 }}>
+                          <span style={{ fontSize: 9.5, color: 'var(--color-brand-primary)', marginRight: 4, fontWeight: 500 }}>
                             {session.canvas_context} ·{' '}
                           </span>
                         )}
@@ -684,15 +684,15 @@ export default function DashboardShell({
                         title="Delete chat"
                         style={{
                           width: 22, height: 22, borderRadius: 6, border: 'none',
-                          background: 'transparent', color: '#CBD5E1',
+                          background: 'transparent', color: 'var(--color-border-strong)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           cursor: isDeleting ? 'not-allowed' : 'pointer', flexShrink: 0,
                           opacity: showDelete ? 1 : 0,
                           pointerEvents: showDelete ? 'auto' : 'none',
                           transition: 'opacity 0.12s, color 0.12s',
                         }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#EF4444' }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#CBD5E1' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-status-danger)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-border-strong)' }}
                       >
                         <Trash2 size={11} strokeWidth={1.8} />
                       </button>
@@ -708,14 +708,14 @@ export default function DashboardShell({
           onClick={() => setShowNewCampaign(true)}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px',
-            borderRadius: 9, border: '1px solid #E2E8F0', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 13, fontWeight: 500, color: '#2D3748', background: '#F8FAFC',
+            borderRadius: 9, border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', background: 'var(--color-surface-2)',
             transition: 'background 0.12s, border-color 0.12s',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#CBD5E1' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border-strong)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)' }}
         >
-          <Plus size={13} strokeWidth={1.75} color="#64748B" />
+          <Plus size={13} strokeWidth={1.75} color="var(--color-text-secondary)" />
           New campaign
         </button>
       </div>
@@ -730,13 +730,13 @@ export default function DashboardShell({
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '10px 0', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
-              background: mayaOpen ? '#2D3748' : 'transparent', border: 'none',
+              background: mayaOpen ? 'var(--color-brand-secondary)' : 'transparent', border: 'none',
               transition: 'background 0.12s',
             }}
-            onMouseEnter={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9' }}
+            onMouseEnter={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)' }}
             onMouseLeave={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
           >
-            <Sparkles size={16} strokeWidth={1.75} color={mayaOpen ? '#fff' : '#64748B'} />
+            <Sparkles size={16} strokeWidth={1.75} color={mayaOpen ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)'} />
           </button>
           <button
             onClick={() => setShowNewCampaign(true)}
@@ -746,10 +746,10 @@ export default function DashboardShell({
               padding: '10px 0', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
               background: 'transparent', border: 'none', transition: 'background 0.12s',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#F1F5F9' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
           >
-            <Plus size={16} strokeWidth={1.75} color="#64748B" />
+            <Plus size={16} strokeWidth={1.75} color="var(--color-text-secondary)" />
           </button>
         </div>
       )}
@@ -759,7 +759,7 @@ export default function DashboardShell({
         {NAV.map((group) => (
           <div key={group.section} style={{ marginBottom: sidebarCollapsed ? 8 : 18 }}>
             {!sidebarCollapsed && (
-              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 3px', marginBottom: 4 }}>
+              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-menu-muted)', padding: '0 3px', marginBottom: 4 }}>
                 {group.section}
               </p>
             )}
@@ -769,7 +769,7 @@ export default function DashboardShell({
         {isAdmin && (
           <div style={{ marginBottom: sidebarCollapsed ? 8 : 18 }}>
             {!sidebarCollapsed && (
-              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94A3B8', padding: '0 3px', marginBottom: 4 }}>
+              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-menu-muted)', padding: '0 3px', marginBottom: 4 }}>
                 Admin
               </p>
             )}
@@ -786,7 +786,7 @@ export default function DashboardShell({
       </nav>
 
       {/* Collapse toggle + Help + User */}
-      <div style={{ borderTop: '1px solid #E2E8F0' }}>
+      <div style={{ borderTop: '1px solid var(--color-border)' }}>
         {/* Collapse toggle */}
         <button
           onClick={toggleSidebar}
@@ -796,10 +796,10 @@ export default function DashboardShell({
             justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
             gap: 8, padding: sidebarCollapsed ? '9px 0' : '9px 14px',
             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 14, color: '#94A3B8', transition: 'color 0.12s',
+            fontSize: 14, color: 'var(--color-menu-muted)', transition: 'color 0.12s',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#94A3B8' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-menu-muted)' }}
         >
           {sidebarCollapsed ? <ChevronRight size={14} strokeWidth={1.75} /> : <ChevronLeft size={14} strokeWidth={1.75} />}
           {!sidebarCollapsed && <span>Collapse</span>}
@@ -814,10 +814,10 @@ export default function DashboardShell({
             justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
             gap: 8, padding: sidebarCollapsed ? '9px 0' : '9px 14px',
             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 14, color: '#64748B', transition: 'color 0.12s',
+            fontSize: 14, color: 'var(--color-text-secondary)', transition: 'color 0.12s',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#2D3748' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)' }}
         >
           <HelpCircle size={sidebarCollapsed ? 16 : 14} strokeWidth={1.75} />
           {!sidebarCollapsed && 'Help'}
@@ -832,7 +832,7 @@ export default function DashboardShell({
         }}>
           <UserButton />
           {!sidebarCollapsed && (
-            <span style={{ fontSize: 13, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
+            <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
           )}
         </div>
       </div>
@@ -842,7 +842,7 @@ export default function DashboardShell({
   // ── Canvas header ──────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, sans-serif', background: '#F1F5F9' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, sans-serif', background: 'var(--color-bg)' }}>
       <NewCampaignModal open={showNewCampaign} onClose={() => setShowNewCampaign(false)} />
 
       {/* Sidebar — desktop always visible */}
@@ -892,13 +892,13 @@ export default function DashboardShell({
         {/* Mobile top bar */}
         <header
           className="flex items-center justify-between lg:hidden"
-          style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '12px 16px' }}
+          style={{ flexShrink: 0, background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '12px 16px' }}
         >
-          <button onClick={() => setMobileOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2D3748', display: 'flex' }}>
+          <button onClick={() => setMobileOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-primary)', display: 'flex' }}>
             <Menu size={18} />
           </button>
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: '#2D3748' }}>
-            AGENT<span style={{ color: '#c8522a' }}>7</span>EVEN
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--color-text-primary)' }}>
+            AGENT<span style={{ color: 'var(--color-brand-accent)' }}>7</span>EVEN
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <NotificationBell profileId={profileId} initialNotifications={initialNotifications} />
@@ -909,7 +909,7 @@ export default function DashboardShell({
         {/* Desktop canvas header */}
         <div
           className="hidden lg:flex"
-          style={{ flexShrink: 0, height: 56, borderBottom: '1px solid #E2E8F0', background: '#fff', paddingRight: 20, alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}
+          style={{ flexShrink: 0, height: 56, borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)', paddingRight: 20, alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}
         >
           <NotificationBell profileId={profileId} initialNotifications={initialNotifications} />
           <ContextMenu pageName={currentPageKey} />
