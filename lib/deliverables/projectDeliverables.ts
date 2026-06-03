@@ -86,7 +86,7 @@ export async function findOrCreateProject({
   if (selectError) throw new Error(`Project lookup failed: ${errorMessage(selectError)}`)
   if (existing) return existing
 
-  const phaseCandidates = ['in_progress', 'active', 'planning', 'not_started', 'draft']
+  const phaseCandidates = ['discovery', 'strategy', 'design', 'development', 'launch', 'completed']
   let lastError: unknown = null
 
   for (const phase of phaseCandidates) {
