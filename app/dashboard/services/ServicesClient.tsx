@@ -116,14 +116,14 @@ const SERVICES = [
 ]
 
 const STATUS_CONFIG = {
-  submitted: { label: 'Submitted', color: 'bg-blue-50 text-blue-600', icon: Clock },
-  in_review: { label: 'In Review', color: 'bg-yellow-50 text-yellow-600', icon: Loader2 },
-  in_progress: { label: 'In Progress', color: 'bg-purple-50 text-purple-600', icon: Loader2 },
-  delivered: { label: 'Delivered', color: 'bg-green-50 text-green-600', icon: CheckCircle },
-  completed: { label: 'Completed', color: 'bg-green-50 text-green-600', icon: CheckCircle },
-  revision_requested: { label: 'Revision Requested', color: 'bg-orange-50 text-orange-600', icon: AlertCircle },
-  approved: { label: 'Approved', color: 'bg-green-50 text-green-600', icon: CheckCircle },
-  cancelled: { label: 'Cancelled', color: 'bg-gray-50 text-gray-400', icon: X },
+  submitted: { label: 'Submitted', color: 'bg-brand-primary/10 text-brand-primary', icon: Clock },
+  in_review: { label: 'In Review', color: 'bg-status-warning/10 text-status-warning', icon: Loader2 },
+  in_progress: { label: 'In Progress', color: 'bg-brand-accent/10 text-brand-accent', icon: Loader2 },
+  delivered: { label: 'Delivered', color: 'bg-status-success/10 text-status-success', icon: CheckCircle },
+  completed: { label: 'Completed', color: 'bg-status-success/10 text-status-success', icon: CheckCircle },
+  revision_requested: { label: 'Revision Requested', color: 'bg-status-warning/10 text-status-warning', icon: AlertCircle },
+  approved: { label: 'Approved', color: 'bg-status-success/10 text-status-success', icon: CheckCircle },
+  cancelled: { label: 'Cancelled', color: 'bg-surface-2 text-text-soft', icon: X },
 }
 
 const CLOSED_STATUSES = ['approved', 'cancelled', 'completed']
@@ -215,19 +215,19 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden">
-        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-[24px] border border-border bg-surface shadow-2xl">
+        <div className="flex items-start justify-between border-b border-border p-6">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center">
-              <Icon size={20} className="text-green-600" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-status-success/10">
+              <Icon size={20} className="text-status-success" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-green-600 mb-1">Free self-serve tool</p>
-              <h2 className="text-xl font-bold text-gray-900">Generate Viral Hooks</h2>
-              <p className="text-sm text-gray-500 mt-1">Maya will create hooks now. No admin handoff needed.</p>
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-status-success">Free self-serve tool</p>
+              <h2 className="text-xl font-semibold text-text">Generate Viral Hooks</h2>
+              <p className="mt-1 text-sm text-text-sec">Maya will create hooks now. No admin handoff needed.</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-text-soft transition-colors hover:text-text">
             <X size={18} />
           </button>
         </div>
@@ -244,7 +244,7 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
                 onChange={e => setTopic(e.target.value)}
                 placeholder="Example: Instagram video promoting Maya to small business owners tired of agencies and complex marketing tools."
                 rows={4}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 resize-none transition-colors"
+                className="w-full resize-none rounded-xl border border-border px-4 py-3 text-sm text-text outline-none transition-colors placeholder:text-text-soft focus:border-brand-primary/50"
               />
             </div>
 
@@ -258,7 +258,7 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
                   value={audience}
                   onChange={e => setAudience(e.target.value)}
                   placeholder="Small business owners, creators, coaches..."
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#3B82F6]/40"
+                  className="w-full rounded-xl border border-border px-4 py-3 text-sm outline-none focus:border-brand-primary/50"
                 />
               </div>
               <div>
@@ -269,7 +269,7 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
                 <select
                   value={format}
                   onChange={e => setFormat(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
+                  className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none focus:border-brand-primary/50"
                 >
                   <option>Instagram Reel</option>
                   <option>TikTok</option>
@@ -284,7 +284,7 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
                 <select
                   value={goal}
                   onChange={e => setGoal(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
+                  className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none focus:border-brand-primary/50"
                 >
                   <option>Drive interest</option>
                   <option>Book demos</option>
@@ -299,7 +299,7 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
                 <select
                   value={tone}
                   onChange={e => setTone(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
+                  className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none focus:border-brand-primary/50"
                 >
                   <option>Direct and useful</option>
                   <option>Bold and punchy</option>
@@ -320,7 +320,7 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Optional: pain points, claims to avoid, product details, examples, competitors, or exact words to include."
                 rows={3}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 resize-none"
+                className="w-full resize-none rounded-xl border border-border px-4 py-3 text-sm text-text outline-none placeholder:text-text-soft focus:border-brand-primary/50"
               />
             </div>
 
@@ -332,11 +332,11 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
             )}
           </div>
 
-          <div className="bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-100 p-6">
+          <div className="border-t border-border bg-surface-2 p-6 lg:border-l lg:border-t-0">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Frameworks included</p>
             <div className="space-y-2">
               {chips.map(chip => (
-                <div key={chip} className="rounded-xl bg-white border border-gray-100 px-3 py-2 text-xs font-medium text-gray-600">
+                <div key={chip} className="rounded-xl border border-border bg-surface px-3 py-2 text-xs font-medium text-text-sec">
                   {chip}
                 </div>
               ))}
@@ -357,7 +357,7 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
           <button
             onClick={handleSubmit}
             disabled={!topic.trim() || loading}
-            className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-2.5 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-brand-primary px-6 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#2563EB] disabled:opacity-40"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
             {loading ? 'Generating...' : 'Generate hooks'}
@@ -383,17 +383,17 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+      <div className="relative w-full max-w-lg rounded-[24px] border border-border bg-surface shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+        <div className="flex items-start justify-between border-b border-border p-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#2D3748]/8 flex items-center justify-center">
-              <Icon size={18} className="text-[#64748B]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-primary/10">
+              <Icon size={18} className="text-brand-primary" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">{service.name}</h2>
-              <p className="text-xs text-gray-400">{service.price}</p>
+              <h2 className="text-sm font-semibold text-text">{service.name}</h2>
+              <p className="text-xs text-text-soft">{service.price}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -411,7 +411,7 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
             onChange={e => setBrief(e.target.value)}
             placeholder={`Describe what you need for ${service.name.toLowerCase()}. Include any relevant details about your business, goals, timeline preferences, and any existing assets we should know about.`}
             rows={5}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 resize-none transition-colors"
+            className="w-full resize-none rounded-xl border border-border px-4 py-3 text-sm text-text outline-none transition-colors placeholder:text-text-soft focus:border-brand-primary/50"
           />
           <p className="text-xs text-gray-400 mt-2">
             Our team will review and respond within 1 business day.
@@ -435,7 +435,7 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
           <button
             onClick={handleSubmit}
             disabled={!brief.trim() || loading}
-            className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-6 py-2.5 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-brand-primary px-6 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#2563EB] disabled:opacity-40"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : null}
             Submit request
@@ -669,46 +669,46 @@ ${VIRAL_HOOKS_FRAMEWORK}`
         }]
         : []
     const displayStatus = isViralHooksOrder && generatedAssets.length === 0
-      ? { label: 'Needs regenerate', color: 'bg-orange-50 text-orange-600', icon: AlertCircle }
+      ? { label: 'Needs regenerate', color: 'bg-status-warning/10 text-status-warning', icon: AlertCircle }
       : status
     const DisplayStatusIcon = displayStatus.icon
 
     return (
-      <div className="px-8 pt-8 pb-6 max-w-[1200px]">
+      <div className="mx-auto max-w-[1240px] px-8 py-8">
         <button
           onClick={() => setSelectedOrderId(null)}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 mb-8 transition-colors"
+          className="mb-8 flex items-center gap-2 text-sm text-text-soft transition-colors hover:text-text"
         >
           <ChevronLeft size={16} />
           Back to orders
         </button>
 
         {successMsg && (
-          <div className="bg-green-50 border border-green-100 rounded-xl p-4 mb-6 flex items-center gap-3">
-            <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
-            <p className="text-sm text-green-700">{successMsg}</p>
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-status-success/20 bg-status-success/10 p-4">
+            <CheckCircle size={16} className="flex-shrink-0 text-status-success" />
+            <p className="text-sm text-status-success">{successMsg}</p>
           </div>
         )}
 
         {errorMsg && (
-          <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6 flex items-center gap-3">
-            <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
-            <p className="text-sm text-red-700">{errorMsg}</p>
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-status-danger/20 bg-status-danger/10 p-4">
+            <AlertCircle size={16} className="flex-shrink-0 text-status-danger" />
+            <p className="text-sm text-status-danger">{errorMsg}</p>
           </div>
         )}
 
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex items-start justify-between gap-4">
+        <div className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+          <div className="flex items-start justify-between gap-4 border-b border-border p-6">
             <div className="flex items-start gap-4 min-w-0">
-              <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
-                <ServiceIcon size={17} className="text-gray-500" />
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
+                <ServiceIcon size={17} className="text-brand-primary" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-1">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-text-soft">
                   {isViralHooksOrder ? 'Generated asset' : 'Service conversation'}
                 </p>
-                <h1 className="text-2xl font-bold text-gray-900">{selectedOrder.title}</h1>
-                <p className="text-sm text-gray-400 mt-1 flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-semibold text-text">{selectedOrder.title}</h1>
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-text-soft">
                   <span>{formatOrderNumber(selectedOrder)}</span>
                   <span>•</span>
                   <span>Submitted {new Date(selectedOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
@@ -721,7 +721,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                   type="button"
                   onClick={completeSelfServeOrder}
                   disabled={completingOrder}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#2D3748] hover:bg-[#1E293B] px-3 py-1.5 rounded-full disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#2563EB] disabled:opacity-50"
                 >
                   {completingOrder ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle size={11} />}
                   Mark complete
@@ -746,28 +746,28 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           </div>
 
           {selectedOrder.brief && (
-            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Original request</p>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{displayServiceBrief(selectedOrder.brief)}</p>
+            <div className="border-b border-border bg-surface-2 p-6">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-soft">Original request</p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-text-sec">{displayServiceBrief(selectedOrder.brief)}</p>
             </div>
           )}
 
           <div className="p-6 space-y-4">
             {isViralHooksOrder ? (
               generatedAssets.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mx-auto mb-4">
-                    <AlertCircle size={18} className="text-orange-500" />
+                <div className="rounded-2xl border border-dashed border-border p-8 text-center">
+                  <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-status-warning/10">
+                    <AlertCircle size={18} className="text-status-warning" />
                   </div>
-                  <p className="text-sm font-semibold text-gray-800">Generated hooks were not saved for this request.</p>
-                  <p className="text-sm text-gray-400 mt-2 max-w-lg mx-auto">
+                  <p className="text-sm font-semibold text-text">Generated hooks were not saved for this request.</p>
+                  <p className="mx-auto mt-2 max-w-lg text-sm text-text-sec">
                     This order was marked delivered before the output was attached. Regenerate it from the original request to create a new saved result.
                   </p>
                   <button
                     type="button"
                     onClick={regenerateViralHooksOrder}
                     disabled={regeneratingOrder}
-                    className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-sm font-semibold px-4 py-2.5 rounded-xl mt-5 hover:bg-[#1E293B] disabled:opacity-50"
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2563EB] disabled:opacity-50"
                   >
                     {regeneratingOrder ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                     {regeneratingOrder ? 'Regenerating...' : 'Regenerate hooks'}
@@ -775,11 +775,11 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                 </div>
               ) : (
                 generatedAssets.map(message => (
-                  <div key={message.id} className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
-                    <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+                  <div key={message.id} className="overflow-hidden rounded-2xl border border-border bg-surface">
+                    <div className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-5 py-4">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-widest text-green-600">Maya generated hooks</p>
-                        <p className="text-xs text-gray-400 mt-1">Use these as openings for short-form content, captions, or carousel slides.</p>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-status-success">Maya generated hooks</p>
+                        <p className="mt-1 text-xs text-text-soft">Use these as openings for short-form content, captions, or carousel slides.</p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button
@@ -789,16 +789,16 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                             `${formatOrderNumber(selectedOrder)} · Generated ${new Date(selectedOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
                             displayServiceBrief(message.body)
                           )}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-sec transition-colors hover:border-border-strong hover:text-text"
                         >
                           <Download size={12} />
                           PDF
                         </button>
-                        <Sparkles size={16} className="text-green-500" />
+                        <Sparkles size={16} className="text-status-success" />
                       </div>
                     </div>
                     <div className="p-5">
-                      <p className="text-sm leading-7 whitespace-pre-wrap text-gray-700">{displayServiceBrief(message.body)}</p>
+                      <p className="whitespace-pre-wrap text-sm leading-7 text-text-sec">{displayServiceBrief(message.body)}</p>
                     </div>
                   </div>
                 ))
@@ -815,13 +815,13 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                 >
                   <div className={`max-w-[80%] rounded-2xl px-5 py-4 ${
                     message.sender_role === 'client'
-                      ? 'bg-[#2D3748] text-white rounded-br-none'
-                      : 'bg-gray-50 border border-gray-100 text-gray-800 rounded-bl-none'
+                      ? 'bg-brand-secondary text-white rounded-br-none'
+                      : 'border border-border bg-surface-2 text-text rounded-bl-none'
                   }`}>
-                    <p className={`text-xs font-semibold mb-2 ${message.sender_role === 'client' ? 'text-white/75' : 'text-[#3B82F6]'}`}>
+                    <p className={`text-xs font-semibold mb-2 ${message.sender_role === 'client' ? 'text-white/75' : 'text-brand-primary'}`}>
                       {message.sender_role === 'client' ? 'You' : 'Agent7even Services'}
                     </p>
-                    <p className={`text-sm leading-relaxed whitespace-pre-wrap ${message.sender_role === 'client' ? 'text-white' : 'text-gray-700'}`}>
+                    <p className={`whitespace-pre-wrap text-sm leading-relaxed ${message.sender_role === 'client' ? 'text-white' : 'text-text-sec'}`}>
                       {displayServiceBrief(message.body)}
                     </p>
                   </div>
@@ -830,7 +830,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             )}
           </div>
 
-          <div className="p-4 border-t border-gray-100 bg-white">
+          <div className="border-t border-border bg-surface p-4">
             {selectedOrder.support_ticket_id && !isViralHooksOrder ? (
               <div>
                 <textarea
@@ -838,13 +838,13 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                   onChange={e => setReplyBody(e.target.value)}
                   placeholder="Write a follow-up message about this service request..."
                   rows={4}
-                  className="w-full text-sm text-gray-800 placeholder:text-gray-300 resize-none focus:outline-none border border-gray-100 rounded-xl px-4 py-3"
+                  className="w-full resize-none rounded-xl border border-border px-4 py-3 text-sm text-text placeholder:text-text-soft focus:outline-none focus:border-brand-primary/50"
                 />
                 <div className="flex justify-end mt-3">
                   <button
                     onClick={handleServiceReply}
                     disabled={!replyBody.trim() || replying}
-                    className="flex items-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1E293B] px-5 py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {replying ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                     {replying ? 'Sending...' : 'Send message'}
@@ -867,46 +867,61 @@ ${VIRAL_HOOKS_FRAMEWORK}`
   }
 
   return (
-    <div className="px-8 pt-8 pb-6 max-w-[1200px]">
+    <div className="mx-auto max-w-[1240px] px-8 py-8">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">Services</p>
-          <h1 className="text-2xl font-bold text-gray-900">Marketing services</h1>
-          <p className="text-gray-500 text-sm mt-1">Request a service or track your active orders.</p>
+      <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+        <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Services</p>
+            <h1 className="text-[30px] font-semibold tracking-tight text-text">Marketing services</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-sec">
+              Request support, generate self-serve assets, and track active service conversations.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:flex">
+            <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Active</p>
+              <p className="mt-1 text-2xl font-semibold text-text">{activeOrders.length}</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Saved</p>
+              <p className="mt-1 text-2xl font-semibold text-text">{localOrders.length}</p>
+            </div>
+          </div>
         </div>
         {localOrders.length > 0 && (
-          <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+          <div className="border-t border-border bg-surface-2 px-7 py-4">
+          <div className="flex w-fit items-center gap-1 rounded-xl border border-border bg-surface p-1">
             {(['browse', 'orders'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
+                className={`rounded-lg px-4 py-2 text-sm font-semibold capitalize transition-all ${
                   activeTab === tab
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-brand-primary text-white shadow-sm'
+                    : 'text-text-sec hover:text-text'
                 }`}
               >
                 {tab === 'orders' ? `Orders${localOrders.length > 0 ? ` (${activeOrders.length})` : ''}` : 'Browse'}
               </button>
             ))}
           </div>
+          </div>
         )}
-      </div>
+      </section>
 
       {/* Success message */}
       {successMsg && (
-        <div className="bg-green-50 border border-green-100 rounded-xl p-4 mb-6 flex items-center gap-3">
-          <CheckCircle size={16} className="text-green-500 flex-shrink-0" />
-          <p className="text-sm text-green-700">{successMsg}</p>
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-status-success/20 bg-status-success/10 p-4">
+          <CheckCircle size={16} className="flex-shrink-0 text-status-success" />
+          <p className="text-sm text-status-success">{successMsg}</p>
         </div>
       )}
 
       {errorMsg && (
-        <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6 flex items-center gap-3">
-          <AlertCircle size={16} className="text-red-500 flex-shrink-0" />
-          <p className="text-sm text-red-700">{errorMsg}</p>
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-status-danger/20 bg-status-danger/10 p-4">
+          <AlertCircle size={16} className="flex-shrink-0 text-status-danger" />
+          <p className="text-sm text-status-danger">{errorMsg}</p>
         </div>
       )}
 
@@ -921,31 +936,31 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             return (
               <div
                 key={service.id}
-                className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-sm transition-all"
+                className="rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all hover:border-brand-primary/40 hover:bg-surface-2"
               >
                 <div className="flex items-start justify-between mb-4 gap-2">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
-                      <Icon size={16} className="text-gray-500" />
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
+                      <Icon size={16} className="text-brand-primary" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 leading-snug">{service.name}</p>
-                      <p className="text-xs text-[#64748B] font-medium">{service.price}</p>
+                      <p className="text-sm font-semibold leading-snug text-text">{service.name}</p>
+                      <p className="text-xs font-medium text-text-sec">{service.price}</p>
                     </div>
                   </div>
                   <span className={`flex-shrink-0 text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full ${
                     service.type === 'free'
-                      ? 'bg-green-50 text-green-600'
+                      ? 'bg-status-success/10 text-status-success'
                       : service.type === 'retainer'
-                        ? 'bg-purple-50 text-purple-500'
-                        : 'bg-blue-50 text-blue-500'
+                        ? 'bg-brand-accent/10 text-brand-accent'
+                        : 'bg-brand-primary/10 text-brand-primary'
                   }`}>
                     {service.type === 'free' ? 'Free' : service.type === 'retainer' ? 'Monthly' : 'One-time'}
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed mb-4">{service.desc}</p>
+                <p className="mb-4 text-xs leading-relaxed text-text-sec">{service.desc}</p>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-text-soft">
                     {activeServiceOrders.length > 0
                       ? `${activeServiceOrders.length} active`
                       : service.deliveryDays ? `~${service.deliveryDays} day delivery` : 'Custom timeline'}
@@ -954,7 +969,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                     {serviceOrders.length > 0 && (
                       <button
                         onClick={() => setActiveTab('orders')}
-                        className="flex items-center gap-1.5 text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-brand-primary transition-colors hover:text-[#2563EB]"
                       >
                         {isViralHooks ? 'View generated hooks' : `View order${serviceOrders.length === 1 ? '' : 's'}`} <ArrowRight size={11} />
                       </button>
@@ -962,7 +977,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                     {service.requiresScope ? (
                       <button
                         onClick={() => router.push('/dashboard/services/inquiry')}
-                        className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-text-sec transition-colors hover:text-brand-primary"
                       >
                         <ArrowRight size={12} /> Get a quote
                       </button>
@@ -972,7 +987,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                           setErrorMsg('')
                           setRequestingService(service)
                         }}
-                        className="flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-text-sec transition-colors hover:text-brand-primary"
                       >
                         <Plus size={12} /> {isViralHooks ? 'Generate' : 'Request'}
                       </button>
@@ -989,15 +1004,15 @@ ${VIRAL_HOOKS_FRAMEWORK}`
       {activeTab === 'orders' && (
         <div className="space-y-4">
           {localOrders.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-                <ShoppingBag size={20} className="text-gray-300" />
+            <div className="rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-primary/10">
+                <ShoppingBag size={20} className="text-brand-primary" />
               </div>
-              <p className="text-sm font-medium text-gray-500 mb-1">No orders yet</p>
-              <p className="text-xs text-gray-400 mb-4">Request a service to get started.</p>
+              <p className="mb-1 text-sm font-semibold text-text">No orders yet</p>
+              <p className="mb-4 text-xs text-text-soft">Request a service to get started.</p>
               <button
                 onClick={() => setActiveTab('browse')}
-                className="text-sm font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
+                className="text-sm font-semibold text-brand-primary transition-colors hover:text-[#2563EB]"
               >
                 Browse services →
               </button>
@@ -1006,7 +1021,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             <>
               {activeOrders.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Active</p>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-soft">Active</p>
                   {activeOrders.map(order => (
                     <OrderCard
                       key={order.id}
@@ -1020,7 +1035,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
               )}
               {completedOrders.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3 mt-6">Completed</p>
+                  <p className="mb-3 mt-6 text-xs font-semibold uppercase tracking-widest text-text-soft">Completed</p>
                   {completedOrders.map(order => (
                     <OrderCard
                       key={order.id}
@@ -1089,28 +1104,28 @@ function OrderCard({
     || Boolean(extractViralHooksGeneratedOutput(order.brief))
     || Boolean(generatedOutputFromTicketBody(order.support_ticket_body))
   const displayStatus = isViralHooks && !hasGeneratedOutput
-    ? { label: 'Needs regenerate', color: 'bg-orange-50 text-orange-600', icon: AlertCircle }
+    ? { label: 'Needs regenerate', color: 'bg-status-warning/10 text-status-warning', icon: AlertCircle }
     : status
   const StatusIcon = displayStatus.icon
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-5 flex items-center justify-between gap-3 hover:border-gray-200 transition-all">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm transition-all hover:border-brand-primary/30 hover:bg-surface-2 sm:p-5">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
-          <ServiceIcon size={16} className="text-gray-400" />
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
+          <ServiceIcon size={16} className="text-brand-primary" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{order.title}</p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="truncate text-sm font-semibold text-text">{order.title}</p>
+          <p className="mt-0.5 text-xs text-text-soft">
             {formatOrderNumber(order)} · Submitted {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
           {order.brief && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{displayServiceBrief(order.brief)}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-text-sec">{displayServiceBrief(order.brief)}</p>
           )}
           <button
             type="button"
             onClick={onOpenConversation}
-            className="inline-flex text-xs font-medium text-[#3B82F6] hover:text-[#1D4ED8] mt-2"
+            className="mt-2 inline-flex text-xs font-semibold text-brand-primary hover:text-[#2563EB]"
           >
             {isViralHooks ? 'Open generated hooks' : 'Open follow-up conversation'}
           </button>
@@ -1127,12 +1142,12 @@ function OrderCard({
             onClick={onDelete}
             disabled={deleting}
             title="Delete Viral Hooks order"
-            className="inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-300 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-text-soft transition-colors hover:bg-status-danger/10 hover:text-status-danger disabled:opacity-50"
           >
             {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
           </button>
         )}
-        <ChevronRight size={14} className="text-gray-300" />
+        <ChevronRight size={14} className="text-text-soft" />
       </div>
     </div>
   )

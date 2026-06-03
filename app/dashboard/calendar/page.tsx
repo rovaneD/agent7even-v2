@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { CalendarDays, Hash, Mail, Megaphone, MousePointer, Plus } from 'lucide-react'
+import { CalendarDays, Hash, Mail, Megaphone, MousePointer, Plus, Clock } from 'lucide-react'
 import { createServiceClient } from '@/lib/supabase/server'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 import CalendarMayaButton from './CalendarMayaButton'
@@ -60,7 +60,7 @@ function dayIndex(day: string) {
 
 function channelIcon(channel: string) {
   const ch = channel.toLowerCase()
-  const props = { size: 14, className: 'text-[#64748B]' }
+  const props = { size: 14, className: 'text-text-sec' }
   if (ch.includes('instagram') || ch.includes('social')) return <Hash {...props} />
   if (ch.includes('email')) return <Mail {...props} />
   if (ch.includes('ad') || ch.includes('paid')) return <MousePointer {...props} />
@@ -153,57 +153,62 @@ ${nextActions}
 The user is reviewing planned campaign content and may need help turning items into captions, emails, posts, or schedule-ready assets.`
 
   return (
-    <div className="px-8 pt-8 pb-6 max-w-[1440px]">
+    <div className="mx-auto max-w-[1440px] px-8 py-8">
       <CanvasContextDispatcher context={context} />
 
-      <div className="mb-8 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">Content Calendar</p>
-          <h1 className="text-2xl font-bold text-gray-900">Your content schedule</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Planned campaign content organized by week, channel, and action.
-          </p>
+      <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+        <div className="flex flex-col gap-6 p-7 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Content Calendar</p>
+            <h1 className="text-[30px] font-semibold tracking-tight text-text">Your content schedule</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-sec">
+              Planned campaign content organized by week, channel, and next action.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <CalendarMayaButton />
+            <Link
+              href="/dashboard/campaigns/new"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#2563EB]"
+            >
+              <Plus size={14} />
+              New campaign
+            </Link>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <CalendarMayaButton />
-          <Link
-            href="/dashboard/campaigns/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#2D3748] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1E293B] transition-colors"
-          >
-            <Plus size={14} />
-            New campaign
-          </Link>
-        </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Planned items</p>
-          <p className="text-3xl font-bold text-gray-900">{entries.length}</p>
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-soft">Planned items</p>
+          <p className="text-3xl font-semibold text-text">{entries.length}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Active campaigns</p>
-          <p className="text-3xl font-bold text-gray-900">{activeCampaigns.length}</p>
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-soft">Active campaigns</p>
+          <p className="text-3xl font-semibold text-text">{activeCampaigns.length}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Content time</p>
-          <p className="text-3xl font-bold text-gray-900">{totalMinutes ? `${totalMinutes}m` : channelCount}</p>
-          <p className="text-xs text-gray-400 mt-1">{totalMinutes ? 'Estimated production time' : 'Channels represented'}</p>
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-soft">Content time</p>
+          <div className="flex items-end gap-2">
+            <p className="text-3xl font-semibold text-text">{totalMinutes ? `${totalMinutes}m` : channelCount}</p>
+            <Clock size={16} className="mb-1 text-text-soft" />
+          </div>
+          <p className="mt-1 text-xs text-text-soft">{totalMinutes ? 'Estimated production time' : 'Channels represented'}</p>
         </div>
       </div>
 
       {entries.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-16 flex flex-col items-center justify-center text-center">
-          <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-4">
-            <CalendarDays size={20} className="text-gray-300" />
+        <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-surface p-16 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary/10">
+            <CalendarDays size={22} className="text-brand-primary" />
           </div>
-          <p className="text-sm font-semibold text-gray-700 mb-1">No planned content yet</p>
-          <p className="text-sm text-gray-400 max-w-sm leading-relaxed mb-6">
+          <p className="mb-1 text-base font-semibold text-text">No planned content yet</p>
+          <p className="mb-6 max-w-sm text-sm leading-6 text-text-sec">
             Build a campaign or run the Weekly Content agent to create schedule-ready posts, emails, and content tasks.
           </p>
           <Link
             href="/dashboard/campaigns/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#2D3748] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1E293B] transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2563EB]"
           >
             <Plus size={14} />
             Build campaign
@@ -212,18 +217,18 @@ The user is reviewing planned campaign content and may need help turning items i
       ) : (
         <div className="space-y-6">
           {weeks.map(week => (
-            <section key={week.week} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <section key={week.week} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+              <div className="flex flex-col gap-2 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[10px] font-semibold tracking-widest uppercase text-[#3B82F6]">Week {week.week}</p>
-                  <h2 className="text-lg font-semibold text-gray-900">{week.theme}</h2>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-primary">Week {week.week}</p>
+                  <h2 className="text-lg font-semibold text-text">{week.theme}</h2>
                 </div>
-                <p className="text-sm text-gray-400">{week.entries.length} planned item{week.entries.length === 1 ? '' : 's'}</p>
+                <p className="text-sm text-text-soft">{week.entries.length} planned item{week.entries.length === 1 ? '' : 's'}</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-7 border-b border-gray-100 bg-gray-50/50">
+              <div className="grid grid-cols-1 border-b border-border bg-surface-2 md:grid-cols-7">
                 {DAYS.map(day => (
-                  <div key={day} className="px-4 py-3 text-[10px] font-semibold tracking-widest uppercase text-gray-400 md:border-r md:last:border-r-0 border-gray-100">
+                  <div key={day} className="border-border px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-text-soft md:border-r md:last:border-r-0">
                     {day}
                   </div>
                 ))}
@@ -233,29 +238,29 @@ The user is reviewing planned campaign content and may need help turning items i
                 {DAYS.map((day, index) => {
                   const dayEntries = week.entries.filter(entry => entry.dayIndex === index)
                   return (
-                    <div key={day} className="min-h-[180px] p-3 md:border-r md:last:border-r-0 border-gray-100">
+                    <div key={day} className="min-h-[180px] border-border p-3 md:border-r md:last:border-r-0">
                       <div className="space-y-3">
                         {dayEntries.length === 0 ? (
-                          <div className="hidden md:block h-20 rounded-xl border border-dashed border-gray-100" />
+                          <div className="hidden h-20 rounded-xl border border-dashed border-border md:block" />
                         ) : (
                           dayEntries.map(entry => (
                             <Link
                               key={entry.id}
                               href={`/dashboard/campaigns/${entry.campaignId}`}
-                              className="block rounded-xl border border-gray-100 bg-white p-3 hover:border-[#3B82F6]/30 hover:shadow-sm transition-all"
+                              className="block rounded-xl border border-border bg-surface p-3 transition-all hover:border-brand-primary/40 hover:bg-surface-2 hover:shadow-sm"
                             >
-                              <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="mb-2 flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5 min-w-0">
                                   {channelIcon(entry.channel)}
-                                  <span className="text-[11px] font-semibold text-[#64748B] truncate">{entry.channel}</span>
+                                  <span className="truncate text-[11px] font-semibold text-text-sec">{entry.channel}</span>
                                 </div>
-                                {entry.mins && <span className="text-[10px] text-gray-300 whitespace-nowrap">{entry.mins}m</span>}
+                                {entry.mins && <span className="whitespace-nowrap text-[10px] text-text-soft">{entry.mins}m</span>}
                               </div>
-                              <p className="text-xs font-semibold text-gray-900 mb-1">{entry.type}</p>
-                              <p className="text-xs text-gray-500 leading-relaxed line-clamp-4">{entry.content}</p>
-                              <div className="mt-3 pt-3 border-t border-gray-50">
-                                <p className="text-[10px] text-gray-400 truncate">{entry.campaignTitle}</p>
-                                <p className="text-[10px] text-gray-300 capitalize">{statusLabel(entry.campaignStatus)}</p>
+                              <p className="mb-1 text-xs font-semibold text-text">{entry.type}</p>
+                              <p className="line-clamp-4 text-xs leading-relaxed text-text-sec">{entry.content}</p>
+                              <div className="mt-3 border-t border-border pt-3">
+                                <p className="truncate text-[10px] text-text-soft">{entry.campaignTitle}</p>
+                                <p className="text-[10px] capitalize text-text-soft">{statusLabel(entry.campaignStatus)}</p>
                               </div>
                             </Link>
                           ))
