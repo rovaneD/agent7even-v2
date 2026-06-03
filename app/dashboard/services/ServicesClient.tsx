@@ -6,10 +6,11 @@ import {
   Globe, Hash, Camera, Mail, Search,
   Brush, Video, Megaphone, Plus, X, ChevronRight,
   Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send, Flame,
-  Sparkles, Target, Layers, FileText
+  Sparkles, Target, Layers, FileText, Download
 } from 'lucide-react'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
+import { buildTextPdf } from '@/lib/pdf/textPdf'
 
 const SERVICES = [
   {
@@ -157,6 +158,19 @@ function generatedOutputFromTicketBody(body: string | null | undefined) {
   const marker = '\n\nGenerated output:\n'
   const index = body.indexOf(marker)
   return index >= 0 ? body.slice(index + marker.length).trim() : ''
+}
+
+function downloadGeneratedPdf(title: string, subtitle: string, body: string) {
+  const pdf = buildTextPdf(title, subtitle, body)
+  const blob = new Blob([pdf], { type: 'application/pdf' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'generated-output'}.pdf`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 interface RequestModalProps {
@@ -562,6 +576,8 @@ ${VIRAL_HOOKS_FRAMEWORK}`
       setLocalOrders(prev => prev.map(order =>
         order.id === selectedOrder.id ? { ...order, status: 'approved' } : order
       ))
+      setSuccessMsg('Viral Hooks marked complete and saved as a PDF in Deliverables.')
+      setTimeout(() => setSuccessMsg(''), 5000)
     } catch {
       setErrorMsg('Could not mark this order complete. Try again.')
     } finally {
@@ -656,7 +672,21 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                         <p className="text-xs font-semibold uppercase tracking-widest text-green-600">Maya generated hooks</p>
                         <p className="text-xs text-gray-400 mt-1">Use these as openings for short-form content, captions, or carousel slides.</p>
                       </div>
-                      <Sparkles size={16} className="text-green-500 flex-shrink-0" />
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => downloadGeneratedPdf(
+                            selectedOrder.title,
+                            `${formatOrderNumber(selectedOrder)} · Generated ${new Date(selectedOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+                            displayServiceBrief(message.body)
+                          )}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-gray-300 hover:text-gray-900 transition-colors"
+                        >
+                          <Download size={12} />
+                          PDF
+                        </button>
+                        <Sparkles size={16} className="text-green-500" />
+                      </div>
                     </div>
                     <div className="p-5">
                       <p className="text-sm leading-7 whitespace-pre-wrap text-gray-700">{displayServiceBrief(message.body)}</p>
@@ -716,7 +746,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
               <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
                 <p className="text-sm text-amber-700">
                   {isViralHooksOrder
-                    ? 'This is a self-serve service. Review the generated hooks above and mark complete when you are done.'
+                    ? 'This is a self-serve service. Review the generated hooks above. Mark complete when you are done to save the PDF in Deliverables.'
                     : 'This older order does not have a service conversation attached yet.'}
                 </p>
               </div>
