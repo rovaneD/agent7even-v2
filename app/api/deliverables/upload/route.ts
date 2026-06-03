@@ -1,5 +1,11 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import {
+  findOrCreateProject,
+  normalizeDeliverable,
+  safeStorageSegment,
+  uploadDeliverableFile,
+} from '@/lib/deliverables/projectDeliverables'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(req: Request) {
@@ -20,7 +26,6 @@ export async function POST(req: Request) {
   const file = formData.get('file') as File | null
   const projectName = formData.get('projectName') as string
   const notes = formData.get('notes') as string
-  const role = (formData.get('role') as string) ?? 'client'
 
   if (!file || !projectName) {
     return NextResponse.json({ error: 'File and project name required' }, { status: 400 })
@@ -30,43 +35,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'File too large. Maximum size is 50MB.' }, { status: 400 })
   }
 
-  const filePath = `${profile.id}/${projectName.replace(/\s+/g, '_')}/${Date.now()}_${file.name}`
+  const project = await findOrCreateProject({
+    supabase,
+    userId: profile.id,
+    title: projectName.trim(),
+    description: 'Client uploaded deliverables and project files.',
+  })
+  const filePath = `${profile.id}/${safeStorageSegment(projectName)}/${Date.now()}_${safeStorageSegment(file.name)}`
+  const buffer = new Uint8Array(await file.arrayBuffer())
 
-  const arrayBuffer = await file.arrayBuffer()
-  const buffer = new Uint8Array(arrayBuffer)
-
-  const { error: storageError } = await supabase.storage
-    .from('deliverables')
-    .upload(filePath, buffer, {
-      contentType: file.type,
-      upsert: false,
+  try {
+    await uploadDeliverableFile({
+      supabase,
+      filePath,
+      body: buffer,
+      contentType: file.type || 'application/octet-stream',
     })
-
-  if (storageError) {
-    console.error('Storage upload error:', storageError)
+  } catch (error) {
+    console.error('Storage upload error:', error)
     return NextResponse.json({ error: 'Upload failed. Please try again.' }, { status: 500 })
   }
 
   const { data: deliverable, error: dbError } = await supabase
     .from('deliverables')
     .insert({
-      user_id: profile.id,
+      project_id: project.id,
       uploaded_by: profile.id,
-      project_name: projectName,
-      file_name: file.name,
-      file_path: filePath,
+      title: file.name,
+      file_url: filePath,
       file_size: file.size,
-      file_type: file.type,
-      notes: notes || null,
-      uploaded_by_role: role,
+      file_type: file.type || null,
+      description: notes || null,
     })
-    .select()
+    .select('*, projects(title)')
     .single()
 
   if (dbError) {
     console.error('DB insert error:', dbError)
+    await supabase.storage.from('deliverables').remove([filePath])
     return NextResponse.json({ error: 'Failed to save file record.' }, { status: 500 })
   }
 
-  return NextResponse.json({ deliverable })
+  return NextResponse.json({ deliverable: normalizeDeliverable(deliverable) })
 }

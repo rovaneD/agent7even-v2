@@ -21,22 +21,23 @@ export async function POST(req: Request) {
 
   const { data: deliverable } = await supabase
     .from('deliverables')
-    .select('*')
+    .select('id, file_url, uploaded_by, projects!inner(user_id)')
     .eq('id', deliverableId)
     .single()
 
   if (!deliverable) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const isAdmin = profile.role === 'admin' || profile.role === 'owner'
-  const ownsFile = deliverable.user_id === profile.id || deliverable.uploaded_by === profile.id
+  const project = Array.isArray(deliverable.projects) ? deliverable.projects[0] : deliverable.projects
+  const ownsFile = project?.user_id === profile.id || deliverable.uploaded_by === profile.id
 
   if (!ownsFile && !isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
-  const { error: storageError } = await supabase.storage
-    .from('deliverables')
-    .remove([deliverable.file_path])
+  const { error: storageError } = deliverable.file_url
+    ? await supabase.storage.from('deliverables').remove([deliverable.file_url])
+    : { error: null }
 
   if (storageError) {
     console.error('Storage delete error:', storageError)

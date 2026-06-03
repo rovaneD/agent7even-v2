@@ -8,12 +8,14 @@ import {
 
 interface Deliverable {
   id: string
+  project_id: string
   project_name: string
   file_name: string
   file_path: string
   file_size: number | null
   file_type: string | null
   notes: string | null
+  uploaded_by: string | null
   uploaded_by_role: string | null
   created_at: string
 }
@@ -99,7 +101,7 @@ export default function AdminDeliverables({ clientId, initialDeliverables }: Pro
       const res = await fetch('/api/deliverables/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath: d.file_path }),
+        body: JSON.stringify({ deliverableId: d.id }),
       })
       const { url } = await res.json()
       if (url) {

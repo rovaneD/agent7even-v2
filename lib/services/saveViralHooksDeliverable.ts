@@ -1,13 +1,13 @@
 import { createNotification } from '@/lib/createNotification'
+import {
+  errorMessage,
+  findOrCreateProject,
+  normalizeDeliverable,
+  safeStorageSegment,
+  uploadDeliverableFile,
+} from '@/lib/deliverables/projectDeliverables'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import { buildTextPdf } from '@/lib/pdf/textPdf'
-
-function errorMessage(error: unknown) {
-  if (!error) return 'Unknown error'
-  if (error instanceof Error) return error.message
-  if (typeof error === 'object' && 'message' in error && typeof error.message === 'string') return error.message
-  return String(error)
-}
 
 function safeFileSegment(value: string) {
   return value
@@ -32,16 +32,21 @@ export async function saveViralHooksDeliverable({
   const projectName = 'Viral Hooks'
   const fileName = `${safeFileSegment(orderNumber)}-viral-hooks.pdf`
   const notes = `Generated from ${orderNumber}.`
+  const project = await findOrCreateProject({
+    supabase,
+    userId: profileId,
+    title: projectName,
+    description: 'Self-serve generated viral hook assets.',
+  })
 
   const { data: existingDeliverable } = await supabase
     .from('deliverables')
-    .select('*')
-    .eq('user_id', profileId)
-    .eq('project_name', projectName)
-    .eq('file_name', fileName)
+    .select('*, projects(title)')
+    .eq('project_id', project.id)
+    .eq('title', fileName)
     .maybeSingle()
 
-  if (existingDeliverable) return existingDeliverable
+  if (existingDeliverable) return normalizeDeliverable(existingDeliverable)
 
   const pdf = buildTextPdf(
     order.title,
@@ -49,50 +54,26 @@ export async function saveViralHooksDeliverable({
     generatedOutput
   )
   const buffer = new TextEncoder().encode(pdf)
-  const filePath = `${profileId}/${projectName.replace(/\s+/g, '_')}/${Date.now()}_${fileName}`
-
-  let { error: storageError } = await supabase.storage
-    .from('deliverables')
-    .upload(filePath, buffer, {
-      contentType: 'application/pdf',
-      upsert: false,
-    })
-
-  if (storageError && /bucket/i.test(errorMessage(storageError)) && /not found|does not exist/i.test(errorMessage(storageError))) {
-    const { error: bucketError } = await supabase.storage.createBucket('deliverables', {
-      public: false,
-      fileSizeLimit: 50 * 1024 * 1024,
-    })
-
-    if (bucketError && !/already exists/i.test(errorMessage(bucketError))) {
-      throw new Error(`Deliverables bucket could not be created: ${errorMessage(bucketError)}`)
-    }
-
-    const retry = await supabase.storage
-      .from('deliverables')
-      .upload(filePath, buffer, {
-        contentType: 'application/pdf',
-        upsert: false,
-      })
-    storageError = retry.error
-  }
-
-  if (storageError) throw new Error(`Deliverables storage upload failed: ${errorMessage(storageError)}`)
+  const filePath = `${profileId}/${safeStorageSegment(projectName)}/${Date.now()}_${fileName}`
+  await uploadDeliverableFile({
+    supabase,
+    filePath,
+    body: buffer,
+    contentType: 'application/pdf',
+  })
 
   const { data: deliverable, error: deliverableError } = await supabase
     .from('deliverables')
     .insert({
-      user_id: profileId,
+      project_id: project.id,
       uploaded_by: profileId,
-      project_name: projectName,
-      file_name: fileName,
-      file_path: filePath,
+      title: fileName,
+      file_url: filePath,
       file_size: buffer.byteLength,
       file_type: 'application/pdf',
-      notes,
-      uploaded_by_role: 'admin',
+      description: notes,
     })
-    .select()
+    .select('*, projects(title)')
     .single()
 
   if (deliverableError) {
@@ -113,5 +94,5 @@ export async function saveViralHooksDeliverable({
     console.error('Viral Hooks deliverable notification error:', notificationError)
   }
 
-  return deliverable
+  return normalizeDeliverable(deliverable)
 }

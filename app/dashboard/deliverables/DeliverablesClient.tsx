@@ -4,13 +4,13 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Upload, Download, Folder, File, FileText, Image,
   Video, Archive, Loader2, AlertCircle, CheckCircle, X,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, Trash2,
 } from 'lucide-react'
 
 interface Deliverable {
   id: string
-  user_id: string
-  uploaded_by: string
+  project_id: string
+  uploaded_by: string | null
   project_name: string
   file_name: string
   file_path: string
@@ -86,6 +86,7 @@ The user can download files from Agent7even and upload their own briefs and asse
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null)
   const [downloading, setDownloading] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [projectName, setProjectName] = useState('')
   const [notes, setNotes] = useState('')
@@ -152,7 +153,7 @@ The user can download files from Agent7even and upload their own briefs and asse
       const res = await fetch('/api/deliverables/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath: deliverable.file_path }),
+        body: JSON.stringify({ deliverableId: deliverable.id }),
       })
       const { url } = await res.json()
       if (url) {
@@ -165,6 +166,30 @@ The user can download files from Agent7even and upload their own briefs and asse
       setUploadError('Download failed. Please try again.')
     } finally {
       setDownloading(null)
+    }
+  }
+
+  async function handleDelete(deliverable: Deliverable) {
+    if (!confirm(`Delete "${deliverable.file_name}"? This cannot be undone.`)) return
+    setDeleting(deliverable.id)
+    setUploadError(null)
+    try {
+      const res = await fetch('/api/deliverables/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliverableId: deliverable.id }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error ?? 'Delete failed')
+      }
+
+      setDeliverables(prev => prev.filter(file => file.id !== deliverable.id))
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Delete failed. Please try again.')
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -270,17 +295,30 @@ The user can download files from Agent7even and upload their own briefs and asse
                         <p className="text-xs text-gray-400 mt-1 italic">{file.notes}</p>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleDownload(file)}
-                      disabled={downloading === file.id}
-                      className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors flex-shrink-0 disabled:opacity-50"
-                    >
-                      {downloading === file.id
-                        ? <Loader2 size={13} className="animate-spin" />
-                        : <Download size={13} />
-                      }
-                      Download
-                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleDownload(file)}
+                        disabled={downloading === file.id}
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {downloading === file.id
+                          ? <Loader2 size={13} className="animate-spin" />
+                          : <Download size={13} />
+                        }
+                        Download
+                      </button>
+                      <button
+                        onClick={() => handleDelete(file)}
+                        disabled={deleting === file.id}
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {deleting === file.id
+                          ? <Loader2 size={13} className="animate-spin" />
+                          : <Trash2 size={13} />
+                        }
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
