@@ -66,13 +66,13 @@ function ChannelLabel({ channel }: { channel: string }) {
     c.includes('email')                              ? 'EM' :
     c.includes('ad')                                 ? 'AD' :
     c.includes('seo')                                ? 'SE' : 'CH'
-  const bg =
-    c.includes('instagram') || c.includes('social') ? '#e1306c' :
-    c.includes('email')                              ? '#2D3748' :
-    c.includes('ad')                                 ? '#1877f2' :
-    '#64748B'
+  const className =
+    c.includes('instagram') || c.includes('social') ? 'bg-brand-accent text-text-inverse' :
+    c.includes('email')                              ? 'bg-brand-secondary text-text-inverse' :
+    c.includes('ad')                                 ? 'bg-brand-primary text-text-inverse' :
+    'bg-menu-muted text-text-inverse'
   return (
-    <span style={{ background: bg, color: '#fff', borderRadius: 5, padding: '2px 5px', fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>
+    <span className={`flex-shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold tracking-[0.04em] ${className}`}>
       {label}
     </span>
   )
@@ -80,16 +80,16 @@ function ChannelLabel({ channel }: { channel: string }) {
 
 function DigestSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 mb-6 animate-pulse">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-6 h-6 rounded-lg bg-[#E2E8F0]" />
-        <div className="h-4 w-12 bg-[#E2E8F0] rounded" />
+    <div className="mb-6 animate-pulse rounded-2xl border border-border bg-surface p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <div className="h-6 w-6 rounded-lg bg-border" />
+        <div className="h-4 w-12 rounded bg-border" />
       </div>
-      <div className="h-4 w-64 bg-[#E2E8F0] rounded mb-6" />
+      <div className="mb-6 h-4 w-64 rounded bg-border" />
       <div className="space-y-3">
-        <div className="h-3 w-24 bg-[#E2E8F0] rounded" />
-        <div className="h-4 w-full bg-[#E2E8F0] rounded" />
-        <div className="h-4 w-4/5 bg-[#E2E8F0] rounded" />
+        <div className="h-3 w-24 rounded bg-border" />
+        <div className="h-4 w-full rounded bg-border" />
+        <div className="h-4 w-4/5 rounded bg-border" />
       </div>
     </div>
   )
@@ -159,24 +159,24 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6 mb-6">
+    <div className="mb-6 rounded-2xl border border-border bg-surface p-6">
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-6 h-6 rounded-lg bg-[#2D3748] flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-bold">M</span>
+          <div className="mb-1 flex items-center gap-2">
+            <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-brand-secondary">
+              <span className="text-xs font-bold text-text-inverse">M</span>
             </div>
-            <span className="text-sm font-semibold text-[#2D3748]">Maya</span>
+            <span className="text-sm font-semibold text-text-primary">Maya daily brief</span>
           </div>
-          <p className="text-sm text-[#64748B]">
+          <p className="text-sm text-text-sec">
             {getGreeting()}{firstName ? `, ${firstName}` : ''}. Here is what happened overnight.
           </p>
         </div>
         <button
           onClick={handleDismiss}
-          className="text-xs text-[#64748B] hover:text-[#2D3748] transition-colors mt-0.5"
+          className="mt-0.5 text-xs text-text-sec transition-colors hover:text-text-primary"
         >
           Dismiss
         </button>
@@ -185,13 +185,13 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
       {/* What I did */}
       {hasActivity && (
         <div className="mb-6">
-          <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-widest mb-3">What I did</p>
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-menu-muted">What I did</p>
           <div className="space-y-2">
             {agentRuns.map((run, i) => (
-              <div key={i} className="flex items-start gap-3 py-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#10B981] mt-2 flex-shrink-0" />
-                <p className="text-sm text-[#2D3748]">
-                  <span className="font-medium text-[#64748B] mr-1.5">{run.agentName}</span>
+              <div key={i} className="flex items-start gap-3 rounded-xl py-1.5">
+                <div className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-status-success" />
+                <p className="text-sm text-text-primary">
+                  <span className="mr-1.5 font-medium text-text-sec">{run.agentName}</span>
                   {run.summary}
                 </p>
               </div>
@@ -203,38 +203,38 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
       {/* What needs you */}
       {hasPending && (
         <div className="mb-6">
-          <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-widest mb-3">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-menu-muted">
             What needs you
-            <span className="ml-2 bg-[#3B82F6]/10 text-[#3B82F6] text-[10px] font-semibold px-1.5 py-0.5 rounded-full normal-case tracking-normal">
+            <span className="ml-2 rounded-full bg-brand-primary/10 px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-brand-primary">
               {approvals.length}
             </span>
           </p>
           <div className="space-y-3">
             {approvals.map(item => (
-              <div key={item.taskId} className="bg-white rounded-xl p-4 border border-[#E2E8F0]">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-[#64748B]">{item.agentName}</span>
-                  <span className="text-xs text-[#CBD5E1]">{formatRelative(item.createdAt)}</span>
+              <div key={item.taskId} className="rounded-xl border border-border bg-surface-2 p-4">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-xs font-medium text-text-sec">{item.agentName}</span>
+                  <span className="text-xs text-text-muted">{formatRelative(item.createdAt)}</span>
                 </div>
                 {item.preview && (
-                  <p className="text-sm text-[#2D3748] mb-3 line-clamp-2">{item.preview}</p>
+                  <p className="mb-3 line-clamp-2 text-sm text-text-primary">{item.preview}</p>
                 )}
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleApprove(item.taskId)}
-                    className="flex-1 py-2 bg-[#2D3748] text-white text-xs font-medium rounded-lg hover:bg-[#1E293B] transition-colors"
+                    className="flex-1 rounded-lg bg-brand-secondary py-2 text-xs font-medium text-text-inverse transition-colors hover:bg-[#1E293B]"
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleReject(item.taskId)}
-                    className="flex-1 py-2 border border-[#E2E8F0] text-[#2D3748] text-xs font-medium rounded-lg hover:border-[#64748B] transition-colors"
+                    className="flex-1 rounded-lg border border-border bg-surface py-2 text-xs font-medium text-text-primary transition-colors hover:border-border-strong"
                   >
                     Reject
                   </button>
                   <Link
                     href={`/dashboard/agents/approvals?task=${item.taskId}`}
-                    className="px-3 py-2 border border-[#E2E8F0] text-[#3B82F6] text-xs font-medium rounded-lg hover:border-[#64748B] transition-colors whitespace-nowrap"
+                    className="whitespace-nowrap rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-brand-primary transition-colors hover:border-border-strong"
                   >
                     Review
                   </Link>
@@ -248,20 +248,20 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
       {/* Today's plan */}
       {hasActions && (
         <div>
-          <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-widest mb-3">Today&apos;s plan</p>
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-menu-muted">Today&apos;s plan</p>
           <div className="space-y-1">
             {digest.today_actions.map((action, i) => (
-              <div key={i} className="flex items-center justify-between py-2.5 border-b border-[#E2E8F0] last:border-0">
-                <div className="flex items-center gap-3 min-w-0">
+              <div key={i} className="flex items-center justify-between border-b border-border py-2.5 last:border-0">
+                <div className="flex min-w-0 items-center gap-3">
                   <ChannelLabel channel={action.channel} />
                   <div className="min-w-0">
-                    <p className="text-sm text-[#2D3748] truncate">{action.task}</p>
-                    <p className="text-xs text-[#64748B] truncate">{action.campaignTitle}</p>
+                    <p className="truncate text-sm text-text-primary">{action.task}</p>
+                    <p className="truncate text-xs text-text-sec">{action.campaignTitle}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => dispatchMayaTask(action)}
-                  className="text-xs font-medium text-[#3B82F6] hover:underline whitespace-nowrap ml-4 flex-shrink-0"
+                  className="ml-4 flex-shrink-0 whitespace-nowrap text-xs font-medium text-brand-primary hover:underline"
                 >
                   Do this with Maya
                 </button>

@@ -52,22 +52,23 @@ export default function GettingStarted({ completed, dismissed }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 mb-6">
-      <div className="flex items-start justify-between mb-4">
+    <div className="mb-6 rounded-2xl border border-border bg-surface p-5">
+      <div className="mb-5 flex items-start justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-[#2D3748]">Getting started</h3>
-          <p className="text-xs text-[#64748B] mt-0.5">{doneCount} of {ITEMS.length} complete</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Setup progress</p>
+          <h3 className="mt-1 text-[17px] font-semibold text-text-primary">Build the foundation</h3>
+          <p className="mt-1 text-xs text-text-sec">{doneCount} of {ITEMS.length} complete</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-24 h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-24 overflow-hidden rounded-full bg-border">
             <div
-              className="h-full bg-[#3B82F6] rounded-full transition-all duration-500"
+              className="h-full rounded-full bg-brand-primary transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
           <button
             onClick={handleDismiss}
-            className="text-[#CBD5E1] hover:text-[#64748B] transition-colors p-0.5 rounded"
+            className="rounded p-0.5 text-text-muted transition-colors hover:text-text-primary"
             title="Dismiss"
           >
             <X size={13} />
@@ -82,29 +83,29 @@ export default function GettingStarted({ completed, dismissed }: Props) {
             <Link
               key={item.label}
               href={done ? '#' : item.href}
-              className={`flex items-center gap-3 px-2 py-2 rounded-xl transition-colors group ${
-                done ? 'cursor-default' : 'hover:bg-white'
+              className={`group flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors ${
+                done ? 'cursor-default' : 'hover:bg-surface-2'
               }`}
             >
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+              <div className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
                 done
-                  ? 'bg-[#10B981]'
-                  : 'border border-[#E2E8F0] group-hover:border-[#3B82F6]/40'
+                  ? 'bg-status-success'
+                  : 'border border-border bg-surface group-hover:border-brand-primary/40'
               }`}>
-                {done && <Check size={10} className="text-white" strokeWidth={3} />}
+                {done && <Check size={11} className="text-white" strokeWidth={3} />}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className={`text-xs font-medium leading-tight ${
-                  done ? 'text-[#CBD5E1] line-through' : 'text-[#2D3748]'
+                  done ? 'text-text-muted line-through' : 'text-text-primary'
                 }`}>
                   {item.label}
                 </p>
                 {!done && (
-                  <p className="text-[11px] text-[#64748B] mt-0.5 leading-snug">{item.desc}</p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-text-sec">{item.desc}</p>
                 )}
               </div>
               {!done && (
-                <span className="text-[11px] text-[#CBD5E1] group-hover:text-[#3B82F6] transition-colors flex-shrink-0">
+                <span className="flex-shrink-0 text-[11px] text-text-muted transition-colors group-hover:text-brand-primary">
                   →
                 </span>
               )}
