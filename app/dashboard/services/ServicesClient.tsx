@@ -143,12 +143,20 @@ interface Order {
   created_at: string
   due_date?: string
   support_ticket_id?: string | null
+  support_ticket_body?: string | null
   support_messages?: Message[]
 }
 
 interface Profile {
   id: string
   plan?: string
+}
+
+function generatedOutputFromTicketBody(body: string | null | undefined) {
+  if (!body) return ''
+  const marker = '\n\nGenerated output:\n'
+  const index = body.indexOf(marker)
+  return index >= 0 ? body.slice(index + marker.length).trim() : ''
 }
 
 interface RequestModalProps {
@@ -485,7 +493,12 @@ ${VIRAL_HOOKS_FRAMEWORK}`
 
       if (res.ok) {
         const nextOrder = data.order
-          ? { ...data.order, support_ticket_id: data.supportTicketId ?? null, support_messages: data.supportMessages ?? [] }
+          ? {
+            ...data.order,
+            support_ticket_id: data.supportTicketId ?? null,
+            support_ticket_body: data.supportTicketBody ?? null,
+            support_messages: data.supportMessages ?? [],
+          }
           : null
         setRequestingService(null)
         if (nextOrder) setLocalOrders(prev => [nextOrder, ...prev])
@@ -562,7 +575,18 @@ ${VIRAL_HOOKS_FRAMEWORK}`
     const service = SERVICES.find(s => s.id === selectedOrder.service_type)
     const ServiceIcon = service?.icon ?? Globe
     const isViralHooksOrder = selectedOrder.service_type === 'viral_hooks'
+    const ticketGeneratedOutput = generatedOutputFromTicketBody(selectedOrder.support_ticket_body)
     const generatedMessages = (selectedOrder.support_messages ?? []).filter(message => message.sender_role !== 'client')
+    const generatedAssets = generatedMessages.length > 0
+      ? generatedMessages
+      : ticketGeneratedOutput
+        ? [{
+          id: `${selectedOrder.id}-generated`,
+          sender_role: 'admin',
+          body: ticketGeneratedOutput,
+          created_at: selectedOrder.created_at,
+        }]
+        : []
 
     return (
       <div className="px-8 pt-8 pb-6 max-w-[1200px]">
@@ -620,12 +644,12 @@ ${VIRAL_HOOKS_FRAMEWORK}`
 
           <div className="p-6 space-y-4">
             {isViralHooksOrder ? (
-              generatedMessages.length === 0 ? (
+              generatedAssets.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
                   <p className="text-sm text-gray-400">No generated hooks found for this request.</p>
                 </div>
               ) : (
-                generatedMessages.map(message => (
+                generatedAssets.map(message => (
                   <div key={message.id} className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
                     <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 bg-gray-50/60">
                       <div>

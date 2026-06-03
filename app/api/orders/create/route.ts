@@ -122,7 +122,10 @@ Service: ${title}
 Client: ${profile.company_name || profile.full_name || profile.email}
 
 Request brief:
-${brief}`
+${brief}
+
+Generated output:
+${result.content}`
 
       const { data: ticket, error: ticketError } = await supabase
         .from('support_tickets')
@@ -161,7 +164,14 @@ ${brief}`
           .select('id, sender_role, body, created_at')
 
         if (messageError) console.error('Viral Hooks message creation error:', messageError)
-        supportMessages = messages ?? []
+        supportMessages = messages?.length
+          ? messages
+          : [{
+            id: `${ticket.id}-generated`,
+            sender_role: 'admin',
+            body: result.content,
+            created_at: new Date().toISOString(),
+          }]
       }
 
       await createNotification({
@@ -177,6 +187,7 @@ ${brief}`
         success: true,
         order,
         supportTicketId: ticket?.id ?? null,
+        supportTicketBody: ticket?.body ?? supportBody,
         supportMessages,
       })
     }

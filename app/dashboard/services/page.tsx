@@ -47,14 +47,30 @@ export default async function ServicesPage({
       .order('updated_at', { ascending: false })
     : { data: [] }
 
-  const supportTicketByOrderId = new Map<string, { id: string; support_messages: unknown[] }>()
+  const ticketIds = (serviceTickets ?? []).map(ticket => ticket.id)
+  const { data: serviceMessages } = ticketIds.length
+    ? await supabase
+      .from('support_messages')
+      .select('id, ticket_id, sender_role, body, created_at')
+      .in('ticket_id', ticketIds)
+      .order('created_at', { ascending: true })
+    : { data: [] }
+
+  const messagesByTicketId = new Map<string, unknown[]>()
+  for (const message of serviceMessages ?? []) {
+    const ticketId = message.ticket_id
+    messagesByTicketId.set(ticketId, [...(messagesByTicketId.get(ticketId) ?? []), message])
+  }
+
+  const supportTicketByOrderId = new Map<string, { id: string; body?: string | null; support_messages: unknown[] }>()
   for (const ticket of serviceTickets ?? []) {
     const match = typeof ticket.body === 'string' ? ticket.body.match(/Order ID:\s*([a-f0-9-]+)/i) : null
     const orderId = match?.[1]
     if (orderId && !supportTicketByOrderId.has(orderId)) {
       supportTicketByOrderId.set(orderId, {
         id: ticket.id,
-        support_messages: ticket.support_messages ?? [],
+        body: ticket.body,
+        support_messages: messagesByTicketId.get(ticket.id) ?? ticket.support_messages ?? [],
       })
     }
   }
@@ -62,6 +78,7 @@ export default async function ServicesPage({
   const ordersWithTickets = (orders ?? []).map(order => ({
     ...order,
     support_ticket_id: supportTicketByOrderId.get(order.id)?.id ?? null,
+    support_ticket_body: supportTicketByOrderId.get(order.id)?.body ?? null,
     support_messages: supportTicketByOrderId.get(order.id)?.support_messages ?? [],
   }))
 
