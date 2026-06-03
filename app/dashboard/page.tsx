@@ -209,7 +209,7 @@ ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents an
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 href={primaryAction.href}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-secondary px-4 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-[#1E293B]"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-[#2563EB]"
               >
                 <PrimaryActionIcon size={16} />
                 {primaryAction.label}

@@ -98,12 +98,12 @@ body {
 .btn-primary {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 10px 16px;
-  background: var(--color-brand-secondary); color: var(--color-text-inverse);
+  background: var(--color-brand-primary); color: var(--color-text-inverse);
   font-size: 15px; font-weight: 500; font-family: inherit;
   border: none; border-radius: 12px; cursor: pointer;
   transition: background 0.12s;
 }
-.btn-primary:hover:not(:disabled) { background: #1E293B; }
+.btn-primary:hover:not(:disabled) { background: #2563EB; }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-interactive {
