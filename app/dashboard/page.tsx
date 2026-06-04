@@ -62,6 +62,8 @@ export default async function DashboardPage() {
           .select('id', { count: 'exact', head: true })
           .eq('user_id', profile.id)
           .eq('status', 'completed')
+          .not('agent', 'like', 'foundation_%')
+          .neq('agent', 'maya')
       : Promise.resolve({ count: 0 }),
 
     profile

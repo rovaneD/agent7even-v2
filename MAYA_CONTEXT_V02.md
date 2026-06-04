@@ -34,6 +34,9 @@ Foundation document generation occurs before checkout and is platform-funded.
 It must not depend on a new user's credit balance. A Foundation generation
 failure must remain visible on Step 5 and must not redirect the user as though
 setup completed.
+Internal Foundation generation tasks use `foundation_*` agent ids. They should
+not appear in Maya daily brief activity or count as a user's first specialist
+agent run.
 - Team, Billing, Notifications, and Settings
 
 ## 2. Current Visual Direction

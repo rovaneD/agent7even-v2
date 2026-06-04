@@ -128,8 +128,8 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
   if (loading)   return <DigestSkeleton />
   if (!digest)   return null
 
-  // Filter out maya chat tasks from "What I did" section
-  const agentRuns = (digest.agent_runs ?? []).filter(r => r.agentId !== 'maya')
+  // Filter out internal system tasks from "What I did" section.
+  const agentRuns = (digest.agent_runs ?? []).filter(r => !isSystemAgent(r.agentId))
 
   const hasActivity = agentRuns.length > 0
   const hasPending  = approvals.length > 0
@@ -272,4 +272,8 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
       )}
     </div>
   )
+}
+
+function isSystemAgent(agentId: string): boolean {
+  return agentId === 'maya' || agentId.startsWith('foundation_')
 }

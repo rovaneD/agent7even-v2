@@ -43,6 +43,9 @@ Main changes:
   generation platform-funded instead of requiring credits before checkout.
 - Made Foundation generation failures visible and prevented partial document
   generation from being treated as a successful completion.
+- Filtered internal Foundation generation tasks out of Dashboard agent counts
+  and Maya daily briefs so onboarding work is not presented as user agent
+  activity.
 - Aligned Campaigns generation and all major Campaigns consumers with the live
   Supabase schema, where the structured campaign artifact is stored in
   `campaigns.plan`.
@@ -368,7 +371,7 @@ Pre-merge validation also confirmed:
 | 7 | Remaining dashboard utility page polish | DONE |
 | 8 | Dashboard alignment normalization | DONE |
 | 9 | Standard card normalization | DONE |
-| 10 | Foundation pre-checkout generation and Campaigns live-schema compatibility | DONE |
+| 10 | Foundation pre-checkout generation, dashboard task filtering, and Campaigns live-schema compatibility | DONE |
 | 11 | Full desktop/mobile visual QA | NEXT |
 | 12 | Admin visual-system pass | NEXT |
 | 13 | Typography and dense-row QA | NEXT |

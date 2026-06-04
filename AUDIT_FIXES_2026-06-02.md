@@ -425,6 +425,9 @@ Fixes:
 - Foundation generation now returns a failure status when any required document
   is missing, and Step 5 shows a visible retryable error instead of silently
   redirecting.
+- Internal `foundation_*` tasks are filtered out of Dashboard agent counts and
+  Maya daily briefs so setup generation is not exposed as user-facing agent
+  activity.
 - Campaign generation now writes the structured artifact to `campaigns.plan`.
 - Campaigns list, detail, digest, agent context, and Content Calendar now read
   the live schema and normalize plan data for their existing UI contracts.

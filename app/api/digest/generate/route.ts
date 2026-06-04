@@ -29,7 +29,11 @@ export async function POST(req: Request) {
     .gte('created_at', since)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
-    .limit(5)
+    .limit(20)
+
+  const digestAgentTasks = (agentTasks ?? [])
+    .filter(task => !isSystemAgent(task.agent))
+    .slice(0, 5)
 
   // Pending approvals
   const { data: pendingTasks } = await supabase
@@ -42,7 +46,7 @@ export async function POST(req: Request) {
 
   // Fetch outputs separately (avoids FK dependency)
   const allTaskIds = [
-    ...(agentTasks ?? []).map(t => t.id),
+    ...digestAgentTasks.map(t => t.id),
     ...(pendingTasks ?? []).map(t => t.id),
   ]
   const { data: allOutputs } = allTaskIds.length
@@ -78,7 +82,7 @@ export async function POST(req: Request) {
 
   // Generate one-line Haiku summaries for each agent run
   const agentSummaries = await Promise.all(
-    (agentTasks ?? []).map(async task => {
+    digestAgentTasks.map(async task => {
       const preview = (outputByTask[task.id] ?? '').slice(0, 300)
       const agentName = formatAgentName(task.agent)
 
@@ -145,4 +149,8 @@ function formatAgentName(agentId: string): string {
     brand_voice_guardian:   'Brand Voice Guardian',
   }
   return names[agentId] ?? agentId
+}
+
+function isSystemAgent(agentId: string): boolean {
+  return agentId === 'maya' || agentId.startsWith('foundation_')
 }
