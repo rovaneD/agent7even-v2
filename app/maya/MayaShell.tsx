@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import { useRouter } from 'next/navigation'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
-import { Rocket, PenLine, BarChart2, MessageCircle } from 'lucide-react'
+import { Rocket, PenLine, BarChart2, MessageCircle, AlertCircle } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -183,6 +183,7 @@ export default function MayaShell({
   const [planLoading, setPlanLoading] = useState(false)
   const [planSaved, setPlanSaved] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [chatError, setChatError] = useState<string | null>(null)
   const [mode, setMode] = useState<string | null>(() => shouldRestore ? (initialMode ?? null) : null)
   const [taskOutput, setTaskOutput] = useState<string>('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -291,8 +292,20 @@ export default function MayaShell({
     transport: new DefaultChatTransport({
       api: '/api/maya/chat',
       body: { profile: profileData, isEdit, priorOption },
+      fetch: async (url, init) => {
+        const response = await fetch(url, init)
+        if (!response.ok) {
+          const data = await response.clone().json().catch(() => ({}))
+          const message = data.message || data.error || `Maya request failed (${response.status})`
+          throw new Error(message)
+        }
+        return response
+      },
     }),
     messages: shouldRestore && initialMessages.length ? (initialMessages as UIMessage[]) : undefined,
+    onError: (error: Error) => {
+      setChatError(error.message || 'Maya could not respond. Please try again.')
+    },
     onFinish: async ({ message }: { message: UIMessage }) => {
       const text = message.parts.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join('')
 
@@ -388,6 +401,7 @@ export default function MayaShell({
       ? initialPrompt
       : `__TASK__${initialPrompt}__`
     if (isTaskMode.current) setCanvasState('task')
+    setChatError(null)
     sendMessage({ text: content })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -400,12 +414,14 @@ export default function MayaShell({
 
   function selectMode(modeId: string) {
     setMode(modeId)
+    setChatError(null)
     sendMessage({ text: `__MODE__${modeId}__` })
   }
 
   function submitMessage(text?: string) {
     const content = (text ?? chatInput).trim()
     if (!content || isLoading) return
+    setChatError(null)
     sendMessage({ text: content })
     setChatInput('')
   }
@@ -614,6 +630,17 @@ export default function MayaShell({
                     <span style={{ color: '#fff', fontSize: 12, fontWeight: 500 }}>M</span>
                   </div>
                   <p style={{ fontSize: 13, color: '#64748B', fontStyle: 'italic', paddingTop: 7 }}>Maya is thinking...</p>
+                </div>
+              )}
+
+              {chatError && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 28 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                    <AlertCircle size={15} color="#FCA509" />
+                  </div>
+                  <div style={{ maxWidth: '85%', border: '1px solid #fed7aa', background: '#fff7ed', borderRadius: 14, padding: '10px 12px' }}>
+                    <p style={{ margin: 0, fontSize: 13, color: '#2D3748', lineHeight: 1.55 }}>{chatError}</p>
+                  </div>
                 </div>
               )}
 

@@ -37,6 +37,8 @@ setup completed.
 Internal Foundation generation tasks use `foundation_*` agent ids. They should
 not appear in Maya daily brief activity or count as a user's first specialist
 agent run.
+If Maya chat is blocked by missing credits or no active plan, the UI must show a
+clear message. It must not remain in a silent loading state.
 - Team, Billing, Notifications, and Settings
 
 ## 2. Current Visual Direction

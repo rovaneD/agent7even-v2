@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
-import { Rocket, PenLine, BarChart2, MessageCircle, X, ArrowUp, Paperclip, FileText, Loader2 } from 'lucide-react'
+import { Rocket, PenLine, BarChart2, MessageCircle, X, ArrowUp, Paperclip, FileText, Loader2, AlertCircle } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -107,6 +107,7 @@ export default function MayChatPanel({
 
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
+  const [chatError, setChatError] = useState<string | null>(null)
   const attachmentsRef = useRef<Array<{ url: string; name: string; mimeType: string }>>([])
   const fileInputRef   = useRef<HTMLInputElement>(null)
   const dragCounterRef = useRef(0)
@@ -156,13 +157,22 @@ export default function MayChatPanel({
         body.attachments = attachmentsRef.current
         attachmentsRef.current = []
       }
-      return fetch(url, { ...init, body: JSON.stringify(body) })
+      const response = await fetch(url, { ...init, body: JSON.stringify(body) })
+      if (!response.ok) {
+        const data = await response.clone().json().catch(() => ({}))
+        const message = data.message || data.error || `Maya request failed (${response.status})`
+        throw new Error(message)
+      }
+      return response
     },
   }), [])
 
   const { messages, sendMessage, status } = useChat({
     transport,
     messages: initialMessages.length ? (initialMessages as UIMessage[]) : undefined,
+    onError: (error: Error) => {
+      setChatError(error.message || 'Maya could not respond. Please try again.')
+    },
     onFinish: async ({ message }: { message: UIMessage }) => {
       if (!profile?.id) return
       const allMessages = [...messagesRef.current, message]
@@ -216,12 +226,14 @@ export default function MayChatPanel({
   useEffect(() => {
     if (!pendingTask) return
     setMode('task')
+    setChatError(null)
     sendMessage({ text: `__TASK__${pendingTask}__` })
     onTaskConsumed?.()
   }, [pendingTask]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isHelpMode) return
+    setChatError(null)
     sendMessage({ text: '__HELP__' })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -230,11 +242,13 @@ export default function MayChatPanel({
     if (!canvasContext && !canvasData) return
     pageContextStartedRef.current = true
     setMode('page')
+    setChatError(null)
     sendMessage({ text: '__PAGE_CONTEXT__' })
   }, [canvasContext, canvasData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectMode(modeId: string) {
     setMode(modeId)
+    setChatError(null)
     sendMessage({ text: `__MODE__${modeId}__` })
   }
 
@@ -304,6 +318,7 @@ export default function MayChatPanel({
   function submitMessage(text?: string) {
     const content = (text ?? chatInput).trim()
     if (!content || isLoading) return
+    setChatError(null)
     const ready = pendingAttachments.filter(a => a.url && !a.uploading && !a.error)
     if (ready.length) {
       attachmentsRef.current = ready.map(a => ({ url: a.url!, name: a.name, mimeType: a.mimeType }))
@@ -435,6 +450,17 @@ export default function MayChatPanel({
                   <span style={{ color: 'var(--color-text-inverse)', fontSize: 11, fontWeight: 700 }}>M</span>
                 </div>
                 <p style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontStyle: 'italic', paddingTop: 4 }}>Maya is thinking...</p>
+              </div>
+            )}
+
+            {chatError && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20 }}>
+                <div style={{ width: 24, height: 24, borderRadius: 8, background: 'color-mix(in srgb, var(--color-status-warning) 14%, var(--color-surface))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <AlertCircle size={13} color="var(--color-status-warning)" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0, border: '1px solid color-mix(in srgb, var(--color-status-warning) 28%, var(--color-border))', background: 'color-mix(in srgb, var(--color-status-warning) 8%, var(--color-surface))', borderRadius: 12, padding: '9px 11px' }}>
+                  <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: 'var(--color-text-primary)' }}>{chatError}</p>
+                </div>
               </div>
             )}
 

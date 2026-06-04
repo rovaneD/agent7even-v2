@@ -46,6 +46,8 @@ Main changes:
 - Filtered internal Foundation generation tasks out of Dashboard agent counts
   and Maya daily briefs so onboarding work is not presented as user agent
   activity.
+- Added explicit Maya chat error handling for no-credit / no-plan accounts so
+  Maya shows a clear in-panel message instead of appearing unresponsive.
 - Aligned Campaigns generation and all major Campaigns consumers with the live
   Supabase schema, where the structured campaign artifact is stored in
   `campaigns.plan`.
@@ -371,7 +373,7 @@ Pre-merge validation also confirmed:
 | 7 | Remaining dashboard utility page polish | DONE |
 | 8 | Dashboard alignment normalization | DONE |
 | 9 | Standard card normalization | DONE |
-| 10 | Foundation pre-checkout generation, dashboard task filtering, and Campaigns live-schema compatibility | DONE |
+| 10 | Foundation pre-checkout generation, dashboard task filtering, Maya no-credit handling, and Campaigns live-schema compatibility | DONE |
 | 11 | Full desktop/mobile visual QA | NEXT |
 | 12 | Admin visual-system pass | NEXT |
 | 13 | Typography and dense-row QA | NEXT |

@@ -428,6 +428,8 @@ Fixes:
 - Internal `foundation_*` tasks are filtered out of Dashboard agent counts and
   Maya daily briefs so setup generation is not exposed as user-facing agent
   activity.
+- Maya chat now returns and displays a human-readable no-credit message instead
+  of leaving the chat panel in a silent failed state.
 - Campaign generation now writes the structured artifact to `campaigns.plan`.
 - Campaigns list, detail, digest, agent context, and Content Calendar now read
   the live schema and normalize plan data for their existing UI contracts.
