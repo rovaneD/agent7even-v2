@@ -18,7 +18,7 @@ export default async function AgentsPage() {
     .limit(1)
   const profile = profileRows?.[0] ?? null
 
-  if (!profile) redirect('/onboarding')
+  if (!profile) redirect('/foundation')
 
   const [
     { data: activeTasks },

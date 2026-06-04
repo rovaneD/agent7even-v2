@@ -1,5 +1,5 @@
 # MAYA_CONTEXT_V02 - Product Context and Visual System
-*Versioned snapshot: June 3, 2026*
+*Versioned snapshot: June 4, 2026*
 
 This is the current versioned Maya product context. It supersedes
 `MAYA_CONTEXT_V01.md` while preserving all prior product decisions unless
@@ -26,6 +26,9 @@ Primary workspace areas:
 - Analytics
 - Deliverables
 - Support
+
+Foundation is the canonical onboarding route. Do not add redirects to the
+deleted `/onboarding` page.
 - Team, Billing, Notifications, and Settings
 
 ## 2. Current Visual Direction
@@ -221,4 +224,3 @@ Stripe API version must remain:
 ```ts
 '2026-04-22.dahlia' as any
 ```
-

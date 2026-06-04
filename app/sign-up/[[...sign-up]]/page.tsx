@@ -11,7 +11,7 @@ const highlights = [
 
 export default async function SignUpPage({ searchParams }: Props) {
   const { plan } = await searchParams
-  const postSignUpRedirect = plan ? `/onboarding?plan=${plan}` : '/onboarding'
+  const postSignUpRedirect = plan ? `/foundation?plan=${encodeURIComponent(plan)}` : '/foundation'
   return (
     <div className="min-h-screen flex bg-[#0d0d0d]">
 

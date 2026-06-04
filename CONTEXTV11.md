@@ -1,5 +1,5 @@
 # CONTEXTV11 - Design System, Preview Deployment, and Dashboard UI Normalization
-*Snapshot: June 3, 2026*
+*Snapshot: June 4, 2026*
 
 This is the current technical and product handoff for the experimental v2 app.
 Everything in `CONTEXTV10.md` still applies unless this document explicitly
@@ -33,6 +33,12 @@ implemented on its own branch and followed by a broad dashboard UI pass.
 Main changes:
 
 - Introduced global brand, semantic, surface, border, and text color tokens.
+- Repaired stale `/onboarding` redirects after Foundation became the canonical
+  onboarding flow.
+- Preserved pricing plan selection through sign-up, Foundation generation, and
+  checkout.
+- Repaired the Campaigns list query by avoiding an explicit PostgREST selection
+  of the PostgreSQL ordered-set aggregate name `mode`.
 - Updated the dashboard shell and Maya panel to use the new visual language.
 - Changed primary CTAs from dark slate to blue.
 - Rebuilt the Dashboard Command Center into a more useful operating snapshot.
@@ -330,6 +336,14 @@ npm run build
 
 Latest build passed with Next.js `16.2.6` and Turbopack.
 
+Pre-merge validation also confirmed:
+
+- `origin/main` had no divergence from the branch base.
+- A read-only merge simulation found no conflicts.
+- All changed dashboard links and API fetch targets map to existing routes.
+- The production route list contains `/foundation` and no longer has code
+  references to the deleted `/onboarding` page.
+
 ---
 
 ## 8. Current Work Queue
@@ -352,5 +366,4 @@ Latest build passed with Next.js `16.2.6` and Turbopack.
 | 14 | Credit top-up | OPEN |
 | 15 | Orchestration progress UI | OPEN |
 | 16 | Profile dedup | OPEN / data task |
-| 17 | Merge design-system branch to main | HOLD until validation |
-
+| 17 | Merge design-system branch to main | READY after final preview smoke test |

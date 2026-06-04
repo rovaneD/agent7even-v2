@@ -45,6 +45,7 @@ interface Props {
   profileId: string
   companyName: string
   initialStep: number
+  selectedPlan?: string
 }
 
 interface StepAnswers {
@@ -117,7 +118,7 @@ export const GOAL_OPTIONS = [
 
 const ALL_DOCS = ['Business brief', 'Ideal customer profile', 'Positioning statement', 'Brand voice guide', '30-day plan']
 
-export default function FoundationFlow({ profileId, companyName, initialStep }: Props) {
+export default function FoundationFlow({ profileId, companyName, initialStep, selectedPlan }: Props) {
   const router = useRouter()
   const [step, setStep] = useState(initialStep)
   const [generating, setGenerating] = useState(false)
@@ -195,7 +196,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep }: 
     })
     if (!res.ok) throw new Error('Generation failed: ' + res.status)
     setGenerationProgress(ALL_DOCS)
-    router.push('/dashboard')
+    router.push(selectedPlan ? `/checkout-now?plan=${encodeURIComponent(selectedPlan)}` : '/dashboard')
   }
 
   async function handleGenerate() {

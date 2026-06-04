@@ -8,8 +8,8 @@ import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 type Campaign = {
   id: string
   title: string
-  mode: string
-  segment: string | null
+  mode?: string | null
+  segment?: string | null
   status: string
   created_at: string
 }
@@ -50,14 +50,14 @@ export default async function CampaignsPage() {
 
   const { data: campaigns, error } = await supabase
     .from('campaigns')
-    .select('id, title, mode, segment, status, created_at')
+    .select('*')
     .eq('user_id', profile.id)
     .order('created_at', { ascending: false })
 
   if (error) console.error('[campaigns] fetch error:', error.message)
 
   const campaignLines = campaigns?.length
-    ? (campaigns as Campaign[]).map(c => `- ${c.title} (mode: ${c.mode}, status: ${c.status})`).join('\n')
+    ? (campaigns as Campaign[]).map(c => `- ${c.title} (status: ${c.status})`).join('\n')
     : '- No campaigns yet'
 
   const contextString = `CAMPAIGNS PAGE
@@ -132,9 +132,8 @@ The user can create new campaigns or view existing ones.`
               <div className="group rounded-2xl border border-gray-100 bg-white p-5 transition-all hover:border-brand-primary/40 hover:bg-surface-2">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <span className="text-xs font-semibold capitalize text-text-sec">
-                    {campaign.mode === 'guided'
-                      ? (campaign.segment?.replace(/_/g, ' ') ?? 'Guided')
-                      : 'Custom campaign'}
+                    {campaign.segment?.replace(/_/g, ' ') ??
+                      (campaign.mode === 'guided' ? 'Guided' : 'Custom campaign')}
                   </span>
                   <StatusBadge status={campaign.status} />
                 </div>

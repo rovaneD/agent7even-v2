@@ -1,5 +1,5 @@
 # Audit Fixes — June 2, 2026
-*Updated: June 3, 2026*
+*Updated: June 4, 2026*
 
 Repo: `rovaneD/agent7even-v2`
 Initial audit commit: `dae9088 Fix audit security and credit issues`
@@ -361,6 +361,29 @@ Fixes:
   `border-gray-100`, and no default shadow.
 - Preserved matching soft-shadow hero treatments for the Dashboard Command
   Center and Agents Command Center.
+
+## Pre-Merge Route and Campaign Follow-On
+
+Issues addressed:
+
+- `/onboarding` was intentionally deleted when Foundation became the canonical
+  setup flow, but sign-up and three Agent pages still redirected to the missing
+  route.
+- Pricing plan selection needed to survive the new Foundation redirect so a
+  newly signed-up user could continue to checkout after Foundation generation.
+- The Campaigns page explicitly selected the `mode` field through PostgREST,
+  which caused PostgreSQL to interpret `mode` as an ordered-set aggregate and
+  return `WITHIN GROUP is required for ordered-set aggregate mode`.
+
+Fixes:
+
+- Replaced stale `/onboarding` redirects with `/foundation`.
+- Passed the optional pricing plan through sign-up, Foundation, and
+  `/checkout-now`.
+- Changed the Campaigns list query to `select('*')`, which returns the campaign
+  mode when present without invoking aggregate parsing.
+- Made Campaigns list display metadata tolerant of legacy rows that do not have
+  `mode` or `segment`.
 
 ## Verification
 
