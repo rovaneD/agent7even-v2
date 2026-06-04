@@ -55,7 +55,7 @@ export default function BrandDocument({ document, onBack, onSaved, onRegenerate 
   }
 
   return (
-    <div className="max-w-[1200px] px-8 pt-8 pb-6">
+    <div className="mx-auto max-w-[1240px] px-8 py-8">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">

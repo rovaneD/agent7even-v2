@@ -114,7 +114,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
 
   // ── Home view ─────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-8">
+    <div className="mx-auto max-w-[1240px] space-y-8 px-8 py-8">
 
       {/* Header */}
       <div className="flex items-start justify-between">
