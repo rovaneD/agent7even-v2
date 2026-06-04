@@ -25,7 +25,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV11.md > MAYA_CONTEXT_V02.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV12.md > MAYA_CONTEXT_V03.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -55,7 +55,7 @@ Always use `'2026-04-22.dahlia'` cast as `as any`. **Never use `'2025-04-30.basi
 Next.js 16 uses `proxy.ts` not `middleware.ts`.
 
 ## Key third-party notes
-- **Buffer** — do NOT attempt OAuth integration. Buffer stopped accepting new developer OAuth registrations as of 2026. Use Later or Publer for social scheduling instead.
+- **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026): legacy REST OAuth is closed to new developer app registrations (no new client_id), and the new GraphQL API is personal-key-only beta with no third-party end-user OAuth. Publer is dashboard-first, also not a multi-tenant fit. Leading candidate is **Zernio** (multi-tenant OAuth-as-a-service, white-label, per-account pricing, publish/fail webhooks) — pending verification (tenant isolation [open], cost caps [answered], support/reliability, data-handling/DPA) and gated behind the Exa pre-fill value test. Build behind a swappable `lib/social/publisher.ts` interface. Do NOT attempt Buffer OAuth. Details in `zernio_social_evaluation_backlog.md`.
 - **Instagram Lucide icon** — does not exist. Use `Hash` icon instead.
 
 ## This app (agent7even-v2) — experimental
@@ -63,8 +63,8 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV11.md` — latest technical/product handoff for the design-system branch.
-- `MAYA_CONTEXT_V02.md` — current versioned Maya product context and visual rules.
+- `CONTEXTV12.md` — latest technical/product handoff for the merged design-system work.
+- `MAYA_CONTEXT_V03.md` — current versioned Maya product context and visual rules.
 - `AUDIT_FIXES_2026-06-02.md` — audit fix ledger plus follow-on testing fixes.
 
 ## Current visual-system rules
