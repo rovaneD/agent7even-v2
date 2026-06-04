@@ -208,54 +208,62 @@ The user can invite new team members and manage their roles and permissions.`
   const totalSeats = activeMembers + pendingMembers
 
   return (
-    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-6">
+    <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[26px] font-semibold text-[#2D3748]">Team</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            {companyName} — manage your team members and their access
-          </p>
+      <section className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+        <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Team</p>
+            <h1 className="text-[30px] font-semibold tracking-tight text-text">Workspace access</h1>
+            <p className="mt-2 text-sm leading-6 text-text-sec">
+              {companyName} — invite team members and control what each person can access.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Seats</p>
+              <p className="mt-1 text-2xl font-semibold text-text">{totalSeats + 1}</p>
+            </div>
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#2563EB]"
+            >
+              <Plus size={15} />
+              Invite member
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setShowInviteModal(true)}
-          className="flex items-center gap-2 bg-[#2D3748] text-white text-[15px] font-medium px-4 py-2.5 rounded-xl hover:bg-[#1E293B] transition-colors"
-        >
-          <Plus size={15} />
-          Invite member
-        </button>
-      </div>
+      </section>
 
       {/* Alerts */}
       {success && (
-        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
-          <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
-          <p className="text-sm text-emerald-700 flex-1">{success}</p>
+        <div className="flex items-center gap-3 rounded-xl border border-status-success/20 bg-status-success/10 px-4 py-3">
+          <CheckCircle size={15} className="flex-shrink-0 text-status-success" />
+          <p className="flex-1 text-sm text-status-success">{success}</p>
           <button onClick={() => setSuccess(null)}><X size={14} className="text-emerald-400" /></button>
         </div>
       )}
       {error && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-          <AlertCircle size={15} className="text-red-500 flex-shrink-0" />
-          <p className="text-sm text-red-700 flex-1">{error}</p>
+        <div className="flex items-center gap-3 rounded-xl border border-status-danger/20 bg-status-danger/10 px-4 py-3">
+          <AlertCircle size={15} className="flex-shrink-0 text-status-danger" />
+          <p className="flex-1 text-sm text-status-danger">{error}</p>
           <button onClick={() => setError(null)}><X size={14} className="text-red-400" /></button>
         </div>
       )}
 
       {/* Seat usage card */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h2 className="text-sm font-semibold text-gray-700">Seat usage</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <h2 className="text-sm font-semibold text-text">Seat usage</h2>
+            <p className="mt-0.5 text-xs text-text-soft">
               {PLAN_LABELS[plan]} includes {includedSeats} seat{includedSeats !== 1 ? 's' : ''}.
               Additional seats are $15/mo each.
             </p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-semibold text-gray-900">{totalSeats + 1}</p>
-            <p className="text-xs text-gray-400">total seats used</p>
+            <p className="text-2xl font-semibold text-text">{totalSeats + 1}</p>
+            <p className="text-xs text-text-soft">total seats used</p>
           </div>
         </div>
 
@@ -282,16 +290,16 @@ The user can invite new team members and manage their roles and permissions.`
           {extraSeats > 0 && (
             <div className="pt-2 mt-2 border-t border-gray-50 flex items-center justify-between text-sm">
               <span className="font-medium text-gray-700">Extra seat charges</span>
-              <span className="font-semibold text-[#64748B]">${extraSeats * 15}/mo added to your subscription</span>
+              <span className="font-semibold text-text-sec">${extraSeats * 15}/mo added to your subscription</span>
             </div>
           )}
         </div>
       </div>
 
       {/* Team members list */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-50">
-          <h2 className="text-sm font-semibold text-gray-700">Team members</h2>
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-sm font-semibold text-text">Team members</h2>
         </div>
 
         {teamMembers.length === 0 ? (
@@ -303,7 +311,7 @@ The user can invite new team members and manage their roles and permissions.`
             </p>
             <button
               onClick={() => setShowInviteModal(true)}
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#64748B] bg-[#2D3748]/10 hover:bg-[#2D3748]/15 px-4 py-2.5 rounded-xl transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-medium text-text-sec bg-brand-primary/10 hover:bg-brand-primary/15 px-4 py-2.5 rounded-xl transition-colors"
             >
               <Plus size={14} />
               Invite your first team member
@@ -314,11 +322,11 @@ The user can invite new team members and manage their roles and permissions.`
             {teamMembers.map(member => (
               <div key={member.id} className="flex items-center gap-4 px-6 py-4">
                 {/* Avatar */}
-                <div className="w-9 h-9 rounded-xl bg-[#2D3748]/10 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
                   {member.profiles?.avatar_url ? (
                     <img src={member.profiles.avatar_url} className="w-9 h-9 rounded-xl object-cover" alt="" />
                   ) : (
-                    <span className="text-sm font-semibold text-[#64748B]">
+                    <span className="text-sm font-semibold text-text-sec">
                       {(member.profiles?.full_name ?? member.invited_email)?.[0]?.toUpperCase()}
                     </span>
                   )}
@@ -350,7 +358,7 @@ The user can invite new team members and manage their roles and permissions.`
                 {/* Role badge */}
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0 ${
                   member.role === 'admin'
-                    ? 'bg-[#2D3748]/10 text-[#64748B]'
+                    ? 'bg-brand-primary/10 text-text-sec'
                     : 'bg-gray-100 text-gray-500'
                 }`}>
                   {member.role}
@@ -388,7 +396,7 @@ The user can invite new team members and manage their roles and permissions.`
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <h3 className="text-[17px] font-semibold text-[#2D3748]">Invite team member</h3>
+              <h3 className="text-[17px] font-semibold text-text">Invite team member</h3>
               <button onClick={() => setShowInviteModal(false)}>
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>
@@ -404,7 +412,7 @@ The user can invite new team members and manage their roles and permissions.`
                   value={inviteEmail}
                   onChange={e => setInviteEmail(e.target.value)}
                   placeholder="colleague@company.com"
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 placeholder:text-gray-300"
                 />
               </div>
 
@@ -419,7 +427,7 @@ The user can invite new team members and manage their roles and permissions.`
                       onClick={() => setInviteRole(r)}
                       className={`flex-1 text-sm font-medium py-2.5 rounded-xl border capitalize transition-all ${
                         inviteRole === r
-                          ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#64748B]'
+                          ? 'border-brand-primary bg-brand-primary/5 text-text-sec'
                           : 'border-gray-200 text-gray-600 hover:border-gray-300'
                       }`}
                     >
@@ -444,7 +452,7 @@ The user can invite new team members and manage their roles and permissions.`
                         onClick={() => togglePermission(key)}
                         disabled={key === 'support'}
                         className={`relative w-9 h-5 rounded-full transition-colors ${
-                          invitePermissions[key] ? 'bg-[#2D3748]' : 'bg-gray-200'
+                          invitePermissions[key] ? 'bg-brand-primary' : 'bg-gray-200'
                         } ${key === 'support' ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
@@ -483,7 +491,7 @@ The user can invite new team members and manage their roles and permissions.`
                 <button
                   onClick={handleInvite}
                   disabled={!inviteEmail.trim() || inviting}
-                  className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1E293B] py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-brand-primary hover:bg-[#2563EB] py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {inviting ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
                   {inviting ? 'Sending...' : 'Send invite'}
@@ -500,7 +508,7 @@ The user can invite new team members and manage their roles and permissions.`
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
               <div>
-                <h3 className="text-[17px] font-semibold text-[#2D3748]">Edit permissions</h3>
+                <h3 className="text-[17px] font-semibold text-text">Edit permissions</h3>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {selectedMember.profiles?.full_name ?? selectedMember.invited_email}
                 </p>
@@ -520,7 +528,7 @@ The user can invite new team members and manage their roles and permissions.`
                       onClick={() => setSelectedMember(prev => prev ? { ...prev, role: r } : null)}
                       className={`flex-1 text-sm font-medium py-2.5 rounded-xl border capitalize transition-all ${
                         selectedMember.role === r
-                          ? 'border-[#3B82F6] bg-[#2D3748]/5 text-[#64748B]'
+                          ? 'border-brand-primary bg-brand-primary/5 text-text-sec'
                           : 'border-gray-200 text-gray-600 hover:border-gray-300'
                       }`}
                     >
@@ -542,7 +550,7 @@ The user can invite new team members and manage their roles and permissions.`
                         onClick={() => toggleMemberPermission(key)}
                         disabled={key === 'support'}
                         className={`relative w-9 h-5 rounded-full transition-colors ${
-                          selectedMember.permissions[key] ? 'bg-[#2D3748]' : 'bg-gray-200'
+                          selectedMember.permissions[key] ? 'bg-brand-primary' : 'bg-gray-200'
                         } ${key === 'support' ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
@@ -564,7 +572,7 @@ The user can invite new team members and manage their roles and permissions.`
                 <button
                   onClick={handleSavePermissions}
                   disabled={savingPermissions}
-                  className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-[#2D3748] hover:bg-[#1E293B] py-3 rounded-xl transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-brand-primary hover:bg-[#2563EB] py-3 rounded-xl transition-colors disabled:opacity-50"
                 >
                   {savingPermissions ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
                   {savingPermissions ? 'Saving...' : 'Save permissions'}

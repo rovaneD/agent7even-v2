@@ -38,9 +38,9 @@ interface Profile {
 const STARTER_LIMIT = 15
 
 const PLAN_META: Record<string, { label: string; color: string; bg: string }> = {
-  starter:  { label: 'Starter',  color: 'text-gray-700',     bg: 'bg-gray-100' },
-  growth:   { label: 'Growth',   color: 'text-[#64748B]',    bg: 'bg-[#2D3748]/10' },
-  proagent: { label: 'ProAgent', color: 'text-purple-700',   bg: 'bg-purple-100' },
+  starter:  { label: 'Starter',  color: 'text-text-sec',     bg: 'bg-surface-muted' },
+  growth:   { label: 'Growth',   color: 'text-text-sec',    bg: 'bg-brand-primary/10' },
+  proagent: { label: 'ProAgent', color: 'text-[#7C3AED]',   bg: 'bg-[#7C3AED]/10' },
 }
 
 function getPlanLimits(plan: string | null): { unlimited: boolean; limit: number } {
@@ -62,13 +62,13 @@ const CATEGORIES = [
 ]
 
 const CATEGORY_COLORS: Record<string, string> = {
-  social:     'bg-pink-50 text-pink-600',
-  email:      'bg-blue-50 text-blue-600',
-  ads:        'bg-orange-50 text-orange-600',
-  seo:        'bg-green-50 text-green-600',
-  brand:      'bg-purple-50 text-purple-600',
-  operations: 'bg-gray-50 text-gray-600',
-  general:    'bg-gray-50 text-gray-600',
+  social:     'bg-brand-tertiary/10 text-brand-tertiary',
+  email:      'bg-brand-primary/10 text-brand-primary',
+  ads:        'bg-brand-warning/10 text-brand-warning',
+  seo:        'bg-status-success/10 text-status-success',
+  brand:      'bg-[#7C3AED]/10 text-[#7C3AED]',
+  operations: 'bg-surface-muted text-text-sec',
+  general:    'bg-surface-muted text-text-sec',
 }
 
 // ── Plan tier per category ────────────────────────────────────────────────────
@@ -92,9 +92,9 @@ function meetsRequirement(userPlan: string | null, required: string): boolean {
 }
 
 const PLAN_BADGE: Record<string, { label: string; style: string }> = {
-  starter:  { label: 'Starter+',  style: 'bg-gray-100 text-gray-600' },
-  growth:   { label: 'Growth+',   style: 'bg-[#2D3748]/10 text-[#64748B]' },
-  proagent: { label: 'ProAgent',  style: 'bg-purple-100 text-purple-700' },
+  starter:  { label: 'Starter+',  style: 'bg-surface-muted text-text-sec' },
+  growth:   { label: 'Growth+',   style: 'bg-brand-primary/10 text-text-sec' },
+  proagent: { label: 'ProAgent',  style: 'bg-[#7C3AED]/10 text-[#7C3AED]' },
 }
 
 const CATEGORY_TOOLTIP: Record<string, string> = {
@@ -156,8 +156,8 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000)
   }
   return (
-    <button onClick={copy} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
-      {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+    <button onClick={copy} className="flex items-center gap-1.5 text-xs text-text-soft hover:text-brand-primary transition-colors">
+      {copied ? <Check size={12} className="text-status-success" /> : <Copy size={12} />}
       {copied ? 'Copied' : 'Copy'}
     </button>
   )
@@ -228,19 +228,19 @@ function PromptRunner({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-surface rounded-[24px] w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
 
-        <div className="flex items-start justify-between p-6 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl">
+        <div className="flex items-start justify-between p-6 border-b border-border sticky top-0 bg-surface rounded-t-[24px]">
           <div>
-            <span className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full ${CATEGORY_COLORS[prompt.category] ?? 'bg-gray-50 text-gray-500'}`}>
+            <span className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full ${CATEGORY_COLORS[prompt.category] ?? 'bg-surface-muted text-text-sec'}`}>
               {prompt.category}
             </span>
-            <h2 className="text-base font-bold text-gray-900 mt-2">{prompt.title}</h2>
-            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+            <h2 className="text-base font-bold text-text mt-2">{prompt.title}</h2>
+            <p className="text-xs text-text-soft mt-0.5 flex items-center gap-1">
               <Clock size={10} /> Saves ~{prompt.time_saved_mins} min
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-text-soft hover:text-text">
             <X size={16} />
           </button>
         </div>
@@ -248,17 +248,17 @@ function PromptRunner({
         <div className="p-6 space-y-5">
           {prompt.variables.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Fill in your details</p>
+              <p className="text-xs font-semibold text-text-soft uppercase tracking-widest mb-3">Fill in your details</p>
               <div className="space-y-3">
                 {prompt.variables.map(v => (
                   <div key={v.key}>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">{v.label}</label>
+                    <label className="text-xs font-medium text-text-sec block mb-1">{v.label}</label>
                     <input
                       type="text"
                       value={vars[v.key] ?? ''}
                       onChange={e => setVars(prev => ({ ...prev, [v.key]: e.target.value }))}
                       placeholder={`Enter ${v.label.toLowerCase()}...`}
-                      className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 transition-colors"
+                      className="w-full border border-border rounded-xl px-3.5 py-2.5 text-sm text-text placeholder:text-text-soft outline-none focus:border-brand-primary transition-colors"
                     />
                   </div>
                 ))}
@@ -267,20 +267,20 @@ function PromptRunner({
           )}
 
           {/* Brand voice toggle */}
-          <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${useBrandVoice && brandKitComplete ? 'bg-[#2D3748]/5 border-[#3B82F6]/20' : 'bg-gray-50 border-gray-100'}`}>
+          <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${useBrandVoice && brandKitComplete ? 'bg-brand-primary/5 border-brand-primary/20' : 'bg-surface-muted border-border'}`}>
             <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${useBrandVoice && brandKitComplete ? 'bg-[#2D3748]/10' : 'bg-gray-100'}`}>
-                <Sparkles size={15} className={useBrandVoice && brandKitComplete ? 'text-[#64748B]' : 'text-gray-400'} />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${useBrandVoice && brandKitComplete ? 'bg-brand-primary/10' : 'bg-bg-soft'}`}>
+                <Sparkles size={15} className={useBrandVoice && brandKitComplete ? 'text-brand-primary' : 'text-text-soft'} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">Use my brand voice</p>
-                <p className="text-xs text-gray-400">{brandKitComplete ? "Claude will write in your brand's tone and style" : 'Complete your Brand Kit to enable this feature'}</p>
+                <p className="text-sm font-semibold text-text">Use my brand voice</p>
+                <p className="text-xs text-text-soft">{brandKitComplete ? "Claude will write in your brand's tone and style" : 'Complete your Brand Kit to enable this feature'}</p>
               </div>
             </div>
             <button
               onClick={() => brandKitComplete && setUseBrandVoice(v => !v)}
               disabled={!brandKitComplete}
-              className={`relative w-11 h-6 rounded-full transition-colors ${useBrandVoice && brandKitComplete ? 'bg-[#2D3748]' : brandKitComplete ? 'bg-gray-200' : 'bg-gray-100 cursor-not-allowed'}`}
+              className={`relative w-11 h-6 rounded-full transition-colors ${useBrandVoice && brandKitComplete ? 'bg-brand-primary' : brandKitComplete ? 'bg-border' : 'bg-bg-soft cursor-not-allowed'}`}
             >
               <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${useBrandVoice && brandKitComplete ? 'translate-x-5' : 'translate-x-0'}`} />
             </button>
@@ -289,7 +289,7 @@ function PromptRunner({
           <button
             onClick={run}
             disabled={loading || (!allVarsFilled && prompt.variables.length > 0)}
-            className="w-full bg-[#2D3748] text-white font-medium text-sm py-3 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-brand-primary text-white font-medium text-sm py-3 rounded-xl hover:bg-[#2563EB] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
           >
             {loading ? <><Loader2 size={14} className="animate-spin" /> Generating...</> : <><Zap size={14} /> Generate</>}
           </button>
@@ -297,25 +297,25 @@ function PromptRunner({
           {output && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Output</p>
+                <p className="text-xs font-semibold text-text-soft uppercase tracking-widest">Output</p>
                 <div className="flex items-center gap-3">
                   <CopyButton text={output} />
                   <button
                     onClick={savePrompt}
                     disabled={saving || saved}
-                    className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-text-soft hover:text-brand-primary transition-colors"
                   >
-                    {saved ? <><Check size={12} className="text-green-500" /> Saved</> : <><Star size={12} /> Save prompt</>}
+                    {saved ? <><Check size={12} className="text-status-success" /> Saved</> : <><Star size={12} /> Save prompt</>}
                   </button>
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap border border-gray-100">
+              <div className="bg-surface-muted rounded-xl p-4 text-sm text-text-sec leading-relaxed whitespace-pre-wrap border border-border">
                 {output}
               </div>
               <button
                 onClick={run}
                 disabled={loading}
-                className="mt-3 text-xs text-[#64748B] hover:text-[#b04623] transition-colors flex items-center gap-1"
+                className="mt-3 text-xs text-brand-primary hover:text-[#2563EB] transition-colors flex items-center gap-1"
               >
                 <Zap size={11} /> Regenerate
               </button>
@@ -350,7 +350,7 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
         </div>
         <a
           href="/pricing"
-          className="inline-flex items-center gap-2 bg-[#2D3748] hover:bg-[#1E293B] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors flex-shrink-0"
+          className="inline-flex items-center gap-2 bg-brand-primary hover:bg-[#2563EB] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors flex-shrink-0"
         >
           View plans <ArrowRight size={14} />
         </a>
@@ -359,7 +359,7 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
   }
 
   return (
-    <div className={`rounded-2xl border p-5 mb-6 ${nearLimit ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
+    <div className={`rounded-2xl border p-5 mb-6 ${nearLimit ? 'bg-status-warning/10 border-status-warning/20' : 'bg-surface border-border'}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Tooltip content={PLAN_TOOLTIP[plan] ?? plan}>
@@ -369,17 +369,17 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
             </span>
           </Tooltip>
           {unlimited ? (
-            <p className="text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">Unlimited</span> AI runs this month
+            <p className="text-sm text-text-sec">
+              <span className="font-semibold text-text">Unlimited</span> AI runs this month
             </p>
           ) : (
-            <p className="text-sm text-gray-600">
-              <span className={`font-semibold ${nearLimit ? 'text-amber-700' : 'text-gray-900'}`}>
+            <p className="text-sm text-text-sec">
+              <span className={`font-semibold ${nearLimit ? 'text-status-warning' : 'text-text'}`}>
                 {monthlyRuns} of {limit}
               </span>{' '}
               runs used this month
               {runsLeft > 0 && (
-                <span className="text-gray-400 ml-1">({runsLeft} left)</span>
+                <span className="text-text-soft ml-1">({runsLeft} left)</span>
               )}
             </p>
           )}
@@ -388,7 +388,7 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
         {plan === 'starter' && (
           <a
             href="/dashboard/billing"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#64748B] hover:text-[#b8471f] transition-colors flex-shrink-0"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-brand-primary hover:text-[#2563EB] transition-colors flex-shrink-0"
           >
             <TrendingUp size={14} />
             Upgrade to Growth — unlimited runs
@@ -398,16 +398,16 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
 
       {!unlimited && (
         <div className="mt-4">
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-surface-muted rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                pct >= 100 ? 'bg-red-400' : pct >= 80 ? 'bg-amber-400' : 'bg-[#2D3748]'
+                pct >= 100 ? 'bg-status-danger' : pct >= 80 ? 'bg-status-warning' : 'bg-brand-primary'
               }`}
               style={{ width: `${pct}%` }}
             />
           </div>
           {pct >= 100 && (
-            <p className="text-xs text-red-600 font-medium mt-2">
+            <p className="text-xs text-status-danger font-medium mt-2">
               Monthly limit reached. <a href="/dashboard/billing" className="underline">Upgrade to Growth</a> for unlimited runs.
             </p>
           )}
@@ -421,7 +421,7 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
 
 function UpgradeCallout() {
   return (
-    <div className="mt-8 rounded-2xl bg-gradient-to-br from-[#2D3748] to-[#1a2535] p-6 text-white">
+    <div className="mt-8 rounded-[24px] bg-gradient-to-br from-brand-secondary to-[#1a2535] p-6 text-white">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-1">Growth &amp; ProAgent</p>
@@ -432,7 +432,7 @@ function UpgradeCallout() {
         </div>
         <a
           href="/pricing"
-          className="inline-flex items-center gap-2 bg-white text-[#64748B] text-sm font-bold px-5 py-3 rounded-xl hover:bg-[#f5f4f0] transition-colors flex-shrink-0 whitespace-nowrap"
+          className="inline-flex items-center gap-2 bg-white text-text-sec text-sm font-bold px-5 py-3 rounded-xl hover:bg-[#f5f4f0] transition-colors flex-shrink-0 whitespace-nowrap"
         >
           See plans <ArrowRight size={14} />
         </a>
@@ -499,42 +499,44 @@ export default function AIToolkitClient({
   }
 
   return (
-    <div className="px-8 pt-8 pb-6 max-w-[1200px]">
+    <div className="mx-auto max-w-[1240px] px-8 py-8">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-        <div>
-          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">AI Toolkit</p>
-          <h1 className="text-2xl font-bold text-gray-900">Your AI tools</h1>
-          <p className="text-gray-500 text-sm mt-1">Generate content, copy, and strategy in seconds.</p>
-        </div>
-        <div className="flex gap-3 sm:flex-shrink-0">
-          <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 text-center flex-1 sm:flex-initial sm:px-5">
-            <p className="text-xl font-bold text-[#64748B]">{totalRuns}</p>
-            <p className="text-xs text-gray-400">Outputs</p>
+      <div className="mb-6 rounded-[24px] border border-border bg-surface p-7 shadow-sm">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">AI Toolkit</p>
+            <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-text">Prompt library</h1>
+            <p className="mt-2 text-sm text-text-sec">Generate content, copy, and strategy from reusable marketing prompts.</p>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 text-center flex-1 sm:flex-initial sm:px-5">
-            <p className="text-xl font-bold text-green-500">{totalHours}h</p>
-            <p className="text-xs text-gray-400">Time saved</p>
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-shrink-0">
+            <div className="rounded-2xl border border-border bg-surface-muted px-5 py-4 text-center">
+              <p className="text-xl font-semibold text-brand-primary">{totalRuns}</p>
+              <p className="text-xs text-text-soft">Outputs</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface-muted px-5 py-4 text-center">
+              <p className="text-xl font-semibold text-status-success">{totalHours}h</p>
+              <p className="text-xs text-text-soft">Time saved</p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Brand Kit nudge / active banner */}
       {!brandKitComplete && (
-        <div className="flex items-start gap-3 bg-[#2D3748]/5 border border-[#3B82F6]/10 rounded-xl px-4 py-3 mb-5">
-          <Sparkles size={15} className="text-[#64748B] mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-3 bg-brand-primary/5 border border-brand-primary/10 rounded-2xl px-4 py-3 mb-5">
+          <Sparkles size={15} className="text-brand-primary mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-800 mb-0.5">Your AI outputs are generic right now</p>
-            <p className="text-xs text-gray-500 leading-relaxed">Complete your Brand Kit and Claude will automatically write in your brand&apos;s voice, tone, and style — for every prompt you run.</p>
+            <p className="text-sm font-semibold text-text mb-0.5">Your AI outputs are generic right now</p>
+            <p className="text-xs text-text-sec leading-relaxed">Complete your Brand Kit and Claude will automatically write in your brand&apos;s voice, tone, and style for every prompt you run.</p>
           </div>
-          <a href="/dashboard/brand-kit" className="flex-shrink-0 text-xs font-semibold text-[#64748B] bg-[#2D3748]/10 hover:bg-[#2D3748]/20 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">Complete Brand Kit →</a>
+          <a href="/dashboard/brand-kit" className="flex-shrink-0 text-xs font-semibold text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">Complete Brand Kit →</a>
         </div>
       )}
       {brandKitComplete && (
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5 mb-5">
-          <CheckCircle size={14} className="text-emerald-600 flex-shrink-0" />
-          <p className="text-xs text-emerald-700 font-medium">Brand Kit active — AI outputs will reflect your brand voice when enabled</p>
+        <div className="flex items-center gap-2 bg-status-success/10 border border-status-success/20 rounded-2xl px-4 py-2.5 mb-5">
+          <CheckCircle size={14} className="text-status-success flex-shrink-0" />
+          <p className="text-xs text-status-success font-medium">Brand Kit active. AI outputs will reflect your brand voice when enabled.</p>
         </div>
       )}
 
@@ -542,13 +544,13 @@ export default function AIToolkitClient({
       <PlanBanner plan={plan} monthlyRuns={monthlyRuns} />
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-6">
+      <div className="flex items-center gap-1 bg-surface-muted rounded-xl p-1 w-fit mb-6">
         {([['library', 'Prompt library'], ['saved', `Saved (${savedPrompts.length})`]] as const).map(([tab, label]) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              activeTab === tab ? 'bg-surface text-text shadow-sm' : 'text-text-sec hover:text-text'
             }`}
           >
             {label}
@@ -562,9 +564,9 @@ export default function AIToolkitClient({
           <div className="flex items-center gap-2 mb-5 flex-wrap">
             {([
               { key: 'all',      label: 'Show all' },
-              { key: 'starter',  label: 'Starter',  badge: 'bg-gray-100 text-gray-600' },
-              { key: 'growth',   label: 'Growth',   badge: 'bg-[#2D3748]/10 text-[#64748B]' },
-              { key: 'proagent', label: 'ProAgent', badge: 'bg-purple-100 text-purple-700' },
+              { key: 'starter',  label: 'Starter',  badge: 'bg-surface-muted text-text-sec' },
+              { key: 'growth',   label: 'Growth',   badge: 'bg-brand-primary/10 text-text-sec' },
+              { key: 'proagent', label: 'ProAgent', badge: 'bg-[#7C3AED]/10 text-[#7C3AED]' },
             ] as const).map(tier => (
               <button
                 key={tier.key}
@@ -572,16 +574,16 @@ export default function AIToolkitClient({
                 className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
                   activeTier === tier.key
                     ? tier.key === 'all'
-                      ? 'bg-gray-900 text-white border-gray-900'
+                      ? 'bg-brand-primary text-white border-brand-primary'
                       : `${tier.badge} border-current`
-                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                    : 'bg-surface text-text-sec border-border hover:border-brand-primary/30'
                 }`}
               >
                 {tier.key !== 'all' && activeTier !== tier.key ? `${tier.label} plan` : tier.label}
               </button>
             ))}
             {activeTier !== 'all' && (
-              <span className="text-xs text-gray-400 ml-1">
+              <span className="text-xs text-text-soft ml-1">
                 {activeTier === 'starter'  && 'Social & Email tools included in every plan'}
                 {activeTier === 'growth'   && 'All Starter tools + Ads, SEO & Operations'}
                 {activeTier === 'proagent' && 'Every tool — Starter, Growth & Brand Strategy'}
@@ -592,13 +594,13 @@ export default function AIToolkitClient({
           {/* Search + category filter */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
             <div className="relative w-full sm:flex-1 sm:max-w-xs">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" />
+              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-soft" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search prompts..."
-                className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder:text-gray-300 outline-none focus:border-[#3B82F6]/40 transition-colors"
+                className="w-full pl-9 pr-4 py-2.5 border border-border rounded-xl text-sm text-text placeholder:text-text-soft outline-none focus:border-brand-primary transition-colors"
               />
             </div>
             <div className="flex gap-1.5 flex-wrap">
@@ -610,8 +612,8 @@ export default function AIToolkitClient({
                     onClick={() => { setActiveCategory(cat.id); setActiveTier('all') }}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                       activeCategory === cat.id
-                        ? 'bg-[#2D3748] text-white'
-                        : 'bg-white border border-gray-200 text-gray-500 hover:border-gray-300'
+                        ? 'bg-brand-primary text-white'
+                        : 'bg-surface border border-border text-text-sec hover:border-brand-primary/30'
                     }`}
                   >
                     <Icon size={11} />
@@ -638,8 +640,8 @@ export default function AIToolkitClient({
                   disabled={locked}
                   className={`rounded-2xl border p-5 text-left transition-all group relative ${
                     locked
-                      ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
-                      : 'bg-white border-gray-100 hover:border-gray-200 hover:shadow-sm cursor-pointer'
+                      ? 'bg-surface-muted border-border cursor-not-allowed'
+                      : 'bg-surface border-border hover:border-brand-primary/30 hover:shadow-sm cursor-pointer'
                   }`}
                 >
                   {locked && (
@@ -652,16 +654,16 @@ export default function AIToolkitClient({
                     <span className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full ${CATEGORY_COLORS[prompt.category] ?? 'bg-gray-50 text-gray-500'}`}>
                       {prompt.category}
                     </span>
-                    <div className={`flex items-center gap-1 text-[10px] text-gray-400 ${locked ? 'pr-7' : ''}`}>
+                    <div className={`flex items-center gap-1 text-[10px] text-text-soft ${locked ? 'pr-7' : ''}`}>
                       <Clock size={10} />
                       ~{prompt.time_saved_mins}m saved
                     </div>
                   </div>
 
-                  <h3 className={`text-sm font-semibold mb-1 transition-colors ${locked ? 'text-gray-600' : 'text-gray-900 group-hover:text-[#64748B]'}`}>
+                  <h3 className={`text-sm font-semibold mb-1 transition-colors ${locked ? 'text-text-sec' : 'text-text group-hover:text-brand-primary'}`}>
                     {prompt.title}
                   </h3>
-                  <p className="text-xs leading-relaxed mb-4 text-gray-500">
+                  <p className="text-xs leading-relaxed mb-4 text-text-sec">
                     {prompt.description}
                   </p>
 
@@ -675,7 +677,7 @@ export default function AIToolkitClient({
                     </Tooltip>
 
                     {!locked && (
-                      <div className="flex items-center gap-1 text-xs font-medium text-[#64748B]">
+                      <div className="flex items-center gap-1 text-xs font-semibold text-brand-primary">
                         Use prompt <ChevronRight size={11} />
                       </div>
                     )}
@@ -688,7 +690,7 @@ export default function AIToolkitClient({
                       <a
                         href="/pricing"
                         onClick={e => e.stopPropagation()}
-                        className="text-xs font-semibold text-[#64748B] hover:underline"
+                        className="text-xs font-semibold text-brand-primary hover:underline"
                       >
                         Upgrade →
                       </a>
@@ -697,7 +699,7 @@ export default function AIToolkitClient({
                       <a
                         href="/pricing"
                         onClick={e => e.stopPropagation()}
-                        className="text-xs font-semibold text-[#64748B] hover:underline"
+                        className="text-xs font-semibold text-brand-primary hover:underline"
                       >
                         Subscribe →
                       </a>
@@ -708,9 +710,9 @@ export default function AIToolkitClient({
             })}
 
             {filtered.length === 0 && (
-              <div className="col-span-2 bg-white rounded-2xl border border-gray-100 p-12 text-center">
-                <Zap size={20} className="text-gray-200 mx-auto mb-3" />
-                <p className="text-sm text-gray-400">No prompts found</p>
+              <div className="col-span-2 bg-surface rounded-2xl border border-border p-12 text-center">
+                <Zap size={20} className="text-text-soft mx-auto mb-3" />
+                <p className="text-sm text-text-soft">No prompts found</p>
               </div>
             )}
           </div>
@@ -723,30 +725,30 @@ export default function AIToolkitClient({
       {activeTab === 'saved' && (
         <div className="space-y-3">
           {savedPrompts.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-              <Star size={20} className="text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">No saved prompts yet</p>
-              <p className="text-xs text-gray-300 mt-1">Run a prompt and save it to find it here.</p>
+            <div className="bg-surface rounded-2xl border border-border p-12 text-center">
+              <Star size={20} className="text-text-soft mx-auto mb-3" />
+              <p className="text-sm text-text-soft">No saved prompts yet</p>
+              <p className="text-xs text-text-soft mt-1">Run a prompt and save it to find it here.</p>
               <button
                 onClick={() => setActiveTab('library')}
-                className="mt-4 text-sm font-medium text-[#64748B] hover:text-[#b04623] transition-colors"
+                className="mt-4 text-sm font-semibold text-brand-primary hover:text-[#2563EB] transition-colors"
               >
                 Browse prompt library →
               </button>
             </div>
           ) : (
             savedPrompts.map(sp => (
-              <div key={sp.id} className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div key={sp.id} className="bg-surface rounded-2xl border border-border p-5">
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <span className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full ${CATEGORY_COLORS[sp.category] ?? 'bg-gray-50 text-gray-500'}`}>
                       {sp.category || 'custom'}
                     </span>
-                    <p className="text-sm font-semibold text-gray-900 mt-2">{sp.title}</p>
+                    <p className="text-sm font-semibold text-text mt-2">{sp.title}</p>
                   </div>
                   <CopyButton text={sp.prompt} />
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed bg-gray-50 rounded-lg p-3 mt-2 font-mono">
+                <p className="text-xs text-text-soft leading-relaxed bg-surface-muted rounded-lg p-3 mt-2 font-mono">
                   {sp.prompt.slice(0, 200)}{sp.prompt.length > 200 ? '...' : ''}
                 </p>
               </div>

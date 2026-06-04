@@ -32,10 +32,10 @@ function PreferenceToggle({
   onChange: (val: boolean) => void
 }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
       <div>
-        <p className="text-sm font-medium text-gray-800">{label}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+        <p className="text-sm font-medium text-text">{label}</p>
+        <p className="text-xs text-text-soft mt-0.5">{description}</p>
       </div>
       <button
         type="button"
@@ -43,7 +43,7 @@ function PreferenceToggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${
-          checked ? 'bg-[#2D3748]' : 'bg-gray-200'
+          checked ? 'bg-brand-primary' : 'bg-gray-200'
         }`}
       >
         <span
@@ -62,14 +62,14 @@ interface Props {
 
 function planBadge(plan: string | null) {
   const map: Record<string, string> = {
-    starter: 'bg-gray-100 text-gray-600',
-    growth: 'bg-[#2D3748]/10 text-[#64748B]',
+    starter: 'bg-surface-muted text-text-sec',
+    growth: 'bg-brand-primary/10 text-text-sec',
     proagent: 'bg-[#0d0d0d] text-white',
   }
   const label = plan ?? 'No plan'
   const key = plan ?? ''
   return (
-    <span className={`text-xs font-semibold px-3 py-1 rounded-full capitalize ${map[key] ?? 'bg-gray-100 text-gray-500'}`}>
+    <span className={`text-xs font-semibold px-3 py-1 rounded-full capitalize ${map[key] ?? 'bg-surface-muted text-text-sec'}`}>
       {label}
     </span>
   )
@@ -148,68 +148,69 @@ The user can update their company name, website URL, and Instagram handle. Name 
   }
 
   return (
-    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-8">
+    <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
 
       {/* Header */}
-      <div>
-        <h1 className="text-[26px] font-semibold text-[#2D3748]">Settings</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Manage your account and business details</p>
+      <div className="rounded-[24px] border border-border bg-surface p-7 shadow-sm">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Settings</p>
+        <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-text">Account controls</h1>
+        <p className="mt-2 text-sm text-text-sec">Manage business details, notification preferences, and account access.</p>
       </div>
 
       {/* Account info — read only */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-5">Account</h2>
+      <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+        <h2 className="text-sm font-semibold text-text mb-5">Account</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
-              <User size={16} className="text-gray-400" />
+            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
+              <User size={16} className="text-brand-primary" />
             </div>
             <div>
-              <p className="text-xs text-gray-400">Full name</p>
-              <p className="text-sm font-medium text-gray-800">{profile.full_name ?? '—'}</p>
+              <p className="text-xs text-text-soft">Full name</p>
+              <p className="text-sm font-medium text-text">{profile.full_name ?? '—'}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs text-gray-400">@</span>
+            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-semibold text-brand-primary">@</span>
             </div>
             <div>
-              <p className="text-xs text-gray-400">Email</p>
-              <p className="text-sm font-medium text-gray-800">{profile.email ?? '—'}</p>
+              <p className="text-xs text-text-soft">Email</p>
+              <p className="text-sm font-medium text-text">{profile.email ?? '—'}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs text-gray-400">★</span>
+            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
+              <span className="text-xs text-brand-primary">★</span>
             </div>
             <div className="flex items-center gap-3">
               <div>
-                <p className="text-xs text-gray-400">Current plan</p>
+                <p className="text-xs text-text-soft">Current plan</p>
                 <div className="mt-1">{planBadge(profile.plan)}</div>
               </div>
             </div>
           </div>
         </div>
-        <p className="text-xs text-gray-400 mt-4">
+        <p className="text-xs text-text-soft mt-4">
           To update your name or email, visit your{' '}
           <button
             onClick={() => openUserProfile()}
-            className="text-[#64748B] underline underline-offset-2"
+            className="text-brand-primary underline underline-offset-2"
           >
             account settings
           </button>
           . To change your plan, go to{' '}
-          <a href="/dashboard/billing" className="text-[#64748B] underline underline-offset-2">Billing</a>.
+          <a href="/dashboard/billing" className="text-brand-primary underline underline-offset-2">Billing</a>.
         </p>
       </div>
 
       {/* Business details — editable */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-5">Business details</h2>
+      <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+        <h2 className="text-sm font-semibold text-text mb-5">Business details</h2>
         <div className="space-y-5">
 
           <div>
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+            <label className="flex items-center gap-2 text-xs font-semibold text-text-soft uppercase tracking-wide mb-2">
               <Building size={12} />
               Company name
             </label>
@@ -218,12 +219,12 @@ The user can update their company name, website URL, and Instagram handle. Name 
               value={companyName}
               onChange={e => setCompanyName(e.target.value)}
               placeholder="Your business name"
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 transition-colors"
+              className="w-full text-sm border border-border rounded-xl px-4 py-3 text-text focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 placeholder:text-text-soft transition-colors"
             />
           </div>
 
           <div>
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+            <label className="flex items-center gap-2 text-xs font-semibold text-text-soft uppercase tracking-wide mb-2">
               <Globe size={12} />
               Website URL
             </label>
@@ -232,40 +233,40 @@ The user can update their company name, website URL, and Instagram handle. Name 
               value={websiteUrl}
               onChange={e => setWebsiteUrl(e.target.value)}
               placeholder="https://yourbusiness.com"
-              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20 placeholder:text-gray-300 transition-colors"
+              className="w-full text-sm border border-border rounded-xl px-4 py-3 text-text focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 placeholder:text-text-soft transition-colors"
             />
           </div>
 
           <div>
-            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+            <label className="flex items-center gap-2 text-xs font-semibold text-text-soft uppercase tracking-wide mb-2">
               <Hash size={12} />
               Instagram handle
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">@</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-text-soft">@</span>
               <input
                 type="text"
                 value={instagramHandle}
                 onChange={e => setInstagramHandle(e.target.value.replace('@', ''))}
                 placeholder="yourbusiness"
-                className={`w-full text-sm border rounded-xl pl-8 pr-4 py-3 focus:outline-none focus:ring-1 placeholder:text-gray-300 transition-colors ${
+                className={`w-full text-sm border rounded-xl pl-8 pr-4 py-3 text-text focus:outline-none focus:ring-1 placeholder:text-text-soft transition-colors ${
                   error
-                    ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-                    : 'border-gray-200 focus:border-[#3B82F6] focus:ring-[#3B82F6]/20'
+                    ? 'border-status-danger/40 focus:border-status-danger focus:ring-status-danger/10'
+                    : 'border-border focus:border-brand-primary focus:ring-brand-primary/20'
                 }`}
               />
             </div>
             {error && (
               <div className="flex items-center gap-2 mt-2">
-                <AlertCircle size={13} className="text-red-500 flex-shrink-0" />
-                <p className="text-xs text-red-600">{error}</p>
+                <AlertCircle size={13} className="text-status-danger flex-shrink-0" />
+                <p className="text-xs text-status-danger">{error}</p>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-6 pt-5 border-t border-gray-50">
-          <p className="text-xs text-gray-400">
+        <div className="flex items-center justify-between mt-6 pt-5 border-t border-border">
+          <p className="text-xs text-text-soft">
             {isDirty ? 'You have unsaved changes' : 'All changes saved'}
           </p>
           <button
@@ -273,10 +274,10 @@ The user can update their company name, website URL, and Instagram handle. Name 
             disabled={!isDirty || saving}
             className={`flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl transition-all ${
               saved
-                ? 'bg-emerald-50 text-emerald-700'
+                ? 'bg-status-success/10 text-status-success'
                 : isDirty
-                ? 'bg-[#2D3748] text-white hover:bg-[#1E293B]'
-                : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                ? 'bg-brand-primary text-white hover:bg-[#2563EB]'
+                : 'bg-surface-muted text-text-soft cursor-not-allowed'
             }`}
           >
             {saving ? (
@@ -291,10 +292,10 @@ The user can update their company name, website URL, and Instagram handle. Name 
       </div>
 
       {/* Email preferences */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-5">
-          <Bell size={14} className="text-gray-400" />
-          <h2 className="text-sm font-semibold text-gray-700">Email notifications</h2>
+          <Bell size={14} className="text-brand-primary" />
+          <h2 className="text-sm font-semibold text-text">Email notifications</h2>
         </div>
         <div>
           <PreferenceToggle
@@ -316,7 +317,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
             onChange={val => updateEmailPref('emailWeekly', val)}
           />
         </div>
-        <p className="text-xs text-gray-400 mt-4">Changes save automatically when you toggle.</p>
+        <p className="text-xs text-text-soft mt-4">Changes save automatically when you toggle.</p>
       </div>
 
     </div>

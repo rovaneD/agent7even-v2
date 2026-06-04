@@ -108,9 +108,9 @@ export default async function BillingPage() {
 
     const COLORS: Record<string, string> = {
       'Maya chat':            '#3B82F6',
-      'Campaign generation':  '#8B5CF6',
+      'Campaign generation':  '#F5349B',
       'Brand Kit':            '#10B981',
-      'Agent runs':           '#F59E0B',
+      'Agent runs':           '#FCA509',
     }
 
     const grouped: Record<string, number> = {}
@@ -121,7 +121,7 @@ export default async function BillingPage() {
 
     const breakdown: BreakdownItem[] = Object.entries(grouped)
       .sort((a, b) => b[1] - a[1])
-      .map(([label, credits]) => ({ label, credits, color: COLORS[label] ?? '#64748B' }))
+      .map(([label, credits]) => ({ label, credits, color: COLORS[label] ?? '#9BA1AE' }))
 
     const monthlyRemaining = Math.max(0, monthlyAllocation - monthlyUsed)
     const topupBalance = creditBalance - monthlyRemaining

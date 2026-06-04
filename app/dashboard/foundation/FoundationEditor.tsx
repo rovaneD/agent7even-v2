@@ -74,11 +74,10 @@ const FIELD_LABELS: Record<string, string> = {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function scoreColor(score: number | undefined): string {
-  if (score == null) return 'text-gray-400'
-  if (score >= 85) return 'text-emerald-600'
-  if (score >= 75) return 'text-lime-600'
-  if (score >= 50) return 'text-amber-600'
-  return 'text-red-500'
+  if (score == null) return 'text-text-soft'
+  if (score >= 71) return 'text-status-success'
+  if (score >= 50) return 'text-status-warning'
+  return 'text-status-danger'
 }
 
 function relativeTime(iso: string): string {
@@ -187,9 +186,9 @@ function AnswerField({
   const collapsed = !isOpen && overflowing
 
   return (
-    <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 transition-colors hover:border-gray-300 focus-within:border-gray-400">
+    <div className="rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-border-strong focus-within:border-brand-primary/50">
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
-        <span className="text-[13px] font-medium text-gray-900">{label}</span>
+        <span className="text-[13px] font-medium text-text">{label}</span>
         {score != null && score.score > 0 && (
           <span className={`flex-shrink-0 text-xs font-medium ${scoreColor(score.score)}`}>
             {score.score}%
@@ -207,14 +206,14 @@ function AnswerField({
           rows={1}
           spellCheck
           placeholder={`Add your ${label.toLowerCase()}…`}
-          className="w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-gray-600 outline-none placeholder:text-gray-400"
+          className="w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-text-sec outline-none placeholder:text-text-soft"
           style={{
             maxHeight: collapsed ? COLLAPSED_MAX : undefined,
             overflow: collapsed ? 'hidden' : 'visible',
           }}
         />
         {collapsed && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-surface to-transparent" />
         )}
       </div>
 
@@ -225,7 +224,7 @@ function AnswerField({
         <button
           type="button"
           onClick={() => setExpanded(v => !v)}
-          className="mt-1.5 text-xs text-blue-600 hover:underline"
+          className="mt-1.5 text-xs text-brand-primary hover:underline"
         >
           {expanded ? 'Show less' : 'Show more'}
         </button>
@@ -258,7 +257,7 @@ function CompetitorEntry({
 
   return (
     <div>
-      <p className="mb-0.5 text-[11px] text-gray-400">Competitor {index + 1}</p>
+      <p className="mb-0.5 text-[11px] text-text-soft">Competitor {index + 1}</p>
       <textarea
         ref={taRef}
         value={value}
@@ -266,7 +265,7 @@ function CompetitorEntry({
         rows={1}
         spellCheck
         placeholder={`@competitor${index + 1} or business name`}
-        className="w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-gray-600 outline-none placeholder:text-gray-400"
+        className="w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-text-sec outline-none placeholder:text-text-soft"
       />
     </div>
   )
@@ -290,16 +289,16 @@ function CompetitorsField({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 transition-colors hover:border-gray-300 focus-within:border-gray-400">
+    <div className="rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-border-strong focus-within:border-brand-primary/50">
       <div className="mb-2 flex items-baseline justify-between gap-3">
-        <span className="text-[13px] font-medium text-gray-900">Competitors</span>
+        <span className="text-[13px] font-medium text-text">Competitors</span>
         {score != null && score.score > 0 && (
           <span className={`flex-shrink-0 text-xs font-medium ${scoreColor(score.score)}`}>
             {score.score}%
           </span>
         )}
       </div>
-      <div className="space-y-3 divide-y divide-gray-100">
+      <div className="space-y-3 divide-y divide-border">
         {values.map((v, i) => (
           <div key={i} className={i > 0 ? 'pt-3' : ''}>
             <CompetitorEntry index={i} value={v} onChange={updateEntry} />
@@ -328,9 +327,9 @@ function SingleChipField({
   onChange: (v: string) => void
 }) {
   return (
-    <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 transition-colors hover:border-gray-300">
+    <div className="rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-border-strong">
       <div className="mb-2.5 flex items-baseline justify-between gap-3">
-        <span className="text-[13px] font-medium text-gray-900">{label}</span>
+        <span className="text-[13px] font-medium text-text">{label}</span>
         {score != null && score.score > 0 && (
           <span className={`flex-shrink-0 text-xs font-medium ${scoreColor(score.score)}`}>
             {score.score}%
@@ -345,8 +344,8 @@ function SingleChipField({
             onClick={() => onChange(opt)}
             className={`rounded-lg border px-3 py-2 text-left text-[13px] font-medium transition-all ${
               value === opt
-                ? 'border-transparent bg-gray-900 text-white'
-                : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                ? 'border-transparent bg-brand-primary text-white'
+                : 'border-border text-text-sec hover:border-brand-primary/40 hover:text-text'
             }`}
           >
             {opt}
@@ -383,9 +382,9 @@ function MultiChipField({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200/80 bg-white px-4 py-3.5 transition-colors hover:border-gray-300">
+    <div className="rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-border-strong">
       <div className="mb-2.5 flex items-baseline justify-between gap-3">
-        <span className="text-[13px] font-medium text-gray-900">{label}</span>
+        <span className="text-[13px] font-medium text-text">{label}</span>
         {score != null && score.score > 0 && (
           <span className={`flex-shrink-0 text-xs font-medium ${scoreColor(score.score)}`}>
             {score.score}%
@@ -400,8 +399,8 @@ function MultiChipField({
             onClick={() => toggle(opt)}
             className={`rounded-full border px-3 py-1.5 text-[13px] font-medium transition-all ${
               value.includes(opt)
-                ? 'border-transparent bg-gray-900 text-white'
-                : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                ? 'border-transparent bg-brand-primary text-white'
+                : 'border-border text-text-sec hover:border-brand-primary/40 hover:text-text'
             }`}
           >
             {opt}
@@ -523,27 +522,29 @@ export default function FoundationEditor({
 
   if (!initialAnswers) {
     return (
-      <div className="px-8 pt-8 pb-6 max-w-[1200px]">
-        <div className="mb-8">
-          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">Foundation</p>
-          <h1 className="text-2xl font-bold text-gray-900">Your business foundation</h1>
-          <p className="text-gray-500 text-sm mt-1">The answers that inform everything Maya creates for you.</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 flex flex-col items-center justify-center text-center">
-          <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-4">
-            <span className="text-gray-300 font-bold text-xl">M</span>
+      <div className="mx-auto max-w-[1240px] px-8 py-8">
+        <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+          <div className="p-7">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Foundation</p>
+            <h1 className="text-[30px] font-semibold tracking-tight text-text">Your business foundation</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-sec">The answers that inform everything Maya creates for you.</p>
           </div>
-          <p className="text-sm font-medium text-gray-600 mb-1">
+        </section>
+        <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-surface p-12 text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-primary/10">
+            <span className="text-xl font-bold text-brand-primary">M</span>
+          </div>
+          <p className="mb-1 text-sm font-semibold text-text">
             {foundationComplete ? 'Foundation answers not yet scored' : 'Foundation not yet complete'}
           </p>
-          <p className="text-xs text-gray-400 max-w-xs leading-relaxed mb-6">
+          <p className="mb-6 max-w-xs text-xs leading-relaxed text-text-sec">
             {foundationComplete
               ? 'Complete a rescore to unlock your Foundation living document.'
               : 'Complete your Foundation setup so Maya knows your business inside out.'}
           </p>
           <Link
             href="/foundation"
-            className="px-5 py-2.5 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl hover:bg-[#1E293B] transition-colors"
+            className="rounded-xl bg-brand-primary px-5 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#2563EB]"
           >
             {foundationComplete ? 'Go to Foundation' : 'Set up Foundation'}
           </Link>
@@ -555,16 +556,23 @@ export default function FoundationEditor({
   // ── Main editor ──────────────────────────────────────────────────────────
 
   return (
-    <div className="px-8 pt-8 pb-6 max-w-[1200px]">
+    <div className="mx-auto max-w-[1240px] px-8 py-8">
 
-      {/* Header */}
-      <div className="mb-8">
-        <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">Foundation</p>
-        <h1 className="text-2xl font-bold text-gray-900">{companyName || 'Your'} foundation</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          The answers that inform everything Maya creates for you. Edit anything, then rescore.
-        </p>
-      </div>
+      <section className="mb-7 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+        <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Foundation</p>
+            <h1 className="text-[30px] font-semibold tracking-tight text-text">{companyName || 'Your'} foundation</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-sec">
+              The answers that inform everything Maya creates for you. Edit anything, then rescore.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Strength</p>
+            <p className={`mt-1 text-2xl font-semibold ${scoreColor(score)}`}>{score}%</p>
+          </div>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
 
@@ -573,7 +581,7 @@ export default function FoundationEditor({
 
           {/* Your business */}
           <div>
-            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your business</p>
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-widest text-text-soft">Your business</p>
             <div className="space-y-2.5">
               {(['businessDescription', 'problemSolved', 'transformation'] as const).map(key => (
                 <AnswerField
@@ -590,7 +598,7 @@ export default function FoundationEditor({
 
           {/* Your customer */}
           <div>
-            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your customer</p>
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-widest text-text-soft">Your customer</p>
             <div className="space-y-2.5">
               {(['customerWho', 'customerFrustration', 'customerTriedBefore', 'customerBuyingTrigger'] as const).map(key => (
                 <AnswerField
@@ -607,7 +615,7 @@ export default function FoundationEditor({
 
           {/* Your position */}
           <div>
-            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your position</p>
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-widest text-text-soft">Your position</p>
             <div className="space-y-2.5">
               <CompetitorsField
                 values={answers.competitors}
@@ -633,7 +641,7 @@ export default function FoundationEditor({
 
           {/* Your voice */}
           <div>
-            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your voice</p>
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-widest text-text-soft">Your voice</p>
             <div className="space-y-2.5">
               <MultiChipField
                 label={FIELD_LABELS.toneTraits}
@@ -662,7 +670,7 @@ export default function FoundationEditor({
 
           {/* Your 30 days */}
           <div>
-            <p className="mb-2.5 text-xs font-medium tracking-wide text-gray-400">Your 30 days</p>
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-widest text-text-soft">Your 30 days</p>
             <div className="space-y-2.5">
               <SingleChipField
                 label={FIELD_LABELS.marketingBudget}
@@ -694,16 +702,16 @@ export default function FoundationEditor({
         {/* ── Right: strength panel (sticky) ───────────────────────────────── */}
         <div className="lg:sticky lg:top-8 lg:self-start space-y-3">
 
-          <div className="rounded-xl border border-gray-200/80 bg-white p-4">
+          <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-medium text-gray-900">Foundation strength</span>
+              <span className="text-sm font-semibold text-text">Foundation strength</span>
               <span className={`text-2xl font-semibold ${scoreColor(score)}`}>{score}%</span>
             </div>
 
-            <div className="my-3 h-1.5 overflow-hidden rounded-full bg-gray-100">
+            <div className="my-3 h-1.5 overflow-hidden rounded-full bg-border">
               <div
                 className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${score}%`, background: score >= 85 ? '#16a34a' : score >= 75 ? '#65a30d' : score >= 50 ? '#d97706' : '#ef4444' }}
+                style={{ width: `${score}%`, background: score >= 71 ? '#10B981' : score >= 50 ? '#FCA509' : '#EE533B' }}
               />
             </div>
 
@@ -714,14 +722,14 @@ export default function FoundationEditor({
               </p>
             ) : weakFields.length > 0 ? (
               <div className="mb-3 space-y-2.5">
-                <p className="text-xs font-medium text-gray-400">Areas to strengthen</p>
+                <p className="text-xs font-medium text-text-soft">Areas to strengthen</p>
                 {weakFields.map(field => (
                   <div key={field} className="flex items-start gap-2">
                     <div className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />
                     <div>
-                      <p className="text-xs font-medium text-gray-700">{FIELD_LABELS[field]}</p>
+                      <p className="text-xs font-medium text-text">{FIELD_LABELS[field]}</p>
                       {fieldScores[field]?.feedback && (
-                        <p className="mt-0.5 text-xs leading-relaxed text-gray-400">
+                        <p className="mt-0.5 text-xs leading-relaxed text-text-soft">
                           {fieldScores[field].feedback}
                         </p>
                       )}
@@ -735,7 +743,7 @@ export default function FoundationEditor({
               type="button"
               onClick={handleRescore}
               disabled={rescoring}
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {rescoring ? (
                 <><Loader2 size={13} className="animate-spin" />Rescoring…</>
@@ -763,8 +771,8 @@ export default function FoundationEditor({
             )}
           </div>
 
-          <div className="rounded-xl bg-gray-50 p-4">
-            <p className="mb-2 text-xs font-medium text-gray-700">What Maya uses this for</p>
+          <div className="rounded-2xl border border-border bg-surface-2 p-4">
+            <p className="mb-2 text-xs font-semibold text-text">What Maya uses this for</p>
             <ul className="space-y-1.5">
               {[
                 'Every piece of content stays in your brand voice',
