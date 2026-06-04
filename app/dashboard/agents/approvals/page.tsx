@@ -17,7 +17,7 @@ export default async function ApprovalsPage() {
     .order('created_at', { ascending: false })
     .limit(1)
   const profile = profileRows?.[0] ?? null
-  if (!profile) redirect('/onboarding')
+  if (!profile) redirect('/foundation')
 
   const { data: tasks } = await supabase
     .from('agent_tasks')

@@ -7,6 +7,7 @@ import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import { openRouterCompleteWithFallback } from '@/lib/agents/openrouter'
 import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK, VIRAL_HOOKS_OUTPUT_MARKER } from '@/lib/services/viralHooks'
 import { saveViralHooksDeliverable } from '@/lib/services/saveViralHooksDeliverable'
+import { getResendClient } from '@/lib/resend'
 
 function displayBrief(brief: string) {
   return displayServiceBrief(brief)
@@ -333,8 +334,9 @@ ${brief}`
     const notifyEmail = await getNotifyEmail()
     if (notifyEmail) {
       try {
-        const { Resend } = await import('resend')
-        const resend = new Resend(process.env.RESEND_API_KEY)
+        const resend = getResendClient()
+        if (!resend) throw new Error('Missing RESEND_API_KEY')
+
         await resend.emails.send({
           from: 'Agent7even App <hello@agent7even.com>',
           to: notifyEmail,

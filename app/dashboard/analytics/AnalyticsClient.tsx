@@ -82,7 +82,7 @@ function fmtDate(dateStr: string) {
 
 function BrandIcon({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden">
+    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-surface-2">
       <img src={src} alt={alt} className="w-5 h-5 object-contain" />
     </div>
   )
@@ -100,25 +100,25 @@ function StatCard({
   prefix?: string
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-3">
+    <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-text-soft">{label}</span>
         {logoSrc ? (
           <BrandIcon src={logoSrc} alt={label} />
         ) : (
-          <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center">
-            <Icon size={15} className="text-gray-400" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2">
+            <Icon size={15} className="text-text-soft" />
           </div>
         )}
       </div>
       {locked ? (
         <div className="flex items-center gap-2">
-          <Lock size={14} className="text-gray-300" />
-          <span className="text-sm text-gray-300">Not connected</span>
+          <Lock size={14} className="text-text-soft" />
+          <span className="text-sm text-text-soft">Not connected</span>
         </div>
       ) : (
         <div className="flex items-end justify-between">
-          <span className="text-2xl font-semibold text-gray-900">{prefix}{value}</span>
+          <span className="text-2xl font-semibold text-text">{prefix}{value}</span>
           {delta !== undefined && (
             <span className={`flex items-center gap-0.5 text-xs font-medium ${delta >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
               {delta >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
@@ -158,7 +158,7 @@ function InfoTooltip({ text }: { text: string }) {
 function ConnectedBadge({ label, onDisconnect }: { label: string; onDisconnect?: () => void }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+      <span className="flex items-center gap-1.5 rounded-full bg-status-success/10 px-2.5 py-1 text-xs font-medium text-status-success">
         <CheckCircle size={11} />
         {label}
       </span>
@@ -267,7 +267,7 @@ function GAConnectModal({
               value={value}
               onChange={e => { setValue(e.target.value); setError('') }}
               placeholder="123456789"
-              className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] transition-colors"
+              className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors"
             />
             <p className="text-xs text-gray-400 mt-2 leading-relaxed">
               Find this in Google Analytics → Admin → Property Settings → Property ID (the numeric ID, not the G-... code).
@@ -283,7 +283,7 @@ function GAConnectModal({
               <button
                 onClick={submitAgency}
                 disabled={loading}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-[#2D3748] rounded-xl hover:bg-[#1E293B] disabled:opacity-50 transition-colors"
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-brand-primary rounded-xl hover:bg-[#2563EB] disabled:opacity-50 transition-colors"
               >
                 {loading ? 'Saving…' : 'Request connection'}
               </button>
@@ -378,7 +378,7 @@ function PropertySelectorModal({
             </p>
             <a
               href="/api/analytics/ga-connect"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-[#2D3748] px-4 py-2.5 rounded-lg hover:bg-[#1E293B] transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-brand-primary px-4 py-2.5 rounded-lg hover:bg-[#2563EB] transition-colors"
             >
               Try a different Google account
             </a>
@@ -399,7 +399,7 @@ function PropertySelectorModal({
                   <p className="text-sm font-semibold text-gray-800">{p.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{p.account ? `${p.account} · ` : ''}ID: {p.id}</p>
                 </div>
-                {selected === p.id && <CheckCircle size={16} className="text-[#64748B] flex-shrink-0" />}
+                {selected === p.id && <CheckCircle size={16} className="text-text-sec flex-shrink-0" />}
               </button>
             ))}
           </div>
@@ -411,7 +411,7 @@ function PropertySelectorModal({
           <button
             onClick={save}
             disabled={saving || !selected}
-            className="w-full mt-5 py-3 text-sm font-semibold text-white bg-[#2D3748] rounded-xl hover:bg-[#1E293B] disabled:opacity-50 transition-colors"
+            className="w-full mt-5 py-3 text-sm font-semibold text-white bg-brand-primary rounded-xl hover:bg-[#2563EB] disabled:opacity-50 transition-colors"
           >
             {saving ? 'Connecting…' : 'Connect property'}
           </button>
@@ -468,7 +468,7 @@ function LockedPreviewSection({
           </div>
           <a
             href={connectHref}
-            className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#1E293B] transition-colors pointer-events-auto"
+            className="inline-flex items-center gap-2 bg-brand-primary text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB] transition-colors pointer-events-auto"
           >
             {connectLabel}
             <ExternalLink size={12} />
@@ -572,7 +572,7 @@ function WebsiteAnalyticsSection({
             </div>
             <button
               onClick={onConnect}
-              className="inline-flex items-center gap-2 bg-[#2D3748] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#1E293B] transition-colors pointer-events-auto"
+              className="inline-flex items-center gap-2 bg-brand-primary text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#2563EB] transition-colors pointer-events-auto"
             >
               {oauthConnected ? 'Select property' : 'Connect Google Analytics'}
             </button>
@@ -619,7 +619,7 @@ function WebsiteAnalyticsSection({
           ].map(({ label, value }) => (
             <div key={label} className="bg-white px-5 py-3">
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">{label}</p>
-              <p className="text-[17px] font-semibold text-[#2D3748] mt-0.5">{value}</p>
+              <p className="text-[17px] font-semibold text-text mt-0.5">{value}</p>
             </div>
           ))}
         </div>
@@ -636,7 +636,7 @@ function WebsiteAnalyticsSection({
           </ResponsiveContainer>
           <div className="flex items-center justify-between mt-1 px-1">
             <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1.5 text-[10px] text-gray-400"><span className="w-3 h-0.5 bg-[#2D3748] inline-block rounded" />Sessions</span>
+              <span className="flex items-center gap-1.5 text-[10px] text-gray-400"><span className="w-3 h-0.5 bg-brand-primary inline-block rounded" />Sessions</span>
               <span className="flex items-center gap-1.5 text-[10px] text-gray-400"><span className="w-3 h-0.5 bg-[#e8a87c] inline-block rounded" />Users</span>
             </div>
             <button
@@ -682,7 +682,7 @@ function WebsiteAnalyticsSection({
             </p>
             <p className="text-xs text-gray-400 mt-3">
               Want to connect instantly?{' '}
-              <button onClick={onConnect} className="font-semibold text-[#64748B] underline underline-offset-2 pointer-events-auto hover:text-[#b8471f]">
+              <button onClick={onConnect} className="font-semibold text-text-sec underline underline-offset-2 pointer-events-auto hover:text-[#b8471f]">
                 Use Google sign-in instead →
               </button>
             </p>
@@ -815,7 +815,7 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
   })) ?? []
 
   return (
-    <div className="px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+    <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
 
       {/* Modals */}
       {showGAModal && (
@@ -835,42 +835,45 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
 
       {/* Error toasts */}
       {oauthError && (
-        <div className="flex items-center justify-between gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-          <p className="text-xs text-red-600 font-medium">{oauthError}</p>
-          <button onClick={() => setOauthError('')} className="text-red-400 hover:text-red-600">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-status-danger/20 bg-status-danger/10 px-4 py-3">
+          <p className="text-xs font-medium text-status-danger">{oauthError}</p>
+          <button onClick={() => setOauthError('')} className="text-status-danger">
             <X size={14} />
           </button>
         </div>
       )}
       {metaError && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-          <AlertCircle size={15} className="text-red-500 flex-shrink-0" />
-          <p className="text-sm text-red-700">{metaError}</p>
+        <div className="flex items-center gap-3 rounded-xl border border-status-danger/20 bg-status-danger/10 px-4 py-3">
+          <AlertCircle size={15} className="flex-shrink-0 text-status-danger" />
+          <p className="text-sm text-status-danger">{metaError}</p>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[26px] font-semibold text-[#2D3748]">Analytics</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            {companyName ? `${companyName} — ` : ''}Performance overview
-          </p>
+      <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+        <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Analytics</p>
+            <h1 className="text-[30px] font-semibold tracking-tight text-text">Performance overview</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-sec">
+              {companyName ? `${companyName} — ` : ''}Website, Instagram, and paid media performance in one place.
+            </p>
+          </div>
+          <div className="flex items-center gap-1 rounded-xl border border-border bg-surface-2 p-1">
+            {(['7d', '30d', '90d'] as Range[]).map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  range === r ? 'bg-brand-primary text-white shadow-sm' : 'text-text-sec hover:text-text'
+                }`}
+              >
+                {r === '7d' ? '7D' : r === '30d' ? '30D' : '90D'}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
-          {(['7d', '30d', '90d'] as Range[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
-                range === r ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {r === '7d' ? '7D' : r === '30d' ? '30D' : '90D'}
-            </button>
-          ))}
-        </div>
-      </div>
+      </section>
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -906,9 +909,9 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
 
       {/* Notice banner */}
       {liveSessions === null && !metaConnected && (
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-          <Calendar size={15} className="text-amber-500 mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-amber-700 leading-relaxed">
+        <div className="flex items-start gap-3 rounded-xl border border-status-warning/20 bg-status-warning/10 px-4 py-3">
+          <Calendar size={15} className="mt-0.5 flex-shrink-0 text-status-warning" />
+          <p className="text-xs leading-relaxed text-status-warning">
             <span className="font-semibold">Connect your accounts to see live data.</span>{' '}
             Link Google Analytics for website traffic, and Meta for Instagram and ad performance.
             Your Agent7even team can also help —{' '}
@@ -963,15 +966,15 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-400 mb-1">Followers</p>
-                  <p className="text-[26px] font-semibold text-[#2D3748]">{fmt(metaData?.instagram?.followers ?? 0)}</p>
+                  <p className="text-[26px] font-semibold text-text">{fmt(metaData?.instagram?.followers ?? 0)}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-400 mb-1">Posts</p>
-                  <p className="text-[26px] font-semibold text-[#2D3748]">{metaData?.instagram?.media_count ?? 0}</p>
+                  <p className="text-[26px] font-semibold text-text">{metaData?.instagram?.media_count ?? 0}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-400 mb-1">Period reach</p>
-                  <p className="text-[26px] font-semibold text-[#2D3748]">{fmt(igChartData.reduce((a, d) => a + d.reach, 0))}</p>
+                  <p className="text-[26px] font-semibold text-text">{fmt(igChartData.reduce((a, d) => a + d.reach, 0))}</p>
                 </div>
               </div>
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Daily reach</p>
@@ -1035,7 +1038,7 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
                 ].map(s => (
                   <div key={s.label} className="bg-gray-50 rounded-xl p-4">
                     <p className="text-xs text-gray-400 mb-1">{s.label}</p>
-                    <p className="text-[26px] font-semibold text-[#2D3748]">{s.value}</p>
+                    <p className="text-[26px] font-semibold text-text">{s.value}</p>
                   </div>
                 ))}
               </div>

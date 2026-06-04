@@ -137,28 +137,34 @@ export default function BrandKitView({
   }
 
   return (
-    <div className="px-8 pt-8 pb-6 max-w-[1200px]">
+    <div className="mx-auto max-w-[1240px] px-8 py-8">
 
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <p className="text-[11px] font-semibold tracking-widest uppercase text-[#94A3B8] mb-2">Brand Kit</p>
-          <h1 className="text-2xl font-bold text-gray-900">Brand Identity</h1>
-          <p className="text-sm text-gray-400 mt-1">Your complete brand system — colors, fonts, voice, and assets</p>
-        </div>
-        <div className="flex items-center gap-3 mt-1">
-          <div className="text-right">
-            <p className="text-xs text-gray-400">Complete</p>
-            <p className="text-[17px] font-semibold text-[#2D3748]">{completedCount}/6</p>
+      <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
+        <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Brand Kit</p>
+            <h1 className="text-[30px] font-semibold tracking-tight text-text">Brand Identity</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-sec">
+              Your complete brand system: colors, fonts, voice, templates, and visual assets.
+            </p>
           </div>
-          <div className="w-24 bg-[#E2E8F0] rounded-full h-2">
-            <div className={`${completedCount === 6 ? 'bg-[#10B981]' : 'bg-[#3B82F6]'} rounded-full h-2 transition-all`} style={{ width: `${(completedCount / 6) * 100}%` }} />
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+            <div className="mb-2 flex items-center justify-between gap-6">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Complete</p>
+              <p className="text-sm font-semibold text-text">{completedCount}/6</p>
+            </div>
+            <div className="h-2 w-36 rounded-full bg-border">
+              <div
+                className={`${completedCount === 6 ? 'bg-status-success' : 'bg-brand-primary'} h-2 rounded-full transition-all`}
+                style={{ width: `${(completedCount / 6) * 100}%` }}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Section tabs */}
-      <div className="flex gap-1.5 mb-8 flex-wrap">
+      <div className="mb-8 flex flex-wrap gap-2">
         {SECTIONS.map(({ key, label, Icon }) => {
           const done   = isCompleted(key)
           const active = activeSection === key
@@ -166,13 +172,13 @@ export default function BrandKitView({
             <button
               key={key}
               onClick={() => setActiveSection(key)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                active ? 'bg-[#2D3748] text-white' : 'text-[#64748B] hover:text-[#2D3748] hover:bg-[#F8FAFC] bg-white border border-[#E2E8F0]'
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+                active ? 'bg-brand-primary text-white shadow-sm' : 'border border-border bg-surface text-text-sec hover:border-brand-primary/30 hover:bg-surface-2 hover:text-text'
               }`}
             >
               <Icon size={13} strokeWidth={1.75} />
               {label}
-              {done && <span className="w-1.5 h-1.5 rounded-full bg-green-400 ml-0.5" />}
+              {done && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-status-success" />}
             </button>
           )
         })}
@@ -307,7 +313,7 @@ function IdentitySection({ profileId, assets, onAssetsChange, allAssets, onMarkC
                     onChange={e => setExternalUrls(prev => ({ ...prev, [slot.type]: e.target.value }))}
                     onKeyDown={e => { if (e.key === 'Enter') linkLogo(slot.type, externalUrls[slot.type] ?? '') }}
                     placeholder="or paste URL"
-                    className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-[#3B82F6]"
+                    className="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-brand-primary"
                   />
                   <button
                     onClick={() => linkLogo(slot.type, externalUrls[slot.type] ?? '')}
@@ -438,7 +444,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
     <div className="bg-white rounded-2xl border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-sm font-semibold text-gray-700">Color palette</h2>
-        <button onClick={addColor} className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-[#2D3748]">
+        <button onClick={addColor} className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-brand-primary">
           <Plus size={14} /> Add color
         </button>
       </div>
@@ -453,7 +459,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
             <button
               onClick={generatePalette}
               disabled={generating}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl hover:bg-[#1E293B] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-[15px] font-medium rounded-xl hover:bg-[#2563EB] disabled:opacity-60 transition-colors"
             >
               {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
               {generating ? 'Generating…' : 'Generate with Maya'}
@@ -471,7 +477,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
 
       {/* Palette preview */}
       {preview && (
-        <div className="mb-5 rounded-2xl border border-[#3B82F6]/20 bg-[#2D3748]/4 p-5">
+        <div className="mb-5 rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Suggested palette</p>
             <span className="text-xs text-gray-400">2 credits used</span>
@@ -495,7 +501,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
             <button
               onClick={acceptPalette}
               disabled={accepting}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl hover:bg-[#1E293B] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-[15px] font-medium rounded-xl hover:bg-[#2563EB] disabled:opacity-60 transition-colors"
             >
               {accepting ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
               {accepting ? 'Saving…' : 'Accept palette'}
@@ -524,7 +530,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
           <button
             onClick={generatePalette}
             disabled={generating}
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#2D3748] border border-gray-200 rounded-xl px-3 py-1.5 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-brand-primary border border-gray-200 rounded-xl px-3 py-1.5 disabled:opacity-50 transition-colors"
           >
             {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
             {generating ? 'Generating…' : 'Regenerate palette'}
@@ -560,27 +566,27 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
                 onChange={e => updateLocal(color.id, 'name', e.target.value)}
                 onBlur={() => saveColor(color)}
                 placeholder="Name"
-                className="text-sm border border-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#3B82F6] bg-gray-50"
+                className="text-sm border border-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-primary bg-gray-50"
               />
               <input
                 value={color.hex}
                 onChange={e => { updateLocal(color.id, 'hex', e.target.value); updateLocal(color.id, 'rgb', hexToRgb(e.target.value)) }}
                 onBlur={() => saveColor(color)}
                 placeholder="#000000"
-                className="text-sm font-mono border border-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#3B82F6] bg-gray-50"
+                className="text-sm font-mono border border-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-primary bg-gray-50"
               />
               <input
                 value={color.rgb ?? ''}
                 onChange={e => updateLocal(color.id, 'rgb', e.target.value)}
                 onBlur={() => saveColor(color)}
                 placeholder="0, 0, 0"
-                className="text-sm font-mono border border-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#3B82F6] bg-gray-50"
+                className="text-sm font-mono border border-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-primary bg-gray-50"
               />
               <select
                 value={color.role}
                 onChange={e => { updateLocal(color.id, 'role', e.target.value) }}
                 onBlur={() => saveColor(color)}
-                className="text-sm border border-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#3B82F6] bg-gray-50"
+                className="text-sm border border-gray-100 rounded-lg px-2 py-1.5 focus:outline-none focus:border-brand-primary bg-gray-50"
               >
                 {COLOR_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
@@ -701,7 +707,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
             <button
               onClick={generateFonts}
               disabled={generating}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl hover:bg-[#1E293B] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-[15px] font-medium rounded-xl hover:bg-[#2563EB] disabled:opacity-60 transition-colors"
             >
               {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
               {generating ? 'Generating…' : 'Generate with Maya'}
@@ -713,7 +719,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
 
       {/* Pairing suggestions */}
       {pairings && (
-        <div className="rounded-2xl border border-[#3B82F6]/20 bg-[#2D3748]/4 p-5">
+        <div className="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Suggested pairings</p>
             <span className="text-xs text-gray-400">2 credits used</span>
@@ -739,7 +745,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
                 </div>
                 <button
                   onClick={() => applyPairing(pairing)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 text-[15px] font-medium bg-[#2D3748] text-white rounded-xl hover:bg-[#1E293B] transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-[15px] font-medium bg-brand-primary text-white rounded-xl hover:bg-[#2563EB] transition-colors"
                 >
                   <Check size={13} /> Use this pairing
                 </button>
@@ -771,7 +777,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
           <button
             onClick={generateFonts}
             disabled={generating}
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#2D3748] border border-gray-200 rounded-xl px-3 py-1.5 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-brand-primary border border-gray-200 rounded-xl px-3 py-1.5 disabled:opacity-50 transition-colors"
           >
             {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
             {generating ? 'Generating…' : 'Suggest pairings'}
@@ -802,32 +808,32 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
                   value={font?.family ?? ''}
                   onChange={e => updateFont(role, 'family', e.target.value)}
                   placeholder="Font family (e.g. Geist, Inter)"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3B82F6]"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
                 />
                 <input
                   value={font?.weight ?? ''}
                   onChange={e => updateFont(role, 'weight', e.target.value)}
                   placeholder="Weights (e.g. 400, 600, 700)"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3B82F6]"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
                 />
                 <input
                   value={font?.source_url ?? ''}
                   onChange={e => updateFont(role, 'source_url', e.target.value)}
                   placeholder="Source URL (Google Fonts, etc.)"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3B82F6]"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
                 />
                 <textarea
                   value={font?.size_guide ?? ''}
                   onChange={e => updateFont(role, 'size_guide', e.target.value)}
                   placeholder="Size guide (e.g. H1: 48px, H2: 32px)"
                   rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-[#3B82F6]"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-brand-primary"
                 />
                 <button
                   onClick={() => saveFont(role)}
                   disabled={!font?.family || isSaving}
                   className={`w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-xl transition-colors ${
-                    isSaved ? 'bg-green-50 text-green-700' : 'bg-[#2D3748] text-white hover:bg-[#1E293B] disabled:opacity-40'
+                    isSaved ? 'bg-green-50 text-green-700' : 'bg-brand-primary text-white hover:bg-[#2563EB] disabled:opacity-40'
                   }`}
                 >
                   {isSaving ? <Loader2 size={13} className="animate-spin" /> : isSaved ? <><Check size={13} /> Saved</> : <><Save size={13} /> Save font</>}
@@ -903,14 +909,14 @@ function ImagerySection({ profileId: _profileId, assets, documents, onAssetsChan
           onChange={e => setStyle(e.target.value)}
           placeholder="Describe your visual style. E.g., 'Clean, bright product photography on white backgrounds. Real people, not stock. Warm color grading. Avoid busy or cluttered backgrounds.'"
           rows={4}
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-[#3B82F6]"
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-brand-primary"
         />
         <div className="flex justify-end mt-3">
           <button
             onClick={saveStyle}
             disabled={!style.trim()}
             className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-              styleSaved ? 'bg-green-50 text-green-700' : 'bg-[#2D3748] text-white hover:bg-[#1E293B] disabled:opacity-40'
+              styleSaved ? 'bg-green-50 text-green-700' : 'bg-brand-primary text-white hover:bg-[#2563EB] disabled:opacity-40'
             }`}
           >
             {styleSaved ? <><Check size={13} /> Saved</> : <><Save size={13} /> Save</>}
@@ -1079,13 +1085,13 @@ function DocumentCard({ doc, title, placeholder, isFoundation, regenerating, onS
         <div className="flex gap-2">
           {!editing && (
             <button onClick={() => setEditing(true)}
-              className="text-xs font-medium text-gray-600 hover:text-[#2D3748] px-3 py-1.5 border border-gray-200 rounded-lg transition-colors">
+              className="text-xs font-medium text-gray-600 hover:text-brand-primary px-3 py-1.5 border border-gray-200 rounded-lg transition-colors">
               Edit
             </button>
           )}
           {isFoundation && (
             <button onClick={onRegenerate} disabled={regenerating}
-              className="text-xs font-medium text-gray-600 hover:text-[#2D3748] px-3 py-1.5 border border-gray-200 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50">
+              className="text-xs font-medium text-gray-600 hover:text-brand-primary px-3 py-1.5 border border-gray-200 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50">
               {regenerating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
               {regenerating ? 'Regenerating…' : 'Regenerate'}
             </button>
@@ -1100,11 +1106,11 @@ function DocumentCard({ doc, title, placeholder, isFoundation, regenerating, onS
             onChange={e => setContent(e.target.value)}
             placeholder={placeholder}
             rows={8}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-[#2D3748]"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-brand-primary"
           />
           <div className="flex gap-2 mt-3">
             <button onClick={handleSave} disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#2D3748] text-white text-[15px] font-medium rounded-xl disabled:opacity-60">
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-[15px] font-medium rounded-xl disabled:opacity-60">
               {saving ? <Loader2 size={13} className="animate-spin" /> : saved ? <Check size={13} /> : <Save size={13} />}
               {saving ? 'Saving…' : 'Save'}
             </button>
@@ -1196,12 +1202,12 @@ function TemplatesSection({ profileId: _profileId, assets, onAssetsChange, allAs
             value={newName}
             onChange={e => setNewName(e.target.value)}
             placeholder="Template name"
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3B82F6]"
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
           />
           <select
             value={newType}
             onChange={e => setNewType(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3B82F6]"
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
           >
             {TEMPLATE_TYPES.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
           </select>
@@ -1210,14 +1216,14 @@ function TemplatesSection({ profileId: _profileId, assets, onAssetsChange, allAs
             onChange={e => setNewUrl(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') addTemplate() }}
             placeholder={TEMPLATE_TYPES.find(t => t.type === newType)?.placeholder ?? 'URL'}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#3B82F6]"
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-primary"
           />
         </div>
         <div className="flex gap-2">
           <button
             onClick={addTemplate}
             disabled={adding || !newName.trim() || !newUrl.trim()}
-            className="flex items-center gap-1.5 text-[15px] font-medium bg-[#2D3748] text-white px-4 py-2 rounded-xl hover:bg-[#1E293B] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 text-[15px] font-medium bg-brand-primary text-white px-4 py-2 rounded-xl hover:bg-[#2563EB] disabled:opacity-40 transition-colors"
           >
             {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
             Add link
@@ -1251,13 +1257,13 @@ function TemplatesSection({ profileId: _profileId, assets, onAssetsChange, allAs
                 <div className="flex items-center gap-2">
                   {asset.external_url && (
                     <a href={asset.external_url} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-gray-500 hover:text-[#2D3748] px-3 py-1.5 border border-gray-200 rounded-lg">
+                      className="text-xs text-gray-500 hover:text-brand-primary px-3 py-1.5 border border-gray-200 rounded-lg">
                       Open →
                     </a>
                   )}
                   {(asset.signed_url || asset.file_url) && (
                     <a href={asset.signed_url ?? asset.file_url ?? ''} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-gray-500 hover:text-[#2D3748] px-3 py-1.5 border border-gray-200 rounded-lg">
+                      className="text-xs text-gray-500 hover:text-brand-primary px-3 py-1.5 border border-gray-200 rounded-lg">
                       Download →
                     </a>
                   )}

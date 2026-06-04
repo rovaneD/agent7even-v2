@@ -480,48 +480,102 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 32px 64px', fontFamily: 'var(--font-geist), system-ui, sans-serif' }}>
+    <div className="mx-auto max-w-[1240px] px-8 py-8">
 
-      {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#64748B', marginBottom: 4 }}>Agents</p>
-        <h1 style={{ fontSize: 24, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>
-          Agent Command Center
-        </h1>
-        <p style={{ fontSize: 14, color: '#64748B' }}>
-          {companyName} · {agentList.length} agents available
-        </p>
-      </div>
+      <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-[0_20px_60px_rgba(45,55,72,0.08)]">
+        <div className="grid gap-0 lg:grid-cols-[1.35fr_0.9fr]">
+          <div className="p-7">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-menu-muted">Agents</p>
+            <h1 className="max-w-2xl text-[34px] font-semibold leading-tight text-text-primary">
+              Agent Command Center
+            </h1>
+            <p className="mt-3 max-w-2xl text-[15px] leading-7 text-text-sec">
+              Run focused marketing agents, review approval-required work, and open saved outputs from one workspace.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <a href="#run-agent" className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-[#2563EB]">
+                Run an agent
+              </a>
+              <Link href="/dashboard/agents/approvals" className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:border-gray-200 hover:bg-surface-2">
+                Review approvals
+                {pendingApprovals.length > 0 && (
+                  <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-xs font-semibold text-brand-primary">
+                    {pendingApprovals.length}
+                  </span>
+                )}
+              </Link>
+            </div>
+          </div>
 
-      {/* ═══ ZONE 1: Create New Task ═══ */}
-      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 24, marginBottom: 24 }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: '#2D3748', marginBottom: 4 }}>Run an agent</p>
-        <p style={{ fontSize: 13, color: '#64748B', marginBottom: 20 }}>Choose an agent and tell it what you need.</p>
+          <div className="border-t border-border bg-surface-2 p-6 lg:border-l lg:border-t-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Operating snapshot</p>
+            <p className="mt-1 text-sm text-text-sec">{companyName} · {agentList.length} agents available</p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Running</p>
+                <p className="mt-2 text-2xl font-semibold text-text-primary">{runningTasks.length}</p>
+              </div>
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Queued</p>
+                <p className="mt-2 text-2xl font-semibold text-text-primary">{queuedTasks.length}</p>
+              </div>
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Approvals</p>
+                <p className="mt-2 text-2xl font-semibold text-brand-primary">{pendingApprovals.length}</p>
+              </div>
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Outputs</p>
+                <p className="mt-2 text-2xl font-semibold text-text-primary">{recentOutputs.length}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div id="run-agent" className="mb-6 rounded-2xl border border-gray-100 bg-white p-6">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Run an agent</p>
+            <h2 className="mt-1 text-[18px] font-semibold text-text-primary">Choose the specialist for this task</h2>
+            <p className="mt-1 text-sm text-text-sec">Each agent has a guided setup so the output comes back ready to review.</p>
+          </div>
+          {submitted && (
+            <span className="rounded-full bg-status-success/10 px-3 py-1.5 text-xs font-semibold text-status-success">
+              Task queued
+            </span>
+          )}
+        </div>
 
         {/* Agent grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+        <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {agentList.map((agent: AgentDefinition) => {
             const isSelected = selectedAgent === agent.id
             return (
               <button
                 key={agent.id}
                 onClick={() => setSelectedAgent(isSelected ? null : agent.id as AgentId)}
-                style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 10, border: isSelected ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: isSelected ? 'rgba(59,130,246,0.04)' : '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'border-color 0.15s' }}
-                onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#64748B' }}
-                onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
+                className={`group flex min-h-[118px] flex-col gap-3 rounded-2xl border p-4 text-left transition-all ${
+                  isSelected
+                    ? 'border-brand-primary bg-brand-primary/5'
+                    : 'border-border bg-surface hover:border-gray-200 hover:bg-surface-2'
+                }`}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <i className={`ti ${agent.icon}`} style={{ fontSize: 20, color: isSelected ? '#3B82F6' : '#64748B' }} />
-                  <span style={{
-                    fontSize: 10, borderRadius: 20, padding: '2px 7px', fontWeight: 500,
-                    background: agent.autonomyLevel === 'autonomous' ? 'rgba(59,130,246,0.1)' : 'rgba(45,55,72,0.1)',
-                    color: agent.autonomyLevel === 'autonomous' ? '#3B82F6' : '#2D3748',
-                  }}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${isSelected ? 'bg-brand-primary/10 text-brand-primary' : 'bg-surface-2 text-text-sec group-hover:text-brand-primary'}`}>
+                    <i className={`ti ${agent.icon}`} style={{ fontSize: 20 }} />
+                  </span>
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                    agent.autonomyLevel === 'autonomous'
+                      ? 'bg-brand-primary/10 text-brand-primary'
+                      : 'bg-surface-2 text-text-sec'
+                  }`}>
                     {agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
                   </span>
                 </div>
-                <p style={{ fontSize: 12.5, fontWeight: 500, color: '#2D3748', margin: 0 }}>{agent.name}</p>
-                <p style={{ fontSize: 11, color: '#999', lineHeight: 1.4, margin: 0 }}>{agent.description}</p>
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">{agent.name}</p>
+                  <p className="mt-1 text-xs leading-5 text-text-sec">{agent.description}</p>
+                </div>
               </button>
             )
           })}
@@ -529,45 +583,35 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
 
         {/* Instructions + submit */}
         {selectedAgent && (
-          <div style={{ borderTop: '0.5px solid #f0f0f0', paddingTop: 18 }}>
+          <div className="border-t border-border pt-5">
             {selectedAgentConfig && (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#2D3748', margin: '0 0 3px' }}>
+              <div className="mb-4">
+                <div className="mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                  <p className="text-sm font-semibold text-text-primary">
                     {AGENTS[selectedAgent].name} setup
                   </p>
-                  <p style={{ fontSize: 12, color: '#64748B', lineHeight: 1.5, margin: 0 }}>
+                  <p className="mt-1 text-sm leading-6 text-text-sec">
                     {selectedAgentConfig.intro}
                   </p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 10, marginBottom: 12 }}>
+                <div className="mb-4 grid grid-cols-6 gap-3">
                   {selectedAgentConfig.fields.map(field => {
                     const type = field.type ?? 'text'
                     const columnSpan = field.columns === 1 ? 6 : field.columns === 3 ? 2 : 3
                     const fieldStyle = { gridColumn: `span ${columnSpan}` }
-                    const controlStyle = {
-                      border: '1px solid #E2E8F0',
-                      borderRadius: 8,
-                      padding: '9px 10px',
-                      fontSize: 13,
-                      color: '#2D3748',
-                      background: '#fff',
-                      fontFamily: 'inherit',
-                      width: '100%',
-                      boxSizing: 'border-box' as const,
-                    }
+                    const controlClass = 'w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-brand-primary'
 
                     return (
-                      <label key={field.key} style={{ display: 'grid', gap: 5, ...fieldStyle }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <label key={field.key} className="grid gap-1.5" style={fieldStyle}>
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">
                           {field.label}
                         </span>
                         {type === 'select' ? (
                           <select
                             value={selectedAgentForm[field.key] ?? ''}
                             onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
-                            style={controlStyle}
+                            className={controlClass}
                           >
                             {(field.options ?? []).map(option => <option key={option}>{option}</option>)}
                           </select>
@@ -577,14 +621,14 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                             onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
                             rows={field.columns === 1 ? 4 : 3}
                             placeholder={field.placeholder}
-                            style={{ ...controlStyle, resize: 'vertical', lineHeight: 1.5 }}
+                            className={`${controlClass} resize-y leading-6`}
                           />
                         ) : (
                           <input
                             value={selectedAgentForm[field.key] ?? ''}
                             onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
                             placeholder={field.placeholder}
-                            style={controlStyle}
+                            className={controlClass}
                           />
                         )}
                       </label>
@@ -592,8 +636,8 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                   })}
                 </div>
 
-                <label style={{ display: 'grid', gap: 5 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <label className="grid gap-1.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">
                     Additional instructions
                   </span>
                   <textarea
@@ -601,16 +645,20 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                     onChange={e => setTaskInstructions(e.target.value)}
                     placeholder={`Optional: add anything specific ${AGENTS[selectedAgent].name} should know for this run.`}
                     rows={3}
-                    style={{ width: '100%', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', fontSize: 13, resize: 'vertical', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#2D3748', lineHeight: 1.5 }}
+                    className="w-full resize-y rounded-xl border border-border bg-surface px-3 py-2.5 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-brand-primary"
                   />
                 </label>
               </div>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 6 }}>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex gap-2">
                 {(['normal', 'high'] as const).map(p => (
                   <button key={p} onClick={() => setTaskPriority(p)}
-                    style={{ padding: '5px 12px', borderRadius: 20, border: taskPriority === p ? '2px solid #3B82F6' : '1px solid #E2E8F0', background: taskPriority === p ? 'rgba(59,130,246,0.06)' : '#F8FAFC', color: '#2D3748', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}>
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+                      taskPriority === p
+                        ? 'border border-brand-primary bg-brand-primary/10 text-brand-primary'
+                        : 'border border-border bg-surface-2 text-text-sec hover:border-border-strong'
+                    }`}>
                     {p}
                   </button>
                 ))}
@@ -618,39 +666,39 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               <button
                 onClick={handleCreateTask}
                 disabled={submitting || submitted}
-                style={{ marginLeft: 'auto', padding: '8px 24px', background: submitted ? '#10B981' : '#2D3748', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: submitting || submitted ? 'not-allowed' : 'pointer', fontFamily: 'inherit', minWidth: 160 }}
+                className={`ml-auto min-w-[180px] rounded-xl px-5 py-3 text-sm font-semibold text-text-inverse transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                  submitted ? 'bg-status-success' : 'bg-brand-primary hover:bg-[#2563EB]'
+                }`}
               >
                 {submitted ? 'Task queued' : submitting ? 'Queuing...' : `Run ${AGENTS[selectedAgent].name}`}
               </button>
             </div>
 
             {/* Constraints section */}
-            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '0.5px solid #f0f0f0' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div className="mt-6 border-t border-border pt-5">
+              <div className="mb-3 flex items-start justify-between gap-4">
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#888', margin: 0 }}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">
                     What this agent will never do
                   </p>
-                  <p style={{ fontSize: 11.5, color: '#bbb', marginTop: 3 }}>
-                    Brand safety guardrails — applied to every run
+                  <p className="mt-1 text-xs text-text-sec">
+                    Brand safety guardrails applied to every run.
                   </p>
                 </div>
                 {isCustomized && (
-                  <span style={{ fontSize: 11, padding: '2px 8px', background: '#f0fdf4', color: '#16a34a', borderRadius: 20, fontWeight: 500, flexShrink: 0 }}>
+                  <span className="flex-shrink-0 rounded-full bg-status-success/10 px-2.5 py-1 text-xs font-semibold text-status-success">
                     Customized
                   </span>
                 )}
               </div>
 
               {/* Template quick-insert buttons */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              <div className="mb-3 flex flex-wrap gap-2">
                 {CONSTRAINT_TEMPLATES.map(t => (
                   <button
                     key={t.label}
                     onClick={() => setConstraints(prev => prev ? `${prev}\n${t.text}` : t.text)}
-                    style={{ padding: '3px 10px', borderRadius: 20, border: '0.5px solid #E2E8F0', background: '#fafafa', color: '#555', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#2D3748' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#E2E8F0' }}
+                    className="rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-sec transition-colors hover:border-gray-200 hover:text-text-primary"
                   >
                     + {t.label}
                   </button>
@@ -662,24 +710,24 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                 onChange={e => setConstraints(e.target.value)}
                 rows={4}
                 placeholder={AGENTS[selectedAgent].defaultConstraints}
-                style={{ width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, resize: 'none', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#2D3748', lineHeight: 1.6 }}
+                className="w-full resize-none rounded-xl border border-border bg-surface px-3 py-2.5 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-brand-primary"
               />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
                 {constraints !== savedConstraints && (
                   <button
                     onClick={handleSaveConstraints}
                     disabled={savingConstraints}
-                    style={{ padding: '6px 16px', background: '#2D3748', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: savingConstraints ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: savingConstraints ? 0.6 : 1 }}
+                    className="rounded-xl bg-brand-primary px-4 py-2 text-xs font-semibold text-text-inverse transition-colors hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {savingConstraints ? 'Saving…' : 'Save constraints'}
                   </button>
                 )}
                 {constraintsSaved && (
-                  <span style={{ fontSize: 12, color: '#10B981' }}>Constraints saved</span>
+                  <span className="text-xs font-medium text-status-success">Constraints saved</span>
                 )}
                 {constraintsLastUpdated && !constraintsSaved && (
-                  <span style={{ fontSize: 11, color: '#ccc' }}>
+                  <span className="text-xs text-text-muted">
                     Last updated {relativeTime(constraintsLastUpdated)}
                   </span>
                 )}
@@ -689,7 +737,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         )}
 
         {!selectedAgent && (
-          <div style={{ textAlign: 'center', color: '#ccc', fontSize: 13, padding: '8px 0' }}>
+          <div className="rounded-2xl border border-gray-100 bg-white px-4 py-8 text-center text-sm text-text-sec">
             Select an agent above to get started
           </div>
         )}
@@ -699,44 +747,37 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       {pendingApprovals.length > 0 ? (
         <Link
           href="/dashboard/agents/approvals"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 12,
-            padding: '14px 20px', marginBottom: 24, textDecoration: 'none',
-            transition: 'border-color 0.12s',
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#3B82F6' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#BFDBFE' }}
+          className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-brand-primary/25 bg-brand-primary/5 p-5 no-underline transition-colors hover:border-brand-primary/50"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{pendingApprovals.length}</span>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-primary">
+              <span className="text-sm font-bold text-text-inverse">{pendingApprovals.length}</span>
             </div>
-            <div>
-              <p style={{ fontSize: 13.5, fontWeight: 600, color: '#2D3748', margin: 0 }}>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-text-primary">
                 {pendingApprovals.length} output{pendingApprovals.length !== 1 ? 's' : ''} waiting for your review
               </p>
-              <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0' }}>
+              <p className="mt-1 truncate text-xs text-text-sec">
                 {[...new Set(pendingApprovals.map(t => AGENTS[t.agent as AgentId]?.name ?? t.agent))].slice(0, 3).join(', ')}
                 {pendingApprovals.length > 3 ? ` +${pendingApprovals.length - 3} more` : ''}
               </p>
             </div>
           </div>
-          <span style={{ fontSize: 12.5, color: '#3B82F6', fontWeight: 500 }}>Review</span>
+          <span className="flex-shrink-0 text-sm font-semibold text-brand-primary">Review</span>
         </Link>
       ) : (
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <i className="ti ti-circle-check" style={{ fontSize: 16, color: '#CBD5E1' }} />
-          <span style={{ fontSize: 13, color: '#64748B' }}>Queue is clear — nothing waiting for review</span>
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-5">
+          <i className="ti ti-circle-check text-status-success" style={{ fontSize: 16 }} />
+          <span className="text-sm text-text-sec">Queue is clear. Nothing is waiting for review.</span>
         </div>
       )}
 
       {/* ═══ ZONE 2: Agent Activity ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 16, marginBottom: 24, height: 280 }}>
+      <div className="mb-6 grid gap-6 xl:grid-cols-[0.9fr_1.25fr]">
 
         {/* Left: Live feed */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 20, overflow: 'hidden', overflowY: 'auto' }}>
-          <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 16 }}>Live activity</p>
+        <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-5">
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Live activity</p>
 
           {activeOrchestration ? (
             <OrchestrationProgress
@@ -757,18 +798,18 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
           ) : (
             <>
               {runningTasks.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Running now</p>
+                <div className="mb-5">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Running now</p>
                   {runningTasks.map(t => {
                     const def = AGENTS[t.agent as AgentId]
                     return (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #f5f5f5' }}>
-                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'dotPulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
-                        <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#555' }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 12.5, fontWeight: 500, color: '#2D3748' }}>{def?.name}</p>
+                      <div key={t.id} className="flex items-center gap-3 border-b border-border py-2 last:border-0">
+                        <div className="h-2 w-2 flex-shrink-0 rounded-full bg-status-success" style={{ animation: 'dotPulse 1.5s ease-in-out infinite' }} />
+                        <i className={`ti ${def?.icon ?? 'ti-robot'} text-text-sec`} style={{ fontSize: 14 }} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-text-primary">{def?.name}</p>
                         </div>
-                        <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(t.started_at)}</span>
+                        <span className="text-xs text-text-muted">{relativeTime(t.started_at)}</span>
                       </div>
                     )
                   })}
@@ -776,18 +817,18 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               )}
 
               {queuedTasks.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Queued</p>
+                <div className="mb-5">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Queued</p>
                   {queuedTasks.map(t => {
                     const def = AGENTS[t.agent as AgentId]
                     return (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #f5f5f5' }}>
-                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#e5e5e5', flexShrink: 0 }} />
-                        <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#bbb' }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 12.5, color: '#888' }}>{def?.name}</p>
+                      <div key={t.id} className="flex items-center gap-3 border-b border-border py-2 last:border-0">
+                        <div className="h-2 w-2 flex-shrink-0 rounded-full bg-border" />
+                        <i className={`ti ${def?.icon ?? 'ti-robot'} text-text-muted`} style={{ fontSize: 14 }} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm text-text-sec">{def?.name}</p>
                         </div>
-                        <span style={{ fontSize: 11, color: '#bbb' }}>Waiting</span>
+                        <span className="text-xs text-text-muted">Waiting</span>
                       </div>
                     )
                   })}
@@ -796,17 +837,17 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
 
               {completedToday.length > 0 && (
                 <div>
-                  <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Completed today</p>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Completed today</p>
                   {completedToday.map(t => {
                     const def = AGENTS[t.agent as AgentId]
                     return (
-                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid #f5f5f5' }}>
-                        <i className="ti ti-check" style={{ fontSize: 13, color: '#22c55e' }} />
-                        <i className={`ti ${def?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#bbb' }} />
-                        <div style={{ flex: 1 }}>
-                          <p style={{ fontSize: 12.5, color: '#555' }}>{def?.name}</p>
+                      <div key={t.id} className="flex items-center gap-3 border-b border-border py-2 last:border-0">
+                        <i className="ti ti-check text-status-success" style={{ fontSize: 13 }} />
+                        <i className={`ti ${def?.icon ?? 'ti-robot'} text-text-muted`} style={{ fontSize: 14 }} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm text-text-sec">{def?.name}</p>
                         </div>
-                        <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(t.completed_at)}</span>
+                        <span className="text-xs text-text-muted">{relativeTime(t.completed_at)}</span>
                       </div>
                     )
                   })}
@@ -814,12 +855,12 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               )}
 
               {activeTasks.length === 0 && completedToday.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
-                    <i className="ti ti-robot" style={{ fontSize: 18, color: '#CBD5E1' }} />
+                <div className="py-8 text-center">
+                  <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface-2">
+                    <i className="ti ti-robot text-text-muted" style={{ fontSize: 18 }} />
                   </div>
-                  <p style={{ fontSize: 13, color: '#64748B', marginBottom: 4 }}>Your agents are ready.</p>
-                  <p style={{ fontSize: 12, color: '#CBD5E1' }}>Run an agent to see live activity here.</p>
+                  <p className="text-sm font-medium text-text-primary">Your agents are ready.</p>
+                  <p className="mt-1 text-xs text-text-muted">Run an agent to see live activity here.</p>
                 </div>
               )}
             </>
@@ -827,25 +868,25 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
 
           {/* Recent orchestrations */}
           {!activeOrchestration && recentOrchestrations.length > 0 && (
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '0.5px solid #f0f0f0' }}>
-              <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Recent runs</p>
+            <div className="mt-5 border-t border-border pt-4">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Recent runs</p>
               {recentOrchestrations.map(orch => (
-                <div key={orch.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '0.5px solid #f8f8f8' }}>
+                <div key={orch.id} className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-0">
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 500, color: '#333', margin: 0 }}>
+                    <p className="text-xs font-medium capitalize text-text-primary">
                       {orch.triggered_by.replace(/_/g, ' ')}
                     </p>
-                    <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>
+                    <p className="text-[11px] text-text-muted">
                       {orch.completed_tasks} agents · {relativeTime(orch.completed_at)}
                     </p>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: 11, color: '#888', margin: 0 }}>${(orch.total_cost_usd ?? 0).toFixed(4)}</p>
-                    <span style={{
-                      fontSize: 10, padding: '1px 7px', borderRadius: 20,
-                      background: orch.budget_exceeded ? '#fff7ed' : '#f0fdf4',
-                      color: orch.budget_exceeded ? '#c2410c' : '#16a34a',
-                    }}>
+                  <div className="text-right">
+                    <p className="text-[11px] text-text-sec">${(orch.total_cost_usd ?? 0).toFixed(4)}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      orch.budget_exceeded
+                        ? 'bg-status-warning/10 text-status-warning'
+                        : 'bg-status-success/10 text-status-success'
+                    }`}>
                       {orch.budget_exceeded ? 'budget hit' : 'completed'}
                     </span>
                   </div>
@@ -856,32 +897,32 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         </div>
 
         {/* Right: Scorecard */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 20, overflowY: 'auto' }}>
-          <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 16 }}>Agent scorecard</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0 16px', alignItems: 'center' }}>
+        <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-5">
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Agent scorecard</p>
+          <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-4">
             {/* Header */}
-            <span style={{ fontSize: 10, color: '#ccc', textTransform: 'uppercase', paddingBottom: 8, borderBottom: '0.5px solid #f0f0f0' }}>Agent</span>
-            <span style={{ fontSize: 10, color: '#ccc', textTransform: 'uppercase', paddingBottom: 8, borderBottom: '0.5px solid #f0f0f0' }}>Last run</span>
-            <span style={{ fontSize: 10, color: '#ccc', textTransform: 'uppercase', paddingBottom: 8, borderBottom: '0.5px solid #f0f0f0' }}>Outputs</span>
-            <span style={{ fontSize: 10, color: '#ccc', textTransform: 'uppercase', paddingBottom: 8, borderBottom: '0.5px solid #f0f0f0' }}>Status</span>
+            <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Agent</span>
+            <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Last run</span>
+            <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Outputs</span>
+            <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Status</span>
 
             {scorecardWithLiveCounts.map(entry => (
               <Fragment key={entry.agentId}>
-                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', textDecoration: 'none' }}>
-                  <i className={`ti ${entry.icon}`} style={{ fontSize: 14, color: '#888', flexShrink: 0 }} />
-                  <span style={{ fontSize: 12.5, color: '#333', whiteSpace: 'nowrap' }}>{entry.name}</span>
+                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className="flex items-center gap-2 border-b border-border py-2.5 no-underline">
+                  <i className={`ti ${entry.icon} flex-shrink-0 text-text-sec`} style={{ fontSize: 14 }} />
+                  <span className="whitespace-nowrap text-sm font-medium text-text-primary">{entry.name}</span>
                 </Link>
-                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} style={{ fontSize: 12, color: '#888', padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', whiteSpace: 'nowrap', textDecoration: 'none' }}>
+                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className="whitespace-nowrap border-b border-border py-2.5 text-xs text-text-sec no-underline">
                   {relativeTime(entry.lastRunAt)}
                 </Link>
-                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} style={{ fontSize: 12, color: entry.totalOutputs > 0 ? '#3B82F6' : '#555', padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', textAlign: 'center', textDecoration: 'none', fontWeight: entry.totalOutputs > 0 ? 600 : 400 }}>
+                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className={`border-b border-border py-2.5 text-center text-xs no-underline ${entry.totalOutputs > 0 ? 'font-semibold text-brand-primary' : 'text-text-sec'}`}>
                   {entry.totalOutputs}
                 </Link>
-                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} style={{ padding: '9px 0', borderBottom: '0.5px solid #f8f8f8', textDecoration: 'none' }}>
+                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className="border-b border-border py-2.5 no-underline">
                   {entry.isScheduled ? (
-                    <span style={{ fontSize: 11, background: 'rgba(16,185,129,0.1)', color: '#10B981', borderRadius: 20, padding: '2px 8px', fontWeight: 500 }}>Active</span>
+                    <span className="rounded-full bg-status-success/10 px-2 py-1 text-[11px] font-semibold text-status-success">Active</span>
                   ) : (
-                    <span style={{ fontSize: 11, background: '#F8FAFC', color: '#64748B', borderRadius: 20, padding: '2px 8px', border: '1px solid #E2E8F0', fontWeight: 500 }}>Idle</span>
+                    <span className="rounded-full border border-border bg-surface-2 px-2 py-1 text-[11px] font-semibold text-text-sec">Idle</span>
                   )}
                 </Link>
               </Fragment>
@@ -891,43 +932,43 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       </div>
 
       {/* ═══ ZONE 2B: Agent Outputs ═══ */}
-      <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, padding: 20, marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
+      <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5">
+        <div className="mb-4 flex items-center justify-between gap-4">
           <div>
-            <p style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748B', marginBottom: 4 }}>Recent outputs</p>
-            <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>Open an output archive to read the full result.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Recent outputs</p>
+            <p className="mt-1 text-sm text-text-sec">Open an output archive to read the full result.</p>
           </div>
-          <Link href="/dashboard/agents/approvals" style={{ fontSize: 12.5, color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}>
+          <Link href="/dashboard/agents/approvals" className="text-sm font-semibold text-brand-primary hover:underline">
             Review approvals
           </Link>
         </div>
 
         {latestOutputs.length > 0 ? (
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div className="grid gap-2">
             {latestOutputs.map(output => {
               const agent = AGENTS[output.agent as AgentId]
               return (
                 <Link
                   key={output.id}
                   href={`/dashboard/agents/${output.agent}/outputs?output=${output.id}`}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '12px 14px', border: '1px solid #E2E8F0', borderRadius: 10, textDecoration: 'none', background: '#fff' }}
+                  className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white px-4 py-3 no-underline transition-colors hover:border-gray-200 hover:bg-surface-2"
                 >
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 13, color: '#2D3748', fontWeight: 600, margin: '0 0 3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-text-primary">
                       {getOutputDescription(output)}
                     </p>
-                    <p style={{ fontSize: 11.5, color: '#64748B', margin: 0 }}>
+                    <p className="mt-1 text-xs text-text-sec">
                       {agent?.name ?? output.agent} · {relativeTime(output.created_at)} · {output.status.replace(/_/g, ' ')}
                     </p>
                   </div>
-                  <span style={{ fontSize: 12, color: '#3B82F6', fontWeight: 500, whiteSpace: 'nowrap' }}>Open</span>
+                  <span className="whitespace-nowrap text-sm font-semibold text-brand-primary">Open</span>
                 </Link>
               )
             })}
           </div>
         ) : (
-          <div style={{ border: '1px dashed #CBD5E1', borderRadius: 12, padding: '24px 16px', textAlign: 'center' }}>
-            <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
+          <div className="rounded-2xl border border-dashed border-border p-8 text-center">
+            <p className="text-sm text-text-sec">
               Saved auto-agent outputs will appear here as one-line links.
             </p>
           </div>

@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia',
-})
+import { getStripeClient } from '@/lib/stripe'
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +11,9 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServiceClient()
+    const stripe = getStripeClient()
+    if (!stripe) return NextResponse.json({ error: 'Billing is not configured' }, { status: 500 })
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('stripe_customer_id')

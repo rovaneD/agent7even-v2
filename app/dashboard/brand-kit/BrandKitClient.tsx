@@ -114,7 +114,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
 
   // ── Home view ─────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-[1200px] px-8 pt-8 pb-6 space-y-8">
+    <div className="mx-auto max-w-[1240px] space-y-8 px-8 py-8">
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -188,7 +188,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
                   onClick={() => doc && openDocument(doc)}
                   className={`bg-white rounded-2xl border p-6 transition-all ${
                     doc
-                      ? 'border-gray-100 hover:border-[#3B82F6]/30 hover:shadow-sm cursor-pointer'
+                      ? 'border-gray-100 hover:border-[#3B82F6]/30 cursor-pointer'
                       : 'border-dashed border-gray-200 opacity-60'
                   }`}
                 >

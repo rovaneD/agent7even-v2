@@ -1,11 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import Stripe from 'stripe'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia' as any,
-})
+import { getStripeClient } from '@/lib/stripe'
 
 async function getAdminProfile(userId: string) {
   const supabase = createServiceClient()
@@ -43,6 +39,9 @@ export async function GET(
   }
 
   try {
+    const stripe = getStripeClient()
+    if (!stripe) return NextResponse.json({ invoices: [], subscription: null })
+
     const [invoiceList, subList] = await Promise.all([
       stripe.invoices.list({ customer: profile.stripe_customer_id, limit: 10 }),
       profile.stripe_subscription_id

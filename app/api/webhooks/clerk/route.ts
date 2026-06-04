@@ -2,10 +2,8 @@ import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
 import { welcomeEmailHtml, welcomeEmailText } from '@/emails/welcome'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { getResendClient } from '@/lib/resend'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET
@@ -89,6 +87,9 @@ export async function POST(req: Request) {
     // Send welcome email
     if (email) {
       try {
+        const resend = getResendClient()
+        if (!resend) throw new Error('Missing RESEND_API_KEY')
+
         await resend.emails.send({
           from: 'Agent7even <hello@agent7even.com>',
           to: email,

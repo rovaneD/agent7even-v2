@@ -3,10 +3,15 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import FoundationFlow from './FoundationFlow'
 
-export default async function FoundationPage() {
+export default async function FoundationPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string }>
+}) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
+  const { plan } = await searchParams
   const [user, supabase] = await Promise.all([
     currentUser(),
     Promise.resolve(createServiceClient()),
@@ -43,6 +48,7 @@ export default async function FoundationPage() {
       profileId={profile.id}
       companyName={profile.company_name ?? ''}
       initialStep={profile.foundation_step ?? 0}
+      selectedPlan={plan}
     />
   )
 }

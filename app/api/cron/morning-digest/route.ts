@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { getResendClient } from '@/lib/resend'
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization')
@@ -71,6 +69,9 @@ export async function GET(req: Request) {
     const firstName = profile.full_name?.split(' ')[0] ?? 'there'
 
     try {
+      const resend = getResendClient()
+      if (!resend) throw new Error('Missing RESEND_API_KEY')
+
       await resend.emails.send({
         from:    'Maya <maya@agent7even.com>',
         to:      profile.email,

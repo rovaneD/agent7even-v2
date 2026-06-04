@@ -1,11 +1,9 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/requireAdmin'
-import Stripe from 'stripe'
+import type Stripe from 'stripe'
+import { getStripeClient } from '@/lib/stripe'
 import { TrendingUp, Users, DollarSign, ArrowUpRight } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-04-22.dahlia' as any })
 
 const PLAN_PRICES: Record<string, number> = {
   starter: 49,
@@ -63,8 +61,11 @@ export default async function AdminRevenuePage() {
 
   let recentCharges: Stripe.Charge[] = []
   try {
-    const charges = await stripe.charges.list({ limit: 20 })
-    recentCharges = charges.data.filter(c => c.paid && !c.refunded)
+    const stripe = getStripeClient()
+    if (stripe) {
+      const charges = await stripe.charges.list({ limit: 20 })
+      recentCharges = charges.data.filter(c => c.paid && !c.refunded)
+    }
   } catch (err) {
     console.error('Stripe charges fetch error:', err)
   }

@@ -1,11 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import Stripe from 'stripe'
+import type Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/server'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia',
-})
+import { getStripeClient } from '@/lib/stripe'
 
 const PRICE_IDS: Record<string, { monthly: string; annual: string }> = {
   starter: {
@@ -27,6 +24,8 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { plan, annual = false } = await req.json()
+  const stripe = getStripeClient()
+  if (!stripe) return NextResponse.json({ error: 'Billing is not configured' }, { status: 500 })
 
   if (!PRICE_IDS[plan]) {
     return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })

@@ -1,8 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { Resend } from 'resend'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { getResendClient } from '@/lib/resend'
 
 export type NotificationType =
   | 'order_status'
@@ -58,6 +56,9 @@ export async function createNotification({
   // Send email if requested
   if (sendEmail && emailSubject) {
     try {
+      const resend = getResendClient()
+      if (!resend) throw new Error('Missing RESEND_API_KEY')
+
       // Get recipient email
       const { data: profile } = await supabase
         .from('profiles')

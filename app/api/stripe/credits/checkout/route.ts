@@ -1,18 +1,17 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { CREDIT_PACKAGES } from '@/lib/credits-packages'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia' as any,
-})
+import { getStripeClient } from '@/lib/stripe'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { packageId } = await req.json()
+  const stripe = getStripeClient()
+  if (!stripe) return NextResponse.json({ error: 'Billing is not configured' }, { status: 500 })
+
   const pkg = CREDIT_PACKAGES.find(p => p.id === packageId)
   if (!pkg) return NextResponse.json({ error: 'Invalid package' }, { status: 400 })
 

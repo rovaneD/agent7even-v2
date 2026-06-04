@@ -10,4 +10,10 @@
 ## This repo deploys to: agent7even-v2.vercel.app (NOT app.agent7even.com)
 ## Production app lives at: github.com/rovaneD/agent7even-app (DO NOT TOUCH)
 
+## Read current context before making changes:
+1. `AGENTS.md`
+2. `CONTEXTV11.md`
+3. `MAYA_CONTEXT_V02.md`
+4. `AUDIT_FIXES_2026-06-02.md`
+
 ## If you are ever unsure which repo you are in — STOP and ask.

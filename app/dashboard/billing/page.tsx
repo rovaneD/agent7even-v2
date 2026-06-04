@@ -2,13 +2,9 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import BillingClient from './BillingClient'
-import Stripe from 'stripe'
+import { getStripeClient } from '@/lib/stripe'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import type { CreditsUsageData, BreakdownItem } from '@/components/billing/CreditsUsage'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-04-22.dahlia',
-})
 
 export default async function BillingPage() {
   const { userId } = await auth()
@@ -112,9 +108,9 @@ export default async function BillingPage() {
 
     const COLORS: Record<string, string> = {
       'Maya chat':            '#3B82F6',
-      'Campaign generation':  '#8B5CF6',
+      'Campaign generation':  '#F5349B',
       'Brand Kit':            '#10B981',
-      'Agent runs':           '#F59E0B',
+      'Agent runs':           '#FCA509',
     }
 
     const grouped: Record<string, number> = {}
@@ -125,7 +121,7 @@ export default async function BillingPage() {
 
     const breakdown: BreakdownItem[] = Object.entries(grouped)
       .sort((a, b) => b[1] - a[1])
-      .map(([label, credits]) => ({ label, credits, color: COLORS[label] ?? '#64748B' }))
+      .map(([label, credits]) => ({ label, credits, color: COLORS[label] ?? '#9BA1AE' }))
 
     const monthlyRemaining = Math.max(0, monthlyAllocation - monthlyUsed)
     const topupBalance = creditBalance - monthlyRemaining
@@ -143,6 +139,9 @@ export default async function BillingPage() {
 
   if (profile?.stripe_customer_id) {
     try {
+      const stripe = getStripeClient()
+      if (!stripe) throw new Error('Missing STRIPE_SECRET_KEY')
+
       const [invoiceList, portalSession] = await Promise.all([
         stripe.invoices.list({ customer: profile.stripe_customer_id, limit: 10 }),
         stripe.billingPortal.sessions.create({

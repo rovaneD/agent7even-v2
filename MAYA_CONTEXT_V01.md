@@ -1,6 +1,9 @@
 # MAYA_CONTEXT_V01 — Product Context & North Star
 *Versioned snapshot: June 3, 2026*
 
+> Superseded by `MAYA_CONTEXT_V02.md`. This file remains a historical snapshot
+> from before the design-system/color-token implementation.
+
 This is the versioned successor to `MAYA_CONTEXT.md`. The original unversioned document remains useful for historical context, but future sessions should treat this file as the current Maya product context unless a newer version exists.
 
 ---

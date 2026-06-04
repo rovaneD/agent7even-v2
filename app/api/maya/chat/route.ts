@@ -284,7 +284,10 @@ Never use markdown in conversation. Save structure for the plan.`
       await updateTaskStatus(task.id, 'failed').catch(() => {})
       const msg = err instanceof Error ? err.message : ''
       if (msg === 'INSUFFICIENT_CREDITS') {
-        return NextResponse.json({ error: 'INSUFFICIENT_CREDITS' }, { status: 402 })
+        return NextResponse.json(
+          { error: 'INSUFFICIENT_CREDITS', message: 'Maya needs credits to respond. Choose a plan or top up credits to continue.' },
+          { status: 402 },
+        )
       }
       console.error('[maya/chat] credit deduction failed:', err)
       return NextResponse.json({ error: 'Credit deduction failed' }, { status: 500 })

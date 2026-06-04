@@ -1,7 +1,12 @@
 # Maya Design System V2 — Claude Code Handoff
 *Full design pass — revised spec*
 
-Read MAYA_CONTEXT.md and CONTEXTV9.md before starting.
+> Implementation status: active on `design-system/color-tokens`.
+> Read `MAYA_CONTEXT_V02.md` and `CONTEXTV11.md` before continuing.
+> This handoff is retained as the original specification; current implementation
+> decisions and intentional deviations are documented below.
+
+Read MAYA_CONTEXT_V02.md and CONTEXTV11.md before starting.
 Confirm `git remote -v` shows `agent7even-v2`.
 
 ---
@@ -13,6 +18,28 @@ unified system. Work through each part in order. Do not skip sections.
 
 This is a large commit — take it section by section and commit when each
 part is done rather than trying to do everything at once.
+
+### Implemented through June 3, 2026
+
+- Global tokens in `app/globals.css`
+- Dashboard shell and Maya panel token pass
+- Blue primary CTAs
+- Dashboard and Agents Command Center redesigns
+- Campaigns, Calendar, Services, Brand Kit, and utility-page polish
+- Dashboard page alignment normalization
+- Standard dashboard card normalization
+- Preview deployment hardening for Resend, Stripe, and missing environment vars
+
+### Current implementation decisions
+
+- App background is `#FCFCFC`, not the earlier proposed `#F1F5F9`.
+- Danger is `#EE533B`, warning is `#FCA509`, and logo accent is `#F5349B`.
+- Standard dashboard cards use `bg-white border border-gray-100 rounded-2xl`
+  with no default shadow.
+- Dashboard Command Center and Agents Command Center heroes are intentional
+  soft-shadow exceptions.
+- Dashboard pages use centered constrained containers with left-aligned content,
+  rather than page content visually jumping between centered and left layouts.
 
 ---
 
@@ -823,4 +850,3 @@ Remove:
 - [ ] Sidebar collapse works and looks clean
 - [ ] Maya panel drag works smoothly
 - [ ] Cards clearly visible against page background
-

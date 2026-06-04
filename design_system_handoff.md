@@ -1,4 +1,7 @@
 # Maya Design System — Claude Code Handoff
+
+> Historical handoff. Superseded by `design_system_v2_handoff.md`,
+> `CONTEXTV11.md`, and the implemented `design-system/color-tokens` branch.
 *Full design pass — unified visual language*
 
 Read MAYA_CONTEXT.md and CONTEXTV9.md before starting.
@@ -536,4 +539,3 @@ Find and remove or replace:
 - [ ] Admin pages use new status dot colors
 - [ ] No emoji anywhere in the codebase
 - [ ] Visual check: open every page and confirm consistent look
-

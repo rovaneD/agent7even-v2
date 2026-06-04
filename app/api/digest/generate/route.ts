@@ -29,7 +29,11 @@ export async function POST(req: Request) {
     .gte('created_at', since)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
-    .limit(5)
+    .limit(20)
+
+  const digestAgentTasks = (agentTasks ?? [])
+    .filter(task => !isSystemAgent(task.agent))
+    .slice(0, 5)
 
   // Pending approvals
   const { data: pendingTasks } = await supabase
@@ -42,7 +46,7 @@ export async function POST(req: Request) {
 
   // Fetch outputs separately (avoids FK dependency)
   const allTaskIds = [
-    ...(agentTasks ?? []).map(t => t.id),
+    ...digestAgentTasks.map(t => t.id),
     ...(pendingTasks ?? []).map(t => t.id),
   ]
   const { data: allOutputs } = allTaskIds.length
@@ -56,13 +60,16 @@ export async function POST(req: Request) {
   // Active campaigns → today's actions
   const { data: campaigns } = await supabase
     .from('campaigns')
-    .select('title, do_this_today')
+    .select('title, plan')
     .eq('user_id', profileId)
     .eq('status', 'active')
 
   const todayActions: { task: string; channel: string; campaignTitle: string; cta: string }[] = []
   campaigns?.forEach(campaign => {
-    const actions = (campaign.do_this_today as { task: string; channel: string }[]) ?? []
+    const plan = campaign.plan && typeof campaign.plan === 'object'
+      ? campaign.plan as Record<string, unknown>
+      : {}
+    const actions = (plan.doThisToday as { task: string; channel: string }[]) ?? []
     actions.slice(0, 2).forEach(action => {
       todayActions.push({
         task:          action.task,
@@ -75,7 +82,7 @@ export async function POST(req: Request) {
 
   // Generate one-line Haiku summaries for each agent run
   const agentSummaries = await Promise.all(
-    (agentTasks ?? []).map(async task => {
+    digestAgentTasks.map(async task => {
       const preview = (outputByTask[task.id] ?? '').slice(0, 300)
       const agentName = formatAgentName(task.agent)
 
@@ -142,4 +149,8 @@ function formatAgentName(agentId: string): string {
     brand_voice_guardian:   'Brand Voice Guardian',
   }
   return names[agentId] ?? agentId
+}
+
+function isSystemAgent(agentId: string): boolean {
+  return agentId === 'maya' || agentId.startsWith('foundation_')
 }
