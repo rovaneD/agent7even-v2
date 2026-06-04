@@ -212,7 +212,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
       throw new Error(data.error || 'Your Foundation could not be generated. Please try again.')
     }
     setGenerationProgress(ALL_DOCS)
-    router.push(selectedPlan ? `/checkout-now?plan=${encodeURIComponent(selectedPlan)}` : '/dashboard')
+    router.push(selectedPlan ? `/checkout-now?plan=${encodeURIComponent(selectedPlan)}` : '/pricing?foundation=complete')
   }
 
   async function handleGenerate() {

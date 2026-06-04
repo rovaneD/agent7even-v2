@@ -108,6 +108,7 @@ export default function MayChatPanel({
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const [chatError, setChatError] = useState<string | null>(null)
+  const [billingModalOpen, setBillingModalOpen] = useState(false)
   const attachmentsRef = useRef<Array<{ url: string; name: string; mimeType: string }>>([])
   const fileInputRef   = useRef<HTMLInputElement>(null)
   const dragCounterRef = useRef(0)
@@ -171,7 +172,13 @@ export default function MayChatPanel({
     transport,
     messages: initialMessages.length ? (initialMessages as UIMessage[]) : undefined,
     onError: (error: Error) => {
-      setChatError(error.message || 'Maya could not respond. Please try again.')
+      const message = error.message || 'Maya could not respond. Please try again.'
+      if (message.includes('credits') || message === 'INSUFFICIENT_CREDITS') {
+        setBillingModalOpen(true)
+        setChatError(null)
+        return
+      }
+      setChatError(message)
     },
     onFinish: async ({ message }: { message: UIMessage }) => {
       if (!profile?.id) return
@@ -227,6 +234,7 @@ export default function MayChatPanel({
     if (!pendingTask) return
     setMode('task')
     setChatError(null)
+    setBillingModalOpen(false)
     sendMessage({ text: `__TASK__${pendingTask}__` })
     onTaskConsumed?.()
   }, [pendingTask]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -234,6 +242,7 @@ export default function MayChatPanel({
   useEffect(() => {
     if (!isHelpMode) return
     setChatError(null)
+    setBillingModalOpen(false)
     sendMessage({ text: '__HELP__' })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -243,12 +252,14 @@ export default function MayChatPanel({
     pageContextStartedRef.current = true
     setMode('page')
     setChatError(null)
+    setBillingModalOpen(false)
     sendMessage({ text: '__PAGE_CONTEXT__' })
   }, [canvasContext, canvasData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function selectMode(modeId: string) {
     setMode(modeId)
     setChatError(null)
+    setBillingModalOpen(false)
     sendMessage({ text: `__MODE__${modeId}__` })
   }
 
@@ -319,6 +330,7 @@ export default function MayChatPanel({
     const content = (text ?? chatInput).trim()
     if (!content || isLoading) return
     setChatError(null)
+    setBillingModalOpen(false)
     const ready = pendingAttachments.filter(a => a.url && !a.uploading && !a.error)
     if (ready.length) {
       attachmentsRef.current = ready.map(a => ({ url: a.url!, name: a.name, mimeType: a.mimeType }))
@@ -355,6 +367,42 @@ export default function MayChatPanel({
           <Paperclip size={22} color="var(--color-brand-primary)" />
           <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--color-brand-primary)' }}>Drop to attach</p>
           <p style={{ fontSize: 12, color: 'var(--color-menu-muted)' }}>Images, PDFs, and documents</p>
+        </div>
+      )}
+
+      {billingModalOpen && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 35, background: 'rgba(15, 23, 42, 0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+          <div style={{ width: '100%', maxWidth: 340, borderRadius: 18, border: '1px solid var(--color-border)', background: 'var(--color-surface)', boxShadow: '0 24px 60px rgba(15, 23, 42, 0.18)', padding: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 14, background: 'color-mix(in srgb, var(--color-brand-primary) 12%, var(--color-surface))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AlertCircle size={18} color="var(--color-brand-primary)" />
+              </div>
+              <button
+                onClick={() => setBillingModalOpen(false)}
+                style={{ border: 'none', background: 'transparent', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: 2 }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: 17, lineHeight: 1.25, color: 'var(--color-text-primary)', fontWeight: 650 }}>Choose a plan to keep using Maya</h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: 13, lineHeight: 1.55, color: 'var(--color-text-secondary)' }}>
+              Your Foundation is ready. Pick a subscription package to unlock Maya chat, agents, campaigns, and monthly credits.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <a
+                href={profile?.plan ? '/dashboard/billing' : '/pricing?source=maya'}
+                style={{ flex: 1, textAlign: 'center', borderRadius: 12, background: 'var(--color-brand-primary)', color: 'var(--color-text-inverse)', padding: '10px 12px', fontSize: 13, fontWeight: 650, textDecoration: 'none' }}
+              >
+                {profile?.plan ? 'Add credits' : 'Choose a plan'}
+              </a>
+              <button
+                onClick={() => setBillingModalOpen(false)}
+                style={{ borderRadius: 12, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Not now
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

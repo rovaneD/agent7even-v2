@@ -207,7 +207,27 @@ Environment behavior:
 5. Keep Services and Deliverables responsibilities separate.
 6. Merge `design-system/color-tokens` only after validation.
 
-## 10. Technical Guardrails
+## 10. Current Onboarding and Credit Behavior
+
+Foundation is allowed to generate before checkout using the platform-funded
+agent runner path. That setup flow should not consume the user's credits.
+
+After Foundation generation:
+
+- If a selected plan exists, continue to `/checkout-now?plan=...`.
+- If no selected plan exists, route to `/pricing?foundation=complete`.
+
+Maya chat is still credit gated. When Maya receives an insufficient-credit
+response, the UI should not render that as a normal assistant message. It now
+opens a modal:
+
+- no plan: send the user to Pricing
+- existing plan: send the user to Billing / credit top-up
+
+This keeps the Foundation-to-subscription path explicit and avoids leaving a
+new user stuck in a chat thread that cannot respond.
+
+## 11. Technical Guardrails
 
 ```txt
 Workspace: /Users/durso/agent7even-v2-clean

@@ -184,6 +184,7 @@ export default function MayaShell({
   const [planSaved, setPlanSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [chatError, setChatError] = useState<string | null>(null)
+  const [billingModalOpen, setBillingModalOpen] = useState(false)
   const [mode, setMode] = useState<string | null>(() => shouldRestore ? (initialMode ?? null) : null)
   const [taskOutput, setTaskOutput] = useState<string>('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -304,7 +305,14 @@ export default function MayaShell({
     }),
     messages: shouldRestore && initialMessages.length ? (initialMessages as UIMessage[]) : undefined,
     onError: (error: Error) => {
-      setChatError(error.message || 'Maya could not respond. Please try again.')
+      const message = error.message || 'Maya could not respond. Please try again.'
+      const isBillingBlock = message.includes('credits') || message === 'INSUFFICIENT_CREDITS'
+      if (isBillingBlock) {
+        setBillingModalOpen(true)
+        setChatError(null)
+        return
+      }
+      setChatError(message)
     },
     onFinish: async ({ message }: { message: UIMessage }) => {
       const text = message.parts.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map(p => p.text).join('')
@@ -402,6 +410,7 @@ export default function MayaShell({
       : `__TASK__${initialPrompt}__`
     if (isTaskMode.current) setCanvasState('task')
     setChatError(null)
+    setBillingModalOpen(false)
     sendMessage({ text: content })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -415,6 +424,7 @@ export default function MayaShell({
   function selectMode(modeId: string) {
     setMode(modeId)
     setChatError(null)
+    setBillingModalOpen(false)
     sendMessage({ text: `__MODE__${modeId}__` })
   }
 
@@ -422,6 +432,7 @@ export default function MayaShell({
     const content = (text ?? chatInput).trim()
     if (!content || isLoading) return
     setChatError(null)
+    setBillingModalOpen(false)
     sendMessage({ text: content })
     setChatInput('')
   }
@@ -533,7 +544,48 @@ export default function MayaShell({
       </aside>
 
       {/* ═══ CHAT PANEL ═══ */}
-      <div style={{ flex: 55, minWidth: 480, maxWidth: 640, display: 'flex', flexDirection: 'column', background: '#fff', borderRight: '0.5px solid #ebebeb', overflow: 'hidden' }}>
+      <div style={{ flex: 55, minWidth: 480, maxWidth: 640, display: 'flex', flexDirection: 'column', background: '#fff', borderRight: '0.5px solid #ebebeb', overflow: 'hidden', position: 'relative' }}>
+
+        {billingModalOpen && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 25, background: 'rgba(15, 23, 42, 0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div style={{ width: '100%', maxWidth: 420, borderRadius: 20, border: '1px solid #E2E8F0', background: '#fff', boxShadow: '0 24px 60px rgba(15, 23, 42, 0.18)', padding: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 18 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <AlertCircle size={20} color="#3B82F6" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBillingModalOpen(false)}
+                  aria-label="Close billing prompt"
+                  style={{ border: 'none', background: 'transparent', color: '#94A3B8', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}
+                >
+                  ×
+                </button>
+              </div>
+              <h3 style={{ margin: '0 0 8px', fontSize: 22, lineHeight: 1.2, letterSpacing: '-0.03em', color: '#111827' }}>
+                Choose a plan to keep using Maya
+              </h3>
+              <p style={{ margin: '0 0 22px', fontSize: 14.5, lineHeight: 1.6, color: '#64748B' }}>
+                Your Foundation is ready. Pick a subscription package to unlock Maya chat, agents, campaigns, and monthly credits.
+              </p>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <a
+                  href={profile?.plan ? '/dashboard/billing' : '/pricing?source=maya'}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 42, padding: '0 18px', borderRadius: 999, background: '#3B82F6', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}
+                >
+                  {profile?.plan ? 'Add credits' : 'Choose a plan'}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setBillingModalOpen(false)}
+                  style={{ minHeight: 42, padding: '0 16px', borderRadius: 999, border: '1px solid #E2E8F0', background: '#fff', color: '#475569', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                >
+                  Not now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Top bar */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '0.5px solid #F8FAFC' }}>

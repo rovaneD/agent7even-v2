@@ -382,3 +382,22 @@ Pre-merge validation also confirmed:
 | 16 | Orchestration progress UI | OPEN |
 | 17 | Profile dedup | OPEN / data task |
 | 18 | Merge design-system branch to main | READY after final preview smoke test |
+
+---
+
+## 9. Latest Pre-Merge Flow Fixes
+
+Added after the route/campaign compatibility pass:
+
+- Foundation completion no longer sends no-plan users back to Dashboard.
+  If the user entered Foundation without selecting a plan, successful
+  Foundation generation now routes to `/pricing?foundation=complete` so the
+  user can choose one of the three subscription packages.
+- Maya no-credit failures are no longer shown as normal assistant text.
+  Both the embedded Maya panel and the full `/maya` shell now open a billing
+  modal with a direct plan/credit CTA.
+- Existing paid users who run out of credits are routed toward Billing from the
+  Maya modal. No-plan users are routed toward Pricing.
+- The intent is that pre-checkout Foundation can generate the setup documents,
+  then the next monetization step is explicit plan selection, not a broken Maya
+  chat response.

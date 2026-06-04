@@ -442,3 +442,27 @@ The following untracked files remained local and were intentionally not included
 
 - `foundation_generate_runner_handoff.md`
 - `foundation_redesign_handoff.md`
+
+## Pre-Checkout Foundation to Pricing Flow
+
+Issue addressed:
+
+- A new no-plan user could complete Foundation generation, land back in the
+  product, and then see Maya fail with an insufficient-credit message. That was
+  technically correct for credit gating, but it was the wrong onboarding
+  experience after Foundation.
+
+Fixes:
+
+- Foundation completion now routes no-plan users to
+  `/pricing?foundation=complete` after successful generation.
+- Maya insufficient-credit failures now open a billing/plan modal in both the
+  embedded Maya panel and the full `/maya` shell.
+- Existing plan users are sent to Billing from the modal; no-plan users are sent
+  to Pricing.
+
+Result:
+
+- Foundation remains usable before checkout.
+- The next step after Foundation is explicit subscription selection.
+- No-credit states are handled as product flow, not normal chat output.
