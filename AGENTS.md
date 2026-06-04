@@ -25,7 +25,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV10.md > MAYA_CONTEXT_V01.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV11.md > MAYA_CONTEXT_V02.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -58,33 +58,44 @@ Next.js 16 uses `proxy.ts` not `middleware.ts`.
 - **Buffer** — do NOT attempt OAuth integration. Buffer stopped accepting new developer OAuth registrations as of 2026. Use Later or Publer for social scheduling instead.
 - **Instagram Lucide icon** — does not exist. Use `Hash` icon instead.
 
-## This app (agent7even-app/) — stable, do not touch unless asked
-Changes are made deliberately and committed before moving on.
+## This app (agent7even-v2) — experimental
+Changes are made deliberately and committed before moving on. Production lives
+in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV10.md` — latest technical/product handoff for post-V9 work.
-- `MAYA_CONTEXT_V01.md` — current versioned Maya product context.
+- `CONTEXTV11.md` — latest technical/product handoff for the design-system branch.
+- `MAYA_CONTEXT_V02.md` — current versioned Maya product context and visual rules.
 - `AUDIT_FIXES_2026-06-02.md` — audit fix ledger plus follow-on testing fixes.
+
+## Current visual-system rules
+- Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.
+- Pink `#F5349B` is reserved for the logo and restrained accent moments.
+- Standard dashboard cards use white surfaces, `rounded-2xl`, `border-gray-100`, and no default shadow.
+- The Dashboard Command Center and Agents Command Center hero cards are intentional soft-shadow exceptions.
+- Dashboard pages use a centered constrained canvas with internally left-aligned content.
 
 ## Deployment rules — READ BEFORE ANY DEPLOY
 
-**How production works:**
-- `app.agent7even.com` is served by the Vercel project `agent7even-app`
-- Vercel auto-deploys from GitHub on every push to `main`
-- GitHub's auto-deploy ALWAYS wins the production alias — it will overwrite anything deployed via `vercel --prod` CLI if a new push arrives after
-- Marketing site (`agent7even.com`) auto-deploys from `master` branch — always push with `git push origin master`
+**How this v2 project works:**
+- `agent7even-v2.vercel.app` is served by the Vercel project `agent7even-v2`
+- GitHub branch pushes create Vercel deployments for this experimental project
+- `design-system/color-tokens` is the active visual-system validation branch
+- Production app deployment rules belong to `rovaneD/agent7even-app`, not this repo
 
 **Never do this:**
 - Run `vercel --prod` with uncommitted local changes
-- Push to `main` without first committing all in-progress changes
+- Push without confirming `git remote -v` shows `rovaneD/agent7even-v2`
+- Touch or deploy `rovaneD/agent7even-app` from this folder
 
 **Always do this:**
 1. Finish a feature
-2. `git add -A && git commit -m "..."` — commit everything
-3. `git push` — GitHub auto-deploy takes it from here
-4. Only run `vercel --prod` if the GitHub integration is broken AND all local changes are committed
+2. Preserve unrelated user changes; do not stage or revert them
+3. Run TypeScript, diff, and build verification
+4. Commit the intended files
+5. Run `git remote -v`
+6. `git push` and let the GitHub/Vercel integration deploy the branch
 
 **Safeguards in place:**
 - `.git/hooks/pre-push` — blocks the push if there are uncommitted changes
-- `.github/workflows/ci.yml` — runs TypeScript check + build on every push to main
+- `.github/workflows/ci.yml` — runs TypeScript check + build on pushes
 <!-- END:agent7even-product-rules -->

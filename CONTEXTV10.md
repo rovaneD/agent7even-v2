@@ -1,6 +1,9 @@
 # CONTEXTV10 — Agent Outputs, Services Flow, Viral Hooks, Deliverables, and Color-System Plan
 *Snapshot: June 3, 2026*
 
+> Superseded by `CONTEXTV11.md`. This file remains a historical snapshot of the
+> product state before the design-system/color-token implementation.
+
 ## What Changed Since CONTEXTV9
 
 Everything in CONTEXTV9 still applies. This version documents the work completed after the approval queue, pricing, billing, and audit-fix baseline.

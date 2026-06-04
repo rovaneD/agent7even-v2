@@ -3,7 +3,7 @@
 
 Repo: `rovaneD/agent7even-v2`
 Initial audit commit: `dae9088 Fix audit security and credit issues`
-Latest related fix commit: `995eab7 Allow deleting viral hooks service orders`
+Latest related fix commit: `2278e11 Match agents hero to dashboard command center`
 
 ## Summary
 
@@ -309,14 +309,58 @@ Fixes:
 
 ## Follow-On Documentation Added
 
-- `CONTEXTV10.md`
-  - Detailed post-V9 product/technical handoff.
-- `MAYA_CONTEXT_V01.md`
-  - Versioned Maya product context and current architecture.
+- `CONTEXTV11.md`
+  - Current design-system branch product/technical handoff.
+- `MAYA_CONTEXT_V02.md`
+  - Current versioned Maya product context and visual-system rules.
 - `AUDIT_FIXES_2026-06-02.md`
   - This file now includes the follow-on fixes above.
 - `AGENTS.md`
-  - Should point future sessions to `CONTEXTV10.md` / `MAYA_CONTEXT_V01.md` as the current context.
+  - Points future sessions to `CONTEXTV11.md` / `MAYA_CONTEXT_V02.md`.
+
+## Design-System and Preview Deployment Follow-On
+
+Commits:
+
+- `902d218 Introduce global color tokens`
+- `b24e6f1 Defer Resend client initialization`
+- `8b4a273 Defer Stripe client initialization`
+- `4338ed2 Warn on missing preview env vars`
+- `7c5b453 Polish dashboard command center UI`
+- `9f6cde0 Use blue for primary CTAs`
+- `5db58f7 Polish agents command center UI`
+- `5529158 Polish campaign calendar services brand kit UI`
+- `96fb0c8 Polish remaining dashboard utility pages`
+- `8a77250 Normalize dashboard page alignment`
+- `4d6445c Normalize dashboard card treatments`
+- `2278e11 Match agents hero to dashboard command center`
+
+Issues addressed:
+
+- UI colors were spread across CSS variables, arbitrary Tailwind hex values,
+  inline styles, and page-specific choices.
+- Preview builds failed when Resend or Stripe keys were absent because clients
+  were initialized during module evaluation.
+- Preview runtime returned 500 errors when Clerk variables were configured only
+  for Production.
+- Dashboard pages used inconsistent alignment, card borders, radius, and
+  shadows.
+- The Dashboard and Agents pages lacked a clear, useful command-center
+  hierarchy.
+
+Fixes:
+
+- Added global brand, semantic, surface, border, and text tokens.
+- Updated the dashboard shell and Maya panel to use the token system.
+- Deferred Stripe and Resend initialization.
+- Production environment validation remains fail-fast; preview/development
+  warn so branch deployments can boot and expose missing configuration.
+- Reworked dashboard pages into a centered constrained canvas with left-aligned
+  content.
+- Standardized normal dashboard cards to white surfaces, `rounded-2xl`,
+  `border-gray-100`, and no default shadow.
+- Preserved matching soft-shadow hero treatments for the Dashboard Command
+  Center and Agents Command Center.
 
 ## Verification
 

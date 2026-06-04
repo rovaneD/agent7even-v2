@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agent7even v2
 
-## Getting Started
+Experimental v2 client portal and AI marketing workspace.
 
-First, run the development server:
+```txt
+GitHub: rovaneD/agent7even-v2
+Vercel: agent7even-v2.vercel.app
+Production app repository: rovaneD/agent7even-app
+```
+
+Do not make production-repository changes from this workspace.
+
+## Current Branch
+
+The active visual-system work is on:
+
+```txt
+design-system/color-tokens
+```
+
+Before every push, confirm:
+
+```bash
+git remote -v
+```
+
+The remote must show `rovaneD/agent7even-v2`.
+
+## Read First
+
+- `AGENTS.md`
+- `CONTEXTV11.md`
+- `MAYA_CONTEXT_V02.md`
+- `AUDIT_FIXES_2026-06-02.md`
+
+## Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Verification
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npx tsc --noEmit
+git diff --check
+npm run build
+```
 
-## Learn More
+This project uses Next.js `16.2.6` with Turbopack. Read the relevant local
+Next.js guides in `node_modules/next/dist/docs/` before changing framework APIs
+or conventions.
 
-To learn more about Next.js, take a look at the following resources:
+## Environment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Use `.env.example` as the variable reference. Preview deployments require
+Preview-scoped Clerk and Supabase variables; setting variables only for
+Production is not enough.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Production runtime fails fast for missing required variables. Preview and
+development runtime warn so branch deployments can boot and expose
+configuration gaps.
 
-## Deploy on Vercel
+## Product Notes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Maya is page-context-aware and should assist with the work visible on the
+  current canvas.
+- Services is the request/generation/order-history workspace.
+- Deliverables is the permanent saved asset library.
+- Blue is the primary interaction color.
+- Standard dashboard cards are white, `rounded-2xl`, bordered with
+  `border-gray-100`, and do not use a default shadow.
+- Dashboard Command Center and Agents Command Center heroes are intentional
+  soft-shadow exceptions.

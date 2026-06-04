@@ -1,7 +1,7 @@
 # Maya — Product Context & North Star Document
 *Created: May 29, 2026 — This is the source of truth for all Maya development*
 
-> Current versioned source: `MAYA_CONTEXT_V01.md` (June 3, 2026). This unversioned file is retained for historical continuity.
+> Current versioned source: `MAYA_CONTEXT_V02.md` (June 3, 2026). This unversioned file is retained for historical continuity.
 
 ---
 
