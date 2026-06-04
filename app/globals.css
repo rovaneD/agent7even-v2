@@ -142,20 +142,20 @@ body {
 /* ── Card system ───────────────────────────────────────────────────────────── */
 
 .card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: #fff;
+  border: 1px solid #f3f4f6;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: none;
 }
 .card-hover {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: #fff;
+  border: 1px solid #f3f4f6;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: none;
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
 .card-hover:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  border-color: var(--color-border-strong);
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--color-brand-primary) 30%, #f3f4f6);
 }

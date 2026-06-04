@@ -235,19 +235,19 @@ ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents an
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Approvals</p>
                 <p className="mt-2 text-2xl font-semibold text-text-primary">{pendingApprovals}</p>
               </div>
-              <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Open orders</p>
                 <p className="mt-2 text-2xl font-semibold text-text-primary">{activeOrders}</p>
               </div>
-              <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Foundation</p>
                 <p className="mt-2 text-2xl font-semibold text-status-success">{foundationScore ?? 'Ready'}{typeof foundationScore === 'number' ? '%' : ''}</p>
               </div>
-              <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Credits</p>
                 <p className="mt-2 text-2xl font-semibold text-text-primary">{creditBalance ?? '—'}</p>
               </div>
@@ -263,7 +263,7 @@ ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents an
             dismissed={gettingStartedDismissed}
           />
 
-          <section className="rounded-2xl border border-border bg-surface p-5">
+          <section className="rounded-2xl border border-gray-100 bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Next best moves</p>
@@ -321,7 +321,7 @@ ${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents an
                   <Link
                     key={card.href}
                     href={card.href}
-                    className="group rounded-2xl border border-border bg-surface p-5 transition-all hover:border-border-strong hover:shadow-sm"
+                    className="group rounded-2xl border border-gray-100 bg-white p-5 transition-all hover:border-border-strong"
                   >
                     <div className="mb-5 flex items-start justify-between gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-2 text-text-sec group-hover:text-brand-primary">

@@ -100,7 +100,7 @@ function StatCard({
   prefix?: string
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-5 shadow-sm">
+    <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wide text-text-soft">{label}</span>
         {logoSrc ? (
@@ -850,7 +850,7 @@ The user can connect Google Analytics and Meta/Instagram to view live performanc
       )}
 
       {/* Header */}
-      <section className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Analytics</p>

@@ -482,7 +482,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
   return (
     <div className="mx-auto max-w-[1240px] px-8 py-8">
 
-      <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-[0_20px_60px_rgba(45,55,72,0.08)]">
+      <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="grid gap-0 lg:grid-cols-[1.35fr_0.9fr]">
           <div className="p-7">
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-menu-muted">Agents</p>
@@ -496,7 +496,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
               <a href="#run-agent" className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-[#2563EB]">
                 Run an agent
               </a>
-              <Link href="/dashboard/agents/approvals" className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:border-border-strong hover:bg-surface-2">
+              <Link href="/dashboard/agents/approvals" className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:border-gray-200 hover:bg-surface-2">
                 Review approvals
                 {pendingApprovals.length > 0 && (
                   <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-xs font-semibold text-brand-primary">
@@ -511,19 +511,19 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Operating snapshot</p>
             <p className="mt-1 text-sm text-text-sec">{companyName} · {agentList.length} agents available</p>
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Running</p>
                 <p className="mt-2 text-2xl font-semibold text-text-primary">{runningTasks.length}</p>
               </div>
-              <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Queued</p>
                 <p className="mt-2 text-2xl font-semibold text-text-primary">{queuedTasks.length}</p>
               </div>
-              <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Approvals</p>
                 <p className="mt-2 text-2xl font-semibold text-brand-primary">{pendingApprovals.length}</p>
               </div>
-              <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="rounded-2xl border border-gray-100 bg-white p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">Outputs</p>
                 <p className="mt-2 text-2xl font-semibold text-text-primary">{recentOutputs.length}</p>
               </div>
@@ -532,7 +532,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         </div>
       </section>
 
-      <div id="run-agent" className="mb-6 rounded-2xl border border-border bg-surface p-6">
+      <div id="run-agent" className="mb-6 rounded-2xl border border-gray-100 bg-white p-6">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Run an agent</p>
@@ -556,8 +556,8 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                 onClick={() => setSelectedAgent(isSelected ? null : agent.id as AgentId)}
                 className={`group flex min-h-[118px] flex-col gap-3 rounded-2xl border p-4 text-left transition-all ${
                   isSelected
-                    ? 'border-brand-primary bg-brand-primary/5 shadow-sm'
-                    : 'border-border bg-surface hover:border-border-strong hover:bg-surface-2'
+                    ? 'border-brand-primary bg-brand-primary/5'
+                    : 'border-border bg-surface hover:border-gray-200 hover:bg-surface-2'
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -586,7 +586,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
           <div className="border-t border-border pt-5">
             {selectedAgentConfig && (
               <div className="mb-4">
-                <div className="mb-4 rounded-2xl border border-border bg-surface-2 p-4">
+                <div className="mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
                   <p className="text-sm font-semibold text-text-primary">
                     {AGENTS[selectedAgent].name} setup
                   </p>
@@ -698,7 +698,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                   <button
                     key={t.label}
                     onClick={() => setConstraints(prev => prev ? `${prev}\n${t.text}` : t.text)}
-                    className="rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-sec transition-colors hover:border-border-strong hover:text-text-primary"
+                    className="rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-sec transition-colors hover:border-gray-200 hover:text-text-primary"
                   >
                     + {t.label}
                   </button>
@@ -737,7 +737,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         )}
 
         {!selectedAgent && (
-          <div className="rounded-2xl border border-dashed border-border bg-surface-2 px-4 py-8 text-center text-sm text-text-sec">
+          <div className="rounded-2xl border border-gray-100 bg-white px-4 py-8 text-center text-sm text-text-sec">
             Select an agent above to get started
           </div>
         )}
@@ -766,7 +766,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
           <span className="flex-shrink-0 text-sm font-semibold text-brand-primary">Review</span>
         </Link>
       ) : (
-        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-border bg-surface p-5">
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-5">
           <i className="ti ti-circle-check text-status-success" style={{ fontSize: 16 }} />
           <span className="text-sm text-text-sec">Queue is clear. Nothing is waiting for review.</span>
         </div>
@@ -776,7 +776,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       <div className="mb-6 grid gap-6 xl:grid-cols-[0.9fr_1.25fr]">
 
         {/* Left: Live feed */}
-        <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-border bg-surface p-5">
+        <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-5">
           <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Live activity</p>
 
           {activeOrchestration ? (
@@ -897,7 +897,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         </div>
 
         {/* Right: Scorecard */}
-        <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-border bg-surface p-5">
+        <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-5">
           <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Agent scorecard</p>
           <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-4">
             {/* Header */}
@@ -932,7 +932,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
       </div>
 
       {/* ═══ ZONE 2B: Agent Outputs ═══ */}
-      <div className="mb-6 rounded-2xl border border-border bg-surface p-5">
+      <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Recent outputs</p>
@@ -951,7 +951,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                 <Link
                   key={output.id}
                   href={`/dashboard/agents/${output.agent}/outputs?output=${output.id}`}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-border bg-surface px-4 py-3 no-underline transition-colors hover:border-border-strong hover:bg-surface-2"
+                  className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white px-4 py-3 no-underline transition-colors hover:border-gray-200 hover:bg-surface-2"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-text-primary">

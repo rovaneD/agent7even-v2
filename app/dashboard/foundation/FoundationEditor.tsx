@@ -186,7 +186,7 @@ function AnswerField({
   const collapsed = !isOpen && overflowing
 
   return (
-    <div className="rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-border-strong focus-within:border-brand-primary/50">
+    <div className="rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-gray-200 focus-within:border-brand-primary/50">
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
         <span className="text-[13px] font-medium text-text">{label}</span>
         {score != null && score.score > 0 && (
@@ -289,7 +289,7 @@ function CompetitorsField({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-border-strong focus-within:border-brand-primary/50">
+    <div className="rounded-xl border border-border bg-surface px-4 py-3.5 transition-colors hover:border-gray-200 focus-within:border-brand-primary/50">
       <div className="mb-2 flex items-baseline justify-between gap-3">
         <span className="text-[13px] font-medium text-text">Competitors</span>
         {score != null && score.score > 0 && (
@@ -523,14 +523,14 @@ export default function FoundationEditor({
   if (!initialAnswers) {
     return (
       <div className="mx-auto max-w-[1240px] px-8 py-8">
-        <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+        <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
           <div className="p-7">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Foundation</p>
             <h1 className="text-[30px] font-semibold tracking-tight text-text">Your business foundation</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-text-sec">The answers that inform everything Maya creates for you.</p>
           </div>
         </section>
-        <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-surface p-12 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white p-12 text-center">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-primary/10">
             <span className="text-xl font-bold text-brand-primary">M</span>
           </div>
@@ -558,7 +558,7 @@ export default function FoundationEditor({
   return (
     <div className="mx-auto max-w-[1240px] px-8 py-8">
 
-      <section className="mb-7 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+      <section className="mb-7 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Foundation</p>
@@ -567,7 +567,7 @@ export default function FoundationEditor({
               The answers that inform everything Maya creates for you. Edit anything, then rescore.
             </p>
           </div>
-          <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Strength</p>
             <p className={`mt-1 text-2xl font-semibold ${scoreColor(score)}`}>{score}%</p>
           </div>
@@ -702,7 +702,7 @@ export default function FoundationEditor({
         {/* ── Right: strength panel (sticky) ───────────────────────────────── */}
         <div className="lg:sticky lg:top-8 lg:self-start space-y-3">
 
-          <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm font-semibold text-text">Foundation strength</span>
               <span className={`text-2xl font-semibold ${scoreColor(score)}`}>{score}%</span>
@@ -771,7 +771,7 @@ export default function FoundationEditor({
             )}
           </div>
 
-          <div className="rounded-2xl border border-border bg-surface-2 p-4">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
             <p className="mb-2 text-xs font-semibold text-text">What Maya uses this for</p>
             <ul className="space-y-1.5">
               {[

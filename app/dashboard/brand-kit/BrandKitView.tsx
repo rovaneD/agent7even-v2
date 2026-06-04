@@ -139,7 +139,7 @@ export default function BrandKitView({
   return (
     <div className="mx-auto max-w-[1240px] px-8 py-8">
 
-      <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+      <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Brand Kit</p>
@@ -148,7 +148,7 @@ export default function BrandKitView({
               Your complete brand system: colors, fonts, voice, templates, and visual assets.
             </p>
           </div>
-          <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
             <div className="mb-2 flex items-center justify-between gap-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Complete</p>
               <p className="text-sm font-semibold text-text">{completedCount}/6</p>

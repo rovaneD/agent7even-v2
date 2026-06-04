@@ -156,7 +156,7 @@ The user is reviewing planned campaign content and may need help turning items i
     <div className="mx-auto max-w-[1440px] px-8 py-8">
       <CanvasContextDispatcher context={context} />
 
-      <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+      <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Content Calendar</p>
@@ -179,15 +179,15 @@ The user is reviewing planned campaign content and may need help turning items i
       </section>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white p-5">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-soft">Planned items</p>
           <p className="text-3xl font-semibold text-text">{entries.length}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white p-5">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-soft">Active campaigns</p>
           <p className="text-3xl font-semibold text-text">{activeCampaigns.length}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white p-5">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-text-soft">Content time</p>
           <div className="flex items-end gap-2">
             <p className="text-3xl font-semibold text-text">{totalMinutes ? `${totalMinutes}m` : channelCount}</p>
@@ -198,7 +198,7 @@ The user is reviewing planned campaign content and may need help turning items i
       </div>
 
       {entries.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-surface p-16 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white p-16 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary/10">
             <CalendarDays size={22} className="text-brand-primary" />
           </div>
@@ -217,7 +217,7 @@ The user is reviewing planned campaign content and may need help turning items i
       ) : (
         <div className="space-y-6">
           {weeks.map(week => (
-            <section key={week.week} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+            <section key={week.week} className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
               <div className="flex flex-col gap-2 border-b border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-primary">Week {week.week}</p>
@@ -247,7 +247,7 @@ The user is reviewing planned campaign content and may need help turning items i
                             <Link
                               key={entry.id}
                               href={`/dashboard/campaigns/${entry.campaignId}`}
-                              className="block rounded-xl border border-border bg-surface p-3 transition-all hover:border-brand-primary/40 hover:bg-surface-2 hover:shadow-sm"
+                              className="block rounded-xl border border-gray-100 bg-white p-3 transition-all hover:border-brand-primary/40 hover:bg-surface-2"
                             >
                               <div className="mb-2 flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5 min-w-0">

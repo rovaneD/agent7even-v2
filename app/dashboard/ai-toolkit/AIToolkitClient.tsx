@@ -359,7 +359,7 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
   }
 
   return (
-    <div className={`rounded-2xl border p-5 mb-6 ${nearLimit ? 'bg-status-warning/10 border-status-warning/20' : 'bg-surface border-border'}`}>
+    <div className={`rounded-2xl border p-5 mb-6 ${nearLimit ? 'bg-status-warning/10 border-status-warning/20' : 'bg-white border-gray-100'}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Tooltip content={PLAN_TOOLTIP[plan] ?? plan}>
@@ -502,7 +502,7 @@ export default function AIToolkitClient({
     <div className="mx-auto max-w-[1240px] px-8 py-8">
 
       {/* Header */}
-      <div className="mb-6 rounded-[24px] border border-border bg-surface p-7 shadow-sm">
+      <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-7">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">AI Toolkit</p>
@@ -510,11 +510,11 @@ export default function AIToolkitClient({
             <p className="mt-2 text-sm text-text-sec">Generate content, copy, and strategy from reusable marketing prompts.</p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-shrink-0">
-            <div className="rounded-2xl border border-border bg-surface-muted px-5 py-4 text-center">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-center">
               <p className="text-xl font-semibold text-brand-primary">{totalRuns}</p>
               <p className="text-xs text-text-soft">Outputs</p>
             </div>
-            <div className="rounded-2xl border border-border bg-surface-muted px-5 py-4 text-center">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-center">
               <p className="text-xl font-semibold text-status-success">{totalHours}h</p>
               <p className="text-xs text-text-soft">Time saved</p>
             </div>
@@ -640,8 +640,8 @@ export default function AIToolkitClient({
                   disabled={locked}
                   className={`rounded-2xl border p-5 text-left transition-all group relative ${
                     locked
-                      ? 'bg-surface-muted border-border cursor-not-allowed'
-                      : 'bg-surface border-border hover:border-brand-primary/30 hover:shadow-sm cursor-pointer'
+                      ? 'bg-gray-50 border-gray-100 cursor-not-allowed'
+                      : 'bg-white border-gray-100 hover:border-brand-primary/30 cursor-pointer'
                   }`}
                 >
                   {locked && (

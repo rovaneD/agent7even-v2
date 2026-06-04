@@ -210,7 +210,7 @@ The user can invite new team members and manage their roles and permissions.`
   return (
     <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
 
-      <section className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Team</p>
@@ -220,7 +220,7 @@ The user can invite new team members and manage their roles and permissions.`
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Seats</p>
               <p className="mt-1 text-2xl font-semibold text-text">{totalSeats + 1}</p>
             </div>
@@ -252,7 +252,7 @@ The user can invite new team members and manage their roles and permissions.`
       )}
 
       {/* Seat usage card */}
-      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-6">
         <div className="flex items-start justify-between mb-5">
           <div>
             <h2 className="text-sm font-semibold text-text">Seat usage</h2>
@@ -297,7 +297,7 @@ The user can invite new team members and manage their roles and permissions.`
       </div>
 
       {/* Team members list */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="border-b border-border px-6 py-4">
           <h2 className="text-sm font-semibold text-text">Team members</h2>
         </div>

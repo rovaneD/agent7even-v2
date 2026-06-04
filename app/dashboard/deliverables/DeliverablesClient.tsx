@@ -196,7 +196,7 @@ The user can download files from Agent7even and upload their own briefs and asse
   return (
     <div className="mx-auto max-w-[1240px] px-8 py-8 space-y-6">
 
-      <section className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Deliverables</p>
@@ -206,7 +206,7 @@ The user can download files from Agent7even and upload their own briefs and asse
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Files</p>
               <p className="mt-1 text-2xl font-semibold text-text">{deliverables.length}</p>
             </div>
@@ -243,7 +243,7 @@ The user can download files from Agent7even and upload their own briefs and asse
 
       {/* Empty state */}
       {projects.length === 0 && (
-        <div className="rounded-[24px] border border-dashed border-border bg-surface p-12 text-center">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary/10">
             <Folder size={24} className="text-brand-primary" />
           </div>
@@ -267,7 +267,7 @@ The user can download files from Agent7even and upload their own briefs and asse
         const files = grouped[project]
         const isExpanded = expandedProjects.has(project)
         return (
-          <div key={project} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+          <div key={project} className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
             <button
               onClick={() => toggleProject(project)}
               className="flex w-full items-center gap-3 px-6 py-4 text-left transition-colors hover:bg-surface-2"

@@ -168,13 +168,13 @@ The user can view existing tickets or open a new support ticket with the Agent7e
           Back to support
         </button>
 
-        <div className="mb-6 rounded-[24px] border border-border bg-surface p-7 shadow-sm">
+        <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-7">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Support</p>
           <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-text">New support ticket</h1>
           <p className="mt-2 text-sm text-text-sec">Share the issue, set priority, and keep the thread in one place.</p>
         </div>
 
-        <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm space-y-5">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 space-y-5">
           <div>
             <label className="text-xs font-semibold text-text-soft uppercase tracking-wide block mb-2">Subject</label>
             <input
@@ -306,7 +306,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
 
         {/* Reply box */}
         {activeTicket.status === 'open' ? (
-          <div className="rounded-[24px] border border-border bg-surface p-4 shadow-sm">
+          <div className="rounded-2xl border border-gray-100 bg-white p-4">
             <textarea
               value={replyBody}
               onChange={e => setReplyBody(e.target.value)}
@@ -338,7 +338,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
   // ── Ticket list ──────────────────────────────────────────────────────────────
   return (
     <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
-      <div className="rounded-[24px] border border-border bg-surface p-7 shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-7">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Support</p>
@@ -358,7 +358,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
       </div>
 
       {tickets.length === 0 ? (
-        <div className="rounded-[24px] border border-dashed border-border bg-surface p-12 text-center shadow-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center">
           <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center mx-auto mb-4">
             <MessageSquare size={24} className="text-brand-primary" />
           </div>
@@ -380,7 +380,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
             <button
               key={ticket.id}
               onClick={() => openTicket(ticket)}
-              className="w-full bg-surface rounded-2xl border border-border hover:border-brand-primary/30 hover:shadow-sm p-5 text-left transition-all"
+              className="w-full rounded-2xl border border-gray-100 bg-white p-5 text-left transition-all hover:border-brand-primary/30"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">

@@ -188,7 +188,7 @@ ${generating ? 'Brand documents are currently being generated.' : ''}`
                   onClick={() => doc && openDocument(doc)}
                   className={`bg-white rounded-2xl border p-6 transition-all ${
                     doc
-                      ? 'border-gray-100 hover:border-[#3B82F6]/30 hover:shadow-sm cursor-pointer'
+                      ? 'border-gray-100 hover:border-[#3B82F6]/30 cursor-pointer'
                       : 'border-dashed border-gray-200 opacity-60'
                   }`}
                 >

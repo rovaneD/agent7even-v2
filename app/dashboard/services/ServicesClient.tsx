@@ -697,7 +697,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           </div>
         )}
 
-        <div className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
           <div className="flex items-start justify-between gap-4 border-b border-border p-6">
             <div className="flex items-start gap-4 min-w-0">
               <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
@@ -775,7 +775,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                 </div>
               ) : (
                 generatedAssets.map(message => (
-                  <div key={message.id} className="overflow-hidden rounded-2xl border border-border bg-surface">
+                  <div key={message.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
                     <div className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-5 py-4">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-widest text-status-success">Maya generated hooks</p>
@@ -789,7 +789,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                             `${formatOrderNumber(selectedOrder)} · Generated ${new Date(selectedOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
                             displayServiceBrief(message.body)
                           )}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-sec transition-colors hover:border-border-strong hover:text-text"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-sec transition-colors hover:border-gray-200 hover:text-text"
                         >
                           <Download size={12} />
                           PDF
@@ -830,7 +830,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             )}
           </div>
 
-          <div className="border-t border-border bg-surface p-4">
+          <div className="border-t border-gray-100 bg-white p-4">
             {selectedOrder.support_ticket_id && !isViralHooksOrder ? (
               <div>
                 <textarea
@@ -869,7 +869,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
   return (
     <div className="mx-auto max-w-[1240px] px-8 py-8">
 
-      <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+      <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Services</p>
@@ -879,11 +879,11 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:flex">
-            <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Active</p>
               <p className="mt-1 text-2xl font-semibold text-text">{activeOrders.length}</p>
             </div>
-            <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Saved</p>
               <p className="mt-1 text-2xl font-semibold text-text">{localOrders.length}</p>
             </div>
@@ -891,7 +891,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
         </div>
         {localOrders.length > 0 && (
           <div className="border-t border-border bg-surface-2 px-7 py-4">
-          <div className="flex w-fit items-center gap-1 rounded-xl border border-border bg-surface p-1">
+          <div className="flex w-fit items-center gap-1 rounded-xl border border-gray-100 bg-white p-1">
             {(['browse', 'orders'] as const).map(tab => (
               <button
                 key={tab}
@@ -936,7 +936,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             return (
               <div
                 key={service.id}
-                className="rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all hover:border-brand-primary/40 hover:bg-surface-2"
+                className="rounded-2xl border border-gray-100 bg-white p-5 transition-all hover:border-brand-primary/40 hover:bg-surface-2"
               >
                 <div className="flex items-start justify-between mb-4 gap-2">
                   <div className="flex items-center gap-3 min-w-0">
@@ -1004,7 +1004,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
       {activeTab === 'orders' && (
         <div className="space-y-4">
           {localOrders.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
+            <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-primary/10">
                 <ShoppingBag size={20} className="text-brand-primary" />
               </div>
@@ -1109,7 +1109,7 @@ function OrderCard({
   const StatusIcon = displayStatus.icon
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm transition-all hover:border-brand-primary/30 hover:bg-surface-2 sm:p-5">
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-brand-primary/30 hover:bg-surface-2 sm:p-5">
       <div className="flex items-center gap-3 min-w-0">
         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
           <ServiceIcon size={16} className="text-brand-primary" />

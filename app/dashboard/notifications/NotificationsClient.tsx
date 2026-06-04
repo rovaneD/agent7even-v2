@@ -160,7 +160,7 @@ The user can mark notifications as read and follow links to relevant pages.`
   return (
     <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
 
-      <section className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Notifications</p>
@@ -186,7 +186,7 @@ The user can mark notifications as read and follow links to relevant pages.`
       </section>
 
       {/* Filter tabs */}
-      <div className="flex w-fit items-center gap-1 rounded-xl border border-border bg-surface p-1">
+      <div className="flex w-fit items-center gap-1 rounded-xl border border-gray-100 bg-white p-1">
         {(['all', 'unread', 'read'] as Filter[]).map(f => (
           <button
             key={f}
@@ -209,7 +209,7 @@ The user can mark notifications as read and follow links to relevant pages.`
 
       {/* Notification list */}
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
+        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center">
           <Bell size={24} className="mx-auto mb-3 text-text-soft" />
           <p className="mb-1 text-sm font-semibold text-text">
             {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
@@ -228,7 +228,7 @@ The user can mark notifications as read and follow links to relevant pages.`
               className={`rounded-2xl border transition-all ${
                 !notif.read
                   ? 'border-brand-primary/20 bg-brand-primary/5 hover:border-brand-primary/30'
-                  : 'border-border bg-surface hover:border-border-strong'
+                  : 'border-gray-100 bg-white hover:border-gray-200'
               }`}
             >
               <div className="flex items-start gap-4 p-5">

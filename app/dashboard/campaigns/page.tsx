@@ -74,7 +74,7 @@ The user can create new campaigns or view existing ones.`
     <div className="mx-auto max-w-[1240px] px-8 py-8">
       <CanvasContextDispatcher context={contextString} />
 
-      <section className="mb-8 overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+      <section className="mb-8 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Campaigns</p>
@@ -84,11 +84,11 @@ The user can create new campaigns or view existing ones.`
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Total</p>
               <p className="mt-1 text-2xl font-semibold text-text">{campaignRows.length}</p>
             </div>
-            <div className="rounded-2xl border border-border bg-surface-2 px-4 py-3">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Active</p>
               <p className="mt-1 text-2xl font-semibold text-status-success">{activeCount}</p>
             </div>
@@ -110,7 +110,7 @@ The user can create new campaigns or view existing ones.`
       </section>
 
       {!campaigns?.length ? (
-        <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-surface p-16 text-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white p-16 text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-primary/10">
             <Megaphone className="h-6 w-6 text-brand-primary" />
           </div>
@@ -129,7 +129,7 @@ The user can create new campaigns or view existing ones.`
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {campaignRows.map(campaign => (
             <Link key={campaign.id} href={`/dashboard/campaigns/${campaign.id}`}>
-              <div className="group rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all hover:border-brand-primary/40 hover:bg-surface-2">
+              <div className="group rounded-2xl border border-gray-100 bg-white p-5 transition-all hover:border-brand-primary/40 hover:bg-surface-2">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <span className="text-xs font-semibold capitalize text-text-sec">
                     {campaign.mode === 'guided'

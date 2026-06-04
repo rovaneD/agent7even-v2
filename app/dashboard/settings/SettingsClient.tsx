@@ -151,14 +151,14 @@ The user can update their company name, website URL, and Instagram handle. Name 
     <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
 
       {/* Header */}
-      <div className="rounded-[24px] border border-border bg-surface p-7 shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-7">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Settings</p>
         <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-text">Account controls</h1>
         <p className="mt-2 text-sm text-text-sec">Manage business details, notification preferences, and account access.</p>
       </div>
 
       {/* Account info — read only */}
-      <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-6">
         <h2 className="text-sm font-semibold text-text mb-5">Account</h2>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
@@ -205,7 +205,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
       </div>
 
       {/* Business details — editable */}
-      <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-6">
         <h2 className="text-sm font-semibold text-text mb-5">Business details</h2>
         <div className="space-y-5">
 
@@ -292,7 +292,7 @@ The user can update their company name, website URL, and Instagram handle. Name 
       </div>
 
       {/* Email preferences */}
-      <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-6">
         <div className="flex items-center gap-2 mb-5">
           <Bell size={14} className="text-brand-primary" />
           <h2 className="text-sm font-semibold text-text">Email notifications</h2>

@@ -143,7 +143,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
   return (
     <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
 
-      <div className="rounded-[24px] border border-border bg-surface p-7 shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Billing</p>
@@ -151,11 +151,11 @@ The user can view their current plan, upgrade to a higher tier, and access the S
             <p className="mt-2 text-sm text-text-sec">Manage your subscription, credit balance, and invoices.</p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:flex">
-            <div className="rounded-2xl border border-border bg-surface-muted px-5 py-4">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Current plan</p>
               <p className="mt-1 text-lg font-semibold text-text">{currentPlan?.name ?? 'No plan'}</p>
             </div>
-            <div className="rounded-2xl border border-border bg-surface-muted px-5 py-4">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Credits</p>
               <p className="mt-1 text-lg font-semibold text-brand-primary">{creditBalance}</p>
             </div>
@@ -174,7 +174,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
       )}
 
       {topupStatus === 'cancelled' && (
-        <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+        <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3">
           <p className="text-sm text-text-sec">Purchase cancelled. No charge was made.</p>
         </div>
       )}
@@ -193,7 +193,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
       )}
 
       {/* Current plan */}
-      <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-100 bg-white p-6">
         <div className="flex items-start justify-between mb-6">
           <div>
             <p className="text-xs font-semibold text-text-soft uppercase tracking-wide mb-2">Current plan</p>
@@ -263,7 +263,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
 
       {/* Upgrade section */}
       {upgradeTo.length > 0 && (
-        <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-[17px] font-semibold text-text">
@@ -306,7 +306,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
               return (
                 <div
                   key={planKey}
-                  className="border border-border rounded-2xl p-5 hover:border-brand-primary/30 hover:shadow-sm transition-all flex flex-col"
+                  className="flex flex-col rounded-2xl border border-gray-100 bg-white p-5 transition-all hover:border-brand-primary/30"
                 >
                   {/* Header */}
                   <div className="flex items-center gap-2 mb-3">
@@ -361,7 +361,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
 
       {/* Invoice history */}
       {invoices.length > 0 && (
-        <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6">
           <h3 className="text-[17px] font-semibold text-text mb-5">Invoice history</h3>
           <div className="divide-y divide-border">
             {invoices.map((inv) => (
@@ -399,7 +399,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
       )}
 
       {invoices.length === 0 && currentPlan && (
-        <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6">
           <h3 className="text-[17px] font-semibold text-text mb-2">Invoice history</h3>
           <p className="text-sm text-text-sec">No invoices yet. They&#39;ll appear here after your first billing cycle.</p>
         </div>
