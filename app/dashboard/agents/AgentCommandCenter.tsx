@@ -482,7 +482,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
   return (
     <div className="mx-auto max-w-[1240px] px-8 py-8">
 
-      <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
+      <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-[0_20px_60px_rgba(45,55,72,0.08)]">
         <div className="grid gap-0 lg:grid-cols-[1.35fr_0.9fr]">
           <div className="p-7">
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-menu-muted">Agents</p>
