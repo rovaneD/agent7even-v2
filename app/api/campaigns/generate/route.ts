@@ -64,17 +64,19 @@ export async function POST(req: Request) {
   const { data: saved, error: insertError } = await supabase
     .from('campaigns')
     .insert({
-      user_id:          profile.id,
-      title:            campaign.title,
-      mode:             body.mode,
-      segment:          body.segment ?? null,
-      goal:             body.goal ?? null,
-      timeline_days:    body.timelineDays ?? null,
-      strategy_summary: campaign.strategySummary,
-      do_this_today:    campaign.doThisToday,
-      week_plan:        campaign.weekPlan,
-      model_used:       result.modelUsed,
-      status:           'active',
+      user_id: profile.id,
+      title: campaign.title,
+      plan: {
+        mode: body.mode,
+        segment: body.segment ?? null,
+        goal: body.goal ?? null,
+        timelineDays: body.timelineDays ?? null,
+        strategySummary: campaign.strategySummary,
+        doThisToday: campaign.doThisToday,
+        weekPlan: campaign.weekPlan,
+      },
+      model_used: result.modelUsed,
+      status: 'active',
     })
     .select('id')
     .single()

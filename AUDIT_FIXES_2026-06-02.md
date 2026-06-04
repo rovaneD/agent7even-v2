@@ -405,6 +405,32 @@ npm run build
 
 Build may require sandbox escalation because Turbopack opens worker ports.
 
+## Foundation Completion Loop and Campaigns Live-Schema Compatibility
+
+Issues addressed:
+
+- New users could reach Foundation Step 5 before checkout with no credit
+  balance. Foundation document generation used the normal credit-charging agent
+  runner, returned `INSUFFICIENT_CREDITS`, and left the user in a loop.
+- The Foundation client did not surface generation failures and could navigate
+  away after a partial result.
+- The live `campaigns` table stores structured campaign output in `plan` and
+  does not contain newer top-level fields such as `segment`, `week_plan`, or
+  `do_this_today`. Calendar and related consumers queried those missing columns.
+
+Fixes:
+
+- Added an explicit platform-funded runner mode and used it for pre-checkout
+  Foundation generation while retaining task, output, token, and cost tracking.
+- Foundation generation now returns a failure status when any required document
+  is missing, and Step 5 shows a visible retryable error instead of silently
+  redirecting.
+- Campaign generation now writes the structured artifact to `campaigns.plan`.
+- Campaigns list, detail, digest, agent context, and Content Calendar now read
+  the live schema and normalize plan data for their existing UI contracts.
+- Content Calendar supports both current `plan.weekPlan` output and legacy
+  `plan.weeks[].tasks[]` output.
+
 ## Remaining Local Notes
 
 The following untracked files remained local and were intentionally not included in the fix commit:

@@ -10,6 +10,7 @@ type Campaign = {
   title: string
   mode?: string | null
   segment?: string | null
+  plan?: { mode?: string | null; segment?: string | null } | null
   status: string
   created_at: string
 }
@@ -132,8 +133,8 @@ The user can create new campaigns or view existing ones.`
               <div className="group rounded-2xl border border-gray-100 bg-white p-5 transition-all hover:border-brand-primary/40 hover:bg-surface-2">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <span className="text-xs font-semibold capitalize text-text-sec">
-                    {campaign.segment?.replace(/_/g, ' ') ??
-                      (campaign.mode === 'guided' ? 'Guided' : 'Custom campaign')}
+                    {(campaign.segment ?? campaign.plan?.segment)?.replace(/_/g, ' ') ??
+                      ((campaign.mode ?? campaign.plan?.mode) === 'guided' ? 'Guided' : 'Custom campaign')}
                   </span>
                   <StatusBadge status={campaign.status} />
                 </div>

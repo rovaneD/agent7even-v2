@@ -29,6 +29,11 @@ Primary workspace areas:
 
 Foundation is the canonical onboarding route. Do not add redirects to the
 deleted `/onboarding` page.
+
+Foundation document generation occurs before checkout and is platform-funded.
+It must not depend on a new user's credit balance. A Foundation generation
+failure must remain visible on Step 5 and must not redirect the user as though
+setup completed.
 - Team, Billing, Notifications, and Settings
 
 ## 2. Current Visual Direction
@@ -80,6 +85,9 @@ Expected behavior:
 - On Services, Maya understands available services, active orders, and selected
   order state.
 - On Calendar, Maya understands the week/day/content context.
+- Campaign artifacts are canonically stored in `campaigns.plan` for the live
+  Supabase schema. Consumers must tolerate both `plan.weekPlan` and legacy
+  `plan.weeks[].tasks[]` shapes.
 - On Brand Kit and Foundation, Maya uses saved brand and business context.
 - On Deliverables, Maya understands the permanent asset library.
 

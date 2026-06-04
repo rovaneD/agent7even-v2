@@ -24,10 +24,11 @@ type Campaign = {
   id: string
   title: string
   status: string
-  segment: string | null
-  timeline_days: number | null
+  segment?: string | null
+  timeline_days?: number | null
   created_at: string
-  week_plan: WeekItem[] | null
+  week_plan?: WeekItem[] | null
+  plan?: { weekPlan?: WeekItem[]; weeks?: Array<{ week?: number; theme?: string; tasks?: Array<{ day?: string; channel?: string; action?: string }> }> } | null
 }
 
 type CalendarEntry = {
@@ -69,7 +70,23 @@ function channelIcon(channel: string) {
 
 function buildEntries(campaigns: Campaign[]): CalendarEntry[] {
   return campaigns.flatMap(campaign => {
-    const weeks = Array.isArray(campaign.week_plan) ? campaign.week_plan : []
+    const legacyWeeks: WeekItem[] = Array.isArray(campaign.plan?.weeks)
+      ? campaign.plan.weeks.map(week => ({
+          week: week.week,
+          theme: week.theme,
+          days: (week.tasks ?? []).map(task => ({
+            day: task.day,
+            channel: task.channel,
+            type: 'Task',
+            content: task.action,
+          })),
+        }))
+      : []
+    const weeks = Array.isArray(campaign.week_plan)
+      ? campaign.week_plan
+      : Array.isArray(campaign.plan?.weekPlan)
+        ? campaign.plan.weekPlan
+        : legacyWeeks
     return weeks.flatMap((week, weekIndex) => {
       const days = Array.isArray(week.days) ? week.days : []
       return days.map((day, index) => {
@@ -125,7 +142,7 @@ export default async function CalendarPage() {
 
   const { data: campaigns, error } = await supabase
     .from('campaigns')
-    .select('id, title, status, segment, timeline_days, created_at, week_plan')
+    .select('*')
     .eq('user_id', profile.id)
     .order('created_at', { ascending: false })
 

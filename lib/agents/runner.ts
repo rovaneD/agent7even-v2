@@ -237,14 +237,16 @@ export async function runAgent(opts: {
   fallbackModels?:  string[]
   maxTokens?:       number
   temperature?:     number
+  chargeCredits?:   boolean
 }): Promise<AgentExecutionResult & { taskId: string; creditsDeducted: number }> {
 
   const supabase = createServiceClient()
   const tier = opts.runTier ?? classifyRunTier(opts.orchestrationId ? 2 : 1)
   const { CREDIT_COST } = await import('./cost')
   const creditsNeeded = CREDIT_COST[tier]
+  const shouldChargeCredits = opts.chargeCredits !== false
 
-  // 1. Create task record, then atomically reserve credits before model spend.
+  // 1. Create task record, then reserve credits before model spend unless this is platform-funded work.
   const task = await createTask({
     userId:          opts.userId,
     agentId:         opts.agentId,
@@ -259,13 +261,15 @@ export async function runAgent(opts: {
     await setOrchestrationAgentStatus(opts.orchestrationId, opts.agentId, 'running')
   }
 
-  await deductCredits(
-    opts.userId,
-    creditsNeeded,
-    `${opts.agentId} — ${tier} reserved`,
-    taskId,
-    opts.orchestrationId
-  )
+  if (shouldChargeCredits) {
+    await deductCredits(
+      opts.userId,
+      creditsNeeded,
+      `${opts.agentId} — ${tier} reserved`,
+      taskId,
+      opts.orchestrationId
+    )
+  }
 
   // 2. Call OpenRouter
   let raw: { content: string; inputTokens: number; outputTokens: number; modelUsed: string }
@@ -292,7 +296,9 @@ export async function runAgent(opts: {
     }
   } catch (err) {
     await updateTaskStatus(taskId, 'failed')
-    await refundCredits(opts.userId, creditsNeeded, `${opts.agentId} failed — refund`, taskId).catch(() => {})
+    if (shouldChargeCredits) {
+      await refundCredits(opts.userId, creditsNeeded, `${opts.agentId} failed — refund`, taskId).catch(() => {})
+    }
     if (opts.orchestrationId) {
       await setOrchestrationAgentStatus(opts.orchestrationId, opts.agentId, 'failed')
     }
@@ -335,7 +341,9 @@ export async function runAgent(opts: {
       costUsd
     )
     if (budgetExceeded) {
-      await refundCredits(opts.userId, creditsNeeded, `${opts.agentId} budget exceeded — refund`, taskId).catch(() => {})
+      if (shouldChargeCredits) {
+        await refundCredits(opts.userId, creditsNeeded, `${opts.agentId} budget exceeded — refund`, taskId).catch(() => {})
+      }
       throw new Error('BUDGET_EXCEEDED')
     }
   }
@@ -347,7 +355,7 @@ export async function runAgent(opts: {
     costUsd,
     modelUsed:       raw.modelUsed,
     taskId,
-    creditsDeducted: creditsNeeded,
+    creditsDeducted: shouldChargeCredits ? creditsNeeded : 0,
   }
 }
 

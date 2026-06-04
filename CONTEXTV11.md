@@ -39,6 +39,15 @@ Main changes:
   checkout.
 - Repaired the Campaigns list query by avoiding an explicit PostgREST selection
   of the PostgreSQL ordered-set aggregate name `mode`.
+- Fixed the new-user Foundation Step 5 loop by making onboarding document
+  generation platform-funded instead of requiring credits before checkout.
+- Made Foundation generation failures visible and prevented partial document
+  generation from being treated as a successful completion.
+- Aligned Campaigns generation and all major Campaigns consumers with the live
+  Supabase schema, where the structured campaign artifact is stored in
+  `campaigns.plan`.
+- Added Content Calendar compatibility for both current `plan.weekPlan` output
+  and legacy `plan.weeks[].tasks[]` output.
 - Updated the dashboard shell and Maya panel to use the new visual language.
 - Changed primary CTAs from dark slate to blue.
 - Rebuilt the Dashboard Command Center into a more useful operating snapshot.
@@ -359,11 +368,12 @@ Pre-merge validation also confirmed:
 | 7 | Remaining dashboard utility page polish | DONE |
 | 8 | Dashboard alignment normalization | DONE |
 | 9 | Standard card normalization | DONE |
-| 10 | Full desktop/mobile visual QA | NEXT |
-| 11 | Admin visual-system pass | NEXT |
-| 12 | Typography and dense-row QA | NEXT |
-| 13 | Continue agent-specific output renderers | OPEN |
-| 14 | Credit top-up | OPEN |
-| 15 | Orchestration progress UI | OPEN |
-| 16 | Profile dedup | OPEN / data task |
-| 17 | Merge design-system branch to main | READY after final preview smoke test |
+| 10 | Foundation pre-checkout generation and Campaigns live-schema compatibility | DONE |
+| 11 | Full desktop/mobile visual QA | NEXT |
+| 12 | Admin visual-system pass | NEXT |
+| 13 | Typography and dense-row QA | NEXT |
+| 14 | Continue agent-specific output renderers | OPEN |
+| 15 | Credit top-up | OPEN |
+| 16 | Orchestration progress UI | OPEN |
+| 17 | Profile dedup | OPEN / data task |
+| 18 | Merge design-system branch to main | READY after final preview smoke test |

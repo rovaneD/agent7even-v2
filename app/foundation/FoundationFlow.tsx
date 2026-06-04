@@ -117,6 +117,13 @@ export const GOAL_OPTIONS = [
 ]
 
 const ALL_DOCS = ['Business brief', 'Ideal customer profile', 'Positioning statement', 'Brand voice guide', '30-day plan']
+const DOC_LABEL_BY_TYPE: Record<string, string> = {
+  brief: 'Business brief',
+  icp: 'Ideal customer profile',
+  positioning: 'Positioning statement',
+  voice: 'Brand voice guide',
+  plan: '30-day plan',
+}
 
 export default function FoundationFlow({ profileId, companyName, initialStep, selectedPlan }: Props) {
   const router = useRouter()
@@ -128,6 +135,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
   const [foundationScore, setFoundationScore] = useState<number | null>(null)
   const [weakFields, setWeakFields] = useState<string[]>([])
   const [fieldScores, setFieldScores] = useState<Record<string, FieldScore>>({})
+  const [generationError, setGenerationError] = useState<string | null>(null)
   const [answers, setAnswers] = useState<StepAnswers>({
     businessDescription: '',
     problemSolved: '',
@@ -194,12 +202,21 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers, companyName }),
     })
-    if (!res.ok) throw new Error('Generation failed: ' + res.status)
+    const data = await res.json().catch(() => ({}))
+    const generated = Array.isArray(data.generated) ? data.generated : []
+    setGenerationProgress(generated.map((type: string) => DOC_LABEL_BY_TYPE[type]).filter(Boolean))
+    if (!res.ok || data.success !== true) {
+      if (res.status === 402 || data.error === 'INSUFFICIENT_CREDITS') {
+        throw new Error('Your Foundation could not be generated because this account has no available credits.')
+      }
+      throw new Error(data.error || 'Your Foundation could not be generated. Please try again.')
+    }
     setGenerationProgress(ALL_DOCS)
     router.push(selectedPlan ? `/checkout-now?plan=${encodeURIComponent(selectedPlan)}` : '/dashboard')
   }
 
   async function handleGenerate() {
+    setGenerationError(null)
     setGenerating(true)
     setGenerationStage('scoring')
 
@@ -222,19 +239,22 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
 
       setGenerationStage('generating')
       await callGenerate()
-    } catch {
+    } catch (error) {
       setGenerating(false)
+      setGenerationError(error instanceof Error ? error.message : 'Your Foundation could not be generated. Please try again.')
     }
   }
 
   async function handleGenerateAnyway() {
     setShowWeakFieldsWarning(false)
+    setGenerationError(null)
     setGenerating(true)
     setGenerationStage('generating')
     try {
       await callGenerate()
-    } catch {
+    } catch (error) {
       setGenerating(false)
+      setGenerationError(error instanceof Error ? error.message : 'Your Foundation could not be generated. Please try again.')
     }
   }
 
@@ -708,6 +728,12 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
             <ArrowRight size={15} />
           </button>
         </div>
+        {generationError && (
+          <div className="mx-auto mt-3 flex max-w-2xl items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+            <span>{generationError}</span>
+          </div>
+        )}
       </div>
     </div>
   )

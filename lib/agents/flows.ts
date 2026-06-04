@@ -61,7 +61,7 @@ async function campaignsContext(userId: string): Promise<string> {
   const supabase = createServiceClient()
   const { data } = await supabase
     .from('campaigns')
-    .select('title, status, strategy_summary, do_this_today, week_plan, created_at')
+    .select('title, status, plan, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(3)

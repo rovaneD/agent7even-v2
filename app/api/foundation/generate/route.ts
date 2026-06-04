@@ -103,6 +103,7 @@ Monthly goal: ${answers.monthlyGoal}
           plan:            userPlan,
           orchestrationId,
           maxTokens:       1000,
+          chargeCredits:   false,
         })
         if (!result.content) throw new Error(`Empty content returned for ${doc.type}`)
         return { ...doc, content: result.content }
@@ -150,7 +151,14 @@ Monthly goal: ${answers.monthlyGoal}
         .eq('id', profile.id)
     }
 
-    return NextResponse.json({ success: allSaved, generated: saved, missing })
+    if (!allSaved) {
+      return NextResponse.json(
+        { error: 'Some foundation documents could not be generated.', generated: saved, missing },
+        { status: 500 },
+      )
+    }
+
+    return NextResponse.json({ success: true, generated: saved, missing })
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : ''

@@ -56,13 +56,16 @@ export async function POST(req: Request) {
   // Active campaigns → today's actions
   const { data: campaigns } = await supabase
     .from('campaigns')
-    .select('title, do_this_today')
+    .select('title, plan')
     .eq('user_id', profileId)
     .eq('status', 'active')
 
   const todayActions: { task: string; channel: string; campaignTitle: string; cta: string }[] = []
   campaigns?.forEach(campaign => {
-    const actions = (campaign.do_this_today as { task: string; channel: string }[]) ?? []
+    const plan = campaign.plan && typeof campaign.plan === 'object'
+      ? campaign.plan as Record<string, unknown>
+      : {}
+    const actions = (plan.doThisToday as { task: string; channel: string }[]) ?? []
     actions.slice(0, 2).forEach(action => {
       todayActions.push({
         task:          action.task,
