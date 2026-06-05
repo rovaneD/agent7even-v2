@@ -3,7 +3,7 @@
 import { Fragment, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { AGENTS, AgentId, AgentDefinition } from '@/lib/agents/registry'
+import { AGENTS, AgentId, AgentDefinition, AGENT_COLORS } from '@/lib/agents/registry'
 import OrchestrationProgress from '@/components/agents/OrchestrationProgress'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -561,7 +561,13 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${isSelected ? 'bg-brand-primary/10 text-brand-primary' : 'bg-surface-2 text-text-sec group-hover:text-brand-primary'}`}>
+                  <span
+                    className="flex h-10 w-10 items-center justify-center rounded-full transition-colors"
+                    style={isSelected
+                      ? { backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }
+                      : { backgroundColor: AGENT_COLORS[agent.id as AgentId]?.bg ?? '#F3F4F6', color: AGENT_COLORS[agent.id as AgentId]?.fg ?? '#6B7280' }
+                    }
+                  >
                     <i className={`ti ${agent.icon}`} style={{ fontSize: 20 }} />
                   </span>
                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
@@ -909,7 +915,15 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
             {scorecardWithLiveCounts.map(entry => (
               <Fragment key={entry.agentId}>
                 <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className="flex items-center gap-2 border-b border-border py-2.5 no-underline">
-                  <i className={`ti ${entry.icon} flex-shrink-0 text-text-sec`} style={{ fontSize: 14 }} />
+                  <span
+                    className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
+                    style={{
+                      backgroundColor: AGENT_COLORS[entry.agentId as AgentId]?.bg ?? '#F3F4F6',
+                      color: AGENT_COLORS[entry.agentId as AgentId]?.fg ?? '#6B7280',
+                    }}
+                  >
+                    <i className={`ti ${entry.icon}`} style={{ fontSize: 13 }} />
+                  </span>
                   <span className="whitespace-nowrap text-sm font-medium text-text-primary">{entry.name}</span>
                 </Link>
                 <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className="whitespace-nowrap border-b border-border py-2.5 text-xs text-text-sec no-underline">
