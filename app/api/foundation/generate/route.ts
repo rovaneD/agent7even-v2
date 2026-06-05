@@ -15,7 +15,13 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { answers, companyName } = await req.json()
+  const body = await req.json() as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    answers: Record<string, any>
+    companyName: string
+    sections?: string[]
+  }
+  const { answers, companyName, sections: sectionFilter } = body
   const supabase = createServiceClient()
 
   // Ensure profile row exists
@@ -51,7 +57,19 @@ Channels: ${answers.channels?.join(', ')}
 Monthly goal: ${answers.monthlyGoal}
   `.trim()
 
-  const docsToGenerate = [
+  // Map foundation sections → which docs they affect
+  const SECTION_DOCS: Record<string, string[]> = {
+    business:  ['brief', 'plan'],
+    customer:  ['icp'],
+    position:  ['positioning'],
+    voice:     ['voice'],
+    plan:      ['plan'],
+  }
+  const docFilter = sectionFilter?.length
+    ? new Set(sectionFilter.flatMap(s => SECTION_DOCS[s] ?? []))
+    : null  // null = generate all
+
+  const allDocs = [
     {
       type: 'brief',
       title: 'Business Brief',
@@ -78,6 +96,8 @@ Monthly goal: ${answers.monthlyGoal}
       prompt: `Based on this business context, create a focused 30-day marketing plan. Structure it as 4 weeks with a theme for each week. For each week: the focus area, 3-4 specific daily actions with the channel and estimated time. Also include: 3 quick wins to do in the first 48 hours, and 4 metrics to track. Budget: ${answers.marketingBudget}. Primary channels: ${answers.channels?.join(', ')}. Goal: ${answers.monthlyGoal}. Be specific and actionable. Max 400 words.`,
     },
   ]
+
+  const docsToGenerate = docFilter ? allDocs.filter(d => docFilter.has(d.type)) : allDocs
 
   const userPlan: string = (profile as Record<string, unknown>).plan as string ?? 'starter'
   const saved: string[] = []
@@ -139,7 +159,8 @@ Monthly goal: ${answers.monthlyGoal}
     const missing = docsToGenerate.map(d => d.type).filter(t => !saved.includes(t))
     const allSaved = saved.length === docsToGenerate.length
 
-    if (allSaved) {
+    // Only mark foundation_complete on a full (non-partial) generation
+    if (allSaved && !sectionFilter?.length) {
       await supabase
         .from('profiles')
         .update({

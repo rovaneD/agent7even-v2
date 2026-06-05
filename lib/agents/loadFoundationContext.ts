@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { computeMemoryStats, type FoundationMemoryResponse } from '@/app/api/foundation/memory/route'
 
 export interface FoundationContext {
   // Raw Foundation answers from profiles.foundation_answers JSONB.
@@ -69,4 +70,28 @@ export async function loadFoundationContext(profileId: string): Promise<Foundati
     Object.values(documents).some(v => v.length > 0)
 
   return { answers, documents, competitorsFreetext, hasFoundation }
+}
+
+export async function loadFoundationMemory(profileId: string): Promise<FoundationMemoryResponse> {
+  const supabase = createServiceClient()
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  const { data: outputs } = await supabase
+    .from('agent_outputs')
+    .select('status, created_at, agent_tasks(agent)')
+    .eq('user_id', profileId)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+
+  return computeMemoryStats((outputs ?? []) as unknown as Parameters<typeof computeMemoryStats>[0])
+}
+
+export function formatMemoryForAgent(memory: FoundationMemoryResponse): string {
+  if (!memory.hasData) return ''
+  const lines = memory.stats.map(s => {
+    const rate = s.approvalRate !== null ? ` · ${s.approvalRate}% approval` : ''
+    const pending = s.pending > 0 ? ` · ${s.pending} pending` : ''
+    return `- ${s.agentName}: ${s.total} run${s.total !== 1 ? 's' : ''}${rate}${pending}`
+  })
+  return `## Maya's Memory (last 30 days)\n${lines.join('\n')}`
 }

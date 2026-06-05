@@ -2,6 +2,9 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import FoundationEditor from './FoundationEditor'
+import FoundationHub from './FoundationHub'
+
+const FOUNDATION_V2 = process.env.NEXT_PUBLIC_FOUNDATION_V2 === 'true'
 
 export default async function FoundationPage() {
   const { userId } = await auth()
@@ -22,8 +25,8 @@ export default async function FoundationPage() {
 
   if (!profile?.id) redirect('/foundation')
 
-  // For users who completed Foundation before scoring existed, reconstruct
-  // answers from the individual profile columns saved by save-step.
+  // Reconstruct answers from individual columns for users who completed Foundation
+  // before the foundation_answers JSONB column existed.
   const initialAnswers: Record<string, unknown> | null = profile.foundation_answers ?? (
     profile.foundation_complete
       ? {
@@ -56,15 +59,44 @@ export default async function FoundationPage() {
     .select('field_key, score, feedback')
     .eq('user_id', profile.id)
 
+  const fieldScoreMap = Object.fromEntries(
+    (fieldScores ?? []).map(r => [r.field_key, { score: r.score, feedback: r.feedback }])
+  )
+
+  if (FOUNDATION_V2) {
+    const emptyAnswers = {
+      businessDescription: '', problemSolved: '', transformation: '',
+      customerWho: '', customerFrustration: '', customerTriedBefore: '',
+      customerBuyingTrigger: '', competitors: ['', '', ''],
+      differentiator: '', differentiatorOwn: '', toneTraits: [],
+      brandsAdmired: '', neverSoundLike: '', marketingBudget: '',
+      channels: [], monthlyGoal: '',
+    }
+    const hubAnswers = { ...emptyAnswers, ...(initialAnswers ?? {}) }
+    // Ensure competitors is always a 3-slot array
+    const comps = (hubAnswers.competitors as string[]) ?? []
+    hubAnswers.competitors = [...comps, '', '', ''].slice(0, 3)
+
+    return (
+      <FoundationHub
+        profileId={profile.id}
+        companyName={profile.company_name ?? ''}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        answers={hubAnswers as any}
+        score={profile.foundation_score ?? 0}
+        fieldScores={fieldScoreMap}
+        lastUpdated={profile.foundation_updated_at ?? null}
+      />
+    )
+  }
+
   return (
     <FoundationEditor
       profileId={profile.id}
       companyName={profile.company_name ?? ''}
       initialAnswers={initialAnswers}
       initialScore={profile.foundation_score ?? 0}
-      initialFieldScores={
-        Object.fromEntries((fieldScores ?? []).map(r => [r.field_key, { score: r.score, feedback: r.feedback }]))
-      }
+      initialFieldScores={fieldScoreMap}
       foundationComplete={profile.foundation_complete ?? false}
       lastUpdated={profile.foundation_updated_at ?? null}
     />

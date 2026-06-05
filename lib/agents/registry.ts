@@ -11,6 +11,8 @@ export type AgentId =
 
 export type AgentTrigger = 'user' | 'maya' | 'scheduled' | 'event'
 
+export type FoundationSectionKey = 'business' | 'customer' | 'position' | 'voice' | 'plan' | 'memory'
+
 export interface AgentDefinition {
   id: AgentId
   name: string
@@ -25,6 +27,10 @@ export interface AgentDefinition {
   outputType: string
   model: string
   defaultConstraints: string
+  /** Foundation sections this agent reads when generating */
+  foundationSections: FoundationSectionKey[]
+  /** Sections where thin content materially degrades this agent's output */
+  warnIfThinSections: FoundationSectionKey[]
 }
 
 export const AGENTS: Record<AgentId, AgentDefinition> = {
@@ -38,6 +44,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'competitor_report',
     model: 'google/gemini-2.5-flash',
     defaultConstraints: `Never disparage competitors by name. Never make claims about competitor products that aren't publicly verifiable. Never suggest illegal or unethical competitive tactics.`,
+    foundationSections: ['position'],
+    warnIfThinSections: ['position'],
   },
   weekly_content: {
     id: 'weekly_content',
@@ -48,6 +56,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'content',
     model: 'anthropic/claude-haiku-4',
     defaultConstraints: `Never make specific income or results claims without disclaimer. Never use urgency tactics like "limited time" unless explicitly provided by the client. Never post content that hasn't been approved if autonomy is set to approval_required. Always stay within the brand voice defined in Brand Kit.`,
+    foundationSections: ['business', 'voice', 'memory'],
+    warnIfThinSections: ['voice'],
   },
   campaign_builder: {
     id: 'campaign_builder',
@@ -58,6 +68,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'campaign',
     model: 'anthropic/claude-sonnet-4',
     defaultConstraints: `Never promise specific ROI or revenue outcomes. Never recommend ad spend above the client's stated marketing budget. Never build campaigns targeting demographics that conflict with the client's stated audience. Always flag if a campaign strategy requires budget the client hasn't confirmed.`,
+    foundationSections: ['business', 'customer', 'position', 'plan', 'memory'],
+    warnIfThinSections: [],
   },
   performance_digest: {
     id: 'performance_digest',
@@ -69,6 +81,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'analytics_insight',
     model: 'google/gemini-2.5-flash',
     defaultConstraints: `Never draw conclusions from fewer than 7 days of data without flagging the sample size. Never recommend stopping a channel based on a single week of poor performance. Never share raw data in outputs — always summarize with context.`,
+    foundationSections: ['plan', 'memory'],
+    warnIfThinSections: [],
   },
   trend_spotter: {
     id: 'trend_spotter',
@@ -80,6 +94,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'trend_report',
     model: 'google/gemini-2.5-flash',
     defaultConstraints: `Never recommend jumping on a trend without checking brand fit first. Never surface trends related to politics, religion, or sensitive social topics unless explicitly asked. Never present a trend as an opportunity without noting the timing risk.`,
+    foundationSections: ['business', 'plan', 'memory'],
+    warnIfThinSections: [],
   },
   email_sequence_builder: {
     id: 'email_sequence_builder',
@@ -90,6 +106,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'email_sequence',
     model: 'anthropic/claude-sonnet-4',
     defaultConstraints: `Never include discount offers or pricing without explicit client approval. Never make delivery or timeline promises. Never send to unsubscribed contacts. Always include an unsubscribe mechanism. Never use deceptive subject lines.`,
+    foundationSections: ['business', 'customer', 'voice', 'memory'],
+    warnIfThinSections: ['voice'],
   },
   ad_variations: {
     id: 'ad_variations',
@@ -100,6 +118,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'ad_copy',
     model: 'anthropic/claude-haiku-4',
     defaultConstraints: `Never make before/after claims without client-provided proof. Never use superlatives like "best" or "number one" without substantiation. Never write copy that targets protected characteristics. Never promise specific results (e.g. "get 100 leads in 30 days").`,
+    foundationSections: ['business', 'customer', 'position', 'voice'],
+    warnIfThinSections: ['customer', 'voice'],
   },
   seo_scanner: {
     id: 'seo_scanner',
@@ -111,6 +131,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'seo_report',
     model: 'anthropic/claude-sonnet-4',
     defaultConstraints: `Never recommend black-hat SEO tactics (keyword stuffing, cloaking, paid links). Never suggest removing existing content without explaining the traffic risk. Never make specific ranking guarantees.`,
+    foundationSections: ['position'],
+    warnIfThinSections: ['position'],
   },
   brand_voice_guardian: {
     id: 'brand_voice_guardian',
@@ -121,6 +143,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'brand_review',
     model: 'anthropic/claude-haiku-4',
     defaultConstraints: `Never approve content that contradicts the Brand Kit positioning. Never override explicit client instructions about tone even if they differ from the Brand Kit. Always explain why content was flagged — never just reject without reasoning.`,
+    foundationSections: ['voice', 'memory'],
+    warnIfThinSections: ['voice'],
   },
 }
 
