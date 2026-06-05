@@ -185,12 +185,25 @@ const SECTIONS: SectionDef[] = [
   },
 ]
 
+const AGENT_COLORS: Record<string, { bg: string; fg: string }> = {
+  competitor_watcher:     { bg: '#C5F9CD', fg: '#15803D' },
+  weekly_content:         { bg: '#C5EFF9', fg: '#0369A1' },
+  campaign_builder:       { bg: '#F7C5F9', fg: '#7E22CE' },
+  performance_digest:     { bg: '#C5F9EC', fg: '#0F766E' },
+  trend_spotter:          { bg: '#FFE3AD', fg: '#92400E' },
+  email_sequence_builder: { bg: '#EAE1F9', fg: '#6D28D9' },
+  ad_variations:          { bg: '#E6F4AD', fg: '#3F6212' },
+  seo_scanner:            { bg: '#AFDAF7', fg: '#075985' },
+  brand_voice_guardian:   { bg: '#E2F7F2', fg: '#065F46' },
+}
+
 // Flat list for the Connections tab
 const AGENT_REGISTRY = Object.values(AGENTS).map(a => ({
   id:   a.id,
   name: a.name,
   icon: AGENT_ICONS[a.id] ?? Brain,
   foundationSections: a.foundationSections,
+  color: AGENT_COLORS[a.id] ?? { bg: '#F3F4F6', fg: '#6B7280' },
 }))
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -925,13 +938,15 @@ function ConnectionsEmpty() {
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {AGENT_REGISTRY.map(({ id, name, icon: Icon }) => {
+        {AGENT_REGISTRY.map(({ id, name, icon: Icon, color }) => {
           const sections = agentSectionsMap[id] ?? []
           return (
             <div key={id} className="bg-white rounded-2xl border border-gray-100 p-4">
               <div className="flex items-center gap-2.5 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-surface-muted flex items-center justify-center flex-shrink-0">
-                  <Icon size={14} className="text-text-sec" />
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color.bg }}>
+                  <span style={{ color: color.fg, display: 'contents' }}>
+                    <Icon size={15} className="text-current" />
+                  </span>
                 </div>
                 <p className="text-[13px] font-semibold text-text">{name}</p>
               </div>
