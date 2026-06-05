@@ -64,17 +64,27 @@ export default async function FoundationPage() {
   )
 
   if (FOUNDATION_V2) {
+    const toArray = (v: unknown): string[] => {
+      if (Array.isArray(v)) return v as string[]
+      if (typeof v === 'string' && v.trim()) return v.split(',').map(s => s.trim()).filter(Boolean)
+      return []
+    }
     const emptyAnswers = {
       businessDescription: '', problemSolved: '', transformation: '',
       customerWho: '', customerFrustration: '', customerTriedBefore: '',
-      customerBuyingTrigger: '', competitors: ['', '', ''],
-      differentiator: '', differentiatorOwn: '', toneTraits: [],
+      customerBuyingTrigger: '', competitors: ['', '', ''] as string[],
+      differentiator: '', differentiatorOwn: '', toneTraits: [] as string[],
       brandsAdmired: '', neverSoundLike: '', marketingBudget: '',
-      channels: [], monthlyGoal: '',
+      channels: [] as string[], monthlyGoal: '',
     }
     const hubAnswers = { ...emptyAnswers, ...(initialAnswers ?? {}) }
+
+    // Defensively coerce array fields — DB may return strings
+    hubAnswers.toneTraits = toArray(hubAnswers.toneTraits)
+    hubAnswers.channels   = toArray(hubAnswers.channels)
+
     // Ensure competitors is always a 3-slot array
-    const comps = (hubAnswers.competitors as string[]) ?? []
+    const comps = toArray(hubAnswers.competitors)
     hubAnswers.competitors = [...comps, '', '', ''].slice(0, 3)
 
     return (

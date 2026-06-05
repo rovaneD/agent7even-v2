@@ -225,12 +225,18 @@ function sectionScore(fieldScores: Record<string, FieldScore>, key: SectionKey):
   return Math.round(scored.reduce((s, f) => s + fieldScores[f].score, 0) / scored.length)
 }
 
+function toArr(v: unknown): string[] {
+  if (Array.isArray(v)) return v as string[]
+  if (typeof v === 'string' && v.trim()) return v.split(',').map(s => s.trim()).filter(Boolean)
+  return []
+}
+
 function sectionPreview(answers: Answers, key: SectionKey): string | null {
   const t = (s: string) => s.length > 130 ? s.slice(0, 130) + '…' : s
   if (key === 'business') return answers.businessDescription ? t(answers.businessDescription) : null
   if (key === 'customer') return answers.customerWho ? t(answers.customerWho) : null
   if (key === 'position') {
-    const comps = (answers.competitors ?? []).filter(Boolean)
+    const comps = toArr(answers.competitors).filter(Boolean)
     const parts = [
       comps.length > 0 ? `Competitors: ${comps.join(', ')}` : '',
       answers.differentiator ? answers.differentiator : '',
@@ -238,13 +244,14 @@ function sectionPreview(answers: Answers, key: SectionKey): string | null {
     return parts.length > 0 ? parts.join(' · ') : null
   }
   if (key === 'voice') {
-    const traits = (answers.toneTraits ?? [])
+    const traits = toArr(answers.toneTraits)
     return traits.length > 0 ? `Tone: ${traits.join(' · ')}` : null
   }
   if (key === 'plan') {
+    const channels = toArr(answers.channels)
     const parts = [
       answers.marketingBudget,
-      (answers.channels ?? []).length > 0 ? answers.channels.join(', ') : '',
+      channels.length > 0 ? channels.join(', ') : '',
     ].filter(Boolean)
     return parts.length > 0 ? parts.join(' · ') : null
   }
@@ -274,7 +281,7 @@ function formatRelative(iso: string | null): string {
 function deriveSuggestions(answers: Answers, healthMap: Record<SectionKey, Health>): string[] {
   const s: string[] = []
   if (healthMap.position !== 'strong') {
-    const comps = (answers.competitors ?? []).filter(Boolean)
+    const comps = toArr(answers.competitors).filter(Boolean)
     if (comps.length < 2) s.push("Adding more competitors sharpens Competitor Watcher and Ad Variations — Maya needs context to differentiate you.")
   }
   if (healthMap.voice !== 'strong') s.push("Completing your Voice section ensures Weekly Content and Email Sequences match your actual tone, not a generic one.")
