@@ -60,6 +60,14 @@ Score each answer from 0-100 based on specificity and usefulness for creating ma
 
 Empty or blank answers score 0.
 For each field, return a score and one sentence of feedback if score is below 70. Feedback should be a specific suggestion, not just "be more specific."
+
+The following fields are PREDEFINED SELECTIONS (the user picked from a fixed list — they cannot type a custom answer). Score them but always set feedback to null — do not suggest rewording a selection:
+- differentiator (single choice from a list)
+- marketingBudget (single choice from a list)
+- monthlyGoal (single choice from a list)
+- toneTraits (multi-select from a list)
+- channels (multi-select from a list)
+
 Return ONLY valid JSON — no markdown, no code fences, no preamble.
 
 Answers to score:

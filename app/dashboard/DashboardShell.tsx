@@ -439,8 +439,8 @@ export default function DashboardShell({
 
   // ── Foundation bar color ──────────────────────────────────────────────────
   function foundationBarColor(score: number): string {
-    if (score >= 80) return 'var(--color-status-success)'
-    if (score >= 60) return 'var(--color-status-warning)'
+    if (score >= 71) return 'var(--color-status-success)'
+    if (score >= 50) return 'var(--color-status-warning)'
     return 'var(--color-status-danger)'
   }
 

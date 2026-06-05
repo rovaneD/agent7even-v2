@@ -142,9 +142,13 @@ function normalizeAnswers(raw: Record<string, unknown> | null): Answers {
   }
 }
 
+// Fields rendered as chip/button selects — users can't type more specific answers,
+// so surfacing them in "Areas to strengthen" gives unusable advice.
+const SELECT_ONLY_FIELDS = new Set(['differentiator', 'marketingBudget', 'monthlyGoal', 'toneTraits', 'channels'])
+
 function computeWeakFields(scores: Record<string, FieldScore>): string[] {
   return Object.entries(scores)
-    .filter(([, v]) => v.score > 0 && v.score < 70)
+    .filter(([k, v]) => !SELECT_ONLY_FIELDS.has(k) && v.score > 0 && v.score < 70)
     .sort((a, b) => a[1].score - b[1].score)
     .slice(0, 5)
     .map(([k]) => k)

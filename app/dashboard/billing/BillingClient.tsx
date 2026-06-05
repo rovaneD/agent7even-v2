@@ -103,6 +103,7 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
   const searchParams   = useSearchParams()
   const topupStatus    = searchParams.get('topup')
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
+  const [upgradeError, setUpgradeError] = useState<string | null>(null)
   const [billingAnnual, setBillingAnnual] = useState(false)
 
   const currentPlan = plan ? PLANS[plan as keyof typeof PLANS] : null
@@ -125,6 +126,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
 
   async function handleUpgrade(targetPlan: string) {
     setUpgradeLoading(targetPlan)
+    setUpgradeError(null)
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -132,9 +134,13 @@ The user can view their current plan, upgrade to a higher tier, and access the S
         body: JSON.stringify({ plan: targetPlan, annual: billingAnnual }),
       })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
-    } catch (err) {
-      console.error('Upgrade error:', err)
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setUpgradeError(data.error ?? 'Could not start checkout. Please try again.')
+      }
+    } catch {
+      setUpgradeError('Could not reach the server. Please check your connection and try again.')
     } finally {
       setUpgradeLoading(null)
     }
@@ -293,6 +299,13 @@ The user can view their current plan, upgrade to a higher tier, and access the S
               </button>
             </div>
           </div>
+
+          {upgradeError && (
+            <div className="flex items-start gap-2 mb-4 rounded-xl border border-status-danger/20 bg-status-danger/5 px-4 py-3">
+              <AlertCircle size={14} className="text-status-danger mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-status-danger">{upgradeError}</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {upgradeTo.map((planKey) => {

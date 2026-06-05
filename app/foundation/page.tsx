@@ -42,6 +42,7 @@ export default async function FoundationPage({
 
   if (!profile) redirect('/sign-in')
   if (profile.foundation_complete) redirect('/dashboard')
+  if ((profile.foundation_step ?? 0) >= 5) redirect('/dashboard/foundation')
 
   return (
     <FoundationFlow

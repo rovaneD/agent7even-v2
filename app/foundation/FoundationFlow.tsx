@@ -6,7 +6,7 @@ import { ArrowRight, ArrowLeft, Loader2, Check, AlertCircle, Globe } from 'lucid
 import type { FoundationSuggestions } from '@/lib/research/exa'
 
 type GenerationStage = 'scoring' | 'generating'
-type PrefillPhase = 'input' | 'loading' | 'done' | 'skipped'
+type PrefillPhase = 'input' | 'loading' | 'confirm' | 'done' | 'skipped'
 
 interface FieldScore {
   score: number
@@ -129,11 +129,6 @@ const DOC_LABEL_BY_TYPE: Record<string, string> = {
 
 const EXA_PREFILL_ENABLED = process.env.NEXT_PUBLIC_EXA_PREFILL_ENABLED === 'true'
 
-function assignVariant(): 'exa_prefill' | 'manual_control' {
-  if (!EXA_PREFILL_ENABLED) return 'manual_control'
-  return Math.random() < 0.5 ? 'exa_prefill' : 'manual_control'
-}
-
 // Pre-filled fields are editable suggestions — styled with a blue tint + label.
 function SuggestionLabel() {
   return (
@@ -173,9 +168,8 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
     monthlyGoal: '',
   })
 
-  // Pre-fill state — only active for new users (initialStep === 0) in the exa_prefill cohort.
-  const [variant] = useState<'exa_prefill' | 'manual_control'>(() => assignVariant())
-  const showPrefill = EXA_PREFILL_ENABLED && variant === 'exa_prefill' && initialStep === 0
+  // Pre-fill state — only active for new users (initialStep === 0) when flag is enabled.
+  const showPrefill = EXA_PREFILL_ENABLED && initialStep === 0
   const [prefillPhase, setPrefillPhase] = useState<PrefillPhase>(showPrefill ? 'input' : 'skipped')
   const [websiteInput, setWebsiteInput] = useState('')
   const [businessNameInput, setBusinessNameInput] = useState('')
@@ -293,6 +287,13 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
 
   async function handlePrefillSubmit() {
     if (!websiteInput.trim() && !businessNameInput.trim()) return
+
+    // Path B: no website URL — skip straight to the manual 5-step flow.
+    if (!websiteInput.trim()) {
+      setPrefillPhase('skipped')
+      return
+    }
+
     setPrefillPhase('loading')
 
     const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000))
@@ -301,7 +302,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        website: websiteInput.trim() || undefined,
+        website: websiteInput.trim(),
         businessName: businessNameInput.trim() || undefined,
       }),
     })
@@ -334,11 +335,24 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
     })
 
     setPrefillSuggestions(suggestions)
-    setPrefillPhase('done')
+    setPrefillPhase('confirm')
   }
 
   function handleSkipPrefill() {
     setPrefillPhase('skipped')
+  }
+
+  async function handleConfirmAndDashboard() {
+    await fetch('/api/foundation/save-exa-confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers }),
+    }).catch(() => null)
+    router.push('/dashboard/foundation')
+  }
+
+  function handleConfirmAndContinue() {
+    setPrefillPhase('done')
   }
 
   // ── Pre-step screen ───────────────────────────────────────────────────────
@@ -401,7 +415,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
 
           <button
             onClick={handlePrefillSubmit}
-            disabled={!websiteInput.trim() && !businessNameInput.trim()}
+            disabled={!websiteInput.trim()}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#3B82F6' }}
           >
@@ -438,6 +452,84 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
           <div className="flex justify-center">
             <Loader2 size={24} className="text-gray-300 animate-spin" />
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Exa confirm screen ────────────────────────────────────────────────────
+
+  if (prefillPhase === 'confirm') {
+    const hostname = (() => {
+      try { return new URL(websiteInput).hostname.replace('www.', '') } catch { return websiteInput }
+    })()
+
+    const filledFields = [
+      { key: 'businessDescription', label: 'What your business does',  value: answers.businessDescription },
+      { key: 'problemSolved',       label: 'Problem you solve',         value: answers.problemSolved },
+      { key: 'transformation',      label: 'Customer transformation',   value: answers.transformation },
+      { key: 'customerWho',         label: 'Your ideal customer',       value: answers.customerWho },
+      { key: 'differentiatorOwn',   label: 'Your differentiator',       value: answers.differentiatorOwn },
+    ].filter(f => f.value && f.value.trim())
+
+    const filledCompetitors = answers.competitors.filter(Boolean)
+
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="max-w-lg w-full">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-[#2D3748] flex items-center justify-center flex-shrink-0">
+              <Check size={16} className="text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">Maya</p>
+              <p className="text-xs text-gray-400">Research complete</p>
+            </div>
+          </div>
+
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Here&apos;s what I found about {hostname}.
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            These are my best guesses based on your site. You can edit anything in the dashboard —
+            or fill in the rest yourself right now.
+          </p>
+
+          <div className="space-y-3 mb-8">
+            {filledFields.map(f => (
+              <div key={f.key} className="bg-blue-50/40 border border-blue-100 rounded-xl px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#93C5FD' }}>{f.label}</p>
+                <p className="text-sm text-gray-800 leading-relaxed">{f.value}</p>
+              </div>
+            ))}
+            {filledCompetitors.length > 0 && (
+              <div className="bg-blue-50/40 border border-blue-100 rounded-xl px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#93C5FD' }}>Competitors</p>
+                <div className="flex flex-wrap gap-2">
+                  {filledCompetitors.map((c, i) => (
+                    <span key={i} className="text-sm text-gray-800 bg-white border border-blue-100 rounded-lg px-3 py-1">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={handleConfirmAndDashboard}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-white transition-colors"
+            style={{ backgroundColor: '#3B82F6' }}
+          >
+            Go to my dashboard
+            <ArrowRight size={15} />
+          </button>
+          <button
+            onClick={handleConfirmAndContinue}
+            className="w-full mt-3 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            Fill everything in myself →
+          </button>
         </div>
       </div>
     )

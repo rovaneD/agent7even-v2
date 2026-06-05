@@ -102,14 +102,19 @@ export async function POST(req: Request) {
       confidence:  confidenceMap,
     }
 
-    // 4. Persist research + variant. Cost = 0 during free-tier test — no deductCredits call.
-    await supabase
-      .from('profiles')
-      .update({
-        foundation_research:         research,
-        foundation_research_variant: 'exa_prefill',
-      })
-      .eq('id', profile.id)
+    // 4. Persist research + variant. Fail-soft — a missing column (pre-migration) must not
+    //    kill the prefill UX. The client still gets the suggestions even if the write fails.
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          foundation_research:         research,
+          foundation_research_variant: 'exa_prefill',
+        })
+        .eq('id', profile.id)
+    } catch {
+      // DB write failed — continue and return results anyway
+    }
 
     return NextResponse.json({ research, prefilled: true })
   } catch {
