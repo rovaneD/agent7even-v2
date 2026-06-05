@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, Check, AlertCircle } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Loader2, Check, AlertCircle, Globe } from 'lucide-react'
+import type { FoundationSuggestions } from '@/lib/research/exa'
 
 type GenerationStage = 'scoring' | 'generating'
+type PrefillPhase = 'input' | 'loading' | 'done' | 'skipped'
 
 interface FieldScore {
   score: number
@@ -125,6 +127,22 @@ const DOC_LABEL_BY_TYPE: Record<string, string> = {
   plan: '30-day plan',
 }
 
+const EXA_PREFILL_ENABLED = process.env.NEXT_PUBLIC_EXA_PREFILL_ENABLED === 'true'
+
+function assignVariant(): 'exa_prefill' | 'manual_control' {
+  if (!EXA_PREFILL_ENABLED) return 'manual_control'
+  return Math.random() < 0.5 ? 'exa_prefill' : 'manual_control'
+}
+
+// Pre-filled fields are editable suggestions — styled with a blue tint + label.
+function SuggestionLabel() {
+  return (
+    <p className="text-xs mt-1" style={{ color: '#9BA1AE' }}>
+      Maya&apos;s suggestion — edit freely
+    </p>
+  )
+}
+
 export default function FoundationFlow({ profileId, companyName, initialStep, selectedPlan }: Props) {
   const router = useRouter()
   const [step, setStep] = useState(initialStep)
@@ -154,6 +172,19 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
     channels: [],
     monthlyGoal: '',
   })
+
+  // Pre-fill state — only active for new users (initialStep === 0) in the exa_prefill cohort.
+  const [variant] = useState<'exa_prefill' | 'manual_control'>(() => assignVariant())
+  const showPrefill = EXA_PREFILL_ENABLED && variant === 'exa_prefill' && initialStep === 0
+  const [prefillPhase, setPrefillPhase] = useState<PrefillPhase>(showPrefill ? 'input' : 'skipped')
+  const [websiteInput, setWebsiteInput] = useState('')
+  const [businessNameInput, setBusinessNameInput] = useState('')
+  const [prefillSuggestions, setPrefillSuggestions] = useState<FoundationSuggestions | null>(null)
+
+  function isSuggested(field: keyof FoundationSuggestions): boolean {
+    const val = prefillSuggestions?.[field]
+    return val != null && (!Array.isArray(val) || val.length > 0)
+  }
 
   function updateAnswer<K extends keyof StepAnswers>(key: K, value: StepAnswers[K]) {
     setAnswers(prev => ({ ...prev, [key]: value }))
@@ -256,6 +287,160 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
       setGenerating(false)
       setGenerationError(error instanceof Error ? error.message : 'Your Foundation could not be generated. Please try again.')
     }
+  }
+
+  // ── Pre-fill handlers ─────────────────────────────────────────────────────
+
+  async function handlePrefillSubmit() {
+    if (!websiteInput.trim() && !businessNameInput.trim()) return
+    setPrefillPhase('loading')
+
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000))
+
+    const fetchResearch = fetch('/api/foundation/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        website: websiteInput.trim() || undefined,
+        businessName: businessNameInput.trim() || undefined,
+      }),
+    })
+      .then(r => r.json())
+      .catch(() => null)
+
+    const result = await Promise.race([fetchResearch, timeout])
+
+    if (!result || !result.prefilled || !result.research?.suggestions) {
+      setPrefillPhase('skipped')
+      return
+    }
+
+    const suggestions: FoundationSuggestions = result.research.suggestions
+
+    // Apply suggestions to answers for eligible fields.
+    setAnswers(prev => {
+      const updated = { ...prev }
+      if (suggestions.businessDescription) updated.businessDescription = suggestions.businessDescription
+      if (suggestions.problemSolved)       updated.problemSolved = suggestions.problemSolved
+      if (suggestions.transformation)      updated.transformation = suggestions.transformation ?? ''
+      if (suggestions.customerWho)         updated.customerWho = suggestions.customerWho
+      if (suggestions.differentiatorOwn)   updated.differentiatorOwn = suggestions.differentiatorOwn ?? ''
+      if (suggestions.competitors?.length) {
+        const filled = suggestions.competitors.slice(0, 3)
+        const padded = [...filled, ...['', '', '']].slice(0, 3)
+        updated.competitors = padded
+      }
+      return updated
+    })
+
+    setPrefillSuggestions(suggestions)
+    setPrefillPhase('done')
+  }
+
+  function handleSkipPrefill() {
+    setPrefillPhase('skipped')
+  }
+
+  // ── Pre-step screen ───────────────────────────────────────────────────────
+
+  if (prefillPhase === 'input') {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="max-w-lg w-full">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-[#2D3748] flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold">M</span>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">Maya</p>
+              <p className="text-xs text-gray-400">Foundation setup</p>
+            </div>
+          </div>
+
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Let me do some homework first.
+          </h2>
+          <p className="text-sm text-gray-500 mb-8">
+            Drop your website or business name and I&apos;ll research your business before
+            we start — so you&apos;re confirming instead of writing from scratch.
+          </p>
+
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="text-sm font-semibold text-gray-800 block mb-2">
+                Website URL{' '}
+                <span className="text-gray-400 font-normal">(recommended)</span>
+              </label>
+              <div className="relative">
+                <Globe size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="url"
+                  value={websiteInput}
+                  onChange={e => setWebsiteInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handlePrefillSubmit()}
+                  placeholder="https://yourbusiness.com"
+                  className="w-full text-sm border border-gray-200 rounded-xl pl-9 pr-4 py-3 focus:outline-none focus:border-[#3B82F6] placeholder:text-gray-300 transition-colors"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-gray-800 block mb-2">
+                Business name{' '}
+                <span className="text-gray-400 font-normal">(optional if you have a URL)</span>
+              </label>
+              <input
+                type="text"
+                value={businessNameInput}
+                onChange={e => setBusinessNameInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handlePrefillSubmit()}
+                placeholder={companyName || 'Your Business Name'}
+                className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] placeholder:text-gray-300 transition-colors"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handlePrefillSubmit}
+            disabled={!websiteInput.trim() && !businessNameInput.trim()}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ backgroundColor: '#3B82F6' }}
+          >
+            Let Maya look it up
+            <ArrowRight size={15} />
+          </button>
+
+          <button
+            onClick={handleSkipPrefill}
+            className="w-full mt-3 py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Skip — I&apos;ll fill this in myself
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Pre-fill loading screen ───────────────────────────────────────────────
+
+  if (prefillPhase === 'loading') {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="max-w-sm w-full px-6 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#2D3748] flex items-center justify-center mx-auto mb-6">
+            <span className="text-white font-bold text-xl">M</span>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Looking into your business...
+          </h2>
+          <p className="text-sm text-gray-400 mb-8">
+            Maya is reading your site and finding what she can.
+          </p>
+          <div className="flex justify-center">
+            <Loader2 size={24} className="text-gray-300 animate-spin" />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // ── Weak fields warning ────────────────────────────────────────────────────
@@ -413,7 +598,12 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900 mb-0.5">Maya</p>
-            <p className="text-sm text-gray-600 leading-relaxed">{MAYA_INTROS[step]}</p>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {prefillPhase === 'done' && step === 0
+                ? "I looked up your business and pre-filled some fields. Review them and edit anything that's off — these are my best guesses, not facts."
+                : MAYA_INTROS[step]
+              }
+            </p>
           </div>
         </div>
       </div>
@@ -437,8 +627,13 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
                   onChange={e => updateAnswer('businessDescription', e.target.value)}
                   placeholder="e.g. I make handmade skincare products for women with sensitive skin"
                   rows={3}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
+                  className={`w-full text-sm border rounded-xl px-4 py-3 focus:outline-none resize-none placeholder:text-gray-300 transition-colors ${
+                    isSuggested('businessDescription')
+                      ? 'border-blue-200 bg-blue-50/30 focus:border-[#3B82F6]'
+                      : 'border-gray-200 focus:border-[#2D3748]'
+                  }`}
                 />
+                {isSuggested('businessDescription') && <SuggestionLabel />}
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-800 block mb-2">
@@ -449,8 +644,13 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
                   onChange={e => updateAnswer('problemSolved', e.target.value)}
                   placeholder="e.g. Most skincare products have harsh chemicals that cause reactions for sensitive skin types"
                   rows={3}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
+                  className={`w-full text-sm border rounded-xl px-4 py-3 focus:outline-none resize-none placeholder:text-gray-300 transition-colors ${
+                    isSuggested('problemSolved')
+                      ? 'border-blue-200 bg-blue-50/30 focus:border-[#3B82F6]'
+                      : 'border-gray-200 focus:border-[#2D3748]'
+                  }`}
                 />
+                {isSuggested('problemSolved') && <SuggestionLabel />}
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-800 block mb-2">
@@ -462,8 +662,13 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
                   onChange={e => updateAnswer('transformation', e.target.value)}
                   placeholder="e.g. They finally have a skincare routine that doesn't cause flare-ups"
                   rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
+                  className={`w-full text-sm border rounded-xl px-4 py-3 focus:outline-none resize-none placeholder:text-gray-300 transition-colors ${
+                    isSuggested('transformation')
+                      ? 'border-blue-200 bg-blue-50/30 focus:border-[#3B82F6]'
+                      : 'border-gray-200 focus:border-[#2D3748]'
+                  }`}
                 />
+                {isSuggested('transformation') && <SuggestionLabel />}
               </div>
             </div>
           )}
@@ -480,8 +685,13 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
                   onChange={e => updateAnswer('customerWho', e.target.value)}
                   placeholder="e.g. Women 30–50 with sensitive skin who shop online and care about clean ingredients"
                   rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
+                  className={`w-full text-sm border rounded-xl px-4 py-3 focus:outline-none resize-none placeholder:text-gray-300 transition-colors ${
+                    isSuggested('customerWho')
+                      ? 'border-blue-200 bg-blue-50/30 focus:border-[#3B82F6]'
+                      : 'border-gray-200 focus:border-[#2D3748]'
+                  }`}
                 />
+                {isSuggested('customerWho') && <SuggestionLabel />}
               </div>
               <div>
                 <label className="text-sm font-semibold text-gray-800 block mb-2">
@@ -532,6 +742,11 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
                   Who are your main competitors?{' '}
                   <span className="text-gray-400 font-normal">(up to 3 — optional)</span>
                 </label>
+                {isSuggested('competitors') && (
+                  <p className="text-xs mb-2" style={{ color: '#9BA1AE' }}>
+                    Maya found these — edit or clear any that aren&apos;t right
+                  </p>
+                )}
                 <div className="space-y-2">
                   {[0, 1, 2].map(i => (
                     <input
@@ -544,7 +759,11 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
                         updateAnswer('competitors', updated)
                       }}
                       placeholder={`@competitor${i + 1} or business name`}
-                      className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] placeholder:text-gray-300 transition-colors"
+                      className={`w-full text-sm border rounded-xl px-4 py-3 focus:outline-none placeholder:text-gray-300 transition-colors ${
+                        isSuggested('competitors') && answers.competitors[i]
+                          ? 'border-blue-200 bg-blue-50/30 focus:border-[#3B82F6]'
+                          : 'border-gray-200 focus:border-[#2D3748]'
+                      }`}
                     />
                   ))}
                 </div>
@@ -579,13 +798,18 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
                   onChange={e => updateAnswer('differentiatorOwn', e.target.value)}
                   placeholder="e.g. We're the only skincare brand that formulates specifically for sensitive + acne-prone skin types together"
                   rows={2}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#2D3748] resize-none placeholder:text-gray-300 transition-colors"
+                  className={`w-full text-sm border rounded-xl px-4 py-3 focus:outline-none resize-none placeholder:text-gray-300 transition-colors ${
+                    isSuggested('differentiatorOwn')
+                      ? 'border-blue-200 bg-blue-50/30 focus:border-[#3B82F6]'
+                      : 'border-gray-200 focus:border-[#2D3748]'
+                  }`}
                 />
+                {isSuggested('differentiatorOwn') && <SuggestionLabel />}
               </div>
             </div>
           )}
 
-          {/* STEP 4 — Voice */}
+          {/* STEP 4 — Voice (never pre-filled) */}
           {step === 3 && (
             <div className="space-y-6">
               <div>
@@ -639,7 +863,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
             </div>
           )}
 
-          {/* STEP 5 — Plan */}
+          {/* STEP 5 — Plan (never pre-filled) */}
           {step === 4 && (
             <div className="space-y-6">
               <div>

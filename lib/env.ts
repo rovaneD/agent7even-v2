@@ -68,6 +68,10 @@ const SPEC: EnvSpec = {
       feature: 'Foundation generate (Anthropic direct)',
       vars: ['ANTHROPIC_API_KEY'],
     },
+    {
+      feature: 'Exa web grounding (Foundation pre-fill)',
+      vars: ['EXA_API_KEY'],
+    },
   ],
 }
 
