@@ -8,6 +8,7 @@ import {
 } from '@/lib/agents/runner'
 
 const FOUNDATION_MODEL = 'anthropic/claude-sonnet-4'
+const FOUNDATION_PLATFORM_BUDGET_CAP_USD = 5.00
 
 export const maxDuration = 120
 
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, plan')
+    .select('id, plan, status')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -79,7 +80,8 @@ Monthly goal: ${answers.monthlyGoal}
     },
   ]
 
-  const userPlan: string = (profile as Record<string, unknown>).plan as string ?? 'starter'
+  const userPlan = typeof profile.plan === 'string' && profile.plan ? profile.plan : 'starter'
+  const platformFunded = profile.status !== 'active' || !profile.plan
   const saved: string[] = []
   let orchestrationId: string | undefined
 
@@ -90,6 +92,7 @@ Monthly goal: ${answers.monthlyGoal}
       plan:          userPlan,
       subagentCount: docsToGenerate.length,
       agentIds:      docsToGenerate.map(d => `foundation_generate_${d.type}`),
+      budgetCapUsd:  platformFunded ? FOUNDATION_PLATFORM_BUDGET_CAP_USD : undefined,
     })
 
     // Generate all 5 docs in parallel — one failure doesn't kill the rest
@@ -103,7 +106,7 @@ Monthly goal: ${answers.monthlyGoal}
           plan:            userPlan,
           orchestrationId,
           maxTokens:       1000,
-          chargeCredits:   false,
+          chargeCredits:   !platformFunded,
         })
         if (!result.content) throw new Error(`Empty content returned for ${doc.type}`)
         return { ...doc, content: result.content }

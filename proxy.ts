@@ -13,6 +13,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/team/accept(.*)',
   // Internal server-to-server dispatch — authenticated via taskId UUID + userId in body
   '/api/agents/run/(.*)',
+  // Vercel Cron uses its own bearer secret; each cron route validates CRON_SECRET.
+  '/api/cron(.*)',
 ])
 
 export default clerkMiddleware(async (auth, req) => {

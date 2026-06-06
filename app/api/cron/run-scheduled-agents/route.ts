@@ -3,10 +3,10 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { createTask } from '@/lib/agents/runner'
 import { dispatchAgentTask } from '@/lib/agents/dispatch'
 import { AgentId } from '@/lib/agents/registry'
+import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get('Authorization')
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(req)) {
     return new Response('Unauthorized', { status: 401 })
   }
 
