@@ -68,6 +68,12 @@ Main changes:
   module evaluation.
 - Changed environment validation so preview deployments warn about missing
   variables while production continues to fail fast.
+- Hardened cron routes so missing `CRON_SECRET` fails closed and `/api/cron/*`
+  bypasses Clerk proxy only to use route-level bearer-secret authentication.
+- Scoped platform-funded Foundation generation to onboarding/pre-checkout users;
+  active paid dashboard regenerations reserve credits normally.
+- Removed Maya chat's no-profile streaming fallback so authenticated requests
+  without a resolved profile cannot consume model output without cost tracking.
 
 ---
 

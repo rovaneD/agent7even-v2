@@ -363,12 +363,8 @@ Never use markdown in conversation. Save structure for the plan.`
     return result.toUIMessageStreamResponse()
   }
 
-  // ── Fallback: no profile — stream without cost tracking (should not happen) ─
-  const fallback = await streamText({
-    model: models.maya,
-    system: 'You are Maya, a marketing strategist at Agent7even.',
-    messages,
-    maxOutputTokens: 2000,
-  })
-  return fallback.toUIMessageStreamResponse()
+  return NextResponse.json(
+    { error: 'PROFILE_NOT_FOUND', message: 'Maya needs an active profile before responding.' },
+    { status: 404 },
+  )
 }
