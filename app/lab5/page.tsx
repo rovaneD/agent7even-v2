@@ -6,7 +6,6 @@ import { Metaballs } from '@paper-design/shaders-react'
 
 declare global {
   interface Window {
-    __initMetaballs?: () => void
     __initMockups?: () => void
   }
 }
@@ -38,13 +37,6 @@ export default function Lab5Page() {
 
   return (
     <div className="lab5">
-      <Script
-        src="/lab5/metaball.js"
-        strategy="afterInteractive"
-        onLoad={() => {
-          requestAnimationFrame(() => window.__initMetaballs?.())
-        }}
-      />
       <Script
         src="/lab5/mockups.js"
         strategy="afterInteractive"
@@ -350,7 +342,15 @@ export default function Lab5Page() {
       {/* DARK CTA */}
       <div className="cta reveal">
         <div className="cta-orb">
-          <canvas className="metaball" data-seed="5" data-count="9" data-size="0.26" data-bg="#0E0E11"></canvas>
+          <Metaballs
+            speed={1}
+            count={9}
+            size={0.26}
+            scale={1}
+            colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
+            colorBack="#0E0E11"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+          />
         </div>
         <div className="cta-in">
           <h2>Work like you have a full<br />marketing team. Because now you do.</h2>
