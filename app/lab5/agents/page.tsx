@@ -1,174 +1,51 @@
 'use client'
 
 import { useEffect } from 'react'
+import Script from 'next/script'
 import { Metaballs } from '@paper-design/shaders-react'
 
-// ── Agent data (mirrors lib/agents/registry.ts) ────────────────────────────
+declare global {
+  interface Window {
+    __initMockups?: () => void
+  }
+}
 
-const AGENTS = [
+// Remaining agents shown in compact grid (the 4 above get full feature rows)
+const BACKGROUND_AGENTS = [
   {
     id: 'performance_digest',
     name: 'Performance Digest',
-    description: "Surfaces what's working and what to do about it. Runs every morning so your day starts with signal, not noise.",
+    description: "Reads your connected data every morning and delivers a plain-English summary of what's working and what to act on.",
     bg: '#C5F9EC', fg: '#0F766E',
-    auto: true,
-    schedule: 'Daily at 7 am',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-6"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'competitor_watcher',
-    name: 'Competitor Watcher',
-    description: "Monitors your competitors and surfaces what's working for them — so you're never the last to know.",
-    bg: '#C5F9CD', fg: '#15803D',
-    auto: true,
-    schedule: 'Weekly on Monday',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><circle cx="11" cy="11" r="3"/>
-      </svg>
-    ),
+    auto: true, schedule: 'Daily at 7 am',
   },
   {
     id: 'trend_spotter',
     name: 'Trend Spotter',
-    description: 'Monitors industry trends and viral content in your niche, filtered for brand fit before they land in your queue.',
+    description: "Monitors industry trends and viral content in your niche daily, filtered for brand fit before they reach your queue.",
     bg: '#FFE3AD', fg: '#92400E',
-    auto: true,
-    schedule: 'Daily at 6 am',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'brand_voice_guardian',
-    name: 'Brand Voice Guardian',
-    description: 'Reviews all content against your Brand Kit before it goes out. Flags tone drift, off-message claims, and compliance risks.',
-    bg: '#E2F7F2', fg: '#065F46',
-    auto: true,
-    schedule: 'Runs on every output',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>
-      </svg>
-    ),
+    auto: true, schedule: 'Daily at 6 am',
   },
   {
     id: 'seo_scanner',
     name: 'SEO Scanner',
-    description: 'Audits your website and suggests improvements — from on-page basics to content gaps — matched to your market.',
+    description: 'Audits your website every week and surfaces improvements — from on-page basics to content gaps — matched to your market.',
     bg: '#AFDAF7', fg: '#075985',
-    auto: true,
-    schedule: 'Weekly on Monday',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'weekly_content',
-    name: 'Weekly Content',
-    description: "Drafts your social posts and emails in your voice so you don't start from a blank page. You approve, she schedules.",
-    bg: '#C5EFF9', fg: '#0369A1',
-    auto: false,
-    schedule: 'On your request',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-      </svg>
-    ),
-  },
-  {
-    id: 'campaign_builder',
-    name: 'Campaign Builder',
-    description: 'Builds complete 30-day marketing campaigns — strategy, emails, social posts, and timeline — from a single brief.',
-    bg: '#F7C5F9', fg: '#7E22CE',
-    auto: false,
-    schedule: 'On your request',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-      </svg>
-    ),
+    auto: true, schedule: 'Weekly on Monday',
   },
   {
     id: 'email_sequence_builder',
     name: 'Email Sequence Builder',
-    description: 'Builds complete email flows — welcome, nurture, promotional, re-engagement — in your voice, ready to load into any ESP.',
+    description: 'Builds complete email flows — welcome, nurture, promotional — in your voice, ready to load into any ESP.',
     bg: '#EAE1F9', fg: '#6D28D9',
-    auto: false,
-    schedule: 'On your request',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-      </svg>
-    ),
+    auto: false, schedule: 'On your request',
   },
   {
     id: 'ad_variations',
     name: 'Ad Variations',
-    description: 'Creates multiple ad options — headlines, body copy, CTAs — across formats and platforms so you can test without writing each one.',
+    description: 'Creates multiple ad options — headlines, body, CTAs — across formats so you can test without writing each one.',
     bg: '#E6F4AD', fg: '#3F6212',
-    auto: false,
-    schedule: 'On your request',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 11l19-9-9 19-2-8-8-2z"/>
-      </svg>
-    ),
-  },
-]
-
-const ANALYTICS_TILES = [
-  {
-    bg: '#EAF1FF', fg: '#0369A1',
-    title: 'Social analytics',
-    desc: 'Follower growth, engagement rates, reach, and top-performing posts across every connected channel — with best posting times surfaced automatically.',
-    chips: ['Instagram', 'Facebook', 'LinkedIn', 'TikTok'],
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-    ),
-  },
-  {
-    bg: '#EAF1FF', fg: '#1877F2',
-    title: 'Ad intelligence',
-    desc: 'Spend, CTR, ROAS, and campaign performance consolidated across ad platforms. Maya flags when creative needs refreshing before your results slip.',
-    chips: ['Meta Ads', 'Google Ads', 'TikTok Ads', 'LinkedIn Ads'],
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-      </svg>
-    ),
-  },
-  {
-    bg: '#C5F9EC', fg: '#0F766E',
-    title: 'Performance Digest',
-    desc: "Every morning, the Performance Digest agent reads your connected data and delivers a plain-English summary of what's working, what isn't, and what to act on.",
-    chips: ['Daily digest', 'Weekly summary', 'Campaign alerts'],
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-6"/>
-      </svg>
-    ),
-  },
-  {
-    bg: '#F4F0FF', fg: '#6D28D9',
-    title: 'Inbox & conversations',
-    desc: 'Message volume, response rates, and conversation patterns across your connected inboxes. Surface leads that went quiet, reviews that need a reply, and follow-up gaps.',
-    chips: ['Email', 'DMs', 'Reviews', 'Form leads'],
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-    ),
+    auto: false, schedule: 'On your request',
   },
 ]
 
@@ -191,6 +68,12 @@ export default function AgentsPage() {
 
   return (
     <div className="lab5">
+      <Script
+        src="/lab5/mockups.js"
+        strategy="afterInteractive"
+        onLoad={() => requestAnimationFrame(() => window.__initMockups?.())}
+      />
+
       {/* NAV */}
       <nav className="nav">
         <div className="nav-in">
@@ -218,12 +101,12 @@ export default function AgentsPage() {
           <div className="sec-head reveal" style={{ marginBottom: 0 }}>
             <span className="eyebrow">The platform</span>
             <h1 className="t-h2">The intelligence running<br />behind your marketing.</h1>
-            <p className="t-lead">Nine specialized agents, live analytics, and one orchestrator who ties it all together. Here&rsquo;s exactly how it works.</p>
+            <p className="t-lead">Nine specialized agents, live analytics, and one orchestrator who ties it all together. Here&rsquo;s exactly what each one does.</p>
           </div>
         </div>
       </section>
 
-      {/* ANALYTICS */}
+      {/* ── ANALYTICS ─────────────────────────────────────────────────── */}
       <section id="analytics">
         <div className="wrap">
           <div className="sec-head reveal">
@@ -231,25 +114,25 @@ export default function AgentsPage() {
             <h2 className="t-h2">See everything.<br />Understand anything.</h2>
             <p className="t-lead">Agent7even connects your social accounts, ad platforms, and inbox — then surfaces the signal you actually need, not a wall of charts.</p>
           </div>
-          <div className="analytics-grid">
-            {ANALYTICS_TILES.map((t) => (
-              <div key={t.title} className="atile reveal">
-                <div className="atile-icon" style={{ background: t.bg, color: t.fg }}>
-                  {t.icon}
-                </div>
-                <h3>{t.title}</h3>
-                <p>{t.desc}</p>
-                <div className="atile-chips">
-                  {t.chips.map((c) => <span key={c} className="chip">{c}</span>)}
-                </div>
+
+          <div className="feat reveal">
+            <div className="feat-copy">
+              <div className="feat-relief">Performance overview</div>
+              <h3 className="t-h3">One view of your whole marketing.</h3>
+              <p className="t-body">Social analytics, ad spend and CTR, inbox volume, and campaign results — all connected, all readable in one dashboard. The Performance Digest agent reads it every morning and delivers a plain-English briefing before you start your day.</p>
+              <div className="checks">
+                <div className="check"><i>✓</i>Social and ad performance across every connected channel</div>
+                <div className="check"><i>✓</i>Daily AI summary of what&rsquo;s working and what to act on</div>
+                <div className="check"><i>✓</i>Maya reads your analytics and adjusts what she recommends</div>
               </div>
-            ))}
+            </div>
+            <div className="feat-visual"><div className="mk" data-mk="dashboard"></div></div>
           </div>
         </div>
       </section>
 
-      {/* MAYA ORCHESTRATOR */}
-      <section id="maya">
+      {/* ── MAYA ORCHESTRATOR ─────────────────────────────────────────── */}
+      <section id="maya" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <div className="maya-banner reveal">
             <div className="maya-banner-orb">
@@ -266,26 +149,97 @@ export default function AgentsPage() {
             <div className="maya-banner-text">
               <span className="eyebrow">Maya</span>
               <h2>The brain that orchestrates the agents.</h2>
-              <p>Maya isn&rsquo;t one of the nine agents — she&rsquo;s the intelligence layer above them. She reads your Foundation, monitors your business context, and decides which agents to dispatch, when to run them, and what to do with their output. You talk to Maya; she coordinates the rest. The agents just do their jobs.</p>
+              <p>Maya isn&rsquo;t one of the nine agents — she&rsquo;s the intelligence layer above them. She reads your Foundation, monitors your context, and decides which agents to dispatch, when to run them, and what to do with their output. You talk to Maya in plain language; she handles the coordination. The agents just do their jobs.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* AGENTS GRID */}
+      {/* ── AGENTS ────────────────────────────────────────────────────── */}
       <section id="agents" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">The nine agents</span>
             <h2 className="t-h2">Specialists, not generalists.</h2>
-            <p className="t-lead">Each agent is built for one job and trained to do it well. Autonomous agents run on a schedule without asking — approval-required agents draft and wait for your sign-off.</p>
+            <p className="t-lead">Each agent is built for exactly one job. Autonomous agents run on a schedule without asking — approval-required agents draft and wait for your sign-off before anything goes out.</p>
           </div>
 
+          {/* Campaign Builder */}
+          <div className="feat reveal">
+            <div className="feat-copy">
+              <div className="feat-relief">Campaign Builder</div>
+              <h3 className="t-h3">A full campaign from one sentence.</h3>
+              <p className="t-body">Tell Maya what you want to promote. The Campaign Builder drafts the complete 30-day push — strategy, emails, social posts, ad copy, and timeline — and queues everything for your approval before a single thing goes out.</p>
+              <div className="checks">
+                <div className="check"><i>✓</i>Strategy, copy, and calendar in one output</div>
+                <div className="check"><i>✓</i>Covers email, social, and paid in a single run</div>
+                <div className="check"><i>✓</i>You approve it all before anything goes live</div>
+              </div>
+            </div>
+            <div className="feat-visual"><div className="mk" data-mk="campaign"></div></div>
+          </div>
+          <hr className="feat-rule" />
+
+          {/* Weekly Content */}
+          <div className="feat flip reveal">
+            <div className="feat-copy">
+              <div className="feat-relief">Weekly Content</div>
+              <h3 className="t-h3">Your feed, drafted before the week starts.</h3>
+              <p className="t-body">The Weekly Content agent plans your social calendar and writes every post in your voice. You review the week&rsquo;s content in one queue — approve the lot or edit line by line. Nothing posts until you say so.</p>
+              <div className="checks">
+                <div className="check"><i>✓</i>Written from your Brand Kit, not a template</div>
+                <div className="check"><i>✓</i>One approval session covers the whole week</div>
+                <div className="check"><i>✓</i>Consistent even when you&rsquo;re too busy to think about it</div>
+              </div>
+            </div>
+            <div className="feat-visual"><div className="mk" data-mk="calendar"></div></div>
+          </div>
+          <hr className="feat-rule" />
+
+          {/* Approvals / Brand Voice Guardian */}
+          <div className="feat reveal">
+            <div className="feat-copy">
+              <div className="feat-relief">Approvals</div>
+              <h3 className="t-h3">Nothing ships without your sign-off.</h3>
+              <p className="t-body">Every agent that creates content runs it through the Brand Voice Guardian first — checking tone, brand fit, and compliance before it ever reaches your queue. You get a clean draft to approve, not a first draft to fix.</p>
+              <div className="checks">
+                <div className="check"><i>✓</i>Brand Voice Guardian reviews every output before you see it</div>
+                <div className="check"><i>✓</i>Approve, edit, or reject from one place</div>
+                <div className="check"><i>✓</i>Maya never posts without a green light from you</div>
+              </div>
+            </div>
+            <div className="feat-visual"><div className="mk" data-mk="approvals"></div></div>
+          </div>
+          <hr className="feat-rule" />
+
+          {/* Competitor Watcher */}
+          <div className="feat flip reveal">
+            <div className="feat-copy">
+              <div className="feat-relief">Competitor Watcher</div>
+              <h3 className="t-h3">Know what your rivals are running.</h3>
+              <p className="t-body">Every Monday, the Competitor Watcher surfaces what your competitors promoted last week — what channels, what offers, what messaging. You get the report before your week starts, not after you&rsquo;ve already reacted.</p>
+              <div className="checks">
+                <div className="check"><i>✓</i>Promotions, content, and positioning tracked every week</div>
+                <div className="check"><i>✓</i>Delivered Monday morning so you can respond, not react</div>
+                <div className="check"><i>✓</i>Maya flags opportunities in your daily digest</div>
+              </div>
+            </div>
+            <div className="feat-visual"><div className="mk" data-mk="competitor"></div></div>
+          </div>
+          <hr className="feat-rule" />
+
+          {/* Remaining 5 agents */}
+          <div className="sec-head reveal" style={{ marginTop: '60px' }}>
+            <span className="eyebrow">Also running for you</span>
+            <h2 className="t-h2" style={{ fontSize: 'clamp(22px,2.5vw,28px)' }}>Five more agents, always at work.</h2>
+          </div>
           <div className="agent-grid">
-            {AGENTS.map((agent) => (
+            {BACKGROUND_AGENTS.map((agent) => (
               <div key={agent.id} className="agent-card reveal">
                 <div className="agent-icon" style={{ background: agent.bg, color: agent.fg }}>
-                  {agent.icon}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
+                  </svg>
                 </div>
                 <h3>{agent.name}</h3>
                 <p>{agent.description}</p>
