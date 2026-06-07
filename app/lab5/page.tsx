@@ -10,13 +10,40 @@ declare global {
   }
 }
 
-function CheckIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12l4.5 4.5L19 7" />
-    </svg>
-  )
-}
+const FAQ_ITEMS = [
+  {
+    q: 'What exactly is Maya?',
+    a: 'Maya is your AI marketing assistant. She drafts campaigns, writes social posts, handles follow-ups, watches competitors, and schedules content — all trained on your brand voice. You stay in control through an approval queue; nothing goes live until you say so.',
+  },
+  {
+    q: 'Does the copy actually sound like me?',
+    a: 'Yes. When you sign up, you complete a Brand Kit session where Maya learns your business, tone, and audience. Everything she creates draws from that — so it reads like you wrote it, not like software.',
+  },
+  {
+    q: 'How does the approval flow work?',
+    a: "Maya puts every piece of content into your queue before it goes anywhere. You review, approve, or request changes. She only ships what you've signed off on. You can approve on the go or batch-review at the end of the week.",
+  },
+  {
+    q: 'What channels does Maya cover?',
+    a: 'Email, Instagram, and Facebook on all plans. Scheduling across additional channels is available on Growth and ProAgent.',
+  },
+  {
+    q: 'What happens after the 3-day trial?',
+    a: 'Your card is collected at sign-up but not charged for the first 3 days. At the end of the trial, Starter billing begins at $49/month. You can cancel before day 4 and pay nothing.',
+  },
+  {
+    q: 'Can I cancel anytime?',
+    a: 'Yes. Cancel from your account settings at any time — no cancellation fees, no questions asked.',
+  },
+  {
+    q: 'Is this right for a solo operator or small team?',
+    a: "Yes — it's built for exactly that. Most users are single-person businesses or teams under five. Maya gives you the output of a marketing department without the overhead.",
+  },
+  {
+    q: 'How is this different from a social media scheduling tool?',
+    a: "Scheduling tools post content you've already created. Maya creates it — writes the copy, plans the calendar, runs the campaigns — then schedules it. She's a team, not a tool.",
+  },
+]
 
 export default function Lab5Page() {
   useEffect(() => {
@@ -48,19 +75,19 @@ export default function Lab5Page() {
       {/* NAV */}
       <nav className="nav">
         <div className="nav-in">
-          <a className="brand" href="#">
+          <a className="brand" href="/lab5">
             <span className="brand-mark">7</span>
             <span className="brand-name">AGENT<b>7</b>EVEN</span>
           </a>
           <div className="nav-links">
             <a href="#how">How it works</a>
             <a href="#features">Features</a>
-            <a href="#pricing">Pricing</a>
+            <a href="/lab5/pricing">Pricing</a>
             <a href="#uses">Use cases</a>
           </div>
           <div className="nav-right">
-            <a className="nav-signin" href="#">Sign in</a>
-            <button className="btn btn-primary btn-sm">Get access</button>
+            <a className="nav-signin" href="https://app.agent7even.com/sign-in">Sign in</a>
+            <a className="btn btn-primary btn-sm" href="https://app.agent7even.com/sign-up">Sign up</a>
           </div>
         </div>
       </nav>
@@ -74,8 +101,8 @@ export default function Lab5Page() {
             <p className="t-lead">Campaigns planned, copy drafted, content posted — in your voice, approved by you. She runs the marketing while you run the business.</p>
             <p className="hero-tag">No agency. No busywork. No missed momentum.</p>
             <div className="hero-cta">
-              <button className="btn btn-blue btn-lg">Get access</button>
-              <button className="btn btn-ghost btn-lg">See how it works →</button>
+              <a className="btn btn-blue btn-lg" href="https://app.agent7even.com/pricing">Start your free trial</a>
+              <a className="btn btn-ghost btn-lg" href="#how">See how it works →</a>
             </div>
           </div>
           <div className="hero-orb">
@@ -219,25 +246,25 @@ export default function Lab5Page() {
               <div className="swatch" style={{ background: 'var(--brand)' }}></div>
               <h3>Campaigns on command</h3>
               <p>Tell Maya the offer; get the full sequence — emails, posts, the whole push — ready to approve.</p>
-              <a href="#">See it →</a>
+              <a href="#features">See it →</a>
             </div>
             <div className="lcard reveal">
               <div className="swatch" style={{ background: 'var(--orange)' }}></div>
               <h3>Competitor watch</h3>
               <p>Maya tracks your market and flags what rivals are running before it costs you the weekend.</p>
-              <a href="#">See it →</a>
+              <a href="#features">See it →</a>
             </div>
             <div className="lcard reveal">
               <div className="swatch" style={{ background: 'var(--green)' }}></div>
               <h3>Reputation loops</h3>
               <p>Reviews to answer, leads gone cold, follow-ups overdue — surfaced and ready, never dropped.</p>
-              <a href="#">See it →</a>
+              <a href="#features">See it →</a>
             </div>
             <div className="lcard reveal">
               <div className="swatch" style={{ background: 'var(--blue)' }}></div>
               <h3>One brand voice</h3>
               <p>Maya learns your business once and sounds like you everywhere you show up.</p>
-              <a href="#">See it →</a>
+              <a href="#how">See it →</a>
             </div>
           </div>
         </div>
@@ -291,50 +318,20 @@ export default function Lab5Page() {
         </div>
       </section>
 
-      {/* PRICING */}
-      <section id="pricing" style={{ paddingTop: 0 }}>
+      {/* FAQ */}
+      <section id="faq">
         <div className="wrap">
           <div className="sec-head reveal">
-            <span className="eyebrow">Pricing</span>
-            <h2 className="t-h2">Less than a freelancer. More than a team.</h2>
-            <p className="t-lead">Start free. Upgrade when Maya&rsquo;s pulling her weight — which is usually week one.</p>
+            <span className="eyebrow">Questions</span>
+            <h2 className="t-h2">Everything you need to know.</h2>
           </div>
-          <div className="price-grid">
-            <div className="tier reveal">
-              <div className="tname">Starter</div>
-              <div className="tdesc">For getting your first campaigns out the door.</div>
-              <div className="tprice">$0<span> / month</span></div>
-              <ul className="tlist">
-                <li><CheckIcon />1 campaign at a time</li>
-                <li><CheckIcon />Maya chat + canvas</li>
-                <li><CheckIcon />Approval queue</li>
-              </ul>
-              <button className="btn btn-ghost">Start free</button>
-            </div>
-            <div className="tier featured reveal">
-              <div className="badge">Most popular</div>
-              <div className="tname">Growth</div>
-              <div className="tdesc">For businesses that want the marketing fully run.</div>
-              <div className="tprice">$149<span> / month</span></div>
-              <ul className="tlist">
-                <li><CheckIcon />Unlimited campaigns &amp; content</li>
-                <li><CheckIcon />Competitor watch + follow-ups</li>
-                <li><CheckIcon />Scheduling across every channel</li>
-                <li><CheckIcon />Brand-voice training</li>
-              </ul>
-              <button className="btn btn-primary">Get access</button>
-            </div>
-            <div className="tier reveal">
-              <div className="tname">Studio</div>
-              <div className="tdesc">For agencies running Maya across many clients.</div>
-              <div className="tprice">Custom</div>
-              <ul className="tlist">
-                <li><CheckIcon />Multiple brand workspaces</li>
-                <li><CheckIcon />Team roles &amp; approvals</li>
-                <li><CheckIcon />Priority support</li>
-              </ul>
-              <button className="btn btn-ghost">Talk to us</button>
-            </div>
+          <div className="faq reveal">
+            {FAQ_ITEMS.map(({ q, a }) => (
+              <details key={q} className="faq-item">
+                <summary>{q}</summary>
+                <div className="faq-body"><p>{a}</p></div>
+              </details>
+            ))}
           </div>
         </div>
       </section>
@@ -352,12 +349,12 @@ export default function Lab5Page() {
             style={{ width: '100%', height: '100%', display: 'block' }}
           />
         </div>
-        <div className="cta-in reveal">
+        <div className="cta-in">
           <h2>Work like you have a full<br />marketing team. Because now you do.</h2>
           <p>Hire Maya and spend your hours on the work only you can do.</p>
           <div className="cta-btns">
-            <button className="btn btn-white btn-lg">Get access</button>
-            <button className="btn btn-dark-ghost btn-lg">See use cases</button>
+            <a className="btn btn-white btn-lg" href="https://app.agent7even.com/pricing">Start your free trial</a>
+            <a className="btn btn-dark-ghost btn-lg" href="/lab5/pricing">See plans →</a>
           </div>
         </div>
       </div>
@@ -367,7 +364,7 @@ export default function Lab5Page() {
         <div className="footer-in">
           <div className="footer-top">
             <div className="footer-brand">
-              <a className="brand" href="#">
+              <a className="brand" href="/lab5">
                 <span className="brand-mark">7</span>
                 <span className="brand-name">AGENT<b>7</b>EVEN</span>
               </a>
@@ -375,17 +372,17 @@ export default function Lab5Page() {
             </div>
             <div className="fcol">
               <h5>Product</h5>
-              <a href="#">Maya</a>
-              <a href="#">Campaigns</a>
-              <a href="#">Canvas</a>
-              <a href="#">Pricing</a>
+              <a href="#how">How it works</a>
+              <a href="#features">Features</a>
+              <a href="/lab5/pricing">Pricing</a>
+              <a href="https://app.agent7even.com/sign-up">Sign up</a>
             </div>
             <div className="fcol">
               <h5>Use cases</h5>
-              <a href="#">E-commerce</a>
-              <a href="#">Local service</a>
-              <a href="#">Creators</a>
-              <a href="#">Agencies</a>
+              <a href="#uses">E-commerce</a>
+              <a href="#uses">Local service</a>
+              <a href="#uses">Creators</a>
+              <a href="#uses">Agencies</a>
             </div>
             <div className="fcol">
               <h5>Company</h5>

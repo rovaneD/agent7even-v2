@@ -163,6 +163,21 @@
 .lab5 .tier .tlist li svg { flex-shrink: 0; margin-top: 2px; color: var(--l5-green); }
 .lab5 .tier .btn { width: 100%; justify-content: center; margin-top: auto; }
 
+/* ---- faq ---- */
+.lab5 .faq { max-width: 720px; margin: 0 auto; }
+.lab5 details.faq-item { border-bottom: 1px solid var(--l5-line); }
+.lab5 details.faq-item:first-child { border-top: 1px solid var(--l5-line); }
+.lab5 details.faq-item summary { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; cursor: pointer; list-style: none; font-size: 16px; font-weight: 600; color: var(--l5-ink); gap: 16px; }
+.lab5 details.faq-item summary::-webkit-details-marker { display: none; }
+.lab5 details.faq-item summary::after { content: '+'; font-size: 22px; font-weight: 300; color: var(--l5-faint); flex-shrink: 0; transition: transform .2s ease; }
+.lab5 details.faq-item[open] summary::after { transform: rotate(45deg); }
+.lab5 details.faq-item .faq-body { padding-bottom: 22px; }
+.lab5 details.faq-item .faq-body p { font-size: 15px; color: var(--l5-muted); line-height: 1.65; margin: 0; }
+
+/* ---- tier trial badge ---- */
+.lab5 .trial-tag { display: inline-block; font-family: var(--l5-mono); font-size: 11px; color: var(--l5-blue); background: #EAF1FF; padding: 3px 9px; border-radius: 6px; margin-top: 6px; }
+.lab5 .tier-note { font-size: 12.5px; color: var(--l5-faint); text-align: center; margin-top: 28px; line-height: 1.7; }
+
 /* ---- dark CTA ---- */
 .lab5 .cta-section { background: var(--l5-ink); border-radius: 28px; margin: 0 var(--l5-pad); overflow: hidden; position: relative; }
 .lab5 .cta-in { max-width: var(--l5-maxw); margin: 0 auto; padding: 96px 40px; text-align: center; position: relative; z-index: 2; }
