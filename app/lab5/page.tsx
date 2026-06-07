@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Script from 'next/script'
+import { Metaballs } from '@paper-design/shaders-react'
 
 declare global {
   interface Window {
@@ -86,7 +87,15 @@ export default function Lab5Page() {
             </div>
           </div>
           <div className="hero-orb">
-            <canvas className="metaball" data-seed="2" data-count="10" data-size="0.23"></canvas>
+            <Metaballs
+              speed={1}
+              count={10}
+              size={0.36}
+              scale={1}
+              colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
+              colorBack="#00000000"
+              style={{ width: '100%', height: '100%', display: 'block' }}
+            />
           </div>
         </div>
         <div className="wrap showpiece reveal">
