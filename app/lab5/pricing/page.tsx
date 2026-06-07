@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Metaballs } from '@paper-design/shaders-react'
 
 function CheckIcon() {
@@ -18,27 +18,27 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Can I cancel anytime?',
-    a: 'Yes. Cancel from your account settings at any time — no cancellation fees, no questions asked.',
+    a: 'Yes. Cancel from your account settings at any time — no cancellation fees, no questions asked. Cancellations take effect at the end of your current billing period.',
   },
   {
-    q: 'Does Growth or ProAgent have a free trial?',
-    a: 'No. Growth and ProAgent are charged immediately on sign-up. The 3-day free trial is exclusive to the Starter plan.',
+    q: "Does Growth or ProAgent have a free trial?",
+    a: "No. Growth and ProAgent are charged immediately on sign-up. The 3-day free trial is exclusive to the Starter plan.",
+  },
+  {
+    q: "What's included in annual billing?",
+    a: "Annual billing gives you 2 months free — you pay for 10 months and get 12. Starter is $490/yr, Growth is $890/yr, ProAgent is $1,490/yr. Annual plans are billed upfront.",
   },
   {
     q: 'What are team seats?',
-    a: 'Each plan includes a set number of seats — Starter includes 1, Growth includes 3, ProAgent includes 5. You can add extra seats on any plan for $15/month per seat.',
+    a: "Seats let you invite team members — a VA, social media manager, or anyone who needs platform access. Starter includes 1 seat, Growth includes 3, ProAgent includes 5. Extra seats are $15/mo each on ProAgent.",
   },
   {
-    q: 'Can I upgrade or downgrade my plan?',
-    a: 'Yes. You can change plans at any time from your account settings. Upgrades take effect immediately; downgrades apply at the start of your next billing cycle.',
+    q: 'Can I upgrade or downgrade anytime?',
+    a: 'Yes. Upgrades take effect immediately; downgrades apply at the start of your next billing cycle. You keep full access until your current period ends.',
   },
   {
     q: 'What is the Brand Kit?',
     a: "The Brand Kit is where Maya learns your business. You tell her your tone, audience, and key details — she uses that foundation for everything she creates. The Brand Kit is locked during the Starter trial and unlocks once your subscription begins.",
-  },
-  {
-    q: 'Does Maya actually sound like me?',
-    a: "Yes. Maya is trained on your Brand Kit and refines her voice over time based on what you approve and reject. The longer she runs, the more accurate she gets.",
   },
   {
     q: 'What channels does Maya cover?',
@@ -50,13 +50,15 @@ const TIERS = [
   {
     name: 'Starter',
     desc: 'For getting your first campaigns out the door.',
-    price: '$49',
-    period: '/ month',
+    monthlyPrice: 49,
+    annualPrice: 490,
     trial: '3-day free trial · Card required, no charge for 3 days',
     features: [
       '1 active campaign at a time',
       'Maya chat + Brand Kit',
       'Approval queue',
+      'All 9 agents',
+      '100 credits / month',
       '1 seat included',
     ],
     cta: 'Start your free trial',
@@ -67,14 +69,16 @@ const TIERS = [
   {
     name: 'Growth',
     desc: 'For businesses that want the marketing fully run.',
-    price: '$89',
-    period: '/ month',
+    monthlyPrice: 89,
+    annualPrice: 890,
     trial: null,
     features: [
+      'Everything in Starter',
       'Unlimited campaigns & content',
       'Competitor watch + follow-ups',
       'Scheduling across every channel',
-      'Brand-voice training',
+      'Full analytics',
+      '350 credits / month',
       '3 seats included',
     ],
     cta: 'Get started',
@@ -85,15 +89,16 @@ const TIERS = [
   {
     name: 'ProAgent',
     desc: 'For growing businesses that want every advantage.',
-    price: '$149',
-    period: '/ month',
+    monthlyPrice: 149,
+    annualPrice: 1490,
     trial: null,
     features: [
       'Everything in Growth',
+      '1,000 credits / month',
       'Multiple brand workspaces',
       'Team roles & approvals',
       'Priority support',
-      '5 seats included',
+      '5 seats included (+$15/mo per extra)',
     ],
     cta: 'Get started',
     ctaHref: 'https://app.agent7even.com/pricing',
@@ -103,6 +108,9 @@ const TIERS = [
 ]
 
 export default function PricingPage() {
+  const [annual, setAnnual] = useState(false)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+
   useEffect(() => {
     const io = new IntersectionObserver(
       (entries) => {
@@ -150,29 +158,58 @@ export default function PricingPage() {
             <p className="t-lead">Try Starter free for 3 days. Upgrade when you&rsquo;re ready — most users see the return in week one.</p>
           </div>
 
+          {/* Monthly / Annual toggle */}
+          <div className="billing-toggle-wrap">
+            <div className="billing-toggle">
+              <button
+                className={!annual ? 'active' : ''}
+                onClick={() => setAnnual(false)}
+              >
+                Monthly
+              </button>
+              <button
+                className={annual ? 'active' : ''}
+                onClick={() => setAnnual(true)}
+              >
+                Annual <span className="save-badge">2 months free</span>
+              </button>
+            </div>
+          </div>
+
           <div className="price-grid">
-            {TIERS.map((tier) => (
-              <div key={tier.name} className={`tier reveal${tier.featured ? ' featured' : ''}`}>
-                {tier.featured && <div className="badge">Most popular</div>}
-                <div className="tname">{tier.name}</div>
-                <div className="tdesc">{tier.desc}</div>
-                <div className="tprice">
-                  {tier.price}<span> {tier.period}</span>
+            {TIERS.map((tier) => {
+              const displayPrice = annual
+                ? Math.round(tier.annualPrice / 12)
+                : tier.monthlyPrice
+
+              return (
+                <div key={tier.name} className={`tier reveal${tier.featured ? ' featured' : ''}`}>
+                  {tier.featured && <div className="badge">Most popular</div>}
+                  <div className="tname">{tier.name}</div>
+                  <div className="tdesc">{tier.desc}</div>
+                  <div className="tprice">
+                    ${displayPrice}<span> / mo</span>
+                  </div>
+                  {annual && (
+                    <div className="tprice-note">${tier.annualPrice} billed annually</div>
+                  )}
+                  {tier.trial && !annual && (
+                    <div className="trial-tag">{tier.trial}</div>
+                  )}
+                  <ul className="tlist">
+                    {tier.features.map((f) => (
+                      <li key={f}><CheckIcon />{f}</li>
+                    ))}
+                  </ul>
+                  <a className={`btn ${tier.ctaClass}`} href={tier.ctaHref}>{tier.cta}</a>
                 </div>
-                {tier.trial && <div className="trial-tag">{tier.trial}</div>}
-                <ul className="tlist">
-                  {tier.features.map((f) => (
-                    <li key={f}><CheckIcon />{f}</li>
-                  ))}
-                </ul>
-                <a className={`btn ${tier.ctaClass}`} href={tier.ctaHref}>{tier.cta}</a>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <p className="tier-note">
-            All plans billed monthly. Annual plans available — save up to 17%.<br />
-            Extra seats $15/mo each. Growth &amp; ProAgent billed immediately on sign-up.
+            All plans billed monthly. Annual billing saves 2 months — billed upfront.<br />
+            Growth &amp; ProAgent charged immediately on sign-up. Starter includes a 3-day free trial.
           </p>
         </div>
       </section>
@@ -185,11 +222,14 @@ export default function PricingPage() {
             <h2 className="t-h2">Good questions.<br />Straight answers.</h2>
           </div>
           <div className="faq reveal">
-            {FAQ_ITEMS.map(({ q, a }) => (
-              <details key={q} className="faq-item">
-                <summary>{q}</summary>
-                <div className="faq-body"><p>{a}</p></div>
-              </details>
+            {FAQ_ITEMS.map(({ q, a }, i) => (
+              <div key={q} className="faq-item">
+                <button className="faq-q" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                  {q}
+                  <span className={`faq-icon${openFaq === i ? ' open' : ''}`}>+</span>
+                </button>
+                {openFaq === i && <div className="faq-body"><p>{a}</p></div>}
+              </div>
             ))}
           </div>
         </div>

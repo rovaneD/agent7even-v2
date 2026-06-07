@@ -165,17 +165,24 @@
 
 /* ---- faq ---- */
 .lab5 .faq { max-width: 720px; margin: 0 auto; }
-.lab5 details.faq-item { border-bottom: 1px solid var(--l5-line); }
-.lab5 details.faq-item:first-child { border-top: 1px solid var(--l5-line); }
-.lab5 details.faq-item summary { display: flex; justify-content: space-between; align-items: center; padding: 22px 0; cursor: pointer; list-style: none; font-size: 16px; font-weight: 600; color: var(--l5-ink); gap: 16px; }
-.lab5 details.faq-item summary::-webkit-details-marker { display: none; }
-.lab5 details.faq-item summary::after { content: '+'; font-size: 22px; font-weight: 300; color: var(--l5-faint); flex-shrink: 0; transition: transform .2s ease; }
-.lab5 details.faq-item[open] summary::after { transform: rotate(45deg); }
-.lab5 details.faq-item .faq-body { padding-bottom: 22px; }
-.lab5 details.faq-item .faq-body p { font-size: 15px; color: var(--l5-muted); line-height: 1.65; margin: 0; }
+.lab5 .faq-item { border-bottom: 1px solid var(--l5-line); }
+.lab5 .faq-item:first-child { border-top: 1px solid var(--l5-line); }
+.lab5 .faq-q { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 22px 0; cursor: pointer; background: none; border: none; font-size: 16px; font-weight: 600; color: var(--l5-ink); gap: 16px; text-align: left; font-family: inherit; }
+.lab5 .faq-icon { font-size: 22px; font-weight: 300; color: var(--l5-faint); flex-shrink: 0; transition: transform .2s ease; line-height: 1; display: inline-block; }
+.lab5 .faq-icon.open { transform: rotate(45deg); }
+.lab5 .faq-body { padding-bottom: 22px; }
+.lab5 .faq-body p { font-size: 15px; color: var(--l5-muted); line-height: 1.65; margin: 0; }
 
-/* ---- tier trial badge ---- */
+/* ---- billing toggle ---- */
+.lab5 .billing-toggle-wrap { text-align: center; margin-bottom: 56px; }
+.lab5 .billing-toggle { display: inline-flex; align-items: center; gap: 4px; background: var(--l5-surface); border: 1px solid var(--l5-line); border-radius: 14px; padding: 4px; }
+.lab5 .billing-toggle button { font-size: 14px; font-weight: 500; padding: 9px 22px; border-radius: 11px; cursor: pointer; transition: all .2s; border: none; background: none; color: var(--l5-faint); font-family: inherit; display: flex; align-items: center; gap: 8px; }
+.lab5 .billing-toggle button.active { background: var(--l5-ink); color: #fff; }
+.lab5 .save-badge { font-family: var(--l5-mono); font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 6px; background: var(--l5-green); color: #fff; letter-spacing: .04em; }
+
+/* ---- tier trial badge + annual note ---- */
 .lab5 .trial-tag { display: inline-block; font-family: var(--l5-mono); font-size: 11px; color: var(--l5-blue); background: #EAF1FF; padding: 3px 9px; border-radius: 6px; margin-top: 6px; }
+.lab5 .tprice-note { font-size: 12.5px; color: var(--l5-faint); margin-top: 4px; }
 .lab5 .tier-note { font-size: 12.5px; color: var(--l5-faint); text-align: center; margin-top: 28px; line-height: 1.7; }
 
 /* ---- dark CTA ---- */

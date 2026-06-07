@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Script from 'next/script'
 import { Metaballs } from '@paper-design/shaders-react'
 
@@ -46,6 +46,8 @@ const FAQ_ITEMS = [
 ]
 
 export default function Lab5Page() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+
   useEffect(() => {
     const io = new IntersectionObserver(
       (entries) => {
@@ -326,11 +328,14 @@ export default function Lab5Page() {
             <h2 className="t-h2">Everything you need to know.</h2>
           </div>
           <div className="faq reveal">
-            {FAQ_ITEMS.map(({ q, a }) => (
-              <details key={q} className="faq-item">
-                <summary>{q}</summary>
-                <div className="faq-body"><p>{a}</p></div>
-              </details>
+            {FAQ_ITEMS.map(({ q, a }, i) => (
+              <div key={q} className="faq-item">
+                <button className="faq-q" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                  {q}
+                  <span className={`faq-icon${openFaq === i ? ' open' : ''}`}>+</span>
+                </button>
+                {openFaq === i && <div className="faq-body"><p>{a}</p></div>}
+              </div>
             ))}
           </div>
         </div>
