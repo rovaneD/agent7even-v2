@@ -340,7 +340,7 @@ export default function Lab5Page() {
       </section>
 
       {/* DARK CTA */}
-      <div className="cta reveal">
+      <div className="cta">
         <div className="cta-orb">
           <Metaballs
             speed={1}
@@ -352,7 +352,7 @@ export default function Lab5Page() {
             style={{ width: '100%', height: '100%', display: 'block' }}
           />
         </div>
-        <div className="cta-in">
+        <div className="cta-in reveal">
           <h2>Work like you have a full<br />marketing team. Because now you do.</h2>
           <p>Hire Maya and spend your hours on the work only you can do.</p>
           <div className="cta-btns">
