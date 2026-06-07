@@ -139,6 +139,7 @@ export default function PricingPage() {
           <div className="nav-links">
             <a href="/lab5#how">How it works</a>
             <a href="/lab5#features">Features</a>
+            <a href="/lab5/agents">Agents</a>
             <a href="/lab5/pricing" style={{ color: 'var(--ink)' }}>Pricing</a>
             <a href="/lab5#uses">Use cases</a>
           </div>
@@ -273,8 +274,8 @@ export default function PricingPage() {
               <h5>Product</h5>
               <a href="/lab5#how">How it works</a>
               <a href="/lab5#features">Features</a>
+              <a href="/lab5/agents">Agents</a>
               <a href="/lab5/pricing">Pricing</a>
-              <a href="https://app.agent7even.com/sign-up">Sign up</a>
             </div>
             <div className="fcol">
               <h5>Use cases</h5>

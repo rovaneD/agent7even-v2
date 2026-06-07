@@ -84,6 +84,7 @@ export default function Lab5Page() {
           <div className="nav-links">
             <a href="#how">How it works</a>
             <a href="#features">Features</a>
+            <a href="/lab5/agents">Agents</a>
             <a href="/lab5/pricing">Pricing</a>
             <a href="#uses">Use cases</a>
           </div>
