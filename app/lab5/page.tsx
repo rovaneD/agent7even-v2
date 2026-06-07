@@ -340,7 +340,7 @@ export default function Lab5Page() {
       </section>
 
       {/* DARK CTA */}
-      <div className="cta">
+      <div className="cta-section">
         <div className="cta-orb">
           <Metaballs
             speed={1}
