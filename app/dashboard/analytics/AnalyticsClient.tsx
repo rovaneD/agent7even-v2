@@ -35,21 +35,44 @@ function _o(v: unknown): Record<string, unknown> {
 function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | null {
   if (!raw || typeof raw !== 'object') return null
   const r = _o(raw)
-  const data = _o(r.data ?? r.result ?? r.response ?? r)
-  const overview = _o(data.overview ?? data.summary ?? data.stats ?? data)
 
-  // Zernio returns per-post analytics in posts[].analytics — aggregate them
-  const postsArr = _a<Record<string, unknown>>(data.posts ?? data.items ?? [])
+  // ── New combined response shape: { posts, daily, accounts, bestTimes } ────────
+  // `posts` is the legacy /analytics response (overview + posts array)
+  // `daily` is from /analytics/daily — { stats: [...] }
+  // `accounts` is an array of /accounts/{id} responses
+  // `bestTimes` is from /analytics/best-time
+  const hasCombined = 'posts' in r && ('daily' in r || 'accounts' in r)
+
+  // Extract the posts sub-object (works for both old flat response and new combined shape)
+  const postsEnvelope = hasCombined ? _o(r.posts) : _o(r.data ?? r.result ?? r.response ?? r)
+  const overview = _o(postsEnvelope.overview ?? postsEnvelope.summary ?? postsEnvelope.stats ?? postsEnvelope)
+  const postsArr = _a<Record<string, unknown>>(postsEnvelope.posts ?? postsEnvelope.items ?? [])
+
+  // Aggregate per-post analytics
   const aggReach   = postsArr.reduce((s, p) => s + _n(_o(p.analytics).reach   ?? 0), 0)
   const aggLikes   = postsArr.reduce((s, p) => s + _n(_o(p.analytics).likes   ?? 0), 0)
   const erValues   = postsArr.map(p => _n(_o(p.analytics).engagementRate ?? 0)).filter(v => v > 0)
   const aggEngRate = erValues.length ? erValues.reduce((a, b) => a + b, 0) / erValues.length : 0
 
+  // totalFollowers — sum from accounts[].account.metrics.followersCount (or flat metrics field)
+  let totalFollowers = 0
+  if (hasCombined) {
+    const accountsArr = _a<Record<string, unknown>>(r.accounts)
+    for (const entry of accountsArr) {
+      if (!entry) continue
+      // /accounts/{id} returns { account: { metrics: { followersCount, ... } } }
+      const acct    = _o(entry.account ?? entry)
+      const metrics = _o(acct.metrics ?? acct)
+      totalFollowers += _n(
+        metrics.followersCount ?? metrics.followers_count ?? metrics.followers ?? metrics.followerCount ?? 0
+      )
+    }
+  }
+
   // Prefer overview-level fields; fall back to aggregated per-post values
   const engRate   = _n(overview.engagementRate ?? overview.engagement_rate ?? overview.er_pct ?? overview.er) || aggEngRate
   const reach     = _n(overview.totalReach ?? overview.total_reach ?? overview.reach) || aggReach
-  const followers = _n(overview.totalFollowers ?? overview.total_followers ?? overview.followers)
-  // Zernio uses overview.totalPosts
+  const followers = totalFollowers || _n(overview.totalFollowers ?? overview.total_followers ?? overview.followers)
   const posts     = _n(overview.totalPosts ?? overview.postsCount ?? overview.posts_count ?? overview.total_posts ?? overview.posts) || postsArr.length
 
   if (!engRate && !reach && !followers && !posts) return null
@@ -134,91 +157,162 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
     })
   }
 
-  // Try a pre-built time series from the API first; otherwise bucket posts[] ourselves
-  const apiMonthly = _a<Record<string, unknown>>(data.monthly ?? data.timeSeries ?? data.time_series ?? data.metrics)
-  if (apiMonthly.length) {
-    result.monthly = apiMonthly.map(m => ({
-      month:       _s(m.month ?? m.date ?? m.label ?? ''),
-      posts:       _n(m.posts ?? m.postsCount ?? 0),
-      likes:       _n(m.likes ?? 0),
-      comments:    _n(m.comments ?? 0),
-      shares:      _n(m.shares ?? 0),
-      saves:       _n(m.saves ?? 0),
-      views:       _n(m.views ?? 0),
-      impressions: _n(m.impressions ?? 0),
-      reach:       _n(m.reach ?? 0),
-      clicks:      _n(m.clicks ?? 0),
-      engRate:     _n(m.engagementRate ?? m.er ?? 0),
-    }))
-  } else if (postsArr.length) {
-    // Build time series by bucketing posts[] — granularity follows the date range
-    type Bucket = { sortKey: number; posts: number; likes: number; comments: number; shares: number; saves: number; views: number; impressions: number; reach: number; clicks: number; erSum: number; erCount: number }
-    const buckets = new Map<string, Bucket>()
+  // ── Time series ────────────────────────────────────────────────────────────────
+  // Prefer daily.stats[] (from /analytics/daily) — it has proper date fields.
+  // Fall back to bucketing posts[] ourselves if daily is unavailable.
+  const dailyStats = hasCombined
+    ? _a<Record<string, unknown>>(_o(r.daily).stats ?? [])
+    : []
 
+  if (dailyStats.length) {
+    // Count posts per bucket from postsArr so we have post counts in daily view
+    const postsByDate = new Map<string, number>()
     for (const p of postsArr) {
       const raw = _s(p.publishedAt ?? p.published_at ?? p.date ?? '')
       if (!raw) continue
       const d = new Date(raw)
       if (isNaN(d.getTime())) continue
-
-      let label: string
-      let sortKey: number
-
-      if (dateRange === '7d') {
-        label   = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        sortKey = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-      } else if (dateRange === '6m' || dateRange === '1y') {
-        label   = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-        sortKey = new Date(d.getFullYear(), d.getMonth(), 1).getTime()
-      } else {
-        // weekly (30d, 90d) — bucket to Monday of the week
-        const dow = (d.getDay() + 6) % 7 // Mon=0…Sun=6
-        const mon = new Date(d); mon.setDate(d.getDate() - dow); mon.setHours(0, 0, 0, 0)
-        label   = mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        sortKey = mon.getTime()
-      }
-
-      if (!buckets.has(label)) buckets.set(label, { sortKey, posts: 0, likes: 0, comments: 0, shares: 0, saves: 0, views: 0, impressions: 0, reach: 0, clicks: 0, erSum: 0, erCount: 0 })
-      const b = buckets.get(label)!
-      const a = _o(p.analytics)
-      b.posts++
-      b.likes       += _n(a.likes       ?? 0)
-      b.comments    += _n(a.comments    ?? 0)
-      b.shares      += _n(a.shares      ?? 0)
-      b.saves       += _n(a.saves       ?? 0)
-      b.views       += _n(a.views       ?? 0)
-      b.impressions += _n(a.impressions ?? 0)
-      b.reach       += _n(a.reach       ?? 0)
-      b.clicks      += _n(a.clicks      ?? 0)
-      const er = _n(a.engagementRate ?? 0)
-      if (er > 0) { b.erSum += er; b.erCount++ }
+      const key = d.toISOString().slice(0, 10)
+      postsByDate.set(key, (postsByDate.get(key) ?? 0) + 1)
     }
 
-    if (buckets.size > 0) {
-      result.monthly = Array.from(buckets.entries())
-        .sort(([, a], [, b]) => a.sortKey - b.sortKey)
-        .map(([month, b]) => ({
-          month,
-          posts:       b.posts,
-          likes:       b.likes,
-          comments:    b.comments,
-          shares:      b.shares,
-          saves:       b.saves,
-          views:       b.views,
-          impressions: b.impressions,
-          reach:       b.reach,
-          clicks:      b.clicks,
-          engRate:     b.erCount > 0 ? b.erSum / b.erCount : 0,
-        }))
+    result.monthly = dailyStats.map(stat => {
+      const dateStr = _s(stat.date ?? '')
+      const postsOnDay = postsByDate.get(dateStr) ?? 0
+      let label: string
+      try {
+        const d = new Date(dateStr)
+        if (dateRange === '7d') {
+          label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        } else if (dateRange === '6m' || dateRange === '1y') {
+          label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+        } else {
+          label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        }
+      } catch {
+        label = dateStr
+      }
+      return {
+        month:       label,
+        posts:       postsOnDay,
+        likes:       _n(stat.likes       ?? 0),
+        comments:    _n(stat.comments    ?? 0),
+        shares:      _n(stat.shares      ?? 0),
+        saves:       0,
+        views:       _n(stat.views       ?? 0),
+        impressions: _n(stat.impressions ?? 0),
+        reach:       _n(stat.reach       ?? 0),
+        clicks:      0,
+        engRate:     0,
+      }
+    })
+
+    // follower evolution — use daily stats if they carry followersCount per day
+    const followersByDay = dailyStats
+      .map(s => ({
+        month:     _s(s.date ?? ''),
+        followers: _n(s.followersCount ?? s.followers_count ?? s.followers ?? s.followerCount ?? 0),
+      }))
+      .filter(f => f.followers > 0)
+    if (followersByDay.length) {
+      result.followerEvolution = followersByDay
+    }
+  } else {
+    // Legacy path: bucket posts[] by date range granularity
+    const apiMonthly = _a<Record<string, unknown>>(
+      postsEnvelope.monthly ?? postsEnvelope.timeSeries ?? postsEnvelope.time_series ?? postsEnvelope.metrics
+    )
+    if (apiMonthly.length) {
+      result.monthly = apiMonthly.map(m => ({
+        month:       _s(m.month ?? m.date ?? m.label ?? ''),
+        posts:       _n(m.posts ?? m.postsCount ?? 0),
+        likes:       _n(m.likes ?? 0),
+        comments:    _n(m.comments ?? 0),
+        shares:      _n(m.shares ?? 0),
+        saves:       _n(m.saves ?? 0),
+        views:       _n(m.views ?? 0),
+        impressions: _n(m.impressions ?? 0),
+        reach:       _n(m.reach ?? 0),
+        clicks:      _n(m.clicks ?? 0),
+        engRate:     _n(m.engagementRate ?? m.er ?? 0),
+      }))
+    } else if (postsArr.length) {
+      type Bucket = { sortKey: number; posts: number; likes: number; comments: number; shares: number; saves: number; views: number; impressions: number; reach: number; clicks: number; erSum: number; erCount: number }
+      const buckets = new Map<string, Bucket>()
+
+      for (const p of postsArr) {
+        const rawDate = _s(p.publishedAt ?? p.published_at ?? p.date ?? '')
+        if (!rawDate) continue
+        const d = new Date(rawDate)
+        if (isNaN(d.getTime())) continue
+
+        let label: string
+        let sortKey: number
+
+        if (dateRange === '7d') {
+          label   = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          sortKey = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+        } else if (dateRange === '6m' || dateRange === '1y') {
+          label   = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+          sortKey = new Date(d.getFullYear(), d.getMonth(), 1).getTime()
+        } else {
+          const dow = (d.getDay() + 6) % 7
+          const mon = new Date(d); mon.setDate(d.getDate() - dow); mon.setHours(0, 0, 0, 0)
+          label   = mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          sortKey = mon.getTime()
+        }
+
+        if (!buckets.has(label)) buckets.set(label, { sortKey, posts: 0, likes: 0, comments: 0, shares: 0, saves: 0, views: 0, impressions: 0, reach: 0, clicks: 0, erSum: 0, erCount: 0 })
+        const b = buckets.get(label)!
+        const a = _o(p.analytics)
+        b.posts++
+        b.likes       += _n(a.likes       ?? 0)
+        b.comments    += _n(a.comments    ?? 0)
+        b.shares      += _n(a.shares      ?? 0)
+        b.saves       += _n(a.saves       ?? 0)
+        b.views       += _n(a.views       ?? 0)
+        b.impressions += _n(a.impressions ?? 0)
+        b.reach       += _n(a.reach       ?? 0)
+        b.clicks      += _n(a.clicks      ?? 0)
+        const er = _n(a.engagementRate ?? 0)
+        if (er > 0) { b.erSum += er; b.erCount++ }
+      }
+
+      if (buckets.size > 0) {
+        result.monthly = Array.from(buckets.entries())
+          .sort(([, a], [, b]) => a.sortKey - b.sortKey)
+          .map(([month, b]) => ({
+            month,
+            posts:       b.posts,
+            likes:       b.likes,
+            comments:    b.comments,
+            shares:      b.shares,
+            saves:       b.saves,
+            views:       b.views,
+            impressions: b.impressions,
+            reach:       b.reach,
+            clicks:      b.clicks,
+            engRate:     b.erCount > 0 ? b.erSum / b.erCount : 0,
+          }))
+      }
+    }
+
+    // Follower evolution from overview data (legacy path)
+    const followerEvo = _a<Record<string, unknown>>(
+      postsEnvelope.followerEvolution ?? postsEnvelope.follower_evolution ??
+      postsEnvelope.followerHistory   ?? postsEnvelope.followers_history
+    )
+    if (followerEvo.length) {
+      result.followerEvolution = followerEvo.map(f => ({
+        month:     _s(f.month ?? f.date ?? f.label ?? ''),
+        followers: _n(f.followers ?? 0),
+      }))
     }
   }
 
-  const followerEvo = _a<Record<string, unknown>>(data.followerEvolution ?? data.follower_evolution ?? data.followerHistory ?? data.followers_history)
-  if (followerEvo.length) {
-    result.followerEvolution = followerEvo.map(f => ({
-      month:     _s(f.month ?? f.date ?? f.label ?? ''),
-      followers: _n(f.followers ?? 0),
-    }))
+  // Log bestTimes for inspection (heatmap wiring is a follow-up)
+  if (hasCombined && r.bestTimes) {
+    console.log('[analytics] bestTimes data available:', JSON.stringify(r.bestTimes).slice(0, 300))
   }
 
   return result

@@ -3,6 +3,16 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
 
+/** Convert a dateRange string ('7d' | '30d' | '90d' | '6m' | '1y') to a number of days. */
+function dateRangeToDays(dateRange: string): number {
+  if (dateRange === '7d')  return 7
+  if (dateRange === '30d') return 30
+  if (dateRange === '90d') return 90
+  if (dateRange === '6m')  return 180
+  if (dateRange === '1y')  return 365
+  return 30
+}
+
 export async function GET(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,22 +35,51 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'not_connected' }, { status: 404 })
   }
 
-  const data = await publisher.getSocialAnalytics({
-    profileId: profile.zernio_profile_id as string,
-    platform,
-    dateRange,
-  })
+  const profileId = profile.zernio_profile_id as string
+  const days = dateRangeToDays(dateRange)
 
-  if (!data) {
-    return NextResponse.json({ error: 'Failed to fetch analytics from Zernio' }, { status: 502 })
-  }
+  // ── 1. Get post data (existing endpoint — confirmed working) ─────────────────
+  const rawPostData = await publisher.getSocialAnalytics({ profileId, platform, dateRange })
 
-  // If publisher returned a wrapped error, surface it so the client can log it
-  if (typeof data === 'object' && data !== null && '_zernioError' in data) {
-    const errMsg = (data as Record<string, unknown>)._zernioError
+  if (typeof rawPostData === 'object' && rawPostData !== null && '_zernioError' in rawPostData) {
+    const errMsg = (rawPostData as Record<string, unknown>)._zernioError
     console.error('[zernio/social] Zernio analytics error:', errMsg)
     return NextResponse.json({ error: 'zernio_api_error', detail: errMsg }, { status: 502 })
   }
 
-  return NextResponse.json(data)
+  // ── 2. Get connected account IDs ─────────────────────────────────────────────
+  const accounts = await publisher.getProfileAccounts(profileId)
+  const accountIds = accounts.map(a => a.id).filter(Boolean)
+
+  // ── 3. Daily time series (one call per account, fail soft) ───────────────────
+  let dailyData: unknown = null
+  if (accountIds.length > 0) {
+    // Use first account for daily stats; multi-account aggregation is a future iteration
+    dailyData = await publisher.getDailyAnalytics({ accountId: accountIds[0], days })
+  }
+
+  // ── 4. Account-level metrics for follower counts (fail soft) ─────────────────
+  const accountMetricsArray: unknown[] = await Promise.all(
+    accountIds.map(id => publisher.getAccountMetrics(id))
+  )
+
+  // ── 5. Best-time heatmap (fail soft) ─────────────────────────────────────────
+  let bestTimesData: unknown = null
+  if (accountIds.length > 0) {
+    const primaryAccount = accounts[0]
+    bestTimesData = await publisher.getBestTimeToPost({
+      accountId: primaryAccount.id,
+      platform: platform ?? primaryAccount.platform,
+    })
+    if (bestTimesData) {
+      console.log('[zernio/social] bestTimes response:', JSON.stringify(bestTimesData).slice(0, 500))
+    }
+  }
+
+  return NextResponse.json({
+    posts:      rawPostData,
+    daily:      dailyData,
+    accounts:   accountMetricsArray,
+    bestTimes:  bestTimesData,
+  })
 }

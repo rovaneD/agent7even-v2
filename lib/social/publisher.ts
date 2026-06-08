@@ -203,6 +203,63 @@ export async function getSocialAnalytics(params: SocialAnalyticsParams): Promise
   }
 }
 
+// ── Analytics helpers (documented endpoints) ──────────────────────────────────
+
+/** Returns full account objects including _id (accountId needed for analytics calls). */
+export async function getProfileAccounts(
+  profileId: string,
+): Promise<Array<{ id: string; platform: string; username: string }>> {
+  try {
+    const data = await zCall<{
+      accounts?: Array<{ _id?: string; id?: string; platform?: string; platformUsername?: string; username?: string; health?: unknown }>
+    }>(`/profiles/${encodeURIComponent(profileId)}/connected-accounts`)
+    const arr = Array.isArray(data.accounts) ? data.accounts : []
+    return arr
+      .map(a => ({
+        id: String(a._id ?? a.id ?? ''),
+        platform: String(a.platform ?? ''),
+        username: String(a.platformUsername ?? a.username ?? ''),
+      }))
+      .filter(a => a.id)
+  } catch (err) {
+    console.error('[publisher] getProfileAccounts failed:', err)
+    return []
+  }
+}
+
+/** Daily time series — for Posts over time / Likes over time charts. */
+export async function getDailyAnalytics(params: { accountId: string; days: number }): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({ accountId: params.accountId, days: String(params.days) })
+    return await zCall(`/analytics/daily?${q}`)
+  } catch (err) {
+    console.error('[publisher] getDailyAnalytics failed:', err)
+    return null
+  }
+}
+
+/** Best time to post — for the heatmap. */
+export async function getBestTimeToPost(params: { accountId: string; platform?: string }): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({ accountId: params.accountId })
+    if (params.platform) q.set('platform', params.platform)
+    return await zCall(`/analytics/best-time?${q}`)
+  } catch (err) {
+    console.error('[publisher] getBestTimeToPost failed:', err)
+    return null
+  }
+}
+
+/** Account-level metrics including followers. */
+export async function getAccountMetrics(accountId: string): Promise<unknown> {
+  try {
+    return await zCall(`/accounts/${encodeURIComponent(accountId)}`)
+  } catch (err) {
+    console.error('[publisher] getAccountMetrics failed:', err)
+    return null
+  }
+}
+
 export interface AdsAnalyticsParams {
   profileId: string
   platform?: string
