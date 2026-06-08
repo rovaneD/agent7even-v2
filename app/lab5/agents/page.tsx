@@ -48,7 +48,7 @@ export default function AgentsPage() {
             <a href="/lab5#features">Features</a>
             <a href="/lab5/agents" style={{ color: 'var(--ink)' }}>Agents</a>
             <a href="/lab5/pricing">Pricing</a>
-            <a href="/lab5#uses">Use cases</a>
+            <a href="/lab5/use-cases">Use cases</a>
           </div>
           <div className="nav-right">
             <a className="nav-signin" href="https://app.agent7even.com/sign-in">Sign in</a>
@@ -342,10 +342,10 @@ export default function AgentsPage() {
             </div>
             <div className="fcol">
               <h5>Use cases</h5>
-              <a href="/lab5#uses">E-commerce</a>
-              <a href="/lab5#uses">Local service</a>
-              <a href="/lab5#uses">Creators</a>
-              <a href="/lab5#uses">Agencies</a>
+              <a href="/lab5/use-cases/ecommerce">E-commerce</a>
+              <a href="/lab5/use-cases/local-service">Local service</a>
+              <a href="/lab5/use-cases/coaches-creators">Creators</a>
+              <a href="/lab5/use-cases/agencies">Agencies</a>
             </div>
             <div className="fcol">
               <h5>Company</h5>
