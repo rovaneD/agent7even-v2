@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -16,6 +16,124 @@ import type { AnalyticsDataState } from './page'
 import {
   MOCK_ANALYTICS_INBOX, MOCK_POSTING_ANALYTICS,
 } from '@/lib/analytics/mockData'
+
+// ── Posting data context ───────────────────────────────────────────────────────
+
+type PostingAnalytics = typeof MOCK_POSTING_ANALYTICS
+const PostingDataContext = createContext<PostingAnalytics>(MOCK_POSTING_ANALYTICS)
+
+// ── Zernio response helpers ────────────────────────────────────────────────────
+
+function _n(v: unknown): number { return typeof v === 'number' ? v : (Number(v) || 0) }
+function _s(v: unknown): string { return typeof v === 'string' ? v : String(v ?? '') }
+function _a<T>(v: unknown): T[] { return Array.isArray(v) ? (v as T[]) : [] }
+function _o(v: unknown): Record<string, unknown> {
+  return (v && typeof v === 'object' && !Array.isArray(v)) ? (v as Record<string, unknown>) : {}
+}
+
+function mapZernioResponse(raw: unknown): PostingAnalytics | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = _o(raw)
+  const data = _o(r.data ?? r.result ?? r.response ?? r)
+  const overview = _o(data.overview ?? data.summary ?? data.stats ?? data)
+
+  const engRate   = _n(overview.engagementRate ?? overview.engagement_rate ?? overview.er_pct ?? overview.er)
+  const reach     = _n(overview.totalReach ?? overview.total_reach ?? overview.reach)
+  const followers = _n(overview.totalFollowers ?? overview.total_followers ?? overview.followers)
+  const posts     = _n(overview.postsCount ?? overview.posts_count ?? overview.total_posts ?? overview.posts)
+
+  if (!engRate && !reach && !followers && !posts) return null
+
+  const result: PostingAnalytics = {
+    ...MOCK_POSTING_ANALYTICS,
+    stats: {
+      ...MOCK_POSTING_ANALYTICS.stats,
+      engagementRate: engRate || MOCK_POSTING_ANALYTICS.stats.engagementRate,
+      totalReach:     reach   || MOCK_POSTING_ANALYTICS.stats.totalReach,
+      totalFollowers: followers || MOCK_POSTING_ANALYTICS.stats.totalFollowers,
+      postsThisPeriod: posts  || MOCK_POSTING_ANALYTICS.stats.postsThisPeriod,
+    },
+  }
+
+  const platforms = _a<Record<string, unknown>>(data.platforms ?? data.accounts ?? data.channels)
+  if (platforms.length) {
+    result.platformPosts = platforms.map(p => ({
+      platform: _s(p.platform ?? p.channel ?? p.name ?? ''),
+      label:    _s(p.label ?? p.platform ?? p.channel ?? ''),
+      posts:    _n(p.postsCount ?? p.posts_count ?? p.posts ?? 0),
+    })).filter(p => p.platform)
+
+    result.platformLikes = platforms.map(p => ({
+      platform: _s(p.platform ?? p.channel ?? p.name ?? ''),
+      label:    _s(p.label ?? p.platform ?? p.channel ?? ''),
+      likes:    _n(p.likes ?? p.totalLikes ?? p.total_likes ?? 0),
+    })).filter(p => p.platform)
+
+    result.platformBreakdown = platforms.map(p => {
+      const id   = _s(p.platform ?? p.channel ?? p.name ?? '')
+      const meta = (PLATFORM_META as Record<string, { label: string }>)[id]
+      return {
+        platform:    id,
+        label:       meta?.label ?? _s(p.label ?? id),
+        posts:       _n(p.posts ?? p.postsCount ?? 0),
+        likes:       _n(p.likes ?? p.totalLikes ?? 0),
+        comments:    _n(p.comments ?? p.totalComments ?? 0),
+        shares:      _n(p.shares ?? p.totalShares ?? 0),
+        saves:       _n(p.saves ?? p.totalSaves ?? 0),
+        clicks:      _n(p.clicks ?? p.totalClicks ?? 0),
+        views:       _n(p.views ?? p.totalViews ?? 0),
+        impressions: _n(p.impressions ?? p.totalImpressions ?? 0),
+        reach:       _n(p.reach ?? p.totalReach ?? 0),
+        erPct:       _n(p.engagementRate ?? p.engagement_rate ?? p.er ?? 0),
+      }
+    }).filter(p => p.platform)
+  }
+
+  const topPostsRaw = _a<Record<string, unknown>>(data.topPosts ?? data.top_posts ?? data.posts)
+  if (topPostsRaw.length) {
+    result.topPosts = topPostsRaw.slice(0, 10).map(p => ({
+      platform:    _s(p.platform ?? p.channel ?? ''),
+      caption:     _s(p.caption ?? p.text ?? p.description ?? p.content ?? ''),
+      date:        _s(p.date ?? p.publishedAt ?? p.published_at ?? p.createdAt ?? ''),
+      likes:       _n(p.likes ?? 0),
+      comments:    _n(p.comments ?? 0),
+      shares:      _n(p.shares ?? 0),
+      saves:       _n(p.saves ?? 0),
+      clicks:      _n(p.clicks ?? 0),
+      views:       _n(p.views ?? 0),
+      impressions: _n(p.impressions ?? 0),
+      reach:       _n(p.reach ?? 0),
+      erPct:       _n(p.engagementRate ?? p.er ?? 0),
+    }))
+  }
+
+  const monthly = _a<Record<string, unknown>>(data.monthly ?? data.timeSeries ?? data.time_series ?? data.metrics)
+  if (monthly.length) {
+    result.monthly = monthly.map(m => ({
+      month:       _s(m.month ?? m.date ?? m.label ?? ''),
+      posts:       _n(m.posts ?? m.postsCount ?? 0),
+      likes:       _n(m.likes ?? 0),
+      comments:    _n(m.comments ?? 0),
+      shares:      _n(m.shares ?? 0),
+      saves:       _n(m.saves ?? 0),
+      views:       _n(m.views ?? 0),
+      impressions: _n(m.impressions ?? 0),
+      reach:       _n(m.reach ?? 0),
+      clicks:      _n(m.clicks ?? 0),
+      engRate:     _n(m.engagementRate ?? m.er ?? 0),
+    }))
+  }
+
+  const followerEvo = _a<Record<string, unknown>>(data.followerEvolution ?? data.follower_evolution ?? data.followerHistory ?? data.followers_history)
+  if (followerEvo.length) {
+    result.followerEvolution = followerEvo.map(f => ({
+      month:     _s(f.month ?? f.date ?? f.label ?? ''),
+      followers: _n(f.followers ?? 0),
+    }))
+  }
+
+  return result
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -487,7 +605,7 @@ function ChartCard({
 // ── Stat Cards (5) ─────────────────────────────────────────────────────────────
 
 function StatCards({ isMock }: { isMock: boolean }) {
-  const s = MOCK_POSTING_ANALYTICS.stats
+  const { stats: s } = useContext(PostingDataContext)
 
   const cards = [
     {
@@ -564,7 +682,7 @@ function StatCards({ isMock }: { isMock: boolean }) {
 // ── Posts Per Platform ─────────────────────────────────────────────────────────
 
 function PostsPerPlatformChart({ isMock }: { isMock: boolean }) {
-  const data = MOCK_POSTING_ANALYTICS.platformPosts
+  const { platformPosts: data } = useContext(PostingDataContext)
   const total = data.reduce((s, d) => s + d.posts, 0)
 
   return (
@@ -592,7 +710,7 @@ function PostsPerPlatformChart({ isMock }: { isMock: boolean }) {
 // ── Posts Over Time ────────────────────────────────────────────────────────────
 
 function PostsOverTimeChart({ isMock }: { isMock: boolean }) {
-  const data = MOCK_POSTING_ANALYTICS.monthly
+  const { monthly: data } = useContext(PostingDataContext)
   const total = data.reduce((s, d) => s + d.posts, 0)
 
   return (
@@ -620,7 +738,7 @@ function PostsOverTimeChart({ isMock }: { isMock: boolean }) {
 // ── Likes Per Platform ─────────────────────────────────────────────────────────
 
 function LikesPerPlatformChart({ isMock }: { isMock: boolean }) {
-  const data = MOCK_POSTING_ANALYTICS.platformLikes
+  const { platformLikes: data } = useContext(PostingDataContext)
   const total = data.reduce((s, d) => s + d.likes, 0)
 
   return (
@@ -648,7 +766,7 @@ function LikesPerPlatformChart({ isMock }: { isMock: boolean }) {
 // ── Likes Over Time ────────────────────────────────────────────────────────────
 
 function LikesOverTimeChart({ isMock }: { isMock: boolean }) {
-  const data = MOCK_POSTING_ANALYTICS.monthly
+  const { monthly: data } = useContext(PostingDataContext)
   const total = data.reduce((s, d) => s + d.likes, 0)
 
   return (
@@ -679,7 +797,7 @@ function EngagementOverTimeChart({ isMock }: { isMock: boolean }) {
   const [activeMetrics, setActiveMetrics] = useState<Set<MetricKey>>(
     new Set(DEFAULT_ACTIVE_METRICS)
   )
-  const data = MOCK_POSTING_ANALYTICS.monthly
+  const { monthly: data } = useContext(PostingDataContext)
 
   const toggle = (key: MetricKey) => {
     setActiveMetrics(prev => {
@@ -766,7 +884,7 @@ function EngagementOverTimeChart({ isMock }: { isMock: boolean }) {
 // ── Best Time to Post Heatmap ──────────────────────────────────────────────────
 
 function BestTimeToPostHeatmap({ isMock }: { isMock: boolean }) {
-  const { days, times, data, bestDay, bestTime } = MOCK_POSTING_ANALYTICS.heatmap
+  const { heatmap: { days, times, data, bestDay, bestTime } } = useContext(PostingDataContext)
   const allValues = data.flat()
   const maxVal = Math.max(...allValues, 1)
 
@@ -840,7 +958,7 @@ function BestTimeToPostHeatmap({ isMock }: { isMock: boolean }) {
 // ── Follower Evolution ─────────────────────────────────────────────────────────
 
 function FollowerEvolutionChart({ isMock }: { isMock: boolean }) {
-  const data = MOCK_POSTING_ANALYTICS.followerEvolution
+  const { followerEvolution: data } = useContext(PostingDataContext)
   const total = data[data.length - 1]?.followers ?? 0
 
   return (
@@ -874,7 +992,7 @@ function FollowerEvolutionChart({ isMock }: { isMock: boolean }) {
 // ── Platform Breakdown Table ───────────────────────────────────────────────────
 
 function PlatformBreakdownTable({ isMock }: { isMock: boolean }) {
-  const data = MOCK_POSTING_ANALYTICS.platformBreakdown
+  const { platformBreakdown: data } = useContext(PostingDataContext)
   const cols = ['Platform', 'Posts', 'Likes', 'Comments', 'Shares', 'Saves', 'Clicks', 'Views', 'Impressions', 'Reach', 'ER%']
 
   return (
@@ -927,7 +1045,7 @@ function PlatformBreakdownTable({ isMock }: { isMock: boolean }) {
 // ── Top Performing Posts Table ─────────────────────────────────────────────────
 
 function TopPerformingPostsTable({ isMock }: { isMock: boolean }) {
-  const data = MOCK_POSTING_ANALYTICS.topPosts
+  const { topPosts: data } = useContext(PostingDataContext)
   const metaCols = [
     { key: 'likes',       label: 'Likes',       color: '#3B82F6' },
     { key: 'comments',    label: 'Comments',    color: '#10B981' },
@@ -998,8 +1116,7 @@ function TopPerformingPostsTable({ isMock }: { isMock: boolean }) {
 // ── Posting Frequency vs Engagement ───────────────────────────────────────────
 
 function PostingFrequencyChart({ isMock }: { isMock: boolean }) {
-  const data = MOCK_POSTING_ANALYTICS.postingFrequency
-  const optimal = MOCK_POSTING_ANALYTICS.optimalCadence
+  const { postingFrequency: data, optimalCadence: optimal } = useContext(PostingDataContext)
 
   const igColor  = '#3B82F6'
   const fbColor  = '#60A5FA'
@@ -1070,7 +1187,7 @@ function PostingFrequencyChart({ isMock }: { isMock: boolean }) {
 // ── Engagement Accumulation ────────────────────────────────────────────────────
 
 function EngagementAccumulationChart({ isMock }: { isMock: boolean }) {
-  const data = MOCK_POSTING_ANALYTICS.engagementAccumulation
+  const { engagementAccumulation: data, halfEngagementTime, eightyPctTime } = useContext(PostingDataContext)
 
   return (
     <ChartCard
@@ -1106,9 +1223,9 @@ function EngagementAccumulationChart({ isMock }: { isMock: boolean }) {
       </div>
       <div className="px-4 pb-4 flex items-center gap-1.5 text-[11px] text-text-sec">
         <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] inline-block" />
-        Half of engagement by <strong className="text-text mx-0.5">{MOCK_POSTING_ANALYTICS.halfEngagementTime}</strong>
+        Half of engagement by <strong className="text-text mx-0.5">{halfEngagementTime}</strong>
         {' · '}
-        80% within <strong className="text-text mx-0.5">{MOCK_POSTING_ANALYTICS.eightyPctTime}</strong>
+        80% within <strong className="text-text mx-0.5">{eightyPctTime}</strong>
       </div>
     </ChartCard>
   )
@@ -1614,6 +1731,7 @@ export default function AnalyticsClient({
   const [gaData, setGaData]                 = useState<GaData | null>(null)
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(zernioConnectedPlatforms)
   const [zernioToast, setZernioToast]       = useState('')
+  const [postingData, setPostingData]       = useState<PostingAnalytics>(MOCK_POSTING_ANALYTICS)
 
   const isMock = dataState === 'mock'
 
@@ -1673,6 +1791,22 @@ export default function AnalyticsClient({
   }, [dataState, gaId, dateRange])
 
   useEffect(() => { fetchGaData() }, [fetchGaData])
+
+  // Fetch Zernio social analytics (live state only)
+  const fetchZernioData = useCallback(async () => {
+    if (dataState !== 'live') return
+    try {
+      const res  = await fetch(`/api/analytics/zernio/social?dateRange=${dateRange}`)
+      const json = await res.json()
+      console.log('[analytics] Zernio social response:', JSON.stringify(json).slice(0, 3000))
+      const mapped = mapZernioResponse(json)
+      if (mapped) setPostingData(mapped)
+    } catch (err) {
+      console.error('[analytics] Zernio fetch failed:', err)
+    }
+  }, [dataState, dateRange])
+
+  useEffect(() => { fetchZernioData() }, [fetchZernioData])
 
   const handleGAConnect = () => oauthConnected ? setShowPropertySelector(true) : setShowGAModal(true)
 
@@ -1778,8 +1912,10 @@ export default function AnalyticsClient({
       )}
 
       {/* ── Tab content ──────────────────────────────────────────────────── */}
-      {activeTab === 'posting' && <PostingAnalyticsContent isMock={isMock} />}
-      {activeTab === 'inbox'   && <InboxAnalyticsContent   isMock={isMock} />}
+      <PostingDataContext.Provider value={postingData}>
+        {activeTab === 'posting' && <PostingAnalyticsContent isMock={isMock} />}
+        {activeTab === 'inbox'   && <InboxAnalyticsContent   isMock={isMock} />}
+      </PostingDataContext.Provider>
     </div>
   )
 }
