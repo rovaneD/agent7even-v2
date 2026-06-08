@@ -1,16 +1,37 @@
+import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import { isAuthorizedCronRequest } from '@/lib/cron-auth'
 
 export async function POST(req: Request) {
-  const supabase = createServiceClient()
   const { profileId } = await req.json()
 
   if (!profileId) return NextResponse.json({ error: 'profileId required' }, { status: 400 })
 
+  const cronAuthorized = isAuthorizedCronRequest(req)
+  const supabase = cronAuthorized ? createServiceClient() : null
+
+  if (!cronAuthorized) {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const authedSupabase = createServiceClient()
+    const { data: profile } = await authedSupabase
+      .from('profiles')
+      .select('id')
+      .eq('clerk_user_id', userId)
+      .single()
+
+    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    if (profile.id !== profileId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const serviceSupabase = supabase ?? createServiceClient()
+
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: existing } = await supabase
+  const { data: existing } = await serviceSupabase
     .from('daily_digests')
     .select('id')
     .eq('user_id', profileId)
@@ -22,7 +43,7 @@ export async function POST(req: Request) {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
   // Completed agent runs in last 24h
-  const { data: agentTasks } = await supabase
+  const { data: agentTasks } = await serviceSupabase
     .from('agent_tasks')
     .select('id, agent, status, cost_usd, created_at')
     .eq('user_id', profileId)
@@ -36,11 +57,14 @@ export async function POST(req: Request) {
     .slice(0, 5)
 
   // Pending approvals
-  const { data: pendingTasks } = await supabase
+  const { data: pendingTasks } = await serviceSupabase
     .from('agent_tasks')
     .select('id, agent, created_at')
     .eq('user_id', profileId)
-    .eq('status', 'approval_required')
+    .eq('requires_approval', true)
+    .eq('status', 'completed')
+    .is('approved_at', null)
+    .is('rejected_at', null)
     .order('created_at', { ascending: false })
     .limit(5)
 
@@ -50,15 +74,15 @@ export async function POST(req: Request) {
     ...(pendingTasks ?? []).map(t => t.id),
   ]
   const { data: allOutputs } = allTaskIds.length
-    ? await supabase.from('agent_outputs').select('task_id, content').in('task_id', allTaskIds)
+    ? await serviceSupabase.from('agent_outputs').select('task_id, content').in('task_id', allTaskIds)
     : { data: [] }
 
   const outputByTask = Object.fromEntries(
-    (allOutputs ?? []).map(o => [o.task_id, o.content as string])
+    (allOutputs ?? []).map(o => [o.task_id, o.content as unknown])
   )
 
   // Active campaigns → today's actions
-  const { data: campaigns } = await supabase
+  const { data: campaigns } = await serviceSupabase
     .from('campaigns')
     .select('title, plan')
     .eq('user_id', profileId)
@@ -83,7 +107,7 @@ export async function POST(req: Request) {
   // Generate one-line Haiku summaries for each agent run
   const agentSummaries = await Promise.all(
     digestAgentTasks.map(async task => {
-      const preview = (outputByTask[task.id] ?? '').slice(0, 300)
+      const preview = getOutputPreview(outputByTask[task.id], 300)
       const agentName = formatAgentName(task.agent)
 
       if (!preview) {
@@ -114,12 +138,12 @@ Return only the sentence, nothing else.`,
     taskId:    task.id,
     agentId:   task.agent,
     agentName: formatAgentName(task.agent),
-    preview:   (outputByTask[task.id] ?? '').slice(0, 150),
+    preview:   getOutputPreview(outputByTask[task.id], 150),
     createdAt: task.created_at,
     reviewUrl: `/dashboard/agents/approvals?task=${task.id}`,
   }))
 
-  const { data: digest, error } = await supabase
+  const { data: digest, error } = await serviceSupabase
     .from('daily_digests')
     .insert({
       user_id:       profileId,
@@ -153,4 +177,14 @@ function formatAgentName(agentId: string): string {
 
 function isSystemAgent(agentId: string): boolean {
   return agentId === 'maya' || agentId.startsWith('foundation_')
+}
+
+function getOutputPreview(content: unknown, maxLength: number): string {
+  if (typeof content === 'string') return content.slice(0, maxLength)
+  if (!content || typeof content !== 'object') return ''
+
+  const raw = (content as { raw?: unknown }).raw
+  if (typeof raw === 'string') return raw.slice(0, maxLength)
+
+  return JSON.stringify(content).slice(0, maxLength)
 }

@@ -13,6 +13,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/team/accept(.*)',
   // Internal server-to-server dispatch — authenticated via taskId UUID + userId in body
   '/api/agents/run/(.*)',
+  // Cron and digest generation are authenticated inside their route handlers.
+  '/api/cron(.*)',
+  '/api/digest/generate',
 ])
 
 export default clerkMiddleware(async (auth, req) => {

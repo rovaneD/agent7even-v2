@@ -45,6 +45,7 @@ interface Props {
   profileId: string
   companyName: string
   initialStep: number
+  initialAnswers?: Record<string, unknown> | null
   selectedPlan?: string
 }
 
@@ -65,6 +66,25 @@ interface StepAnswers {
   marketingBudget: string
   channels: string[]
   monthlyGoal: string
+}
+
+const DEFAULT_ANSWERS: StepAnswers = {
+  businessDescription: '',
+  problemSolved: '',
+  transformation: '',
+  customerWho: '',
+  customerFrustration: '',
+  customerTriedBefore: '',
+  customerBuyingTrigger: '',
+  competitors: ['', '', ''],
+  differentiator: '',
+  differentiatorOwn: '',
+  toneTraits: [],
+  brandsAdmired: '',
+  neverSoundLike: '',
+  marketingBudget: '',
+  channels: [],
+  monthlyGoal: '',
 }
 
 const MAYA_INTROS = [
@@ -125,9 +145,9 @@ const DOC_LABEL_BY_TYPE: Record<string, string> = {
   plan: '30-day plan',
 }
 
-export default function FoundationFlow({ profileId, companyName, initialStep, selectedPlan }: Props) {
+export default function FoundationFlow({ profileId, companyName, initialStep, initialAnswers, selectedPlan }: Props) {
   const router = useRouter()
-  const [step, setStep] = useState(initialStep)
+  const [step, setStep] = useState(clampStep(initialStep))
   const [generating, setGenerating] = useState(false)
   const [generationStage, setGenerationStage] = useState<GenerationStage>('scoring')
   const [generationProgress, setGenerationProgress] = useState<string[]>([])
@@ -136,24 +156,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
   const [weakFields, setWeakFields] = useState<string[]>([])
   const [fieldScores, setFieldScores] = useState<Record<string, FieldScore>>({})
   const [generationError, setGenerationError] = useState<string | null>(null)
-  const [answers, setAnswers] = useState<StepAnswers>({
-    businessDescription: '',
-    problemSolved: '',
-    transformation: '',
-    customerWho: '',
-    customerFrustration: '',
-    customerTriedBefore: '',
-    customerBuyingTrigger: '',
-    competitors: ['', '', ''],
-    differentiator: '',
-    differentiatorOwn: '',
-    toneTraits: [],
-    brandsAdmired: '',
-    neverSoundLike: '',
-    marketingBudget: '',
-    channels: [],
-    monthlyGoal: '',
-  })
+  const [answers, setAnswers] = useState<StepAnswers>(() => normalizeInitialAnswers(initialAnswers))
 
   function updateAnswer<K extends keyof StepAnswers>(key: K, value: StepAnswers[K]) {
     setAnswers(prev => ({ ...prev, [key]: value }))
@@ -737,4 +740,44 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
       </div>
     </div>
   )
+}
+
+function clampStep(step: number): number {
+  return Math.min(Math.max(Number.isFinite(step) ? step : 0, 0), 4)
+}
+
+function normalizeInitialAnswers(initialAnswers?: Record<string, unknown> | null): StepAnswers {
+  if (!initialAnswers) return DEFAULT_ANSWERS
+
+  const stringValue = (key: keyof StepAnswers) => {
+    const value = initialAnswers[key]
+    return typeof value === 'string' ? value : ''
+  }
+  const stringArray = (key: keyof StepAnswers) => {
+    const value = initialAnswers[key]
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  }
+
+  const competitors = stringArray('competitors').slice(0, 3)
+  while (competitors.length < 3) competitors.push('')
+
+  return {
+    ...DEFAULT_ANSWERS,
+    businessDescription:   stringValue('businessDescription'),
+    problemSolved:         stringValue('problemSolved'),
+    transformation:        stringValue('transformation'),
+    customerWho:           stringValue('customerWho'),
+    customerFrustration:   stringValue('customerFrustration'),
+    customerTriedBefore:   stringValue('customerTriedBefore'),
+    customerBuyingTrigger: stringValue('customerBuyingTrigger'),
+    competitors,
+    differentiator:        stringValue('differentiator'),
+    differentiatorOwn:     stringValue('differentiatorOwn'),
+    toneTraits:            stringArray('toneTraits'),
+    brandsAdmired:         stringValue('brandsAdmired'),
+    neverSoundLike:        stringValue('neverSoundLike'),
+    marketingBudget:       stringValue('marketingBudget'),
+    channels:              stringArray('channels'),
+    monthlyGoal:           stringValue('monthlyGoal'),
+  }
 }

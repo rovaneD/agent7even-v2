@@ -68,6 +68,18 @@ Main changes:
   module evaluation.
 - Changed environment validation so preview deployments warn about missing
   variables while production continues to fail fast.
+- June 8 critical bug pass:
+  - Cron handlers now fail closed when `CRON_SECRET` is missing and `/api/cron`
+    is explicitly public only because each handler performs route-level bearer
+    auth.
+  - `/api/digest/generate` now validates the authenticated profile owner or a
+    cron bearer before service-role reads/writes, and normalizes structured
+    agent output previews.
+  - Campaign generation derives credit cost server-side from the selected model
+    instead of trusting a client-supplied `credits` value.
+  - Foundation onboarding saves full answers on each step and clamps incomplete
+    saved progress back to the final editable step instead of landing users on
+    a dead Step 6.
 
 ---
 
