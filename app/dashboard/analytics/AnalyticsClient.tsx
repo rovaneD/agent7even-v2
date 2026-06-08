@@ -2012,6 +2012,7 @@ export default function AnalyticsClient({
         return
       }
       console.log('[analytics] Zernio social response:', JSON.stringify(json).slice(0, 3000))
+      console.log('[analytics] accounts[]:', JSON.stringify((json as Record<string,unknown>).accounts))
       const mapped = mapZernioResponse(json, dateRange)
       if (mapped) setPostingData(mapped)
     } catch (err) {

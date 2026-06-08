@@ -83,6 +83,8 @@ export async function GET(req: NextRequest) {
   const accountMetricsArray: unknown[] = await Promise.all(
     accountIds.map(id => publisher.getAccountMetrics(id))
   )
+  // Diagnostic: log raw account metrics so we can confirm field names
+  console.log('[zernio/social] accountMetrics[0]:', JSON.stringify(accountMetricsArray[0]).slice(0, 800))
 
   // ── 5. Best-time heatmap (fail soft) ─────────────────────────────────────────
   let bestTimesData: unknown = null
