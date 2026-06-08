@@ -35,5 +35,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch analytics from Zernio' }, { status: 502 })
   }
 
+  // If publisher returned a wrapped error, surface it so the client can log it
+  if (typeof data === 'object' && data !== null && '_zernioError' in data) {
+    const errMsg = (data as Record<string, unknown>)._zernioError
+    console.error('[zernio/social] Zernio analytics error:', errMsg)
+    return NextResponse.json({ error: 'zernio_api_error', detail: errMsg }, { status: 502 })
+  }
+
   return NextResponse.json(data)
 }

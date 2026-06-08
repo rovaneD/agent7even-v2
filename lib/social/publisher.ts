@@ -37,13 +37,28 @@ async function zCall<T = unknown>(path: string, init?: RequestInit): Promise<T> 
   guardRate()
   const url = `${ZERNIO_BASE}${path}`
   console.log(`[publisher] ${init?.method ?? 'GET'} ${url}`)
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      ...buildHeaders(),
-      ...((init?.headers as Record<string, string>) ?? {}),
-    },
-  })
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 12_000) // 12 s hard timeout
+
+  let res: Response
+  try {
+    res = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        ...buildHeaders(),
+        ...((init?.headers as Record<string, string>) ?? {}),
+      },
+    })
+  } catch (fetchErr) {
+    clearTimeout(timer)
+    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+    console.error(`[publisher] fetch failed for ${url}: ${msg}`)
+    throw new Error(`[publisher] fetch failed: ${msg}`)
+  }
+  clearTimeout(timer)
+
   // Always read body as text first so we can log it regardless of status
   const text = await res.text().catch(() => '')
   console.log(`[publisher] response ${res.status}: ${text.slice(0, 500)}`)
@@ -182,8 +197,9 @@ export async function getSocialAnalytics(params: SocialAnalyticsParams): Promise
     if (params.platform) q.set('platform', params.platform)
     return await zCall(`/analytics/get-analytics?${q}`)
   } catch (err) {
-    console.error('[publisher] getSocialAnalytics failed:', err)
-    return null
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[publisher] getSocialAnalytics failed:', msg)
+    return { _zernioError: msg }
   }
 }
 

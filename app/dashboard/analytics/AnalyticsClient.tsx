@@ -1798,6 +1798,10 @@ export default function AnalyticsClient({
     try {
       const res  = await fetch(`/api/analytics/zernio/social?dateRange=${dateRange}`)
       const json = await res.json()
+      if (json.error) {
+        console.error('[analytics] Zernio API error:', json.error, json.detail ?? '')
+        return
+      }
       console.log('[analytics] Zernio social response:', JSON.stringify(json).slice(0, 3000))
       const mapped = mapZernioResponse(json)
       if (mapped) setPostingData(mapped)
