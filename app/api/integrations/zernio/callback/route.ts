@@ -6,11 +6,18 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
+
+  // Log all params Zernio sends so we can confirm the exact callback shape
+  const allParams: Record<string, string> = {}
+  searchParams.forEach((v, k) => { allParams[k] = v })
+  console.log('[zernio/callback] params:', JSON.stringify(allParams))
+
   const nonce    = searchParams.get('state')
   const platform = searchParams.get('platform')
   const error    = searchParams.get('error')
 
   if (error || !nonce || !platform) {
+    console.log('[zernio/callback] missing state/platform — redirecting with error. nonce:', nonce, 'platform:', platform, 'error:', error)
     return NextResponse.redirect(`${APP_URL}/dashboard/analytics?zernio_error=access_denied`)
   }
 
