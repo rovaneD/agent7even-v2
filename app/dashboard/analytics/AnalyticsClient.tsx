@@ -83,7 +83,8 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
       ...MOCK_POSTING_ANALYTICS.stats,
       engagementRate:  engRate   || MOCK_POSTING_ANALYTICS.stats.engagementRate,
       totalReach:      reach     || MOCK_POSTING_ANALYTICS.stats.totalReach,
-      totalFollowers:  followers || MOCK_POSTING_ANALYTICS.stats.totalFollowers,
+      // In combined (live) mode, always use the real follower count (even 0) — never mock
+      totalFollowers:  hasCombined ? totalFollowers : (followers || MOCK_POSTING_ANALYTICS.stats.totalFollowers),
       postsThisPeriod: posts     || MOCK_POSTING_ANALYTICS.stats.postsThisPeriod,
     },
   }

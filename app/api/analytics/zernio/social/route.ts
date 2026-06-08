@@ -48,7 +48,28 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 2. Get connected account IDs ─────────────────────────────────────────────
-  const accounts = await publisher.getProfileAccounts(profileId)
+  let accounts = await publisher.getProfileAccounts(profileId)
+
+  // Fallback: extract accountIds from post platform data when /connected-accounts returns empty.
+  // This happens when an account was disconnected from Zernio but analytics data is still cached.
+  if (accounts.length === 0 && rawPostData) {
+    type PlatformEntry = { accountId?: string; platform?: string; accountUsername?: string }
+    type PostEntry = { platforms?: PlatformEntry[] }
+    const postsArr: PostEntry[] = (rawPostData as { posts?: PostEntry[] })?.posts ?? []
+    const seen = new Set<string>()
+    for (const post of postsArr) {
+      for (const entry of (post.platforms ?? [])) {
+        if (entry.accountId && !seen.has(entry.accountId)) {
+          seen.add(entry.accountId)
+          accounts.push({ id: entry.accountId, platform: entry.platform ?? '', username: entry.accountUsername ?? '' })
+        }
+      }
+    }
+    if (accounts.length > 0) {
+      console.log('[zernio/social] fallback: using accountIds from post data:', accounts.map(a => a.id))
+    }
+  }
+
   const accountIds = accounts.map(a => a.id).filter(Boolean)
 
   // ── 3. Daily time series (one call per account, fail soft) ───────────────────
