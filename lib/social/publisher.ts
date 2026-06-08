@@ -58,12 +58,23 @@ async function zCall<T = unknown>(path: string, init?: RequestInit): Promise<T> 
  * Throws on failure — caller must catch and handle.
  */
 export async function createProfile(name: string): Promise<string> {
-  const data = await zCall<{ _id?: string; id?: string }>('/profiles', {
+  const raw = await zCall('/profiles', {
     method: 'POST',
     body: JSON.stringify({ name, description: `Agent7even — ${name}` }),
-  })
-  const id = data._id ?? data.id
-  if (!id) throw new Error('[publisher] Zernio createProfile returned no ID')
+  }) as Record<string, unknown>
+
+  // Log the full response once so we can confirm the exact shape
+  console.log('[publisher] createProfile response:', JSON.stringify(raw))
+
+  // Try every common ID field / nesting pattern Zernio might use
+  const nested = (raw.data ?? raw.profile ?? raw.result ?? {}) as Record<string, unknown>
+  const id =
+    (raw._id ?? raw.id ?? raw.profileId ?? raw.profile_id) as string | undefined
+    ?? (nested._id ?? nested.id ?? nested.profileId) as string | undefined
+
+  if (!id) {
+    throw new Error(`[publisher] Zernio createProfile returned no ID. Response: ${JSON.stringify(raw)}`)
+  }
   return id
 }
 
