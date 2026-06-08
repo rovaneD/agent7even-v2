@@ -30,18 +30,38 @@ export async function POST(req: Request) {
     )
   }
 
-  // Create Zernio profile on first connection for this tenant
+  // Create Zernio profile on first connection for this tenant.
+  // Name includes a profile ID suffix to guarantee uniqueness across tenants.
   let zernioProfileId = (profile.zernio_profile_id as string | null) ?? null
   if (!zernioProfileId) {
+    const baseName = (profile.company_name as string | null) ?? 'tenant'
+    const profileName = `${baseName}-${(profile.id as string).slice(0, 8)}`
+
     try {
-      zernioProfileId = await publisher.createProfile(
-        (profile.company_name as string | null) ?? `tenant-${profile.id}`,
-      )
+      zernioProfileId = await publisher.createProfile(profileName)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.error('[zernio/connect] createProfile failed:', msg)
-      return NextResponse.json({ error: `Zernio profile creation failed: ${msg}` }, { status: 502 })
+      // "already exists" means a previous connect attempt created the profile but
+      // failed to save the ID back to DB. Recover by listing profiles.
+      if (msg.includes('already exists') || msg.includes('400')) {
+        console.warn('[zernio/connect] profile already exists — recovering ID from list')
+        const profiles = await publisher.listProfiles()
+        const existing = profiles.find((p) => p.name === profileName)
+        if (existing?.id) {
+          zernioProfileId = existing.id
+        } else {
+          console.error('[zernio/connect] could not recover existing profile:', msg)
+          return NextResponse.json(
+            { error: 'Zernio profile already exists but could not be retrieved. Please contact support.' },
+            { status: 502 },
+          )
+        }
+      } else {
+        console.error('[zernio/connect] createProfile failed:', msg)
+        return NextResponse.json({ error: `Zernio profile creation failed: ${msg}` }, { status: 502 })
+      }
     }
+
     const { error: updateErr } = await supabase
       .from('profiles')
       .update({ zernio_profile_id: zernioProfileId })

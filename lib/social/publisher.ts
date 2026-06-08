@@ -67,6 +67,28 @@ export async function createProfile(name: string): Promise<string> {
   return id
 }
 
+/**
+ * List all Zernio profiles for this API key.
+ * Used to recover a profile ID when creation returns "already exists".
+ * Returns [] on failure.
+ */
+export async function listProfiles(): Promise<Array<{ id: string; name: string }>> {
+  try {
+    const data = await zCall('/profiles')
+    const arr: Array<Record<string, string>> = Array.isArray(data)
+      ? (data as Array<Record<string, string>>)
+      : ((data as Record<string, unknown>).data as Array<Record<string, string>>)
+          ?? ((data as Record<string, unknown>).profiles as Array<Record<string, string>>)
+          ?? []
+    return arr
+      .map((p) => ({ id: (p._id ?? p.id ?? '').toString(), name: p.name ?? '' }))
+      .filter((p) => p.id)
+  } catch (err) {
+    console.error('[publisher] listProfiles failed:', err)
+    return []
+  }
+}
+
 // ── Connect / disconnect ───────────────────────────────────────────────────────
 
 /**
