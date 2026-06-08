@@ -44,11 +44,17 @@ async function zCall<T = unknown>(path: string, init?: RequestInit): Promise<T> 
       ...((init?.headers as Record<string, string>) ?? {}),
     },
   })
+  // Always read body as text first so we can log it regardless of status
+  const text = await res.text().catch(() => '')
+  console.log(`[publisher] response ${res.status}: ${text.slice(0, 500)}`)
   if (!res.ok) {
-    const msg = await res.text().catch(() => '')
-    throw new Error(`[publisher] Zernio ${res.status}: ${msg}`)
+    throw new Error(`[publisher] Zernio ${res.status}: ${text}`)
   }
-  return res.json() as T
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    throw new Error(`[publisher] Zernio response not JSON: ${text.slice(0, 200)}`)
+  }
 }
 
 // ── Profile management ────────────────────────────────────────────────────────
