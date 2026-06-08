@@ -195,7 +195,7 @@ export async function getSocialAnalytics(params: SocialAnalyticsParams): Promise
   try {
     const q = new URLSearchParams({ profileId: params.profileId, dateRange: params.dateRange })
     if (params.platform) q.set('platform', params.platform)
-    return await zCall(`/analytics/get-analytics?${q}`)
+    return await zCall(`/analytics?${q}`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[publisher] getSocialAnalytics failed:', msg)
@@ -214,7 +214,7 @@ export async function getAdsAnalytics(params: AdsAnalyticsParams): Promise<unkno
   try {
     const q = new URLSearchParams({ profileId: params.profileId, dateRange: params.dateRange })
     if (params.platform) q.set('platform', params.platform)
-    return await zCall(`/ads/get-analytics?${q}`)
+    return await zCall(`/ads?${q}`)
   } catch (err) {
     console.error('[publisher] getAdsAnalytics failed:', err)
     return null
