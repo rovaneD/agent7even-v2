@@ -105,8 +105,10 @@ export default function UseCaseDetailPage() {
       { threshold: 0.1, rootMargin: '0px 0px -7% 0px' }
     )
     document.querySelectorAll('.lab5 .reveal').forEach((el) => io.observe(el))
+    // Re-init mockups on every mount (Script onLoad only fires once across navigations)
+    requestAnimationFrame(() => window.__initUseCaseMockups?.())
     return () => io.disconnect()
-  }, [])
+  }, [slug])
 
   if (!cfg || !uc) return notFound()
 

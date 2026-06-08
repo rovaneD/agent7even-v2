@@ -4,6 +4,13 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import { Metaballs } from '@paper-design/shaders-react'
 
+const CARD_IMAGES: Record<string, string> = {
+  ecommerce: '/lab5/TheBrand.jpg',
+  'local-service': '/lab5/The Competitor.jpg',
+  'coaches-creators': '/lab5/scale.jpg',
+  agencies: '/lab5/Yourbest.jpg',
+}
+
 const CARDS = [
   {
     slug: 'ecommerce',
@@ -119,6 +126,8 @@ export default function UseCasesPage() {
               className="idx-card reveal"
               style={{ '--ic': c.ic } as React.CSSProperties}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={CARD_IMAGES[c.slug]} alt="" className="idx-card-img" />
               <div className="pad">
                 <span className="seg-eyebrow">
                   <span className="sd" />

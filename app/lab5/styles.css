@@ -328,7 +328,8 @@
 .lab5 .idx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 64px 0 0; }
 .lab5 a.idx-card { --ic: var(--l5-blue); position: relative; border: 1px solid var(--l5-line); border-radius: 18px; background: var(--l5-surface); overflow: hidden; display: flex; flex-direction: column; text-align: left; transition: transform .25s ease, box-shadow .25s ease, border-color .25s; text-decoration: none; }
 .lab5 a.idx-card:hover { transform: translateY(-4px); box-shadow: var(--l5-shadow-card); border-color: #DBDBE0; }
-.lab5 .idx-card .pad { padding: 38px 38px 32px; display: flex; flex-direction: column; flex: 1; }
+.lab5 .idx-card-img { width: 100%; aspect-ratio: 3/2; object-fit: cover; display: block; border-bottom: 1px solid var(--l5-line-2); }
+.lab5 .idx-card .pad { padding: 28px 32px 28px; display: flex; flex-direction: column; flex: 1; }
 .lab5 .idx-card .seg-eyebrow { color: var(--l5-faint); font-size: 11.5px; }
 .lab5 .idx-card .seg-eyebrow .sd { width: 8px; height: 8px; background: var(--ic); border-radius: 50%; }
 .lab5 .idx-card h2 { font-size: 23px; letter-spacing: -.02em; line-height: 1.2; margin: 18px 0 0; color: var(--l5-ink); max-width: 20ch; }
