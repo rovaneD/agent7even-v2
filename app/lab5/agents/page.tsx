@@ -7,47 +7,9 @@ import { Metaballs } from '@paper-design/shaders-react'
 declare global {
   interface Window {
     __initMockups?: () => void
+    __initAgentMockups?: () => void
   }
 }
-
-// Remaining agents shown in compact grid (the 4 above get full feature rows)
-const BACKGROUND_AGENTS = [
-  {
-    id: 'performance_digest',
-    name: 'Performance Digest',
-    description: "Reads your connected data every morning and delivers a plain-English summary of what's working and what to act on.",
-    bg: '#C5F9EC', fg: '#0F766E',
-    auto: true, schedule: 'Daily at 7 am',
-  },
-  {
-    id: 'trend_spotter',
-    name: 'Trend Spotter',
-    description: "Monitors industry trends and viral content in your niche daily, filtered for brand fit before they reach your queue.",
-    bg: '#FFE3AD', fg: '#92400E',
-    auto: true, schedule: 'Daily at 6 am',
-  },
-  {
-    id: 'seo_scanner',
-    name: 'SEO Scanner',
-    description: 'Audits your website every week and surfaces improvements — from on-page basics to content gaps — matched to your market.',
-    bg: '#AFDAF7', fg: '#075985',
-    auto: true, schedule: 'Weekly on Monday',
-  },
-  {
-    id: 'email_sequence_builder',
-    name: 'Email Sequence Builder',
-    description: 'Builds complete email flows — welcome, nurture, promotional — in your voice, ready to load into any ESP.',
-    bg: '#EAE1F9', fg: '#6D28D9',
-    auto: false, schedule: 'On your request',
-  },
-  {
-    id: 'ad_variations',
-    name: 'Ad Variations',
-    description: 'Creates multiple ad options — headlines, body, CTAs — across formats so you can test without writing each one.',
-    bg: '#E6F4AD', fg: '#3F6212',
-    auto: false, schedule: 'On your request',
-  },
-]
 
 export default function AgentsPage() {
   useEffect(() => {
@@ -69,9 +31,9 @@ export default function AgentsPage() {
   return (
     <div className="lab5">
       <Script
-        src="/lab5/mockups.js"
+        src="/lab5/agent-mockups.js"
         strategy="afterInteractive"
-        onLoad={() => requestAnimationFrame(() => window.__initMockups?.())}
+        onLoad={() => requestAnimationFrame(() => window.__initAgentMockups?.())}
       />
 
       {/* NAV */}
@@ -96,15 +58,13 @@ export default function AgentsPage() {
       </nav>
 
       {/* PAGE HERO */}
-      <section style={{ paddingBottom: 0 }}>
+      <header className="phero">
         <div className="wrap">
-          <div className="sec-head reveal" style={{ marginBottom: 0 }}>
-            <span className="eyebrow">The platform</span>
-            <h1 className="t-h2">The intelligence running<br />behind your marketing.</h1>
-            <p className="t-lead">Nine specialized agents, live analytics, and one orchestrator who ties it all together. Here&rsquo;s exactly what each one does.</p>
-          </div>
+          <span className="eyebrow">The platform</span>
+          <h1 className="t-display">The intelligence running<br />behind your marketing.</h1>
+          <p className="t-lead">Nine specialized agents, live analytics, and one orchestrator who ties it all together. Here&rsquo;s exactly what each one does.</p>
         </div>
-      </section>
+      </header>
 
       {/* ── ANALYTICS ─────────────────────────────────────────────────── */}
       <section id="analytics">
@@ -115,145 +75,227 @@ export default function AgentsPage() {
             <p className="t-lead">Agent7even connects your social accounts, ad platforms, and inbox — then surfaces the signal you actually need, not a wall of charts.</p>
           </div>
 
+          {/* Connected sources strip */}
+          <div className="sources reveal">
+            <span className="lead-in">Connected</span>
+            <div className="source"><span className="sd" style={{ background: 'var(--l5-brand)' }}></span><span>Instagram</span></div>
+            <div className="source"><span className="sd" style={{ background: 'var(--l5-blue)' }}></span><span>Facebook</span></div>
+            <div className="source"><span className="sd" style={{ background: 'var(--l5-green)' }}></span><span>Google</span></div>
+            <div className="source"><span className="sd" style={{ background: 'var(--l5-amber)' }}></span><span>Mailchimp</span></div>
+            <div className="source"><span className="sd" style={{ background: 'var(--l5-ink)' }}></span><span>Shopify</span></div>
+            <div className="source"><span className="sd" style={{ background: 'var(--l5-orange)' }}></span><span>TikTok</span></div>
+          </div>
+
+          {/* Analytics feat row 1 */}
           <div className="feat reveal">
             <div className="feat-copy">
-              <div className="feat-relief">Performance overview</div>
+              <div className="feat-relief"><span className="r-label">Performance overview</span></div>
               <h3 className="t-h3">One view of your whole marketing.</h3>
-              <p className="t-body">Social analytics, ad spend and CTR, inbox volume, and campaign results — all connected, all readable in one dashboard. The Performance Digest agent reads it every morning and delivers a plain-English briefing before you start your day.</p>
+              <p className="t-body">Social, ad spend, email, and revenue — every connected channel in one place, readable in a glance. No tab-hopping, no exporting, no spreadsheets to stitch together.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Social and ad performance across every connected channel</div>
-                <div className="check"><i>✓</i>Daily AI summary of what&rsquo;s working and what to act on</div>
-                <div className="check"><i>✓</i>Maya reads your analytics and adjusts what she recommends</div>
+                <div className="check"><i>✓</i>Reach, engagement, and revenue across every channel</div>
+                <div className="check"><i>✓</i>Attribution that connects the post to the sale</div>
+                <div className="check"><i>✓</i>Updated continuously as the data comes in</div>
               </div>
             </div>
-            <div className="feat-visual"><div className="mk" data-mk="dashboard"></div></div>
+            <div className="feat-visual"><div className="mk" data-am="analytics"></div></div>
+          </div>
+          <hr className="feat-rule" />
+
+          {/* Analytics feat row 2 */}
+          <div className="feat flip reveal">
+            <div className="feat-copy">
+              <div className="feat-relief"><span className="r-label">The read on the numbers</span></div>
+              <h3 className="t-h3">Charts don&rsquo;t tell you<br />what to do. Maya does.</h3>
+              <p className="t-body">Every morning the Performance Digest reads your data and writes a plain-English briefing — what moved, why, and the one or two things worth acting on. The dashboard shows the numbers; Maya tells you what they mean.</p>
+              <div className="checks">
+                <div className="check"><i>✓</i>A daily summary in sentences, not dashboards</div>
+                <div className="check"><i>✓</i>What&rsquo;s working and what to fix, ranked for you</div>
+                <div className="check"><i>✓</i>Every insight comes with a next move you can approve</div>
+              </div>
+            </div>
+            <div className="feat-visual"><div className="mk" data-am="digest"></div></div>
           </div>
         </div>
       </section>
 
       {/* ── MAYA ORCHESTRATOR ─────────────────────────────────────────── */}
-      <section id="maya" style={{ paddingTop: 0 }}>
-        <div className="wrap">
-          <div className="maya-banner reveal">
-            <div className="maya-banner-orb">
-              <Metaballs
-                speed={0.8}
-                count={8}
-                size={0.4}
-                scale={1}
-                colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
-                colorBack="#0E0E11"
-                style={{ width: '100%', height: '100%', display: 'block' }}
-              />
-            </div>
-            <div className="maya-banner-text">
-              <span className="eyebrow">Maya</span>
-              <h2>The brain that orchestrates the agents.</h2>
-              <p>Maya isn&rsquo;t one of the nine agents — she&rsquo;s the intelligence layer above them. She reads your Foundation, monitors your context, and decides which agents to dispatch, when to run them, and what to do with their output. You talk to Maya in plain language; she handles the coordination. The agents just do their jobs.</p>
-            </div>
+      <div className="orch reveal" style={{ marginBottom: '0' }}>
+        <div className="orch-in">
+          <div className="orch-orb">
+            <Metaballs
+              speed={0.8}
+              count={8}
+              size={0.3}
+              scale={1}
+              colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
+              colorBack="#141418"
+              style={{ width: '100%', height: '100%', display: 'block' }}
+            />
+          </div>
+          <div>
+            <span className="eyebrow">Maya</span>
+            <h2>The brain that<br />orchestrates the agents.</h2>
+            <p>Maya isn&rsquo;t one of the nine agents — she&rsquo;s the intelligence layer above them. She reads your goals, watches your context, and decides which agents to run, when to run them, and what to do with their output. <b>You talk to Maya in plain language; she handles the coordination.</b> The agents just do their jobs.</p>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── AGENTS ────────────────────────────────────────────────────── */}
-      <section id="agents" style={{ paddingTop: 0 }}>
+      {/* ── THE NINE AGENTS ───────────────────────────────────────────── */}
+      <section id="agents">
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">The nine agents</span>
             <h2 className="t-h2">Specialists, not generalists.</h2>
-            <p className="t-lead">Each agent is built for exactly one job. Autonomous agents run on a schedule without asking — approval-required agents draft and wait for your sign-off before anything goes out.</p>
+            <p className="t-lead">Each agent is built for exactly one job. Agents marked <b style={{ color: '#0B815A' }}>runs automatically</b> work on a schedule without asking — agents marked <b style={{ color: '#1F6FEB' }}>requires approval</b> draft and wait for your sign-off before anything goes out.</p>
           </div>
 
           {/* Campaign Builder */}
           <div className="feat reveal">
             <div className="feat-copy">
-              <div className="feat-relief">Campaign Builder</div>
+              <div className="feat-relief">
+                <span className="r-label">Campaign Builder</span>
+                <span className="auto-badge appr"><span className="d"></span>Requires approval</span>
+              </div>
               <h3 className="t-h3">A full campaign from one sentence.</h3>
-              <p className="t-body">Tell Maya what you want to promote. The Campaign Builder drafts the complete 30-day push — strategy, emails, social posts, ad copy, and timeline — and queues everything for your approval before a single thing goes out.</p>
+              <p className="t-body">Tell Maya what you want to promote. The Campaign Builder drafts the complete push — strategy, emails, social posts, ad copy, and a timeline — and queues everything for your approval before a single thing goes out.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Strategy, copy, and calendar in one output</div>
-                <div className="check"><i>✓</i>Covers email, social, and paid in a single run</div>
+                <div className="check"><i>✓</i>Strategy, copy, and calendar in a single output</div>
+                <div className="check"><i>✓</i>Covers email, social, and paid in one run</div>
                 <div className="check"><i>✓</i>You approve it all before anything goes live</div>
               </div>
             </div>
-            <div className="feat-visual"><div className="mk" data-mk="campaign"></div></div>
+            <div className="feat-visual"><div className="mk" data-am="campaignBuilder"></div></div>
           </div>
           <hr className="feat-rule" />
 
           {/* Weekly Content */}
           <div className="feat flip reveal">
             <div className="feat-copy">
-              <div className="feat-relief">Weekly Content</div>
-              <h3 className="t-h3">Your feed, drafted before the week starts.</h3>
-              <p className="t-body">The Weekly Content agent plans your social calendar and writes every post in your voice. You review the week&rsquo;s content in one queue — approve the lot or edit line by line. Nothing posts until you say so.</p>
+              <div className="feat-relief">
+                <span className="r-label">Weekly Content</span>
+                <span className="auto-badge run"><span className="d"></span>Runs automatically</span>
+              </div>
+              <h3 className="t-h3">Your feed, drafted before<br />the week starts.</h3>
+              <p className="t-body">Every Sunday the Weekly Content agent plans your social calendar and writes each post in your voice. You review the week in one queue — approve the lot or edit a line here and there. Nothing posts until you say so.</p>
               <div className="checks">
                 <div className="check"><i>✓</i>Written from your Brand Kit, not a template</div>
                 <div className="check"><i>✓</i>One approval session covers the whole week</div>
                 <div className="check"><i>✓</i>Consistent even when you&rsquo;re too busy to think about it</div>
               </div>
             </div>
-            <div className="feat-visual"><div className="mk" data-mk="calendar"></div></div>
+            <div className="feat-visual"><div className="mk" data-am="contentPlanner"></div></div>
           </div>
           <hr className="feat-rule" />
 
-          {/* Approvals / Brand Voice Guardian */}
+          {/* Brand Voice Guardian */}
           <div className="feat reveal">
             <div className="feat-copy">
-              <div className="feat-relief">Approvals</div>
-              <h3 className="t-h3">Nothing ships without your sign-off.</h3>
-              <p className="t-body">Every agent that creates content runs it through the Brand Voice Guardian first — checking tone, brand fit, and compliance before it ever reaches your queue. You get a clean draft to approve, not a first draft to fix.</p>
+              <div className="feat-relief">
+                <span className="r-label">Brand Voice Guardian</span>
+                <span className="auto-badge appr"><span className="d"></span>Reviews everything</span>
+              </div>
+              <h3 className="t-h3">Nothing ships without<br />your sign-off.</h3>
+              <p className="t-body">Every piece of content runs through the Brand Voice Guardian first — checking tone, brand fit, and compliance before it ever reaches your queue. You get a clean draft to approve, not a first draft to fix.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Brand Voice Guardian reviews every output before you see it</div>
-                <div className="check"><i>✓</i>Approve, edit, or reject from one place</div>
+                <div className="check"><i>✓</i>Tone and brand fit scored on every output</div>
+                <div className="check"><i>✓</i>Off-brand phrasing and risky claims flagged automatically</div>
                 <div className="check"><i>✓</i>Maya never posts without a green light from you</div>
               </div>
             </div>
-            <div className="feat-visual"><div className="mk" data-mk="approvals"></div></div>
+            <div className="feat-visual"><div className="mk" data-am="voiceGuardian"></div></div>
           </div>
           <hr className="feat-rule" />
 
           {/* Competitor Watcher */}
           <div className="feat flip reveal">
             <div className="feat-copy">
-              <div className="feat-relief">Competitor Watcher</div>
-              <h3 className="t-h3">Know what your rivals are running.</h3>
-              <p className="t-body">Every Monday, the Competitor Watcher surfaces what your competitors promoted last week — what channels, what offers, what messaging. You get the report before your week starts, not after you&rsquo;ve already reacted.</p>
+              <div className="feat-relief">
+                <span className="r-label">Competitor Watcher</span>
+                <span className="auto-badge run"><span className="d"></span>Runs automatically</span>
+              </div>
+              <h3 className="t-h3">Know what your rivals<br />are running.</h3>
+              <p className="t-body">Every Monday the Competitor Watcher surfaces what your competitors promoted last week — channels, offers, messaging. You get the report before your week starts, not after you&rsquo;ve already reacted.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Promotions, content, and positioning tracked every week</div>
-                <div className="check"><i>✓</i>Delivered Monday morning so you can respond, not react</div>
-                <div className="check"><i>✓</i>Maya flags opportunities in your daily digest</div>
+                <div className="check"><i>✓</i>Promotions, content, and positioning tracked weekly</div>
+                <div className="check"><i>✓</i>Delivered Monday morning so you respond, not react</div>
+                <div className="check"><i>✓</i>Maya drafts a counter-move the moment something lands</div>
               </div>
             </div>
-            <div className="feat-visual"><div className="mk" data-mk="competitor"></div></div>
+            <div className="feat-visual"><div className="mk" data-am="competitorBoard"></div></div>
           </div>
-          <hr className="feat-rule" />
+        </div>
+      </section>
 
-          {/* Remaining 5 agents */}
-          <div className="sec-head reveal" style={{ marginTop: '60px' }}>
+      {/* ── FIVE MORE AGENTS ──────────────────────────────────────────── */}
+      <section style={{ paddingTop: 0 }}>
+        <div className="wrap">
+          <div className="sec-head reveal">
             <span className="eyebrow">Also running for you</span>
-            <h2 className="t-h2" style={{ fontSize: 'clamp(22px,2.5vw,28px)' }}>Five more agents, always at work.</h2>
+            <h2 className="t-h2">Five more agents,<br />always at work.</h2>
           </div>
-          <div className="agent-grid">
-            {BACKGROUND_AGENTS.map((agent) => (
-              <div key={agent.id} className="agent-card reveal">
-                <div className="agent-icon" style={{ background: agent.bg, color: agent.fg }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" /><path d="M12 8v4l3 3" />
-                  </svg>
-                </div>
-                <h3>{agent.name}</h3>
-                <p>{agent.description}</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                  <span className={`agent-tag ${agent.auto ? 'auto' : 'approval'}`}>
-                    <span className="dot" />
-                    {agent.auto ? 'Runs automatically' : 'Requires approval'}
-                  </span>
-                  <span style={{ fontSize: '11px', color: 'var(--faint)', fontFamily: 'var(--mono)' }}>
-                    {agent.schedule}
-                  </span>
-                </div>
+          <div className="agents-grid">
+
+            <div className="acard reveal">
+              <div className="ico" style={{ background: '#EAF1FF', color: 'var(--l5-blue)' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M6 21v-6M11 21V8M16 21v-4M21 21V5"/></svg>
               </div>
-            ))}
+              <h3>Performance Digest</h3>
+              <p>Reads your connected data every morning and delivers a plain-English summary of what&rsquo;s working and what to act on.</p>
+              <div className="foot">
+                <span className="auto-badge run"><span className="d"></span>Runs automatically</span>
+                <span className="cadence">Daily &middot; 7am</span>
+              </div>
+            </div>
+
+            <div className="acard reveal">
+              <div className="ico" style={{ background: '#FFF3DF', color: '#9A6400' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l5-5 4 4 8-8M21 8h-4M21 8v4"/></svg>
+              </div>
+              <h3>Trend Spotter</h3>
+              <p>Monitors industry trends and viral content in your niche, filtered for brand fit before anything reaches your queue.</p>
+              <div className="foot">
+                <span className="auto-badge run"><span className="d"></span>Runs automatically</span>
+                <span className="cadence">Daily &middot; 6am</span>
+              </div>
+            </div>
+
+            <div className="acard reveal">
+              <div className="ico" style={{ background: '#E3F9F0', color: '#0B815A' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m21 21-4.3-4.3"/></svg>
+              </div>
+              <h3>SEO Scanner</h3>
+              <p>Audits your website every week and surfaces improvements — from on-page basics to content gaps matched to your market.</p>
+              <div className="foot">
+                <span className="auto-badge run"><span className="d"></span>Runs automatically</span>
+                <span className="cadence">Weekly &middot; Mon</span>
+              </div>
+            </div>
+
+            <div className="acard reveal">
+              <div className="ico" style={{ background: '#FDE5F1', color: '#C01A77' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+              </div>
+              <h3>Email Sequence Builder</h3>
+              <p>Builds complete email flows — welcome, nurture, promotional — in your voice, ready to load into any ESP.</p>
+              <div className="foot">
+                <span className="auto-badge appr"><span className="d"></span>Requires approval</span>
+                <span className="cadence">On request</span>
+              </div>
+            </div>
+
+            <div className="acard reveal">
+              <div className="ico" style={{ background: '#EFE9FF', color: '#5B3FD4' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="11" height="6" rx="1.5"/><path d="M18 14h3M18 17h3M18 20h3"/></svg>
+              </div>
+              <h3>Ad Variations</h3>
+              <p>Creates multiple ad options — headlines, body, CTAs — across formats so you can test without writing each one.</p>
+              <div className="foot">
+                <span className="auto-badge appr"><span className="d"></span>Requires approval</span>
+                <span className="cadence">On request</span>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
@@ -271,7 +313,7 @@ export default function AgentsPage() {
             style={{ width: '100%', height: '100%', display: 'block' }}
           />
         </div>
-        <div className="cta-in">
+        <div className="cta-in reveal">
           <h2>Put Maya and the agents<br />to work for your business.</h2>
           <p>Start your 3-day free trial. No charge until day 4.</p>
           <div className="cta-btns">
