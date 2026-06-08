@@ -1173,15 +1173,85 @@ function PostingAnalyticsContent({ isMock }: { isMock: boolean }) {
 // ── Connect Panel ─────────────────────────────────────────────────────────────
 
 function ConnectPanel({
-  open, onClose, dataState,
+  open, onClose, dataState, connectedPlatforms, onDisconnect,
 }: {
   open: boolean
   onClose: () => void
   dataState: AnalyticsDataState
+  connectedPlatforms: string[]
+  onDisconnect: (platform: string) => void
 }) {
+  const [connecting, setConnecting] = useState<string | null>(null)
+  const [disconnecting, setDisconnecting] = useState<string | null>(null)
+  const [xCostModal, setXCostModal] = useState(false)
+  const [pendingXConnect, setPendingXConnect] = useState(false)
+
+  const handleConnect = async (platform: string) => {
+    if (platform === 'x' && !pendingXConnect) {
+      setXCostModal(true)
+      return
+    }
+    setPendingXConnect(false)
+    setConnecting(platform)
+    try {
+      const res = await fetch('/api/integrations/zernio/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform }),
+      })
+      const data = await res.json()
+      if (data.authUrl) {
+        window.location.href = data.authUrl
+      }
+    } catch {
+      setConnecting(null)
+    }
+  }
+
+  const handleDisconnect = async (platform: string) => {
+    setDisconnecting(platform)
+    try {
+      await fetch('/api/integrations/zernio/disconnect', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform }),
+      })
+      onDisconnect(platform)
+    } finally {
+      setDisconnecting(null)
+    }
+  }
+
   if (!open) return null
+
   return (
     <>
+      {/* X/Twitter cost disclosure modal */}
+      {xCostModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <p className="text-[15px] font-semibold text-text mb-1">X / Twitter API costs</p>
+            <p className="text-[13px] text-text-sec mb-4">X charges per API call. These pass through from Zernio:</p>
+            <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-1.5">
+              <p className="text-[13px] text-text-sec flex justify-between"><span>Read posts & analytics</span><span className="font-medium text-text">$0.005 / call</span></p>
+              <p className="text-[13px] text-text-sec flex justify-between"><span>Publish posts</span><span className="font-medium text-text">$0.015 / post</span></p>
+              <p className="text-[13px] text-text-sec flex justify-between"><span>Posts with URLs</span><span className="font-medium text-text">$0.200 / post</span></p>
+            </div>
+            <p className="text-[12px] text-text-soft mb-4">Set a spending cap in your Zernio dashboard to control costs.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setXCostModal(false)}
+                className="flex-1 border border-gray-200 text-sm font-medium text-text-sec px-4 py-2 rounded-xl hover:border-gray-300 transition-colors">
+                Cancel
+              </button>
+              <button onClick={() => { setXCostModal(false); setPendingXConnect(true); handleConnect('x') }}
+                className="flex-1 bg-[#3B82F6] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#2563EB] transition-colors">
+                Connect anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed right-0 top-0 h-full w-full max-w-sm z-50 bg-white shadow-2xl flex flex-col">
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
@@ -1213,26 +1283,46 @@ function ConnectPanel({
             <a href="/pricing" className="text-sm text-[#3B82F6] hover:underline">View plan options</a>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft">Social accounts</p>
-            {ALL_PLATFORMS.map(id => {
-              const meta = PLATFORM_META[id]
-              return (
-                <div key={id} className="flex items-center justify-between py-2 border-b border-gray-50">
-                  <div className="flex items-center gap-2.5">
-                    <PlatformAvatar id={id} size={28} />
-                    <span className="text-[13px] font-medium text-text">{meta?.label ?? id}</span>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft mb-3">Social accounts</p>
+            <div className="space-y-0.5">
+              {ALL_PLATFORMS.map(id => {
+                const meta = PLATFORM_META[id]
+                const isConnected = connectedPlatforms.includes(id)
+                const isConnecting = connecting === id
+                const isDisconnecting = disconnecting === id
+                return (
+                  <div key={id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                    <div className="flex items-center gap-2.5">
+                      <PlatformAvatar id={id} size={28} />
+                      <div>
+                        <span className="text-[13px] font-medium text-text">{meta?.label ?? id}</span>
+                        {isConnected && (
+                          <p className="text-[11px] text-[#10B981]">Connected</p>
+                        )}
+                      </div>
+                    </div>
+                    {isConnected ? (
+                      <button
+                        onClick={() => handleDisconnect(id)}
+                        disabled={isDisconnecting}
+                        className="text-[12px] font-medium text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors"
+                      >
+                        {isDisconnecting ? 'Removing…' : 'Disconnect'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleConnect(id)}
+                        disabled={isConnecting}
+                        className="text-[12px] font-semibold text-[#3B82F6] border border-[#BFDBFE] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+                      >
+                        {isConnecting ? 'Opening…' : 'Connect'}
+                      </button>
+                    )}
                   </div>
-                  <button disabled
-                    className="text-[12px] font-semibold text-[#3B82F6] border border-[#BFDBFE] bg-blue-50 px-3 py-1.5 rounded-lg opacity-60 cursor-not-allowed"
-                    title="Coming in Phase 2"
-                  >
-                    Connect
-                  </button>
-                </div>
-              )
-            })}
-            <p className="text-[11px] text-text-soft text-center pt-2">Account connections coming in the next update.</p>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -1444,12 +1534,14 @@ export default function AnalyticsClient({
   const [gaId, setGaId]                     = useState(gaMeasurementId)
   const [oauthConnected, setOauthConnected] = useState(gaOAuthConnected)
   const [gaData, setGaData]                 = useState<GaData | null>(null)
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(zernioConnectedPlatforms)
+  const [zernioToast, setZernioToast]       = useState('')
 
   const isMock = dataState === 'mock'
 
   // Maya canvas context
   useEffect(() => {
-    const ctx = `ANALYTICS PAGE\nCompany: ${companyName}\nState: ${dataState}\nGA: ${gaId ? `Property ${gaId}` : 'Not connected'}\nZernio: ${zernioConnectedPlatforms.join(', ') || 'None'}`
+    const ctx = `ANALYTICS PAGE\nCompany: ${companyName}\nState: ${dataState}\nGA: ${gaId ? `Property ${gaId}` : 'Not connected'}\nZernio: ${connectedPlatforms.join(', ') || 'None'}`
     window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: ctx } }))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1467,6 +1559,27 @@ export default function AnalyticsClient({
         save_failed:      'Failed to save connection. Please try again.',
       }
       setOauthError(msgs[gaError] ?? 'Something went wrong.')
+      router.replace('/dashboard/analytics')
+    }
+  }, [searchParams, router])
+
+  // Zernio OAuth redirects
+  useEffect(() => {
+    const connected = searchParams.get('zernio_connected')
+    const zernioErr = searchParams.get('zernio_error')
+    if (connected) {
+      const label = connected.charAt(0).toUpperCase() + connected.slice(1)
+      setZernioToast(`${label} connected`)
+      setConnectedPlatforms(prev => prev.includes(connected) ? prev : [...prev, connected])
+      router.replace('/dashboard/analytics')
+    } else if (zernioErr) {
+      const msgs: Record<string, string> = {
+        access_denied:      'Account connection was cancelled.',
+        invalid_state:      'Session expired — please try again.',
+        save_failed:        'Failed to save connection. Please try again.',
+        profile_not_found:  'Profile not found. Please try again.',
+      }
+      setOauthError(msgs[zernioErr] ?? 'Something went wrong connecting your account.')
       router.replace('/dashboard/analytics')
     }
   }, [searchParams, router])
@@ -1513,7 +1626,21 @@ export default function AnalyticsClient({
         open={connectPanelOpen}
         onClose={() => setConnectPanelOpen(false)}
         dataState={dataState}
+        connectedPlatforms={connectedPlatforms}
+        onDisconnect={(p) => setConnectedPlatforms(prev => prev.filter(x => x !== p))}
       />
+
+      {/* Zernio connect toast */}
+      {zernioToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-[#0F172A] text-white text-[13px] font-medium px-4 py-2.5 rounded-xl shadow-xl"
+          onAnimationEnd={() => setZernioToast('')}>
+          <CheckCircle size={14} className="text-[#10B981]" />
+          {zernioToast}
+          <button onClick={() => setZernioToast('')} className="ml-2 opacity-60 hover:opacity-100">
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
       <div className="mb-5">

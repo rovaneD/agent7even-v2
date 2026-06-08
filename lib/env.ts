@@ -72,6 +72,10 @@ const SPEC: EnvSpec = {
       feature: 'Exa web grounding (Foundation pre-fill)',
       vars: ['EXA_API_KEY'],
     },
+    {
+      feature: 'Zernio social analytics',
+      vars: ['ZERNIO_API_KEY'],
+    },
   ],
 }
 

@@ -3,6 +3,7 @@ import type Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/createNotification'
 import { getStripeClient } from '@/lib/stripe'
+import * as publisher from '@/lib/social/publisher'
 
 function getPlanFromPriceId(priceId: string): string | null {
   const map: Record<string, string> = {
@@ -183,15 +184,38 @@ export async function POST(req: Request) {
     const subscription = event.data.object as Stripe.Subscription
     const clerkUserId = subscription.metadata?.clerk_user_id
 
+    // Look up the profile to find and disconnect any Zernio accounts before clearing plan
+    const profileQuery = clerkUserId
+      ? supabase.from('profiles').select('id, zernio_profile_id, zernio_connected_platforms').eq('clerk_user_id', clerkUserId).single()
+      : supabase.from('profiles').select('id, zernio_profile_id, zernio_connected_platforms').eq('stripe_subscription_id', subscription.id).single()
+
+    const { data: cancelledProfile } = await profileQuery
+
+    if (cancelledProfile?.zernio_profile_id) {
+      const connected = (cancelledProfile.zernio_connected_platforms as string[] | null) ?? []
+      if (connected.length > 0) {
+        await publisher.disconnectAllAccounts(cancelledProfile.zernio_profile_id as string)
+        console.log(`[stripe/webhook] Disconnected Zernio profile ${cancelledProfile.zernio_profile_id} on subscription cancellation`)
+      }
+    }
+
     if (clerkUserId) {
       await supabase
         .from('profiles')
-        .update({ plan: null, status: 'churned', stripe_subscription_id: null, updated_at: new Date().toISOString() })
+        .update({
+          plan: null, status: 'churned', stripe_subscription_id: null,
+          zernio_connected_platforms: [], zernio_profile_id: null,
+          updated_at: new Date().toISOString(),
+        })
         .eq('clerk_user_id', clerkUserId)
     } else {
       await supabase
         .from('profiles')
-        .update({ plan: null, status: 'churned', stripe_subscription_id: null, updated_at: new Date().toISOString() })
+        .update({
+          plan: null, status: 'churned', stripe_subscription_id: null,
+          zernio_connected_platforms: [], zernio_profile_id: null,
+          updated_at: new Date().toISOString(),
+        })
         .eq('stripe_subscription_id', subscription.id)
     }
   }
