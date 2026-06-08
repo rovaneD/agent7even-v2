@@ -36,7 +36,7 @@ export default async function FoundationPage({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, company_name, business_type, foundation_complete, foundation_step')
+    .select('id, company_name, business_type, foundation_answers, foundation_complete, foundation_step')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -48,6 +48,7 @@ export default async function FoundationPage({
       profileId={profile.id}
       companyName={profile.company_name ?? ''}
       initialStep={profile.foundation_step ?? 0}
+      initialAnswers={profile.foundation_answers ?? null}
       selectedPlan={plan}
     />
   )

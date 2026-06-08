@@ -24,8 +24,9 @@ export async function POST(req: Request) {
   if (!profile) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const base: Record<string, unknown> = {
-    foundation_step: step + 1,
-    updated_at: new Date().toISOString(),
+    foundation_step:    Math.min(step + 1, 4),
+    foundation_answers: answers,
+    updated_at:         new Date().toISOString(),
   }
 
   const stepFields: Record<string, unknown> = (() => {

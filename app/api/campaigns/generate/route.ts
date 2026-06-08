@@ -4,6 +4,12 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { deductCredits, refundCredits } from '@/lib/credits'
 
+const DEFAULT_CAMPAIGN_MODEL = 'anthropic/claude-sonnet-4'
+const CAMPAIGN_MODEL_CREDITS: Record<string, number> = {
+  [DEFAULT_CAMPAIGN_MODEL]:        8,
+  'anthropic/claude-opus-4':       25,
+}
+
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -19,8 +25,9 @@ export async function POST(req: Request) {
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-  const model = body.model ?? 'anthropic/claude-sonnet-4'
-  const credits = body.credits ?? 8
+  const requestedModel = typeof body.model === 'string' ? body.model : DEFAULT_CAMPAIGN_MODEL
+  const model = CAMPAIGN_MODEL_CREDITS[requestedModel] ? requestedModel : DEFAULT_CAMPAIGN_MODEL
+  const credits = CAMPAIGN_MODEL_CREDITS[model]
 
   const prompt = body.mode === 'guided'
     ? buildGuidedPrompt(body, profile)
