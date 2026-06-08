@@ -81,6 +81,15 @@ export async function POST(req: Request) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[zernio/connect] getConnectUrl failed:', msg)
+
+    // Zernio free tier allows only 2 connected accounts
+    if (msg.includes('402') || msg.includes('PAYMENT_REQUIRED') || msg.includes('free_tier_exceeded')) {
+      return NextResponse.json(
+        { error: 'payment_required', message: 'Your Zernio account has reached the free tier limit (2 accounts). Add a payment method at zernio.com/dashboard to connect more.' },
+        { status: 402 },
+      )
+    }
+
     return NextResponse.json({ error: `Zernio connect URL failed: ${msg}` }, { status: 502 })
   }
 

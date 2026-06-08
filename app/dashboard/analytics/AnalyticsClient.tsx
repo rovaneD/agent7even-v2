@@ -1269,7 +1269,11 @@ function ConnectPanel({
         return // page is navigating away — leave button in "Opening..." state
       }
       // API responded but no authUrl — surface the actual error
-      setConnectError(data.error ?? data.message ?? 'Could not open connect page. Try again.')
+      if (data.error === 'payment_required') {
+        setConnectError(data.message ?? 'Zernio account limit reached. Add a payment method at zernio.com/dashboard.')
+      } else {
+        setConnectError(data.error ?? data.message ?? 'Could not open connect page. Try again.')
+      }
       setConnecting(null)
     } catch {
       setConnectError('Network error. Please try again.')
