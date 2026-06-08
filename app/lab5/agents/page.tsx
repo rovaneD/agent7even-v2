@@ -79,11 +79,10 @@ export default function AgentsPage() {
           <div className="sources reveal">
             <span className="lead-in">Connected</span>
             <div className="source"><span className="sd" style={{ background: 'var(--l5-brand)' }}></span><span>Instagram</span></div>
-            <div className="source"><span className="sd" style={{ background: 'var(--l5-blue)' }}></span><span>Facebook</span></div>
-            <div className="source"><span className="sd" style={{ background: 'var(--l5-green)' }}></span><span>Google</span></div>
-            <div className="source"><span className="sd" style={{ background: 'var(--l5-amber)' }}></span><span>Mailchimp</span></div>
-            <div className="source"><span className="sd" style={{ background: 'var(--l5-ink)' }}></span><span>Shopify</span></div>
             <div className="source"><span className="sd" style={{ background: 'var(--l5-orange)' }}></span><span>TikTok</span></div>
+            <div className="source"><span className="sd" style={{ background: 'var(--l5-blue)' }}></span><span>Facebook</span></div>
+            <div className="source"><span className="sd" style={{ background: 'var(--l5-green)' }}></span><span>YouTube</span></div>
+            <div className="source"><span className="sd" style={{ background: 'var(--l5-ink)' }}></span><span>X / Twitter</span></div>
           </div>
 
           {/* Analytics feat row 1 */}
