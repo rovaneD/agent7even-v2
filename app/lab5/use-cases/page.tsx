@@ -5,10 +5,10 @@ import { useEffect } from 'react'
 import { Metaballs } from '@paper-design/shaders-react'
 
 const CARD_IMAGES: Record<string, string> = {
-  ecommerce: '/lab5/TheBrand.jpg',
-  'local-service': '/lab5/The Competitor.jpg',
-  'coaches-creators': '/lab5/scale.jpg',
-  agencies: '/lab5/Yourbest.jpg',
+  ecommerce: '/lab5/uc-ecommerce.jpg',
+  'local-service': '/lab5/uc-local.jpg',
+  'coaches-creators': '/lab5/uc-creators.jpg',
+  agencies: '/lab5/uc-agencies.jpg',
 }
 
 const CARDS = [
