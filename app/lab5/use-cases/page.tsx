@@ -4,14 +4,14 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import { Metaballs } from '@paper-design/shaders-react'
 
-const CASES = [
+const CARDS = [
   {
     slug: 'ecommerce',
+    ic: '#EE533B',
     label: 'E-commerce brands',
-    accent: '#EE533B',
-    enemy: 'The brand goes quiet between launches.',
-    tagline: 'Tell Maya about the drop. Get the launch sequence back — teasers, emails, posts — in your voice, ready to approve.',
-    bullets: [
+    h2: "The brand goes quiet between launches.",
+    lead: "Tell Maya about the drop. Get the launch sequence back — teasers, emails, posts — in your voice, ready to approve.",
+    pts: [
       "A drop becomes a campaign in an afternoon.",
       "You're never undercut blind.",
       "The list stays warm.",
@@ -20,11 +20,11 @@ const CASES = [
   },
   {
     slug: 'local-service',
+    ic: '#10B981',
     label: 'Local service businesses',
-    accent: '#10B981',
-    enemy: "The competitor across town isn't better. They're just more present.",
-    tagline: 'Tell Maya to fill next week. Get the offer and the posts to push it — in your voice, ready to approve.',
-    bullets: [
+    h2: "The competitor across town isn't better. They're just more present.",
+    lead: "Tell Maya to fill next week. Get the offer and the posts to push it — in your voice, ready to approve.",
+    pts: [
       "A slow week becomes a promotion overnight.",
       "You're never the last to know.",
       "No review goes unanswered.",
@@ -33,11 +33,11 @@ const CASES = [
   },
   {
     slug: 'coaches-creators',
+    ic: '#F5349B',
     label: 'Coaches, creators & solo founders',
-    accent: '#F5349B',
-    enemy: "You can't scale yourself. That's the real ceiling.",
-    tagline: 'Tell Maya about the offer. Get the full launch sequence in your voice — review, approve, ship.',
-    bullets: [
+    h2: "You can't scale yourself. That's the real ceiling.",
+    lead: "Tell Maya about the offer. Get the full launch sequence in your voice — review, approve, ship.",
+    pts: [
       "A launch runs itself.",
       "You're never late to the conversation.",
       "The momentum doesn't leak.",
@@ -46,11 +46,11 @@ const CASES = [
   },
   {
     slug: 'agencies',
+    ic: '#3286FE',
     label: 'Agencies',
-    accent: '#3286FE',
-    enemy: 'Your best people get pulled into work that just has to get done.',
-    tagline: 'Brief Maya on a client. Your team reviews and refines instead of building from zero.',
-    bullets: [
+    h2: "Your best people get pulled into work that just has to get done.",
+    lead: "Brief Maya on a client. Your team reviews and refines instead of building from zero.",
+    pts: [
       "Campaigns drafted per account, in each client's voice.",
       "Competitive intel without the manual research.",
       "The routine output runs itself.",
@@ -59,15 +59,19 @@ const CASES = [
   },
 ]
 
+const ArrowRight = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 12h15M13 6l6 6-6 6"/>
+  </svg>
+)
+
 export default function UseCasesPage() {
   useEffect(() => {
     const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) }
-        })
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -6% 0px' }
+      (entries) => entries.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target) }
+      }),
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
     )
     document.querySelectorAll('.lab5 .reveal').forEach((el) => io.observe(el))
     return () => io.disconnect()
@@ -97,53 +101,49 @@ export default function UseCasesPage() {
       </nav>
 
       {/* HERO */}
-      <section style={{ paddingBottom: 0 }}>
+      <header className="idx-hero">
         <div className="wrap">
-          <div className="sec-head reveal" style={{ marginBottom: 0 }}>
-            <span className="eyebrow">Use cases</span>
-            <h1 className="t-h2">Maya works for your world,<br />whatever that looks like.</h1>
-            <p className="t-lead">Different business, same problem — the marketing never gets done. Here&rsquo;s how Maya solves it for each one.</p>
-          </div>
+          <span className="eyebrow">Use cases</span>
+          <h1 className="t-display">Maya works for your world,<br />whatever that looks like.</h1>
+          <p className="t-lead">Different business, same problem — the marketing never gets done. Here&rsquo;s how Maya solves it for each one.</p>
         </div>
-      </section>
+      </header>
 
-      {/* CARDS */}
-      <section>
-        <div className="wrap">
-          <div className="uc-grid">
-            {CASES.map((c) => (
-              <Link key={c.slug} href={`/lab5/use-cases/${c.slug}`} className="uc-card reveal">
-                <div className="uc-label">
-                  <span className="uc-dot" style={{ background: c.accent }} />
-                  <span className="uc-name">{c.label}</span>
-                </div>
-                <p className="uc-enemy">{c.enemy}</p>
-                <p className="uc-tagline">{c.tagline}</p>
-                <ul className="uc-bullets">
-                  {c.bullets.map((b) => (
-                    <li key={b} className="uc-bullet">
-                      <span className="uc-bullet-dot" style={{ background: c.accent }} />
-                      {b}
-                    </li>
+      {/* GRID */}
+      <section className="wrap" style={{ paddingBottom: '108px' }}>
+        <div className="idx-grid">
+          {CARDS.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/lab5/use-cases/${c.slug}`}
+              className="idx-card reveal"
+              style={{ '--ic': c.ic } as React.CSSProperties}
+            >
+              <div className="pad">
+                <span className="seg-eyebrow">
+                  <span className="sd" />
+                  {c.label}
+                </span>
+                <h2>{c.h2}</h2>
+                <p className="lead">{c.lead}</p>
+                <ul className="pts">
+                  {c.pts.map((pt) => (
+                    <li key={pt}><span className="d" />{pt}</li>
                   ))}
                 </ul>
-                <div className="uc-cta" style={{ color: c.accent }}>
-                  Read more <span className="uc-arrow">→</span>
-                </div>
-              </Link>
-            ))}
-          </div>
+                <span className="go">Read more <ArrowRight /></span>
+              </div>
+            </Link>
+          ))}
         </div>
+        <p className="idx-foot-note">Same Maya. Four different jobs to be done.</p>
       </section>
 
       {/* DARK CTA */}
       <div className="cta-section">
         <div className="cta-orb">
           <Metaballs
-            speed={1}
-            count={9}
-            size={0.26}
-            scale={1}
+            speed={1} count={9} size={0.26} scale={1}
             colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
             colorBack="#0E0E11"
             style={{ width: '100%', height: '100%', display: 'block' }}
@@ -186,16 +186,11 @@ export default function UseCasesPage() {
             </div>
             <div className="fcol">
               <h5>Company</h5>
-              <a href="#">About</a>
-              <a href="#">Blog</a>
-              <a href="#">Careers</a>
-              <a href="#">Contact</a>
+              <a href="#">About</a><a href="#">Blog</a><a href="#">Careers</a><a href="#">Contact</a>
             </div>
             <div className="fcol">
               <h5>Legal</h5>
-              <a href="#">Privacy</a>
-              <a href="#">Terms</a>
-              <a href="#">Security</a>
+              <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a>
             </div>
           </div>
           <div className="footer-btm">
