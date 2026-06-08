@@ -1748,6 +1748,17 @@ export default function AnalyticsClient({
   const [platformFilter, setPlatformFilter] = useState('all')
   const [sourceFilter, setSourceFilter]     = useState('all')
   const [dateRange, setDateRange]           = useState<DateRange>('1y')
+
+  // Restore filter state persisted from a previous session
+  useEffect(() => {
+    const pl  = localStorage.getItem('analytics_platform')
+    const src = localStorage.getItem('analytics_source')
+    const dr  = localStorage.getItem('analytics_dateRange') as DateRange | null
+    const validRanges: DateRange[] = ['7d', '30d', '90d', '6m', '1y']
+    if (pl)  setPlatformFilter(pl)
+    if (src) setSourceFilter(src)
+    if (dr && validRanges.includes(dr)) setDateRange(dr)
+  }, [])
   const [connectPanelOpen, setConnectPanelOpen] = useState(false)
   const [showGAModal, setShowGAModal]       = useState(false)
   const [showPropertySelector, setShowPropertySelector] = useState(false)
@@ -1822,7 +1833,9 @@ export default function AnalyticsClient({
   const fetchZernioData = useCallback(async () => {
     if (dataState !== 'live') return
     try {
-      const res  = await fetch(`/api/analytics/zernio/social?dateRange=${dateRange}`)
+      const q = new URLSearchParams({ dateRange })
+      if (platformFilter !== 'all') q.set('platform', platformFilter)
+      const res  = await fetch(`/api/analytics/zernio/social?${q}`)
       const json = await res.json()
       if (json.error) {
         console.error('[analytics] Zernio API error:', json.error, json.detail ?? '')
@@ -1834,7 +1847,7 @@ export default function AnalyticsClient({
     } catch (err) {
       console.error('[analytics] Zernio fetch failed:', err)
     }
-  }, [dataState, dateRange])
+  }, [dataState, dateRange, platformFilter])
 
   useEffect(() => { fetchZernioData() }, [fetchZernioData])
 
@@ -1926,9 +1939,9 @@ export default function AnalyticsClient({
         source={sourceFilter}
         dateRange={dateRange}
         isMock={isMock}
-        onPlatformChange={setPlatformFilter}
-        onSourceChange={setSourceFilter}
-        onDateRangeChange={setDateRange}
+        onPlatformChange={v => { setPlatformFilter(v); localStorage.setItem('analytics_platform', v) }}
+        onSourceChange={v => { setSourceFilter(v); localStorage.setItem('analytics_source', v) }}
+        onDateRangeChange={v => { setDateRange(v as DateRange); localStorage.setItem('analytics_dateRange', v) }}
       />
 
       {isMock && <AmberBanner />}
