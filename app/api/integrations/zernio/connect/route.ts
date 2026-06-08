@@ -41,24 +41,28 @@ export async function POST(req: Request) {
       zernioProfileId = await publisher.createProfile(profileName)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      // "already exists" means a previous connect attempt created the profile but
-      // failed to save the ID back to DB. Recover by listing profiles.
-      if (msg.includes('already exists') || msg.includes('400')) {
-        console.warn('[zernio/connect] profile already exists — recovering ID from list')
-        const profiles = await publisher.listProfiles()
-        const existing = profiles.find((p) => p.name === profileName)
-        if (existing?.id) {
-          zernioProfileId = existing.id
-        } else {
-          console.error('[zernio/connect] could not recover existing profile:', msg)
-          return NextResponse.json(
-            { error: 'Zernio profile already exists but could not be retrieved. Please contact support.' },
-            { status: 502 },
-          )
-        }
+      console.error('[zernio/connect] createProfile error:', msg)
+
+      // Any failure (already exists, 400, 409, 5xx) → attempt recovery via list.
+      // Profile may have been created in a prior session with a different name format.
+      console.warn('[zernio/connect] attempting recovery via listProfiles')
+      const profiles = await publisher.listProfiles()
+      console.log('[zernio/connect] profiles found:', JSON.stringify(profiles.map(p => ({ id: p.id, name: p.name }))))
+
+      const recovered =
+        profiles.find((p) => p.name === profileName) ??        // exact match (new format)
+        profiles.find((p) => p.name.startsWith(baseName)) ??   // prefix match (old format / diff suffix)
+        (profiles.length === 1 ? profiles[0] : null)           // only one profile → must be ours
+
+      if (recovered?.id) {
+        console.log('[zernio/connect] recovered profile id:', recovered.id, 'name:', recovered.name)
+        zernioProfileId = recovered.id
       } else {
-        console.error('[zernio/connect] createProfile failed:', msg)
-        return NextResponse.json({ error: `Zernio profile creation failed: ${msg}` }, { status: 502 })
+        console.error('[zernio/connect] could not recover profile. profiles:', JSON.stringify(profiles))
+        return NextResponse.json(
+          { error: 'Could not create or recover Zernio profile. Please contact support.' },
+          { status: 502 },
+        )
       }
     }
 
