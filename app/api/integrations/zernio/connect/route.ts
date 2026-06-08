@@ -33,11 +33,14 @@ export async function POST(req: Request) {
   // Create Zernio profile on first connection for this tenant
   let zernioProfileId = (profile.zernio_profile_id as string | null) ?? null
   if (!zernioProfileId) {
-    zernioProfileId = await publisher.createProfile(
-      (profile.company_name as string | null) ?? `tenant-${profile.id}`,
-    )
-    if (!zernioProfileId) {
-      return NextResponse.json({ error: 'Failed to initialize Zernio profile' }, { status: 502 })
+    try {
+      zernioProfileId = await publisher.createProfile(
+        (profile.company_name as string | null) ?? `tenant-${profile.id}`,
+      )
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[zernio/connect] createProfile failed:', msg)
+      return NextResponse.json({ error: `Zernio profile creation failed: ${msg}` }, { status: 502 })
     }
     const { error: updateErr } = await supabase
       .from('profiles')
@@ -52,9 +55,13 @@ export async function POST(req: Request) {
   const nonce = await createOAuthState(userId, `zernio:${platform}`)
   const callbackUrl = `${APP_URL}/api/integrations/zernio/callback?state=${nonce}&platform=${encodeURIComponent(platform)}`
 
-  const authUrl = await publisher.getConnectUrl(zernioProfileId, platform, callbackUrl)
-  if (!authUrl) {
-    return NextResponse.json({ error: 'Failed to get OAuth URL from Zernio' }, { status: 502 })
+  let authUrl: string
+  try {
+    authUrl = await publisher.getConnectUrl(zernioProfileId, platform, callbackUrl)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[zernio/connect] getConnectUrl failed:', msg)
+    return NextResponse.json({ error: `Zernio connect URL failed: ${msg}` }, { status: 502 })
   }
 
   return NextResponse.json({ authUrl })

@@ -1268,8 +1268,8 @@ function ConnectPanel({
         window.location.href = data.authUrl
         return // page is navigating away — leave button in "Opening..." state
       }
-      // API responded but no authUrl — surface the error
-      setConnectError(data.message ?? 'Could not open connect page. Try again.')
+      // API responded but no authUrl — surface the actual error
+      setConnectError(data.error ?? data.message ?? 'Could not open connect page. Try again.')
       setConnecting(null)
     } catch {
       setConnectError('Network error. Please try again.')

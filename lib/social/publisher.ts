@@ -53,38 +53,38 @@ async function zCall<T = unknown>(path: string, init?: RequestInit): Promise<T> 
 
 // ── Profile management ────────────────────────────────────────────────────────
 
-/** Create a Zernio profile for a new tenant. Returns the profile ID or null on failure. */
-export async function createProfile(name: string): Promise<string | null> {
-  try {
-    const data = await zCall<{ _id?: string; id?: string }>('/profiles', {
-      method: 'POST',
-      body: JSON.stringify({ name, description: `Agent7even — ${name}` }),
-    })
-    return data._id ?? data.id ?? null
-  } catch (err) {
-    console.error('[publisher] createProfile failed:', err)
-    return null
-  }
+/**
+ * Create a Zernio profile for a new tenant.
+ * Throws on failure — caller must catch and handle.
+ */
+export async function createProfile(name: string): Promise<string> {
+  const data = await zCall<{ _id?: string; id?: string }>('/profiles', {
+    method: 'POST',
+    body: JSON.stringify({ name, description: `Agent7even — ${name}` }),
+  })
+  const id = data._id ?? data.id
+  if (!id) throw new Error('[publisher] Zernio createProfile returned no ID')
+  return id
 }
 
 // ── Connect / disconnect ───────────────────────────────────────────────────────
 
-/** Get the OAuth redirect URL for connecting a platform. Returns null on failure. */
+/**
+ * Get the OAuth redirect URL for connecting a platform.
+ * Throws on failure — caller must catch and handle.
+ */
 export async function getConnectUrl(
   profileId: string,
   platform: string,
   redirectUri: string,
-): Promise<string | null> {
-  try {
-    const q = new URLSearchParams({ profileId, redirectUrl: redirectUri })
-    const data = await zCall<{ authUrl?: string; auth_url?: string }>(
-      `/connect/${encodeURIComponent(platform)}?${q}`,
-    )
-    return data.authUrl ?? data.auth_url ?? null
-  } catch (err) {
-    console.error('[publisher] getConnectUrl failed:', err)
-    return null
-  }
+): Promise<string> {
+  const q = new URLSearchParams({ profileId, redirectUrl: redirectUri })
+  const data = await zCall<{ authUrl?: string; auth_url?: string }>(
+    `/connect/${encodeURIComponent(platform)}?${q}`,
+  )
+  const url = data.authUrl ?? data.auth_url
+  if (!url) throw new Error('[publisher] Zernio getConnectUrl returned no authUrl')
+  return url
 }
 
 /** Disconnect a single platform from a Zernio profile. Returns false on failure. */
