@@ -37,10 +37,19 @@ function mapZernioResponse(raw: unknown): PostingAnalytics | null {
   const data = _o(r.data ?? r.result ?? r.response ?? r)
   const overview = _o(data.overview ?? data.summary ?? data.stats ?? data)
 
-  const engRate   = _n(overview.engagementRate ?? overview.engagement_rate ?? overview.er_pct ?? overview.er)
-  const reach     = _n(overview.totalReach ?? overview.total_reach ?? overview.reach)
+  // Zernio returns per-post analytics in posts[].analytics — aggregate them
+  const postsArr = _a<Record<string, unknown>>(data.posts ?? data.items ?? [])
+  const aggReach   = postsArr.reduce((s, p) => s + _n(_o(p.analytics).reach   ?? 0), 0)
+  const aggLikes   = postsArr.reduce((s, p) => s + _n(_o(p.analytics).likes   ?? 0), 0)
+  const erValues   = postsArr.map(p => _n(_o(p.analytics).engagementRate ?? 0)).filter(v => v > 0)
+  const aggEngRate = erValues.length ? erValues.reduce((a, b) => a + b, 0) / erValues.length : 0
+
+  // Prefer overview-level fields; fall back to aggregated per-post values
+  const engRate   = _n(overview.engagementRate ?? overview.engagement_rate ?? overview.er_pct ?? overview.er) || aggEngRate
+  const reach     = _n(overview.totalReach ?? overview.total_reach ?? overview.reach) || aggReach
   const followers = _n(overview.totalFollowers ?? overview.total_followers ?? overview.followers)
-  const posts     = _n(overview.postsCount ?? overview.posts_count ?? overview.total_posts ?? overview.posts)
+  // Zernio uses overview.totalPosts
+  const posts     = _n(overview.totalPosts ?? overview.postsCount ?? overview.posts_count ?? overview.total_posts ?? overview.posts) || postsArr.length
 
   if (!engRate && !reach && !followers && !posts) return null
 
@@ -48,63 +57,80 @@ function mapZernioResponse(raw: unknown): PostingAnalytics | null {
     ...MOCK_POSTING_ANALYTICS,
     stats: {
       ...MOCK_POSTING_ANALYTICS.stats,
-      engagementRate: engRate || MOCK_POSTING_ANALYTICS.stats.engagementRate,
-      totalReach:     reach   || MOCK_POSTING_ANALYTICS.stats.totalReach,
-      totalFollowers: followers || MOCK_POSTING_ANALYTICS.stats.totalFollowers,
-      postsThisPeriod: posts  || MOCK_POSTING_ANALYTICS.stats.postsThisPeriod,
+      engagementRate:  engRate   || MOCK_POSTING_ANALYTICS.stats.engagementRate,
+      totalReach:      reach     || MOCK_POSTING_ANALYTICS.stats.totalReach,
+      totalFollowers:  followers || MOCK_POSTING_ANALYTICS.stats.totalFollowers,
+      postsThisPeriod: posts     || MOCK_POSTING_ANALYTICS.stats.postsThisPeriod,
     },
   }
 
-  const platforms = _a<Record<string, unknown>>(data.platforms ?? data.accounts ?? data.channels)
-  if (platforms.length) {
-    result.platformPosts = platforms.map(p => ({
-      platform: _s(p.platform ?? p.channel ?? p.name ?? ''),
-      label:    _s(p.label ?? p.platform ?? p.channel ?? ''),
-      posts:    _n(p.postsCount ?? p.posts_count ?? p.posts ?? 0),
-    })).filter(p => p.platform)
-
-    result.platformLikes = platforms.map(p => ({
-      platform: _s(p.platform ?? p.channel ?? p.name ?? ''),
-      label:    _s(p.label ?? p.platform ?? p.channel ?? ''),
-      likes:    _n(p.likes ?? p.totalLikes ?? p.total_likes ?? 0),
-    })).filter(p => p.platform)
-
-    result.platformBreakdown = platforms.map(p => {
-      const id   = _s(p.platform ?? p.channel ?? p.name ?? '')
-      const meta = (PLATFORM_META as Record<string, { label: string }>)[id]
-      return {
-        platform:    id,
-        label:       meta?.label ?? _s(p.label ?? id),
-        posts:       _n(p.posts ?? p.postsCount ?? 0),
-        likes:       _n(p.likes ?? p.totalLikes ?? 0),
-        comments:    _n(p.comments ?? p.totalComments ?? 0),
-        shares:      _n(p.shares ?? p.totalShares ?? 0),
-        saves:       _n(p.saves ?? p.totalSaves ?? 0),
-        clicks:      _n(p.clicks ?? p.totalClicks ?? 0),
-        views:       _n(p.views ?? p.totalViews ?? 0),
-        impressions: _n(p.impressions ?? p.totalImpressions ?? 0),
-        reach:       _n(p.reach ?? p.totalReach ?? 0),
-        erPct:       _n(p.engagementRate ?? p.engagement_rate ?? p.er ?? 0),
-      }
-    }).filter(p => p.platform)
+  // Platform breakdown — Zernio doesn't pre-aggregate; group from posts[]
+  if (postsArr.length) {
+    type PlatAgg = { posts: number; likes: number; comments: number; shares: number; saves: number; clicks: number; views: number; impressions: number; reach: number; erSum: number; erCount: number }
+    const byPlatform: Record<string, PlatAgg> = {}
+    for (const p of postsArr) {
+      const pl = _s(p.platform ?? '')
+      if (!pl) continue
+      if (!byPlatform[pl]) byPlatform[pl] = { posts: 0, likes: 0, comments: 0, shares: 0, saves: 0, clicks: 0, views: 0, impressions: 0, reach: 0, erSum: 0, erCount: 0 }
+      const a = _o(p.analytics)
+      byPlatform[pl].posts++
+      byPlatform[pl].likes       += _n(a.likes       ?? 0)
+      byPlatform[pl].comments    += _n(a.comments    ?? 0)
+      byPlatform[pl].shares      += _n(a.shares      ?? 0)
+      byPlatform[pl].saves       += _n(a.saves       ?? 0)
+      byPlatform[pl].clicks      += _n(a.clicks      ?? 0)
+      byPlatform[pl].views       += _n(a.views       ?? 0)
+      byPlatform[pl].impressions += _n(a.impressions ?? 0)
+      byPlatform[pl].reach       += _n(a.reach       ?? 0)
+      const er = _n(a.engagementRate ?? 0)
+      if (er > 0) { byPlatform[pl].erSum += er; byPlatform[pl].erCount++ }
+    }
+    const platEntries = Object.entries(byPlatform)
+    result.platformPosts = platEntries.map(([pl, d]) => ({
+      platform: pl,
+      label:    (PLATFORM_META as Record<string, { label: string }>)[pl]?.label ?? pl,
+      posts:    d.posts,
+    }))
+    result.platformLikes = platEntries.map(([pl, d]) => ({
+      platform: pl,
+      label:    (PLATFORM_META as Record<string, { label: string }>)[pl]?.label ?? pl,
+      likes:    d.likes,
+    }))
+    result.platformBreakdown = platEntries.map(([pl, d]) => ({
+      platform:    pl,
+      label:       (PLATFORM_META as Record<string, { label: string }>)[pl]?.label ?? pl,
+      posts:       d.posts,
+      likes:       d.likes,
+      comments:    d.comments,
+      shares:      d.shares,
+      saves:       d.saves,
+      clicks:      d.clicks,
+      views:       d.views,
+      impressions: d.impressions,
+      reach:       d.reach,
+      erPct:       d.erCount > 0 ? d.erSum / d.erCount : 0,
+    }))
   }
 
-  const topPostsRaw = _a<Record<string, unknown>>(data.topPosts ?? data.top_posts ?? data.posts)
-  if (topPostsRaw.length) {
-    result.topPosts = topPostsRaw.slice(0, 10).map(p => ({
-      platform:    _s(p.platform ?? p.channel ?? ''),
-      caption:     _s(p.caption ?? p.text ?? p.description ?? p.content ?? ''),
-      date:        _s(p.date ?? p.publishedAt ?? p.published_at ?? p.createdAt ?? ''),
-      likes:       _n(p.likes ?? 0),
-      comments:    _n(p.comments ?? 0),
-      shares:      _n(p.shares ?? 0),
-      saves:       _n(p.saves ?? 0),
-      clicks:      _n(p.clicks ?? 0),
-      views:       _n(p.views ?? 0),
-      impressions: _n(p.impressions ?? 0),
-      reach:       _n(p.reach ?? 0),
-      erPct:       _n(p.engagementRate ?? p.er ?? 0),
-    }))
+  // Top posts — analytics are nested under p.analytics in Zernio's schema
+  if (postsArr.length) {
+    result.topPosts = postsArr.slice(0, 10).map(p => {
+      const a = _o(p.analytics)
+      return {
+        platform:    _s(p.platform ?? ''),
+        caption:     _s(p.content ?? p.caption ?? p.text ?? p.description ?? ''),
+        date:        _s(p.publishedAt ?? p.published_at ?? p.date ?? p.createdAt ?? ''),
+        likes:       _n(a.likes       ?? 0),
+        comments:    _n(a.comments    ?? 0),
+        shares:      _n(a.shares      ?? 0),
+        saves:       _n(a.saves       ?? 0),
+        clicks:      _n(a.clicks      ?? 0),
+        views:       _n(a.views       ?? 0),
+        impressions: _n(a.impressions ?? 0),
+        reach:       _n(a.reach       ?? 0),
+        erPct:       _n(a.engagementRate ?? 0),
+      }
+    })
   }
 
   const monthly = _a<Record<string, unknown>>(data.monthly ?? data.timeSeries ?? data.time_series ?? data.metrics)
