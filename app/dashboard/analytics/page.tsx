@@ -8,12 +8,10 @@ export type AnalyticsDataState = 'mock' | 'live' | 'empty'
 
 function getAnalyticsState(profile: {
   plan: string | null
-  trial_active?: boolean | null
   zernio_profile_id?: string | null
   zernio_connected_platforms?: string[] | null
 }): AnalyticsDataState {
-  const hasPlan = profile.plan && !profile.trial_active
-  if (!hasPlan) return 'mock'
+  if (!profile.plan) return 'mock'
   if (!profile.zernio_profile_id || !profile.zernio_connected_platforms?.length) return 'empty'
   return 'live'
 }
@@ -29,7 +27,6 @@ export default async function AnalyticsPage() {
       id,
       company_name,
       plan,
-      trial_active,
       ga_connected,
       ga_measurement_id,
       ga_oauth_email,
@@ -49,7 +46,6 @@ export default async function AnalyticsPage() {
 
   const dataState = getAnalyticsState({
     plan:                       profile?.plan ?? null,
-    trial_active:               profile?.trial_active ?? null,
     zernio_profile_id:          profile?.zernio_profile_id ?? null,
     zernio_connected_platforms: profile?.zernio_connected_platforms ?? null,
   })
