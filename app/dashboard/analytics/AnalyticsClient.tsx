@@ -21,6 +21,7 @@ import {
 
 type PostingAnalytics = typeof MOCK_POSTING_ANALYTICS
 const PostingDataContext = createContext<PostingAnalytics>(MOCK_POSTING_ANALYTICS)
+const DateRangeContext   = createContext<string>('30d')
 
 // ── Zernio response helpers ────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ function _o(v: unknown): Record<string, unknown> {
   return (v && typeof v === 'object' && !Array.isArray(v)) ? (v as Record<string, unknown>) : {}
 }
 
-function mapZernioResponse(raw: unknown): PostingAnalytics | null {
+function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | null {
   if (!raw || typeof raw !== 'object') return null
   const r = _o(raw)
   const data = _o(r.data ?? r.result ?? r.response ?? r)
@@ -133,9 +134,10 @@ function mapZernioResponse(raw: unknown): PostingAnalytics | null {
     })
   }
 
-  const monthly = _a<Record<string, unknown>>(data.monthly ?? data.timeSeries ?? data.time_series ?? data.metrics)
-  if (monthly.length) {
-    result.monthly = monthly.map(m => ({
+  // Try a pre-built time series from the API first; otherwise bucket posts[] ourselves
+  const apiMonthly = _a<Record<string, unknown>>(data.monthly ?? data.timeSeries ?? data.time_series ?? data.metrics)
+  if (apiMonthly.length) {
+    result.monthly = apiMonthly.map(m => ({
       month:       _s(m.month ?? m.date ?? m.label ?? ''),
       posts:       _n(m.posts ?? m.postsCount ?? 0),
       likes:       _n(m.likes ?? 0),
@@ -148,6 +150,67 @@ function mapZernioResponse(raw: unknown): PostingAnalytics | null {
       clicks:      _n(m.clicks ?? 0),
       engRate:     _n(m.engagementRate ?? m.er ?? 0),
     }))
+  } else if (postsArr.length) {
+    // Build time series by bucketing posts[] — granularity follows the date range
+    type Bucket = { sortKey: number; posts: number; likes: number; comments: number; shares: number; saves: number; views: number; impressions: number; reach: number; clicks: number; erSum: number; erCount: number }
+    const buckets = new Map<string, Bucket>()
+
+    for (const p of postsArr) {
+      const raw = _s(p.publishedAt ?? p.published_at ?? p.date ?? '')
+      if (!raw) continue
+      const d = new Date(raw)
+      if (isNaN(d.getTime())) continue
+
+      let label: string
+      let sortKey: number
+
+      if (dateRange === '7d') {
+        label   = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        sortKey = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+      } else if (dateRange === '6m' || dateRange === '1y') {
+        label   = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+        sortKey = new Date(d.getFullYear(), d.getMonth(), 1).getTime()
+      } else {
+        // weekly (30d, 90d) — bucket to Monday of the week
+        const dow = (d.getDay() + 6) % 7 // Mon=0…Sun=6
+        const mon = new Date(d); mon.setDate(d.getDate() - dow); mon.setHours(0, 0, 0, 0)
+        label   = mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        sortKey = mon.getTime()
+      }
+
+      if (!buckets.has(label)) buckets.set(label, { sortKey, posts: 0, likes: 0, comments: 0, shares: 0, saves: 0, views: 0, impressions: 0, reach: 0, clicks: 0, erSum: 0, erCount: 0 })
+      const b = buckets.get(label)!
+      const a = _o(p.analytics)
+      b.posts++
+      b.likes       += _n(a.likes       ?? 0)
+      b.comments    += _n(a.comments    ?? 0)
+      b.shares      += _n(a.shares      ?? 0)
+      b.saves       += _n(a.saves       ?? 0)
+      b.views       += _n(a.views       ?? 0)
+      b.impressions += _n(a.impressions ?? 0)
+      b.reach       += _n(a.reach       ?? 0)
+      b.clicks      += _n(a.clicks      ?? 0)
+      const er = _n(a.engagementRate ?? 0)
+      if (er > 0) { b.erSum += er; b.erCount++ }
+    }
+
+    if (buckets.size > 0) {
+      result.monthly = Array.from(buckets.entries())
+        .sort(([, a], [, b]) => a.sortKey - b.sortKey)
+        .map(([month, b]) => ({
+          month,
+          posts:       b.posts,
+          likes:       b.likes,
+          comments:    b.comments,
+          shares:      b.shares,
+          saves:       b.saves,
+          views:       b.views,
+          impressions: b.impressions,
+          reach:       b.reach,
+          clicks:      b.clicks,
+          engRate:     b.erCount > 0 ? b.erSum / b.erCount : 0,
+        }))
+    }
   }
 
   const followerEvo = _a<Record<string, unknown>>(data.followerEvolution ?? data.follower_evolution ?? data.followerHistory ?? data.followers_history)
@@ -725,7 +788,7 @@ function PostsPerPlatformChart({ isMock }: { isMock: boolean }) {
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9BA1AE' }} tickLine={false} axisLine={false} />
             <YAxis tick={{ fontSize: 11, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={24} allowDecimals={false} />
             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} cursor={{ fill: '#f9fafb' }} />
-            <Bar dataKey="posts" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="posts" fill="#E0476E" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -735,14 +798,24 @@ function PostsPerPlatformChart({ isMock }: { isMock: boolean }) {
 
 // ── Posts Over Time ────────────────────────────────────────────────────────────
 
+function timeSeriesLabel(dr: string) {
+  if (dr === '7d')  return { unit: 'day',   period: 'last 7 days'    }
+  if (dr === '30d') return { unit: 'week',  period: 'last 30 days'   }
+  if (dr === '90d') return { unit: 'week',  period: 'last 90 days'   }
+  if (dr === '6m')  return { unit: 'month', period: 'last 6 months'  }
+  return                   { unit: 'month', period: 'last 365 days'  }
+}
+
 function PostsOverTimeChart({ isMock }: { isMock: boolean }) {
   const { monthly: data } = useContext(PostingDataContext)
+  const dr    = useContext(DateRangeContext)
+  const { unit, period } = timeSeriesLabel(dr)
   const total = data.reduce((s, d) => s + d.posts, 0)
 
   return (
     <ChartCard
       title="Posts over time"
-      subtitle="Posts per month · last 365 days"
+      subtitle={`Posts per ${unit} · ${period}`}
       right={<span className="text-[11px] text-text-soft font-medium">{total} posts total</span>}
       isMock={isMock}
     >
@@ -750,10 +823,10 @@ function PostsOverTimeChart({ isMock }: { isMock: boolean }) {
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={data} barSize={16}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={1} />
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={0} />
             <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={22} allowDecimals={false} />
             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} cursor={{ fill: '#f9fafb' }} />
-            <Bar dataKey="posts" fill="#3B82F6" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="posts" fill="#E0476E" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -781,7 +854,7 @@ function LikesPerPlatformChart({ isMock }: { isMock: boolean }) {
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9BA1AE' }} tickLine={false} axisLine={false} />
             <YAxis tick={{ fontSize: 11, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={36} />
             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} cursor={{ fill: '#f9fafb' }} />
-            <Bar dataKey="likes" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="likes" fill="#E0476E" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -793,12 +866,14 @@ function LikesPerPlatformChart({ isMock }: { isMock: boolean }) {
 
 function LikesOverTimeChart({ isMock }: { isMock: boolean }) {
   const { monthly: data } = useContext(PostingDataContext)
+  const dr    = useContext(DateRangeContext)
+  const { unit, period } = timeSeriesLabel(dr)
   const total = data.reduce((s, d) => s + d.likes, 0)
 
   return (
     <ChartCard
       title="Likes over time"
-      subtitle="Likes per month · last 365 days"
+      subtitle={`Likes per ${unit} · ${period}`}
       right={<span className="text-[11px] text-text-soft font-medium">{fmt(total)} likes total</span>}
       isMock={isMock}
     >
@@ -806,10 +881,10 @@ function LikesOverTimeChart({ isMock }: { isMock: boolean }) {
         <ResponsiveContainer width="100%" height={160}>
           <BarChart data={data} barSize={16}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={1} />
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={0} />
             <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={36} />
             <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} cursor={{ fill: '#f9fafb' }} />
-            <Bar dataKey="likes" fill="#3B82F6" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="likes" fill="#E0476E" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -1747,7 +1822,7 @@ export default function AnalyticsClient({
   const [activeTab, setActiveTab]           = useState<PostingTab>('posting')
   const [platformFilter, setPlatformFilter] = useState('all')
   const [sourceFilter, setSourceFilter]     = useState('all')
-  const [dateRange, setDateRange]           = useState<DateRange>('1y')
+  const [dateRange, setDateRange]           = useState<DateRange>('30d')
 
   // Restore filter state persisted from a previous session
   useEffect(() => {
@@ -1842,7 +1917,7 @@ export default function AnalyticsClient({
         return
       }
       console.log('[analytics] Zernio social response:', JSON.stringify(json).slice(0, 3000))
-      const mapped = mapZernioResponse(json)
+      const mapped = mapZernioResponse(json, dateRange)
       if (mapped) setPostingData(mapped)
     } catch (err) {
       console.error('[analytics] Zernio fetch failed:', err)
@@ -1955,10 +2030,12 @@ export default function AnalyticsClient({
       )}
 
       {/* ── Tab content ──────────────────────────────────────────────────── */}
-      <PostingDataContext.Provider value={postingData}>
-        {activeTab === 'posting' && <PostingAnalyticsContent isMock={isMock} />}
-        {activeTab === 'inbox'   && <InboxAnalyticsContent   isMock={isMock} />}
-      </PostingDataContext.Provider>
+      <DateRangeContext.Provider value={dateRange}>
+        <PostingDataContext.Provider value={postingData}>
+          {activeTab === 'posting' && <PostingAnalyticsContent isMock={isMock} />}
+          {activeTab === 'inbox'   && <InboxAnalyticsContent   isMock={isMock} />}
+        </PostingDataContext.Provider>
+      </DateRangeContext.Provider>
     </div>
   )
 }
