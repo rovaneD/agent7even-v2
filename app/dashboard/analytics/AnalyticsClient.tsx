@@ -1,26 +1,26 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  LineChart, Line, BarChart, Bar, AreaChart, Area,
+  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, ReferenceLine, ZAxis,
 } from 'recharts'
 import {
-  Globe, Info, Eye, X, CheckCircle, Clock, Wifi, RefreshCw, AlertCircle,
-  DollarSign, Users, ExternalLink, ChevronDown, ChevronUp, Sparkles,
-  LayoutGrid, TrendingUp, MessageCircle, Plus, ArrowUpRight, ArrowDownRight,
+  Globe, X, CheckCircle, ChevronDown, ChevronUp, Sparkles,
+  Plus, ArrowUpRight, ArrowDownRight, Eye, Users, FileText,
+  ExternalLink, Info,
 } from 'lucide-react'
 import type { AnalyticsDataState } from './page'
 import {
-  MOCK_GA_DATA, MOCK_ANALYTICS_SOCIAL, MOCK_ANALYTICS_ADS,
-  MOCK_ANALYTICS_INBOX, MOCK_CONNECTED_PLATFORMS,
+  MOCK_ANALYTICS_INBOX, MOCK_POSTING_ANALYTICS,
 } from '@/lib/analytics/mockData'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Range = '7d' | '30d' | '90d'
-type Tab   = 'overview' | 'social' | 'ads' | 'inbox'
+type PostingTab = 'posting' | 'inbox'
+type DateRange = '7d' | '30d' | '90d' | '6m' | '1y'
 
 interface Props {
   companyName: string
@@ -49,96 +49,68 @@ function fmt(n: number) {
 
 // ── Platform metadata ──────────────────────────────────────────────────────────
 
-const PLATFORM_META: Record<string, { label: string; color: string }> = {
-  instagram:    { label: 'Instagram',    color: '#E1306C' },
-  facebook:     { label: 'Facebook',     color: '#1877F2' },
-  tiktok:       { label: 'TikTok',       color: '#010101' },
-  linkedin:     { label: 'LinkedIn',     color: '#0A66C2' },
-  youtube:      { label: 'YouTube',      color: '#FF0000' },
-  x:            { label: 'X',            color: '#000000' },
-  threads:      { label: 'Threads',      color: '#000000' },
-  bluesky:      { label: 'Bluesky',      color: '#0085FF' },
-  pinterest:    { label: 'Pinterest',    color: '#E60023' },
-  reddit:       { label: 'Reddit',       color: '#FF4500' },
-  google_business: { label: 'Google Business', color: '#4285F4' },
-  meta_ads:     { label: 'Meta Ads',     color: '#1877F2' },
-  google_ads:   { label: 'Google Ads',   color: '#4285F4' },
-  linkedin_ads: { label: 'LinkedIn Ads', color: '#0A66C2' },
-  tiktok_ads:   { label: 'TikTok Ads',  color: '#010101' },
-  pinterest_ads:{ label: 'Pinterest Ads',color: '#E60023' },
-  x_ads:        { label: 'X Ads',       color: '#000000' },
+const PLATFORM_META: Record<string, { label: string; color: string; bgColor: string }> = {
+  instagram:       { label: 'Instagram',       color: '#E1306C', bgColor: '#FCE4EC' },
+  facebook:        { label: 'Facebook',         color: '#1877F2', bgColor: '#E3F2FD' },
+  tiktok:          { label: 'TikTok',           color: '#333',    bgColor: '#F5F5F5' },
+  linkedin:        { label: 'LinkedIn',         color: '#0A66C2', bgColor: '#E8F4FD' },
+  youtube:         { label: 'YouTube',          color: '#FF0000', bgColor: '#FFEBEE' },
+  x:               { label: 'X / Twitter',      color: '#111',    bgColor: '#F5F5F5' },
+  threads:         { label: 'Threads',          color: '#111',    bgColor: '#F5F5F5' },
+  bluesky:         { label: 'Bluesky',          color: '#0085FF', bgColor: '#E3F2FD' },
+  pinterest:       { label: 'Pinterest',        color: '#E60023', bgColor: '#FFEBEE' },
+  reddit:          { label: 'Reddit',           color: '#FF4500', bgColor: '#FFF3E0' },
+  google_business: { label: 'Google Business',  color: '#4285F4', bgColor: '#E8F0FE' },
 }
 
-const SOCIAL_PLATFORMS = [
-  'instagram','facebook','tiktok','linkedin','youtube',
-  'x','threads','bluesky','pinterest','reddit','google_business',
-]
-const AD_PLATFORMS = [
-  'meta_ads','google_ads','linkedin_ads','tiktok_ads','pinterest_ads','x_ads',
+const ALL_PLATFORMS = [
+  'instagram', 'facebook', 'tiktok', 'linkedin', 'youtube',
+  'x', 'threads', 'pinterest', 'reddit', 'bluesky', 'google_business',
 ]
 
-// ── Small shared components ───────────────────────────────────────────────────
+// ── Engagement metrics config ──────────────────────────────────────────────────
 
-function BrandIcon({ src, alt }: { src: string; alt: string }) {
+const ENG_METRICS = [
+  { key: 'likes',       label: 'Likes',       color: '#3B82F6', icon: '♥'   },
+  { key: 'comments',    label: 'Comments',    color: '#10B981', icon: '💬'  },
+  { key: 'shares',      label: 'Shares',      color: '#8B5CF6', icon: '↗'   },
+  { key: 'saves',       label: 'Saves',       color: '#F59E0B', icon: '🔖'  },
+  { key: 'views',       label: 'Views',       color: '#06B6D4', icon: '👁'  },
+  { key: 'impressions', label: 'Impressions', color: '#64748B', icon: '↗'   },
+  { key: 'reach',       label: 'Reach',       color: '#14B8A6', icon: '👥'  },
+  { key: 'clicks',      label: 'Clicks',      color: '#F97316', icon: '🖱'  },
+] as const
+
+type MetricKey = typeof ENG_METRICS[number]['key']
+const DEFAULT_ACTIVE_METRICS: Set<MetricKey> = new Set(['likes', 'comments', 'views', 'impressions', 'reach'])
+
+// ── Heatmap color helper ───────────────────────────────────────────────────────
+
+function heatmapColor(value: number, maxValue: number): string {
+  if (value === 0) return '#F3F4F6'
+  const t = value / maxValue
+  const r = Math.round(0xE0 + (0x10 - 0xE0) * t)
+  const g = Math.round(0xF7 + (0xB9 - 0xF7) * t)
+  const b = Math.round(0xED + (0x81 - 0xED) * t)
+  return `rgb(${r},${g},${b})`
+}
+
+// ── Shared UI atoms ────────────────────────────────────────────────────────────
+
+function DemoDot() {
   return (
-    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-surface-2 flex-shrink-0">
-      <img src={src} alt={alt} className="w-5 h-5 object-contain" />
-    </div>
+    <span
+      className="absolute top-3 right-3 w-2 h-2 rounded-full flex-shrink-0"
+      style={{ background: '#F59E0B' }}
+      title="Demo data"
+    />
   )
 }
 
-function InfoTooltip({ text }: { text: string }) {
-  const [show, setShow] = useState(false)
+function DemoChip() {
   return (
-    <div className="relative inline-flex items-center">
-      <button
-        onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}
-        onFocus={() => setShow(true)} onBlur={() => setShow(false)}
-        className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition-colors"
-        aria-label="Info"
-      >
-        <Info size={11} />
-      </button>
-      {show && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-64 bg-gray-900 text-white text-xs leading-relaxed rounded-xl px-3 py-2.5 shadow-xl pointer-events-none">
-          <div className="absolute left-2 bottom-full w-2 h-2 bg-gray-900 rotate-45 mb-[-4px]" />
-          {text}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function PlatformAvatar({ id, size = 24 }: { id: string; size?: number }) {
-  const meta = PLATFORM_META[id]
-  const label = meta?.label ?? id
-  const color = meta?.color ?? '#6B7280'
-  return (
-    <div
-      className="flex-shrink-0 flex items-center justify-center rounded-full font-bold text-white"
-      style={{ width: size, height: size, backgroundColor: color, fontSize: size * 0.4 }}
-      title={label}
-    >
-      {label[0].toUpperCase()}
-    </div>
-  )
-}
-
-// ── Demo / mock state visual components ───────────────────────────────────────
-
-function DemoPill() {
-  return (
-    <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border"
-      style={{ background: '#FEF3C7', color: '#92400E', borderColor: '#FDE68A' }}>
-      Demo
-    </span>
-  )
-}
-
-function DemoBadge() {
-  return (
-    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
-      style={{ background: '#FEF3C7', color: '#92400E', borderColor: '#FDE68A' }}>
+    <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded"
+      style={{ background: '#FEF3C7', color: '#92400E' }}>
       Demo data
     </span>
   )
@@ -146,15 +118,12 @@ function DemoBadge() {
 
 function AmberBanner() {
   return (
-    <div className="flex items-center justify-between px-6 py-3 border-b"
-      style={{ background: '#FFF7ED', borderColor: '#FDE68A' }}>
-      <div className="flex items-center gap-2.5">
-        <i className="ti ti-eye-off text-amber-600" style={{ fontSize: 15 }} />
-        <p className="text-[12px] font-medium text-amber-800">
-          <span className="font-semibold">Demo data only</span> — this is not your real performance.
-          Connect your accounts on a paid plan to see live data.
-        </p>
-      </div>
+    <div className="flex items-center justify-between px-6 py-3 rounded-xl mb-4"
+      style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+      <p className="text-[12px] font-medium" style={{ color: '#92400E' }}>
+        <span className="font-semibold">Demo data only</span> — this is not your real
+        performance. Connect your accounts on a paid plan to see live data.
+      </p>
       <a href="/dashboard/billing" className="text-[12px] font-semibold text-[#3B82F6] hover:underline flex-shrink-0 ml-4">
         View plans →
       </a>
@@ -164,23 +133,22 @@ function AmberBanner() {
 
 function UpgradeCard() {
   return (
-    <div className="rounded-2xl border-[1.5px] border-[#BFDBFE] bg-white p-8 text-center mt-4">
+    <div className="rounded-2xl border-[1.5px] border-[#BFDBFE] bg-white p-8 text-center mt-2">
       <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
-        <i className="ti ti-chart-bar text-brand-primary" style={{ fontSize: 22 }} />
+        <FileText size={20} className="text-[#3B82F6]" />
       </div>
       <h3 className="text-[16px] font-semibold text-text mb-2">See your real performance data</h3>
       <p className="text-sm text-text-sec leading-relaxed max-w-md mx-auto mb-4">
-        Connect your social accounts, ad platforms, and Google Analytics to see your actual
-        followers, reach, engagement, ad spend, and Maya's weekly briefing.
+        Connect your social accounts to see actual followers, reach, engagement, and Maya's weekly briefing.
       </p>
       <div className="inline-flex items-center gap-1.5 text-[11px] px-3 py-2 rounded-lg mb-5"
         style={{ background: '#FEF3C7', color: '#92400E' }}>
-        <i className="ti ti-info-circle" style={{ fontSize: 13 }} />
-        Live data is available on paid plans only. Not included in the 3-day free trial.
+        <Info size={12} />
+        Live data is available on paid plans only — not included in the free trial.
       </div>
       <div className="flex items-center justify-center gap-3">
         <a href="/dashboard/billing"
-          className="bg-brand-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors">
+          className="bg-[#3B82F6] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors">
           Activate your plan →
         </a>
         <a href="/pricing"
@@ -192,94 +160,232 @@ function UpgradeCard() {
   )
 }
 
-function MockSidebar() {
-  const checklist = [
-    'Instagram, Facebook, TikTok',
-    'LinkedIn, YouTube, X',
-    'Meta Ads, Google Ads',
-    'Maya weekly briefing',
-    'Best time to post',
-    'Content decay curves',
-    'Top performing posts',
-    'GA website traffic',
-  ]
+// ── Platform Avatar ────────────────────────────────────────────────────────────
+
+function PlatformAvatar({ id, size = 22 }: { id: string; size?: number }) {
+  const meta = PLATFORM_META[id]
+  const label = meta?.label ?? id
+  const color = meta?.color ?? '#6B7280'
   return (
-    <div className="flex flex-col gap-3 w-64 flex-shrink-0">
-      <div className="rounded-2xl border border-gray-100 bg-white p-5">
-        <p className="text-[12px] font-semibold text-text mb-3">What you'll see when connected</p>
-        <ul className="space-y-2">
-          {checklist.map(item => (
-            <li key={item} className="flex items-center gap-2 text-xs text-text-sec">
-              <CheckCircle size={12} className="text-emerald-500 flex-shrink-0" />
-              {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="rounded-2xl border border-gray-100 bg-white p-5">
-        <p className="text-[12px] font-semibold text-text mb-2">Demo data shown above</p>
-        <p className="text-xs text-text-sec leading-relaxed mb-3">
-          Numbers shown are illustrative — typical for an SMB after 6 months of consistent posting.
-        </p>
-        <div className="space-y-1.5">
-          {[65, 45, 80, 35, 55].map((w, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className="h-3 rounded-full bg-gray-200 opacity-50" style={{ width: `${w}%` }} />
-              {i === 2 && <span className="text-[9px] text-gray-300">← your data goes here</span>}
-            </div>
-          ))}
-        </div>
-      </div>
+    <div
+      className="flex-shrink-0 flex items-center justify-center rounded-full font-bold text-white"
+      style={{ width: size, height: size, backgroundColor: color, fontSize: size * 0.42 }}
+      title={label}
+    >
+      {label[0].toUpperCase()}
     </div>
   )
 }
 
-// ── Metric card ───────────────────────────────────────────────────────────────
+// ── Filter Dropdown ────────────────────────────────────────────────────────────
 
-function MetricCard({
-  label, value, delta, logoSrc, icon: Icon, notConnected, linkLabel, onLink, isMock,
+interface DropdownOption { value: string; label: string }
+
+function FilterDropdown({
+  value, options, onChange, isMock, mayaSourceTooltip,
 }: {
-  label: string
   value: string
-  delta?: number
-  logoSrc?: string
-  icon?: React.ElementType
-  notConnected?: boolean
-  linkLabel?: string
-  onLink?: () => void
+  options: DropdownOption[]
+  onChange: (v: string) => void
   isMock?: boolean
+  mayaSourceTooltip?: boolean
 }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const current = options.find(o => o.value === value) ?? options[0]
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-gray-100 bg-white p-5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-text-soft">{label}</span>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {isMock && <DemoPill />}
-          {!isMock && logoSrc && <BrandIcon src={logoSrc} alt={label} />}
-          {!isMock && !logoSrc && Icon && (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50">
-              <Icon size={14} className="text-text-soft" />
-            </div>
-          )}
-        </div>
-      </div>
-      {notConnected && !isMock ? (
-        <div>
-          <p className="text-[22px] font-semibold text-text-soft">—</p>
-          {linkLabel && (
-            <button onClick={onLink} className="text-[11px] text-brand-primary hover:underline mt-1">
-              {linkLabel}
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-[12.5px] font-medium text-text-sec bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:border-gray-300 transition-colors whitespace-nowrap"
+      >
+        {current.label}
+        <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[180px]">
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                if (isMock && opt.value === 'maya' && mayaSourceTooltip) return
+                onChange(opt.value)
+                setOpen(false)
+              }}
+              className={`w-full text-left px-3.5 py-2 text-[12.5px] flex items-center justify-between gap-2 hover:bg-gray-50 transition-colors ${value === opt.value ? 'text-[#3B82F6] font-medium' : 'text-text-sec'}`}
+            >
+              {opt.label}
+              {isMock && opt.value === 'maya' && (
+                <span className="text-[10px] text-amber-600">Paid plan</span>
+              )}
             </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Filter Bar ─────────────────────────────────────────────────────────────────
+
+function FilterBar({
+  platform, profile, source, dateRange, isMock,
+  onPlatformChange, onSourceChange, onDateRangeChange,
+}: {
+  platform: string; profile: string; source: string; dateRange: DateRange; isMock: boolean
+  onPlatformChange: (v: string) => void
+  onSourceChange:   (v: string) => void
+  onDateRangeChange:(v: DateRange) => void
+}) {
+  const platformOptions: DropdownOption[] = [
+    { value: 'all',             label: 'All platforms' },
+    { value: 'instagram',       label: 'Instagram'     },
+    { value: 'tiktok',          label: 'TikTok'        },
+    { value: 'facebook',        label: 'Facebook'      },
+    { value: 'youtube',         label: 'YouTube'       },
+    { value: 'linkedin',        label: 'LinkedIn'      },
+    { value: 'x',               label: 'X / Twitter'   },
+    { value: 'threads',         label: 'Threads'       },
+    { value: 'pinterest',       label: 'Pinterest'     },
+    { value: 'reddit',          label: 'Reddit'        },
+    { value: 'bluesky',         label: 'Bluesky'       },
+    { value: 'google_business', label: 'GBP'           },
+  ]
+
+  const sourceOptions: DropdownOption[] = [
+    { value: 'all',  label: 'All sources'     },
+    { value: 'maya', label: 'Posted via Maya' },
+  ]
+
+  const dateOptions: DropdownOption[] = [
+    { value: '7d',  label: 'Last 7 days'   },
+    { value: '30d', label: 'Last 30 days'  },
+    { value: '90d', label: 'Last 90 days'  },
+    { value: '6m',  label: 'Last 6 months' },
+    { value: '1y',  label: 'Last year'     },
+  ]
+
+  const currentPlatformLabel = platform === 'all'
+    ? 'All platforms'
+    : PLATFORM_META[platform]?.label ?? platform
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap mb-4">
+      {/* Platform */}
+      <FilterDropdown
+        value={platform}
+        options={platformOptions}
+        onChange={onPlatformChange}
+        isMock={isMock}
+      />
+
+      {/* Profile (static in demo) */}
+      <button className="flex items-center gap-1.5 text-[12.5px] font-medium text-text-sec bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:border-gray-300 transition-colors">
+        {isMock ? 'Demo Profile' : 'Default'}
+        <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
+      </button>
+
+      {/* Source */}
+      <FilterDropdown
+        value={source}
+        options={sourceOptions}
+        onChange={onSourceChange}
+        isMock={isMock}
+        mayaSourceTooltip
+      />
+
+      {/* Date range */}
+      <FilterDropdown
+        value={dateRange}
+        options={dateOptions}
+        onChange={v => onDateRangeChange(v as DateRange)}
+        isMock={isMock}
+      />
+
+      {/* Last sync */}
+      <span className="ml-auto text-[11px] text-text-soft whitespace-nowrap">
+        {isMock ? 'Demo mode' : `Last sync: just now`}
+      </span>
+    </div>
+  )
+}
+
+// ── Maya Briefing Card ─────────────────────────────────────────────────────────
+
+function MayaBriefingCard({ isMock }: { isMock: boolean }) {
+  const [open, setOpen] = useState(true)
+  const [generated, setGenerated] = useState(false)
+
+  return (
+    <div className="rounded-2xl bg-white border border-gray-100 mb-4 overflow-hidden"
+      style={{ borderLeft: '3px solid #3B82F6' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-[10px] font-bold">M</span>
+          </div>
+          <span className="text-[13px] font-semibold text-text">Maya's briefing</span>
+          {isMock && (
+            <span className="text-[10px] px-2 py-0.5 rounded font-medium"
+              style={{ background: '#FEF3C7', color: '#92400E' }}>
+              Demo
+            </span>
           )}
         </div>
-      ) : (
-        <div className="flex items-end justify-between">
-          <p className="text-[22px] font-semibold text-text">{value}</p>
-          {delta !== undefined && (
-            <span className={`flex items-center gap-0.5 text-xs font-medium ${delta >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-              {delta >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-              {Math.abs(delta)}%
-            </span>
+        {open ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 pt-1">
+          {!generated ? (
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[13px] text-text-sec">
+                  Maya hasn&apos;t analyzed this period yet.
+                </p>
+                <p className="text-[11px] text-text-soft mt-1">~15 seconds · 2 credits</p>
+              </div>
+              <button
+                onClick={() => !isMock && setGenerated(true)}
+                disabled={isMock}
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-white bg-[#3B82F6] px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 hover:bg-[#2563EB] transition-colors"
+                title={isMock ? 'Available on paid plans' : undefined}
+              >
+                <Sparkles size={12} /> Generate briefing
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-[13px] text-text-sec leading-relaxed">
+                Your Instagram engagement rate is up 0.4pts this period, driven primarily by the
+                &ldquo;Behind the scenes&rdquo; post. TikTok is your highest-ER platform at 5.1% despite
+                lower follower count — it deserves more posting frequency.
+              </p>
+              <div className="space-y-2">
+                {[
+                  'Post on TikTok 2× this week to capitalize on its 5.1% engagement rate.',
+                  'Tuesday and Friday 9pm are your peak engagement windows — schedule accordingly.',
+                  'Facebook CTR is healthy at 2.1% — consider boosting this week\'s post.',
+                ].map((s, i) => (
+                  <div key={i} className="flex items-start gap-2.5 text-[12px] text-text-sec">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#3B82F6] flex-shrink-0 mt-1.5" />
+                    {s}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -287,42 +393,784 @@ function MetricCard({
   )
 }
 
-// ── Maya's briefing card ──────────────────────────────────────────────────────
+// ── Chart card wrapper ─────────────────────────────────────────────────────────
 
-function MayaBriefingCard({ hasSource }: { hasSource: boolean }) {
-  const avatar = (
-    <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
-      <span className="text-white text-[11px] font-bold">M</span>
-    </div>
-  )
-  if (!hasSource) {
-    return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-6">
-        <div className="flex items-center gap-2.5 mb-2">{avatar}
-          <span className="text-[13px] font-semibold text-text">Maya's briefing</span>
-        </div>
-        <p className="text-sm text-text-sec">Connect at least one data source to get Maya's performance read.</p>
-      </div>
-    )
-  }
+function ChartCard({
+  title, subtitle, right, children, isMock, fullWidth,
+}: {
+  title: string
+  subtitle?: string
+  right?: React.ReactNode
+  children: React.ReactNode
+  isMock?: boolean
+  fullWidth?: boolean
+}) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-6" style={{ borderLeft: '4px solid #3B82F6' }}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-2.5">{avatar}
-          <span className="text-[13px] font-semibold text-text">Maya's briefing</span>
+    <div className={`rounded-2xl border border-gray-100 bg-white overflow-hidden ${fullWidth ? 'col-span-2' : ''}`}>
+      <div className="px-5 py-4 border-b border-gray-50 flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-text">{title}</span>
+            {isMock && <DemoChip />}
+          </div>
+          {subtitle && <p className="text-[11px] text-text-soft mt-0.5">{subtitle}</p>}
         </div>
-        <button disabled title="Coming in Phase 6"
-          className="flex items-center gap-1.5 text-[12px] font-semibold text-white bg-brand-primary px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
-          <Sparkles size={12} /> Generate briefing
-        </button>
+        {right && <div className="flex-shrink-0">{right}</div>}
       </div>
-      <p className="text-sm text-text-sec mt-3">Maya hasn't analyzed this period yet.</p>
-      <p className="text-[11px] text-text-soft mt-1">Takes ~15 seconds · Uses 2 credits</p>
+      {children}
     </div>
   )
 }
 
-// ── Connect panel (slide-out) ─────────────────────────────────────────────────
+// ── Stat Cards (5) ─────────────────────────────────────────────────────────────
+
+function StatCards({ isMock }: { isMock: boolean }) {
+  const s = MOCK_POSTING_ANALYTICS.stats
+
+  const cards = [
+    {
+      label: 'Engagement rate',
+      value: `${s.engagementRate}%`,
+      delta: s.engRateDelta,
+      deltaPos: s.engRateDeltaPositive,
+    },
+    {
+      label: 'Total reach',
+      value: fmt(s.totalReach),
+      icon: <Eye size={14} />,
+      delta: s.reachDelta,
+      deltaPos: s.reachDeltaPositive,
+    },
+    {
+      label: 'Total followers',
+      value: fmt(s.totalFollowers),
+      icon: <Users size={14} />,
+      delta: s.followersDelta,
+      deltaPos: s.followersDeltaPositive,
+    },
+    {
+      label: 'Posts this period',
+      value: `${s.postsThisPeriod}`,
+      icon: <FileText size={14} />,
+    },
+    {
+      label: 'Best post',
+      isBestPost: true,
+    },
+  ]
+
+  return (
+    <div className="grid grid-cols-5 gap-3 mb-5">
+      {cards.map((c, i) => (
+        <div key={i} className="relative bg-white rounded-2xl border border-gray-100 p-4">
+          {isMock && <DemoDot />}
+          <p className="text-[11px] font-medium text-text-soft uppercase tracking-wide mb-2">{c.label ?? 'Best post'}</p>
+
+          {c.isBestPost ? (
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <PlatformAvatar id={s.bestPost.platform} size={20} />
+                </div>
+                <span className="text-[24px] font-[500] text-text leading-none">{s.bestPost.engagements}</span>
+              </div>
+              <p className="text-[11px] text-text-soft truncate">{s.bestPost.caption}</p>
+              <a href="#" className="text-[11px] text-[#3B82F6] font-medium mt-1 inline-flex items-center gap-0.5 hover:underline">
+                View <ExternalLink size={10} />
+              </a>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                {c.icon && <span className="text-text-soft">{c.icon}</span>}
+                <span className="text-[26px] font-[500] text-text leading-none">{c.value}</span>
+              </div>
+              {c.delta && (
+                <span className={`flex items-center gap-0.5 text-[11px] font-medium ${c.deltaPos ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {c.deltaPos ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                  {c.delta}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Posts Per Platform ─────────────────────────────────────────────────────────
+
+function PostsPerPlatformChart({ isMock }: { isMock: boolean }) {
+  const data = MOCK_POSTING_ANALYTICS.platformPosts
+  const total = data.reduce((s, d) => s + d.posts, 0)
+
+  return (
+    <ChartCard
+      title="Posts per platform"
+      subtitle="Top 1 by post count in this window"
+      right={<span className="text-[11px] text-text-soft font-medium">{total} posts total</span>}
+      isMock={isMock}
+    >
+      <div className="px-4 pt-4 pb-3">
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={data} barSize={36}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9BA1AE' }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={24} allowDecimals={false} />
+            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} cursor={{ fill: '#f9fafb' }} />
+            <Bar dataKey="posts" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
+  )
+}
+
+// ── Posts Over Time ────────────────────────────────────────────────────────────
+
+function PostsOverTimeChart({ isMock }: { isMock: boolean }) {
+  const data = MOCK_POSTING_ANALYTICS.monthly
+  const total = data.reduce((s, d) => s + d.posts, 0)
+
+  return (
+    <ChartCard
+      title="Posts over time"
+      subtitle="Posts per month · last 365 days"
+      right={<span className="text-[11px] text-text-soft font-medium">{total} posts total</span>}
+      isMock={isMock}
+    >
+      <div className="px-4 pt-4 pb-3">
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={data} barSize={16}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={1} />
+            <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={22} allowDecimals={false} />
+            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} cursor={{ fill: '#f9fafb' }} />
+            <Bar dataKey="posts" fill="#3B82F6" radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
+  )
+}
+
+// ── Likes Per Platform ─────────────────────────────────────────────────────────
+
+function LikesPerPlatformChart({ isMock }: { isMock: boolean }) {
+  const data = MOCK_POSTING_ANALYTICS.platformLikes
+  const total = data.reduce((s, d) => s + d.likes, 0)
+
+  return (
+    <ChartCard
+      title="Likes per platform"
+      subtitle="Top 1 platforms by likes in this window"
+      right={<span className="text-[11px] text-text-soft font-medium">{fmt(total)} likes total</span>}
+      isMock={isMock}
+    >
+      <div className="px-4 pt-4 pb-3">
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={data} barSize={36}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9BA1AE' }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={36} />
+            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} cursor={{ fill: '#f9fafb' }} />
+            <Bar dataKey="likes" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
+  )
+}
+
+// ── Likes Over Time ────────────────────────────────────────────────────────────
+
+function LikesOverTimeChart({ isMock }: { isMock: boolean }) {
+  const data = MOCK_POSTING_ANALYTICS.monthly
+  const total = data.reduce((s, d) => s + d.likes, 0)
+
+  return (
+    <ChartCard
+      title="Likes over time"
+      subtitle="Likes per month · last 365 days"
+      right={<span className="text-[11px] text-text-soft font-medium">{fmt(total)} likes total</span>}
+      isMock={isMock}
+    >
+      <div className="px-4 pt-4 pb-3">
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={data} barSize={16}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={1} />
+            <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={36} />
+            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} cursor={{ fill: '#f9fafb' }} />
+            <Bar dataKey="likes" fill="#3B82F6" radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
+  )
+}
+
+// ── Engagement Over Time (full width) ─────────────────────────────────────────
+
+function EngagementOverTimeChart({ isMock }: { isMock: boolean }) {
+  const [activeMetrics, setActiveMetrics] = useState<Set<MetricKey>>(
+    new Set(DEFAULT_ACTIVE_METRICS)
+  )
+  const data = MOCK_POSTING_ANALYTICS.monthly
+
+  const toggle = (key: MetricKey) => {
+    setActiveMetrics(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) { if (next.size > 1) next.delete(key) }
+      else next.add(key)
+      return next
+    })
+  }
+
+  const totals = ENG_METRICS.reduce((acc, m) => {
+    acc[m.key] = data.reduce((s, d) => s + (d[m.key as keyof typeof d] as number ?? 0), 0)
+    return acc
+  }, {} as Record<string, number>)
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-2">
+      <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+        <span className="text-[13px] font-semibold text-text">Engagement over time</span>
+        {isMock && <DemoChip />}
+        <span className="text-[11px] text-text-soft ml-1">Per month · last 365 days</span>
+      </div>
+      <div className="flex">
+        {/* Chart */}
+        <div className="flex-1 min-w-0 px-4 pt-4 pb-3">
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={1} />
+              <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={36} />
+              <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
+              {ENG_METRICS.filter(m => activeMetrics.has(m.key)).map(m => (
+                <Line
+                  key={m.key}
+                  type="monotone"
+                  dataKey={m.key}
+                  stroke={m.color}
+                  strokeWidth={2}
+                  dot={false}
+                  name={m.label}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        {/* Legend panel */}
+        <div className="w-52 flex-shrink-0 border-l border-gray-50 py-4 px-4 overflow-y-auto">
+          <div className="space-y-3">
+            {ENG_METRICS.map(m => {
+              const active = activeMetrics.has(m.key)
+              return (
+                <button
+                  key={m.key}
+                  onClick={() => toggle(m.key)}
+                  className="w-full flex items-center justify-between gap-2 group"
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3.5 h-3.5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all"
+                      style={{
+                        borderColor: active ? m.color : '#D1D5DB',
+                        background: active ? m.color : 'transparent',
+                      }}
+                    >
+                      {active && <span className="text-white text-[8px] leading-none">✓</span>}
+                    </div>
+                    <span className={`text-[11px] ${active ? 'text-text font-medium' : 'text-text-soft'}`}>
+                      {m.icon} {m.label}
+                    </span>
+                  </div>
+                  <span className={`text-[12px] font-semibold ${active ? 'text-text' : 'text-text-soft'}`}>
+                    {fmt(totals[m.key])}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Best Time to Post Heatmap ──────────────────────────────────────────────────
+
+function BestTimeToPostHeatmap({ isMock }: { isMock: boolean }) {
+  const { days, times, data, bestDay, bestTime } = MOCK_POSTING_ANALYTICS.heatmap
+  const allValues = data.flat()
+  const maxVal = Math.max(...allValues, 1)
+
+  return (
+    <ChartCard
+      title="Best Time to Post"
+      right={
+        <div className="flex items-center gap-1.5 text-[10.5px] text-text-soft">
+          <span>Less</span>
+          {[0.1, 0.3, 0.5, 0.7, 0.9].map(t => (
+            <div
+              key={t}
+              className="w-3 h-3 rounded-sm"
+              style={{ background: heatmapColor(t * maxVal, maxVal) }}
+            />
+          ))}
+          <span>More</span>
+        </div>
+      }
+      isMock={isMock}
+    >
+      <div className="px-4 pt-3 pb-4">
+        {/* Grid */}
+        <div className="flex gap-1">
+          {/* Day labels */}
+          <div className="flex flex-col gap-1 pr-1">
+            <div className="h-5" />
+            {days.map(d => (
+              <div key={d} className="h-5 flex items-center text-[10px] text-text-soft w-7">{d}</div>
+            ))}
+          </div>
+          {/* Cells */}
+          <div className="flex-1 min-w-0">
+            {/* Time labels */}
+            <div className="grid mb-1" style={{ gridTemplateColumns: `repeat(${times.length}, 1fr)` }}>
+              {times.map(t => (
+                <div key={t} className="text-[9px] text-text-soft text-center leading-5">{t}</div>
+              ))}
+            </div>
+            {/* Heatmap rows */}
+            {data.map((row, di) => (
+              <div key={di} className="grid gap-1 mb-1" style={{ gridTemplateColumns: `repeat(${times.length}, 1fr)` }}>
+                {row.map((val, ti) => (
+                  <div
+                    key={ti}
+                    className="h-5 rounded-sm"
+                    style={{ background: heatmapColor(val, maxVal) }}
+                    title={`${days[di]} ${times[ti]}: ${val}`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Best times label */}
+        <div className="flex items-center gap-1.5 mt-3 text-[11px] text-text-sec">
+          <span className="font-medium">Best times:</span>
+          <span
+            className="flex items-center gap-1 font-semibold px-2 py-0.5 rounded text-[10px]"
+            style={{ background: '#D1FAE5', color: '#065F46' }}
+          >
+            {bestDay} {bestTime}
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+          </span>
+        </div>
+      </div>
+    </ChartCard>
+  )
+}
+
+// ── Follower Evolution ─────────────────────────────────────────────────────────
+
+function FollowerEvolutionChart({ isMock }: { isMock: boolean }) {
+  const data = MOCK_POSTING_ANALYTICS.followerEvolution
+  const total = data[data.length - 1]?.followers ?? 0
+
+  return (
+    <ChartCard
+      title="Follower evolution"
+      subtitle="Followers per account · top 1"
+      right={<span className="text-[11px] text-text-soft font-medium">{fmt(total)} followers total</span>}
+      isMock={isMock}
+    >
+      <div className="px-4 pt-4 pb-3">
+        <ResponsiveContainer width="100%" height={180}>
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={2} />
+            <YAxis
+              tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={40}
+              domain={['auto', 'auto']}
+            />
+            <Tooltip
+              contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }}
+              formatter={(v: unknown) => [fmt(Number(v ?? 0)), 'Followers']}
+            />
+            <Line type="monotone" dataKey="followers" stroke="#3B82F6" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
+  )
+}
+
+// ── Platform Breakdown Table ───────────────────────────────────────────────────
+
+function PlatformBreakdownTable({ isMock }: { isMock: boolean }) {
+  const data = MOCK_POSTING_ANALYTICS.platformBreakdown
+  const cols = ['Platform', 'Posts', 'Likes', 'Comments', 'Shares', 'Saves', 'Clicks', 'Views', 'Impressions', 'Reach', 'ER%']
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-2">
+      <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+        <span className="text-[13px] font-semibold text-text">Platform Breakdown</span>
+        {isMock && <DemoChip />}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[800px]">
+          <thead>
+            <tr className="border-b border-gray-50">
+              {cols.map(c => (
+                <th key={c} className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400 whitespace-nowrap">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row, i) => (
+              <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <PlatformAvatar id={row.platform} size={20} />
+                    <span className="text-[12px] font-medium text-text">{row.label}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-[12px] text-text">{row.posts}</td>
+                <td className="px-4 py-3 text-[12px] text-text">{fmt(row.likes)}</td>
+                <td className="px-4 py-3 text-[12px] text-text">{row.comments}</td>
+                <td className="px-4 py-3 text-[12px] text-text">{row.shares}</td>
+                <td className="px-4 py-3 text-[12px] text-text">{row.saves || '—'}</td>
+                <td className="px-4 py-3 text-[12px] text-text">{row.clicks || '—'}</td>
+                <td className="px-4 py-3 text-[12px] text-text">{fmt(row.views)}</td>
+                <td className="px-4 py-3 text-[12px] text-text">{fmt(row.impressions)}</td>
+                <td className="px-4 py-3 text-[12px] text-text">{fmt(row.reach)}</td>
+                <td className="px-4 py-3">
+                  <span className="text-[11px] font-semibold text-emerald-600">{row.erPct}%</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── Top Performing Posts Table ─────────────────────────────────────────────────
+
+function TopPerformingPostsTable({ isMock }: { isMock: boolean }) {
+  const data = MOCK_POSTING_ANALYTICS.topPosts
+  const metaCols = [
+    { key: 'likes',       label: 'Likes',       color: '#3B82F6' },
+    { key: 'comments',    label: 'Comments',    color: '#10B981' },
+    { key: 'shares',      label: 'Shares',      color: '#8B5CF6' },
+    { key: 'saves',       label: 'Saves',       color: '#F59E0B' },
+    { key: 'clicks',      label: 'Clicks',      color: '#F97316' },
+    { key: 'views',       label: 'Views',       color: '#06B6D4' },
+    { key: 'impressions', label: 'Impressions', color: '#64748B' },
+    { key: 'reach',       label: 'Reach',       color: '#14B8A6' },
+    { key: 'erPct',       label: 'ER%',         color: '#10B981' },
+  ]
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-2">
+      <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+        <span className="text-[13px] font-semibold text-text">Top Performing Posts</span>
+        {isMock && <DemoChip />}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px]">
+          <thead>
+            <tr className="border-b border-gray-50">
+              <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400 min-w-[220px]">Post</th>
+              {metaCols.map(c => (
+                <th key={c.key} className="px-3 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap"
+                  style={{ color: c.color }}>
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((post, i) => (
+              <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    {/* Placeholder thumbnail */}
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 border border-gray-200">
+                      <PlatformAvatar id={post.platform} size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[12px] text-text font-medium leading-tight max-w-[160px] truncate">{post.caption}</p>
+                      <p className="text-[10px] text-text-soft mt-0.5">{post.date}</p>
+                    </div>
+                  </div>
+                </td>
+                {metaCols.map(c => {
+                  const val = post[c.key as keyof typeof post]
+                  return (
+                    <td key={c.key} className="px-3 py-3">
+                      {c.key === 'erPct' ? (
+                        <span className="text-[11px] font-semibold text-emerald-600">{val}%</span>
+                      ) : (
+                        <span className="text-[12px] text-text">{val === 0 ? '—' : fmt(Number(val))}</span>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── Posting Frequency vs Engagement ───────────────────────────────────────────
+
+function PostingFrequencyChart({ isMock }: { isMock: boolean }) {
+  const data = MOCK_POSTING_ANALYTICS.postingFrequency
+  const optimal = MOCK_POSTING_ANALYTICS.optimalCadence
+
+  const igColor  = '#3B82F6'
+  const fbColor  = '#60A5FA'
+
+  const igData = data.filter(d => d.platform === 'instagram')
+  const fbData = data.filter(d => d.platform === 'facebook')
+
+  const tickFormatter = (v: number) => {
+    const labels: Record<number, string> = { 1: '< 1/wk', 2: '1–2/wk', 3: '3–4/wk', 4: '5+/wk' }
+    return labels[v] ?? ''
+  }
+
+  return (
+    <ChartCard
+      title="Posting Frequency vs Engagement"
+      isMock={isMock}
+    >
+      <div className="px-4 pt-4 pb-2">
+        <ResponsiveContainer width="100%" height={200}>
+          <ScatterChart>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <XAxis
+              dataKey="x" type="number" domain={[0.5, 4.5]}
+              ticks={[1, 2, 3, 4]}
+              tickFormatter={tickFormatter}
+              tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false}
+            />
+            <YAxis
+              dataKey="y" type="number"
+              domain={[0, 5]}
+              tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={32}
+              tickFormatter={(v: number) => `${v}%`}
+            />
+            <ZAxis range={[40, 40]} />
+            <Tooltip
+              cursor={{ strokeDasharray: '3 3' }}
+              contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }}
+              content={({ payload }) => {
+                if (!payload?.length) return null
+                const d = payload[0]?.payload
+                return (
+                  <div className="bg-white border border-gray-100 rounded-xl p-2.5 shadow text-[11px]">
+                    <p className="font-medium text-text">{d.freqLabel}</p>
+                    <p className="text-text-sec">{PLATFORM_META[d.platform]?.label}: {d.y}%</p>
+                  </div>
+                )
+              }}
+            />
+            <Scatter data={igData} fill={igColor} name="Instagram" />
+            <Scatter data={fbData} fill={fbColor} name="Facebook" />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="px-4 pb-4 space-y-1.5">
+        <p className="text-[10px] font-semibold text-text-soft uppercase tracking-wide">Optimal cadence per platform</p>
+        {optimal.map(o => (
+          <div key={o.platform} className="flex items-center gap-1.5 text-[11px] text-text-sec">
+            <PlatformAvatar id={o.platform} size={14} />
+            <span className="font-medium">{o.label}</span>
+            <span className="text-text-soft">{o.cadence} · {o.engRate}%</span>
+          </div>
+        ))}
+      </div>
+    </ChartCard>
+  )
+}
+
+// ── Engagement Accumulation ────────────────────────────────────────────────────
+
+function EngagementAccumulationChart({ isMock }: { isMock: boolean }) {
+  const data = MOCK_POSTING_ANALYTICS.engagementAccumulation
+
+  return (
+    <ChartCard
+      title="Engagement Accumulation"
+      subtitle="How engagement accumulates after publishing"
+      isMock={isMock}
+    >
+      <div className="px-4 pt-4 pb-2">
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={data}>
+            <defs>
+              <linearGradient id="engAccumGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#3B82F6" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <XAxis dataKey="time" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} />
+            <YAxis
+              domain={[0, 100]}
+              tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={32}
+              tickFormatter={(v: number) => `${v}%`}
+            />
+            <Tooltip
+              contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }}
+              formatter={(v: unknown) => [`${v}%`, 'Cumulative']}
+            />
+            <ReferenceLine y={50} stroke="#10B981" strokeDasharray="4 2" strokeWidth={1.5} label={{ value: '50%', position: 'right', fontSize: 10, fill: '#10B981' }} />
+            <ReferenceLine y={80} stroke="#F59E0B" strokeDasharray="4 2" strokeWidth={1.5} label={{ value: '80%', position: 'right', fontSize: 10, fill: '#F59E0B' }} />
+            <Area type="monotone" dataKey="pct" stroke="#3B82F6" strokeWidth={2} fill="url(#engAccumGrad)" dot={false} name="% of engagement" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="px-4 pb-4 flex items-center gap-1.5 text-[11px] text-text-sec">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] inline-block" />
+        Half of engagement by <strong className="text-text mx-0.5">{MOCK_POSTING_ANALYTICS.halfEngagementTime}</strong>
+        {' · '}
+        80% within <strong className="text-text mx-0.5">{MOCK_POSTING_ANALYTICS.eightyPctTime}</strong>
+      </div>
+    </ChartCard>
+  )
+}
+
+// ── Inbox Analytics Tab ────────────────────────────────────────────────────────
+
+function InboxAnalyticsContent({ isMock }: { isMock: boolean }) {
+  const inbox = MOCK_ANALYTICS_INBOX
+
+  return (
+    <div className="space-y-4">
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Total Comments', value: `${inbox.totalComments}` },
+          { label: 'Total DMs',      value: `${inbox.totalDMs}` },
+          { label: 'Response Rate',  value: `${inbox.responseRate}%` },
+        ].map(({ label, value }) => (
+          <div key={label} className="relative bg-white rounded-2xl border border-gray-100 p-5">
+            {isMock && <DemoDot />}
+            <p className="text-[11px] font-medium text-text-soft uppercase tracking-wide mb-2">{label}</p>
+            <p className="text-[26px] font-[500] text-text">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Platform breakdown */}
+      <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+          <span className="text-[13px] font-semibold text-text">Platform breakdown</span>
+          {isMock && <DemoChip />}
+        </div>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-50">
+              {['Platform', 'Comments', 'DMs', 'Unread'].map(h => (
+                <th key={h} className="px-5 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {inbox.platforms.map((p, i) => (
+              <tr key={i} className="border-b border-gray-50 last:border-0">
+                <td className="px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <PlatformAvatar id={p.platform} size={20} />
+                    <span className="text-[12px] font-medium text-text">{PLATFORM_META[p.platform]?.label ?? p.platform}</span>
+                  </div>
+                </td>
+                <td className="px-5 py-3 text-[12px] text-text">{p.comments}</td>
+                <td className="px-5 py-3 text-[12px] text-text">{p.dms}</td>
+                <td className="px-5 py-3">
+                  {p.unread > 0
+                    ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: '#FEF3C7', color: '#92400E' }}>{p.unread} unread</span>
+                    : <span className="text-[11px] text-text-soft">—</span>
+                  }
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Engagement trend */}
+      <div className="rounded-2xl border border-gray-100 bg-white">
+        <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+          <span className="text-[13px] font-semibold text-text">Engagement trend</span>
+          {isMock && <DemoChip />}
+        </div>
+        <div className="px-4 pt-4 pb-3">
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={inbox.trend} barSize={14}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={26} />
+              <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
+              <Bar dataKey="comments" fill="#3B82F6" radius={[3, 3, 0, 0]} name="Comments" />
+              <Bar dataKey="dms"      fill="#94A3B8" radius={[3, 3, 0, 0]} name="DMs" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-gray-100 bg-white p-5">
+        <p className="text-[12px] text-text-sec">
+          Manage and reply to comments and DMs directly in Maya — coming soon.
+        </p>
+      </div>
+
+      {isMock && <UpgradeCard />}
+    </div>
+  )
+}
+
+// ── Posting Analytics Tab ──────────────────────────────────────────────────────
+
+function PostingAnalyticsContent({ isMock }: { isMock: boolean }) {
+  return (
+    <div className="space-y-4">
+      <StatCards isMock={isMock} />
+
+      {/* 2-col grid for paired charts */}
+      <div className="grid grid-cols-2 gap-4">
+        <PostsPerPlatformChart isMock={isMock} />
+        <PostsOverTimeChart    isMock={isMock} />
+        <LikesPerPlatformChart isMock={isMock} />
+        <LikesOverTimeChart    isMock={isMock} />
+        <EngagementOverTimeChart isMock={isMock} />
+        <BestTimeToPostHeatmap   isMock={isMock} />
+        <FollowerEvolutionChart  isMock={isMock} />
+        <PlatformBreakdownTable  isMock={isMock} />
+        <TopPerformingPostsTable isMock={isMock} />
+        <PostingFrequencyChart        isMock={isMock} />
+        <EngagementAccumulationChart  isMock={isMock} />
+      </div>
+
+      {isMock && <UpgradeCard />}
+    </div>
+  )
+}
+
+// ── Connect Panel ─────────────────────────────────────────────────────────────
 
 function ConnectPanel({
   open, onClose, dataState,
@@ -350,76 +1198,41 @@ function ConnectPanel({
         {dataState === 'mock' ? (
           <div className="flex-1 flex flex-col items-center justify-center px-8 text-center gap-4">
             <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
-              <i className="ti ti-lock text-amber-500" style={{ fontSize: 20 }} />
+              <span className="text-amber-500 text-xl">🔒</span>
             </div>
             <div>
               <p className="text-[14px] font-semibold text-text mb-2">Activate your plan first</p>
               <p className="text-sm text-text-sec leading-relaxed">
-                Connecting social and ad accounts requires an active paid plan.
-                Trial users see demo data only.
+                Connecting social accounts requires an active paid plan. Trial users see demo data only.
               </p>
             </div>
             <a href="/dashboard/billing"
-              className="bg-brand-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors w-full">
+              className="bg-[#3B82F6] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors w-full text-center">
               Activate your plan →
             </a>
-            <a href="/pricing" className="text-sm text-brand-primary hover:underline">View plan options</a>
+            <a href="/pricing" className="text-sm text-[#3B82F6] hover:underline">View plan options</a>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft mb-3">Social accounts</p>
-              <div className="space-y-2">
-                {SOCIAL_PLATFORMS.map(id => {
-                  const meta = PLATFORM_META[id]
-                  return (
-                    <div key={id} className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                      <div className="flex items-center gap-2.5">
-                        <PlatformAvatar id={id} size={28} />
-                        <span className="text-[13px] font-medium text-text">{meta?.label ?? id}</span>
-                      </div>
-                      <button
-                        disabled
-                        className="text-[12px] font-semibold text-brand-primary border border-[#BFDBFE] bg-blue-50 px-3 py-1.5 rounded-lg opacity-60 cursor-not-allowed"
-                        title="Coming in Phase 2"
-                      >
-                        Connect
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft mb-3">Ad accounts</p>
-              <div className="space-y-2">
-                {AD_PLATFORMS.map(id => {
-                  const meta = PLATFORM_META[id]
-                  const isX = id === 'x_ads'
-                  return (
-                    <div key={id} className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                      <div className="flex items-center gap-2.5">
-                        <PlatformAvatar id={id} size={28} />
-                        <div>
-                          <span className="text-[13px] font-medium text-text">{meta?.label ?? id}</span>
-                          {isX && <p className="text-[10px] text-amber-600">Per-call costs apply</p>}
-                        </div>
-                      </div>
-                      <button
-                        disabled
-                        className="text-[12px] font-semibold text-brand-primary border border-[#BFDBFE] bg-blue-50 px-3 py-1.5 rounded-lg opacity-60 cursor-not-allowed"
-                        title="Coming in Phase 2"
-                      >
-                        Connect
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-            <p className="text-[11px] text-text-soft text-center pt-2">
-              Account connections coming in the next update.
-            </p>
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft">Social accounts</p>
+            {ALL_PLATFORMS.map(id => {
+              const meta = PLATFORM_META[id]
+              return (
+                <div key={id} className="flex items-center justify-between py-2 border-b border-gray-50">
+                  <div className="flex items-center gap-2.5">
+                    <PlatformAvatar id={id} size={28} />
+                    <span className="text-[13px] font-medium text-text">{meta?.label ?? id}</span>
+                  </div>
+                  <button disabled
+                    className="text-[12px] font-semibold text-[#3B82F6] border border-[#BFDBFE] bg-blue-50 px-3 py-1.5 rounded-lg opacity-60 cursor-not-allowed"
+                    title="Coming in Phase 2"
+                  >
+                    Connect
+                  </button>
+                </div>
+              )
+            })}
+            <p className="text-[11px] text-text-soft text-center pt-2">Account connections coming in the next update.</p>
           </div>
         )}
       </div>
@@ -464,7 +1277,9 @@ function GAConnectModal({
           <X size={14} className="text-gray-500" />
         </button>
         <div className="flex items-center gap-3 mb-5">
-          <BrandIcon src="/google_analytics_icon.png" alt="GA" />
+          <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-gray-100 flex-shrink-0">
+            <Globe size={16} className="text-gray-500" />
+          </div>
           <div>
             <p className="text-[11px] font-semibold tracking-widest uppercase text-text-soft">Connect</p>
             <h2 className="text-lg font-bold text-text leading-tight">Google Analytics</h2>
@@ -489,7 +1304,7 @@ function GAConnectModal({
             </div>
             <button onClick={() => setShowAgencyForm(true)}
               className="w-full py-2.5 text-sm font-medium text-text-sec hover:text-text transition-colors">
-              Set up with Agent7even's help →
+              Set up with Agent7even&apos;s help →
             </button>
           </>
         ) : (
@@ -498,14 +1313,14 @@ function GAConnectModal({
             <label className="block text-xs font-semibold text-text mb-1.5">GA4 Property ID</label>
             <input type="text" value={value} onChange={e => { setValue(e.target.value); setError('') }}
               placeholder="123456789"
-              className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-text placeholder-gray-300 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-colors" />
+              className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-text placeholder-gray-300 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] transition-colors" />
             <p className="text-xs text-gray-400 mt-2">Find in Google Analytics → Admin → Property Settings → Property ID.</p>
             {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
             <div className="flex gap-2 mt-5">
               <button onClick={() => setShowAgencyForm(false)}
                 className="flex-1 py-2.5 text-sm font-medium text-text-sec border border-gray-200 rounded-xl hover:border-gray-300 transition-colors">Back</button>
               <button onClick={submitAgency} disabled={loading}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-brand-primary rounded-xl hover:bg-[#2563EB] disabled:opacity-50 transition-colors">
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-[#3B82F6] rounded-xl hover:bg-[#2563EB] disabled:opacity-50 transition-colors">
                 {loading ? 'Saving…' : 'Request connection'}
               </button>
             </div>
@@ -569,13 +1384,13 @@ function PropertySelectorModal({
         {oauthEmail && <p className="text-xs text-gray-400 mb-5">Signed in as <span className="font-medium text-text-sec">{oauthEmail}</span></p>}
         {loading ? (
           <div className="flex items-center justify-center h-24">
-            <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#3B82F6] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : properties.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-sm text-text font-medium mb-2">No GA4 properties found</p>
             <a href="/api/analytics/ga-connect"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-brand-primary px-4 py-2.5 rounded-lg hover:bg-[#2563EB] transition-colors">
+              className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-[#3B82F6] px-4 py-2.5 rounded-lg hover:bg-[#2563EB] transition-colors">
               Try a different Google account
             </a>
           </div>
@@ -583,12 +1398,12 @@ function PropertySelectorModal({
           <div className="space-y-2">
             {properties.map(p => (
               <button key={p.id} onClick={() => setSelected(p.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-left ${selected === p.id ? 'border-brand-primary bg-blue-50' : 'border-gray-100 hover:border-gray-200'}`}>
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-left ${selected === p.id ? 'border-[#3B82F6] bg-blue-50' : 'border-gray-100 hover:border-gray-200'}`}>
                 <div>
                   <p className="text-sm font-semibold text-text">{p.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{p.account ? `${p.account} · ` : ''}ID: {p.id}</p>
                 </div>
-                {selected === p.id && <CheckCircle size={16} className="text-brand-primary flex-shrink-0" />}
+                {selected === p.id && <CheckCircle size={16} className="text-[#3B82F6] flex-shrink-0" />}
               </button>
             ))}
           </div>
@@ -596,7 +1411,7 @@ function PropertySelectorModal({
         {error && <p className="text-xs text-red-500 mt-3">{error}</p>}
         {properties.length > 0 && (
           <button onClick={save} disabled={saving || !selected}
-            className="w-full mt-5 py-3 text-sm font-semibold text-white bg-brand-primary rounded-xl hover:bg-[#2563EB] disabled:opacity-50 transition-colors">
+            className="w-full mt-5 py-3 text-sm font-semibold text-white bg-[#3B82F6] rounded-xl hover:bg-[#2563EB] disabled:opacity-50 transition-colors">
             {saving ? 'Connecting…' : 'Connect property'}
           </button>
         )}
@@ -605,623 +1420,7 @@ function PropertySelectorModal({
   )
 }
 
-// ── Overview tab ──────────────────────────────────────────────────────────────
-
-function OverviewTab({
-  dataState, gaId, gaData, gaLoading, onConnectGA, openConnectPanel,
-}: {
-  dataState: AnalyticsDataState
-  gaId: string | null
-  gaData: GaData | null
-  gaLoading: boolean
-  onConnectGA: () => void
-  openConnectPanel: () => void
-}) {
-  const isMock = dataState === 'mock'
-  const social  = MOCK_ANALYTICS_SOCIAL.overview
-  const ads     = MOCK_ANALYTICS_ADS.overview
-
-  // Derive metric values
-  const sessions  = isMock ? MOCK_GA_DATA.summary.sessions
-    : gaData ? gaData.summary.sessions : null
-  const reach      = isMock ? social.totalReach : null
-  const followers  = isMock ? social.totalFollowers : null
-  const adSpend    = isMock ? ads.totalSpend : null
-
-  const hasSource = isMock || !!gaId
-
-  return (
-    <div className="space-y-4">
-      <MayaBriefingCard hasSource={hasSource} />
-
-      {/* Metrics bar */}
-      <div className="space-y-3">
-        <div className={`relative grid grid-cols-2 lg:grid-cols-4 gap-3 ${isMock ? 'pointer-events-none' : ''}`}>
-          <MetricCard label="GA Sessions"
-            value={sessions !== null ? fmt(sessions) : '—'}
-            logoSrc="/google_analytics_icon.png"
-            notConnected={sessions === null && !isMock}
-            linkLabel={!gaId && !isMock ? 'Connect GA →' : undefined}
-            onLink={onConnectGA}
-            isMock={isMock}
-          />
-          <MetricCard label="Total Reach"
-            value={reach !== null ? fmt(reach) : '—'}
-            icon={Eye}
-            notConnected={!isMock}
-            linkLabel={!isMock ? 'Connect accounts →' : undefined}
-            onLink={openConnectPanel}
-            isMock={isMock}
-          />
-          <MetricCard label="Total Followers"
-            value={followers !== null ? fmt(followers) : '—'}
-            icon={Users}
-            notConnected={!isMock}
-            linkLabel={!isMock ? 'Connect accounts →' : undefined}
-            onLink={openConnectPanel}
-            isMock={isMock}
-            delta={isMock ? MOCK_ANALYTICS_SOCIAL.overview.followerGrowthPct : undefined}
-          />
-          <MetricCard label="Ad Spend"
-            value={adSpend !== null ? `$${adSpend.toFixed(2)}` : '—'}
-            icon={DollarSign}
-            notConnected={!isMock}
-            linkLabel={!isMock ? 'Connect ad accounts →' : undefined}
-            onLink={openConnectPanel}
-            isMock={isMock}
-          />
-          {isMock && (
-            <div className="absolute inset-0 rounded-xl pointer-events-none"
-              style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-          )}
-        </div>
-
-        {/* Cross-channel insight */}
-        {(isMock || (gaId && dataState === 'live')) && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100">
-            <Sparkles size={13} className="text-[#3B82F6] flex-shrink-0" />
-            <p className="text-xs text-[#3B82F6]">
-              {isMock
-                ? 'Instagram drove 28% of your website sessions · Meta is your top ad platform this week · Tuesday is your highest-reach posting day'
-                : 'Generate a briefing to see cross-channel insights across your connected sources.'
-              }
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* GA chart (live/empty state) */}
-      {!isMock && (
-        <div className="rounded-2xl border border-gray-100 bg-white">
-          <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
-            <BrandIcon src="/google_analytics_icon.png" alt="GA" />
-            <div className="flex items-center gap-2 flex-1">
-              <p className="text-[13px] font-semibold text-text">Google Analytics</p>
-              {gaId && <span className="text-[11px] text-text-soft">GA4 · Property {gaId}</span>}
-            </div>
-            {gaId && (
-              <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
-                <Wifi size={10} /> Connected
-              </span>
-            )}
-          </div>
-          {!gaId ? (
-            <div className="px-8 py-10 flex flex-col items-center gap-4 text-center">
-              <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
-                <Globe size={20} className="text-gray-300" />
-              </div>
-              <div className="max-w-sm">
-                <p className="text-[14px] font-semibold text-text mb-2">See what's driving traffic to your website</p>
-                <p className="text-sm text-text-sec leading-relaxed">
-                  Connect Google Analytics to track sessions, top pages, and where visitors come from.
-                </p>
-              </div>
-              <button onClick={onConnectGA}
-                className="flex items-center gap-2 bg-brand-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors">
-                Connect Google Analytics <ExternalLink size={13} />
-              </button>
-            </div>
-          ) : gaLoading ? (
-            <div className="h-48 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : gaData ? (
-            <div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-gray-100 border-b border-gray-100">
-                {[
-                  { label: 'Sessions',    value: fmt(gaData.summary.sessions) },
-                  { label: 'Users',       value: fmt(gaData.summary.users) },
-                  { label: 'Pageviews',   value: fmt(gaData.summary.pageviews) },
-                  { label: 'Bounce rate', value: `${gaData.summary.bounceRate}%` },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-white px-5 py-3">
-                    <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">{label}</p>
-                    <p className="text-[17px] font-semibold text-text mt-0.5">{value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="px-5 pt-5 pb-4">
-                <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={gaData.chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={32} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #f0f0f0' }} />
-                    <Line type="monotone" dataKey="sessions" stroke="#3B82F6" strokeWidth={2} dot={false} name="Sessions" />
-                    <Line type="monotone" dataKey="users"    stroke="#94A3B8" strokeWidth={2} dot={false} name="Users" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          ) : (
-            <div className="px-6 py-8 text-center">
-              <p className="text-sm text-text-sec">Could not load GA data. <button onClick={() => {}} className="text-brand-primary underline">Retry</button></p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Mock state: show social chart with overlay */}
-      {isMock && (
-        <div className="rounded-2xl border border-gray-100 bg-white">
-          <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <p className="text-[13px] font-semibold text-text">Follower growth</p>
-              <DemoBadge />
-            </div>
-          </div>
-          <div className="relative px-5 pt-5 pb-4">
-            <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={MOCK_ANALYTICS_SOCIAL.followerHistory.filter((_, i) => i % 3 === 0)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false} interval={2} />
-                <YAxis domain={['auto', 'auto']} tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={36} />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
-                <Line type="monotone" dataKey="followers" stroke="#3B82F6" strokeWidth={2} dot={false} name="Followers" />
-              </LineChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 pointer-events-none rounded-b-2xl"
-              style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-          </div>
-        </div>
-      )}
-
-      {/* Actionable signals (empty state / mock placeholder) */}
-      <div className="rounded-2xl border border-gray-100 bg-white p-6">
-        <p className="text-[13px] font-semibold text-text mb-3">Maya's suggestions</p>
-        {isMock ? (
-          <div className="space-y-2.5 relative">
-            {[
-              'Meta ad CTR down 6% this week — creative may need refreshing',
-              'Tuesday posts get 2× reach — your next post is scheduled for Monday',
-              'Instagram followers grew 4.6% — capitalize with a campaign this week',
-            ].map((text, i) => (
-              <div key={i} className="flex items-start gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand-primary flex-shrink-0 mt-1.5" />
-                <p className="text-[12px] text-text-sec leading-relaxed">{text}</p>
-              </div>
-            ))}
-            <div className="absolute inset-0 pointer-events-none rounded-xl"
-              style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-          </div>
-        ) : (
-          <p className="text-sm text-text-sec">
-            Generate a briefing after connecting your accounts to see data-driven suggestions here.
-          </p>
-        )}
-      </div>
-
-      {isMock && <UpgradeCard />}
-    </div>
-  )
-}
-
-// ── Social tab ────────────────────────────────────────────────────────────────
-
-function SocialTab({ dataState, openConnectPanel }: { dataState: AnalyticsDataState; openConnectPanel: () => void }) {
-  const isMock = dataState === 'mock'
-  const [activePlatform, setActivePlatform] = useState<string>('all')
-  const platforms = isMock ? Object.keys(MOCK_ANALYTICS_SOCIAL.platforms) : []
-  const overview  = MOCK_ANALYTICS_SOCIAL.overview
-
-  if (!isMock && dataState !== 'live') {
-    return (
-      <div className="rounded-2xl border border-gray-100 bg-white px-8 py-12 flex flex-col items-center gap-4 text-center">
-        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
-          <TrendingUp size={20} className="text-gray-300" />
-        </div>
-        <div className="max-w-sm">
-          <p className="text-[15px] font-semibold text-text mb-2">Connect your social accounts</p>
-          <p className="text-sm text-text-sec leading-relaxed">
-            See organic performance across Instagram, Facebook, TikTok, LinkedIn, and more — all in one view.
-          </p>
-        </div>
-        <button onClick={openConnectPanel}
-          className="flex items-center gap-2 bg-brand-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors">
-          <Plus size={14} /> Connect accounts
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Platform selector */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {['all', ...platforms].map(p => (
-          <button key={p} onClick={() => setActivePlatform(p)}
-            className={`flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-              activePlatform === p
-                ? 'bg-brand-primary text-white border-brand-primary'
-                : 'bg-white text-text-sec border-gray-200 hover:border-gray-300'
-            }`}>
-            {p !== 'all' && <PlatformAvatar id={p} size={16} />}
-            {p === 'all' ? 'All platforms' : PLATFORM_META[p]?.label ?? p}
-          </button>
-        ))}
-      </div>
-
-      {/* Stats row */}
-      <div className={`relative grid grid-cols-2 lg:grid-cols-5 gap-3 ${isMock ? 'pointer-events-none' : ''}`}>
-        {[
-          { label: 'Followers',      value: fmt(overview.totalFollowers),                  delta: overview.followerGrowthPct },
-          { label: 'Total Reach',    value: fmt(overview.totalReach) },
-          { label: 'Engagement Rate',value: `${overview.engagementRate}%` },
-          { label: 'Posts This Period',value: `${overview.postsThisPeriod}` },
-          { label: 'Best Day',       value: MOCK_ANALYTICS_SOCIAL.bestTimeToPost.day },
-        ].map(({ label, value, delta }) => (
-          <div key={label} className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-white p-4">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-text-soft">{label}</span>
-              {isMock && <DemoPill />}
-            </div>
-            <div className="flex items-end gap-2">
-              <p className="text-[20px] font-semibold text-text">{value}</p>
-              {delta !== undefined && (
-                <span className="text-xs text-emerald-600 font-medium flex items-center gap-0.5 mb-0.5">
-                  <ArrowUpRight size={12} />{delta}%
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-        {isMock && (
-          <div className="absolute inset-0 rounded-xl pointer-events-none"
-            style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-        )}
-      </div>
-
-      {/* Charts */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 ${isMock ? '' : ''}`}>
-        {[
-          { title: 'Posts over time', dataKey: 'posts', color: '#3B82F6' },
-          { title: 'Likes over time', dataKey: 'likes', color: '#10B981' },
-        ].map(({ title, dataKey, color }) => (
-          <div key={title} className="rounded-2xl border border-gray-100 bg-white">
-            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-              <p className="text-[13px] font-semibold text-text">{title}</p>
-              {isMock && <DemoBadge />}
-            </div>
-            <div className="relative px-4 pt-4 pb-3">
-              <ResponsiveContainer width="100%" height={140}>
-                <BarChart data={MOCK_ANALYTICS_SOCIAL.dailyMetrics.filter((_, i) => i % 3 === 0)} barSize={10}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false} interval={2} />
-                  <YAxis tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={28} />
-                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
-                  <Bar dataKey={dataKey} fill={color} radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-              {isMock && (
-                <div className="absolute inset-0 pointer-events-none rounded-b-2xl"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Top posts */}
-      <div className="rounded-2xl border border-gray-100 bg-white">
-        <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-          <p className="text-[13px] font-semibold text-text">Top performing posts</p>
-          {isMock && <DemoBadge />}
-        </div>
-        <div className={`relative divide-y divide-gray-50`}>
-          {MOCK_ANALYTICS_SOCIAL.topPosts.map((post, i) => (
-            <div key={i} className="flex items-center gap-3 px-6 py-3.5">
-              <PlatformAvatar id={post.platform} size={24} />
-              <p className="text-[12px] text-text flex-1 truncate">{post.content}</p>
-              <div className="flex items-center gap-4 text-[11px] text-text-soft flex-shrink-0">
-                <span title="Reach">{fmt(post.reach)} reach</span>
-                <span title="Engagement rate" className="text-emerald-600 font-medium">{post.engagementRate}%</span>
-              </div>
-            </div>
-          ))}
-          {isMock && (
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-          )}
-        </div>
-      </div>
-
-      {/* Best time to post */}
-      <div className="rounded-2xl border border-gray-100 bg-white p-5 flex items-center justify-between">
-        <div>
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-text-soft mb-1">Best time to post</p>
-          <p className="text-[15px] font-semibold text-text">
-            {MOCK_ANALYTICS_SOCIAL.bestTimeToPost.day} at {MOCK_ANALYTICS_SOCIAL.bestTimeToPost.hour}
-          </p>
-          <p className="text-[11px] text-text-sec mt-0.5">Avg {fmt(MOCK_ANALYTICS_SOCIAL.bestTimeToPost.avgEngagement)} engagements per post</p>
-        </div>
-        {isMock && <DemoPill />}
-      </div>
-
-      {isMock && <UpgradeCard />}
-    </div>
-  )
-}
-
-// ── Ads tab ───────────────────────────────────────────────────────────────────
-
-function AdsTab({ dataState, openConnectPanel }: { dataState: AnalyticsDataState; openConnectPanel: () => void }) {
-  const isMock = dataState === 'mock'
-  const [activePlatform, setActivePlatform] = useState<string>('all')
-  const adPlatforms  = isMock ? Object.keys(MOCK_ANALYTICS_ADS.platforms) : []
-  const adsOverview  = MOCK_ANALYTICS_ADS.overview
-
-  if (!isMock && dataState !== 'live') {
-    return (
-      <div className="rounded-2xl border border-gray-100 bg-white px-8 py-12 flex flex-col items-center gap-4 text-center">
-        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
-          <DollarSign size={20} className="text-gray-300" />
-        </div>
-        <div className="max-w-sm">
-          <p className="text-[15px] font-semibold text-text mb-2">Connect your ad accounts</p>
-          <p className="text-sm text-text-sec leading-relaxed">
-            Track spend, reach, and CTR across Meta Ads, Google Ads, TikTok Ads, and more — and let Maya flag when creative needs refreshing.
-          </p>
-        </div>
-        <button onClick={openConnectPanel}
-          className="flex items-center gap-2 bg-brand-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors">
-          <Plus size={14} /> Connect ad accounts
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Platform pills */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {['all', ...adPlatforms].map(p => (
-          <button key={p} onClick={() => setActivePlatform(p)}
-            className={`flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-              activePlatform === p
-                ? 'bg-brand-primary text-white border-brand-primary'
-                : 'bg-white text-text-sec border-gray-200 hover:border-gray-300'
-            }`}>
-            {p !== 'all' && <PlatformAvatar id={p} size={16} />}
-            {p === 'all' ? 'All platforms' : PLATFORM_META[p]?.label ?? p}
-          </button>
-        ))}
-      </div>
-
-      {/* Stats row */}
-      <div className={`relative grid grid-cols-2 lg:grid-cols-4 gap-3 ${isMock ? 'pointer-events-none' : ''}`}>
-        {[
-          { label: 'Total Spend',  value: `$${adsOverview.totalSpend.toFixed(2)}` },
-          { label: 'Total Reach',  value: fmt(adsOverview.totalReach) },
-          { label: 'Total Clicks', value: fmt(adsOverview.totalClicks) },
-          { label: 'Avg CTR',      value: `${adsOverview.avgCTR}%` },
-        ].map(({ label, value }) => (
-          <div key={label} className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-white p-4">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-text-soft">{label}</span>
-              {isMock && <DemoPill />}
-            </div>
-            <p className="text-[20px] font-semibold text-text">{value}</p>
-          </div>
-        ))}
-        {isMock && (
-          <div className="absolute inset-0 rounded-xl pointer-events-none"
-            style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-        )}
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {([
-          { title: 'Spend over time', data: MOCK_ANALYTICS_ADS.spendOverTime as Record<string, unknown>[], dataKey: 'spend', color: '#3B82F6' },
-          { title: 'CTR trend', data: MOCK_ANALYTICS_ADS.ctrTrend as Record<string, unknown>[], dataKey: 'ctr', color: '#10B981' },
-        ] as const).map(({ title, data, dataKey, color }) => (
-          <div key={title} className="rounded-2xl border border-gray-100 bg-white">
-            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-              <p className="text-[13px] font-semibold text-text">{title}</p>
-              {isMock && <DemoBadge />}
-            </div>
-            <div className="relative px-4 pt-4 pb-3">
-              <ResponsiveContainer width="100%" height={140}>
-                <LineChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={32} />
-                  <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
-                  <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-              {isMock && (
-                <div className="absolute inset-0 pointer-events-none rounded-b-2xl"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Campaigns table */}
-      <div className="rounded-2xl border border-gray-100 bg-white">
-        <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-          <p className="text-[13px] font-semibold text-text">Active campaigns</p>
-          {isMock && <DemoBadge />}
-        </div>
-        <div className="relative">
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_80px] gap-px bg-gray-100 border-b border-gray-100">
-            {['Campaign', 'Spend', 'Reach', 'Clicks', 'CTR', 'Status'].map(h => (
-              <div key={h} className="bg-white px-4 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{h}</p>
-              </div>
-            ))}
-          </div>
-          {MOCK_ANALYTICS_ADS.campaigns.map((c, i) => (
-            <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_80px] border-b border-gray-50 last:border-0">
-              <div className="px-4 py-3 flex items-center gap-2">
-                <PlatformAvatar id={c.platform} size={18} />
-                <p className="text-[12px] text-text truncate">{c.name}</p>
-              </div>
-              <div className="px-4 py-3"><p className="text-[12px] text-text">${c.spend.toFixed(2)}</p></div>
-              <div className="px-4 py-3"><p className="text-[12px] text-text">{fmt(c.reach)}</p></div>
-              <div className="px-4 py-3"><p className="text-[12px] text-text">{fmt(c.clicks)}</p></div>
-              <div className="px-4 py-3"><p className="text-[12px] text-text">{c.ctr}%</p></div>
-              <div className="px-4 py-3">
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 capitalize">{c.status}</span>
-              </div>
-            </div>
-          ))}
-          {isMock && (
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-          )}
-        </div>
-      </div>
-
-      {isMock && <UpgradeCard />}
-    </div>
-  )
-}
-
-// ── Inbox tab ─────────────────────────────────────────────────────────────────
-
-function InboxTab({ dataState, openConnectPanel }: { dataState: AnalyticsDataState; openConnectPanel: () => void }) {
-  const isMock = dataState === 'mock'
-  const inbox  = MOCK_ANALYTICS_INBOX
-
-  if (!isMock && dataState !== 'live') {
-    return (
-      <div className="rounded-2xl border border-gray-100 bg-white px-8 py-12 flex flex-col items-center gap-4 text-center">
-        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
-          <MessageCircle size={20} className="text-gray-300" />
-        </div>
-        <div className="max-w-sm">
-          <p className="text-[15px] font-semibold text-text mb-2">Connect social accounts to track comments and messages</p>
-          <p className="text-sm text-text-sec leading-relaxed">
-            See total comments, DMs, and response rate across all your connected platforms.
-          </p>
-        </div>
-        <button onClick={openConnectPanel}
-          className="flex items-center gap-2 bg-brand-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors">
-          <Plus size={14} /> Connect accounts
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Summary cards */}
-      <div className={`relative grid grid-cols-3 gap-3 ${isMock ? 'pointer-events-none' : ''}`}>
-        {[
-          { label: 'Total Comments', value: `${inbox.totalComments}` },
-          { label: 'Total DMs',      value: `${inbox.totalDMs}` },
-          { label: 'Response Rate',  value: `${inbox.responseRate}%` },
-        ].map(({ label, value }) => (
-          <div key={label} className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-white p-5">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-text-soft">{label}</span>
-              {isMock && <DemoPill />}
-            </div>
-            <p className="text-[22px] font-semibold text-text">{value}</p>
-          </div>
-        ))}
-        {isMock && (
-          <div className="absolute inset-0 rounded-xl pointer-events-none"
-            style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-        )}
-      </div>
-
-      {/* Platform breakdown */}
-      <div className="rounded-2xl border border-gray-100 bg-white">
-        <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-          <p className="text-[13px] font-semibold text-text">Platform breakdown</p>
-          {isMock && <DemoBadge />}
-        </div>
-        <div className="relative">
-          <div className="grid grid-cols-4 gap-px bg-gray-100 border-b border-gray-100">
-            {['Platform', 'Comments', 'DMs', 'Unread'].map(h => (
-              <div key={h} className="bg-white px-5 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{h}</p>
-              </div>
-            ))}
-          </div>
-          {inbox.platforms.map((p, i) => (
-            <div key={i} className="grid grid-cols-4 border-b border-gray-50 last:border-0">
-              <div className="px-5 py-3 flex items-center gap-2">
-                <PlatformAvatar id={p.platform} size={20} />
-                <span className="text-[12px] font-medium text-text">{PLATFORM_META[p.platform]?.label ?? p.platform}</span>
-              </div>
-              <div className="px-5 py-3"><p className="text-[12px] text-text">{p.comments}</p></div>
-              <div className="px-5 py-3"><p className="text-[12px] text-text">{p.dms}</p></div>
-              <div className="px-5 py-3">
-                {p.unread > 0
-                  ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">{p.unread} unread</span>
-                  : <span className="text-[11px] text-text-soft">—</span>
-                }
-              </div>
-            </div>
-          ))}
-          {isMock && (
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-          )}
-        </div>
-      </div>
-
-      {/* Engagement trend */}
-      <div className="rounded-2xl border border-gray-100 bg-white">
-        <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-          <p className="text-[13px] font-semibold text-text">Engagement trend</p>
-          {isMock && <DemoBadge />}
-        </div>
-        <div className="relative px-4 pt-4 pb-3">
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={inbox.trend} barSize={12}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-              <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 9, fill: '#9ca3af' }} tickLine={false} axisLine={false} width={28} />
-              <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
-              <Bar dataKey="comments" fill="#3B82F6"  radius={[3, 3, 0, 0]} name="Comments" />
-              <Bar dataKey="dms"      fill="#94A3B8" radius={[3, 3, 0, 0]} name="DMs" />
-            </BarChart>
-          </ResponsiveContainer>
-          {isMock && (
-            <div className="absolute inset-0 pointer-events-none rounded-b-2xl"
-              style={{ backgroundColor: 'rgba(255,255,255,0.55)' }} />
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-gray-100 bg-white p-5">
-        <p className="text-[12px] text-text-sec leading-relaxed">
-          Manage and reply to comments and DMs directly in Maya — coming soon.
-        </p>
-      </div>
-
-      {isMock && <UpgradeCard />}
-    </div>
-  )
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export default function AnalyticsClient({
   companyName,
@@ -1234,21 +1433,19 @@ export default function AnalyticsClient({
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const [activeTab, setActiveTab]         = useState<Tab>('overview')
-  const [range, setRange]                 = useState<Range>('7d')
+  const [activeTab, setActiveTab]           = useState<PostingTab>('posting')
+  const [platformFilter, setPlatformFilter] = useState('all')
+  const [sourceFilter, setSourceFilter]     = useState('all')
+  const [dateRange, setDateRange]           = useState<DateRange>('1y')
   const [connectPanelOpen, setConnectPanelOpen] = useState(false)
-  const [showGAModal, setShowGAModal]     = useState(false)
+  const [showGAModal, setShowGAModal]       = useState(false)
   const [showPropertySelector, setShowPropertySelector] = useState(false)
-  const [oauthError, setOauthError]       = useState('')
-  const [gaId, setGaId]                   = useState(gaMeasurementId)
+  const [oauthError, setOauthError]         = useState('')
+  const [gaId, setGaId]                     = useState(gaMeasurementId)
   const [oauthConnected, setOauthConnected] = useState(gaOAuthConnected)
-  const [gaData, setGaData]               = useState<GaData | null>(null)
-  const [gaLoading, setGaLoading]         = useState(false)
+  const [gaData, setGaData]                 = useState<GaData | null>(null)
 
-  // Determine which platforms to show in the status strip
-  const stripPlatforms = dataState === 'mock'
-    ? MOCK_CONNECTED_PLATFORMS
-    : zernioConnectedPlatforms
+  const isMock = dataState === 'mock'
 
   // Maya canvas context
   useEffect(() => {
@@ -1265,36 +1462,32 @@ export default function AnalyticsClient({
       router.replace('/dashboard/analytics')
     } else if (gaError) {
       const msgs: Record<string, string> = {
-        access_denied: 'Google sign-in was cancelled.',
+        access_denied:    'Google sign-in was cancelled.',
         no_refresh_token: 'Could not get access token. Please try again.',
-        save_failed: 'Failed to save connection. Please try again.',
+        save_failed:      'Failed to save connection. Please try again.',
       }
       setOauthError(msgs[gaError] ?? 'Something went wrong.')
       router.replace('/dashboard/analytics')
     }
   }, [searchParams, router])
 
-  // Fetch GA data (only in live/empty state)
+  // Fetch GA data (live/empty state only)
   const fetchGaData = useCallback(async () => {
     if (dataState === 'mock' || !gaId) return
-    setGaLoading(true)
     try {
-      const res  = await fetch(`/api/analytics/ga-data?range=${range}`)
+      const res  = await fetch(`/api/analytics/ga-data?range=${dateRange}`)
       const json = await res.json()
       if (json.connected) setGaData(json)
     } catch { /* fail soft */ }
-    finally { setGaLoading(false) }
-  }, [dataState, gaId, range])
+  }, [dataState, gaId, dateRange])
 
   useEffect(() => { fetchGaData() }, [fetchGaData])
 
   const handleGAConnect = () => oauthConnected ? setShowPropertySelector(true) : setShowGAModal(true)
 
-  const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'overview', label: 'Overview', icon: LayoutGrid },
-    { id: 'social',   label: 'Social',   icon: TrendingUp },
-    { id: 'ads',      label: 'Ads',      icon: DollarSign },
-    { id: 'inbox',    label: 'Inbox',    icon: MessageCircle },
+  const TABS: { id: PostingTab; label: string }[] = [
+    { id: 'posting', label: 'Posting analytics' },
+    { id: 'inbox',   label: 'Inbox analytics'   },
   ]
 
   return (
@@ -1316,121 +1509,72 @@ export default function AnalyticsClient({
         />
       )}
 
-      {/* Connect panel */}
       <ConnectPanel
         open={connectPanelOpen}
         onClose={() => setConnectPanelOpen(false)}
         dataState={dataState}
       />
 
-      {/* ── Header card ──────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 mb-5">
-        <div className="px-8 pt-6 pb-5 border-b border-gray-100">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-soft mb-1.5">Analytics</p>
-              <h1 className="text-[22px] font-[500] text-text leading-tight">Performance overview</h1>
-              <p className="text-sm text-text-sec mt-1">
-                {companyName ? `${companyName} · ` : ''}Website, social, and paid media
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0 pt-1">
-              <div className="flex items-center gap-1 rounded-xl border border-border bg-surface-2 p-1">
-                {(['7d', '30d', '90d'] as Range[]).map(r => (
-                  <button key={r} onClick={() => setRange(r)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${range === r ? 'bg-brand-primary text-white shadow-sm' : 'text-text-sec hover:text-text'}`}>
-                    {r === '7d' ? '7D' : r === '30d' ? '30D' : '90D'}
-                  </button>
-                ))}
-              </div>
-              <button disabled title="Coming in Phase 6"
-                className="flex items-center gap-1.5 text-[12px] font-semibold text-white bg-brand-primary px-4 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">
-                <Sparkles size={12} /> Generate briefing
-              </button>
-            </div>
+      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      <div className="mb-5">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-[22px] font-[500] text-text">Analytics</h1>
+            <p className="text-[13px] text-text-sec mt-0.5">View post performance metrics</p>
           </div>
-
-          {/* Connection status strip */}
-          <div className="flex flex-wrap items-center gap-2 mt-4">
-            {/* GA pill */}
-            <a href="#" onClick={e => { e.preventDefault(); if (!gaId) handleGAConnect() }}
-              className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors no-underline ${gaId ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${gaId ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-              GA4 · {gaId ? 'Connected' : 'Not connected'}
-            </a>
-
-            {/* Zernio / mock platform pills */}
-            {stripPlatforms.map(p => (
-              <span key={p}
-                className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">
-                <PlatformAvatar id={p} size={14} />
-                {PLATFORM_META[p]?.label ?? p}
-                {dataState === 'mock' && <DemoPill />}
-              </span>
-            ))}
-
-            <button
-              onClick={() => setConnectPanelOpen(true)}
-              className="flex items-center gap-1 text-[11px] font-semibold text-brand-primary bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors">
-              <Plus size={11} /> Connect more
-            </button>
-          </div>
+          <button
+            onClick={() => setConnectPanelOpen(true)}
+            className="flex items-center gap-1.5 text-[12px] font-semibold text-[#3B82F6] bg-blue-50 border border-[#BFDBFE] px-3.5 py-2 rounded-xl hover:bg-blue-100 transition-colors"
+          >
+            <Plus size={13} /> Connect accounts
+          </button>
         </div>
 
-        {/* Tab navigation */}
-        <div className="flex border-b border-gray-100 px-8">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-1.5 text-[13px] font-medium px-4 py-3.5 border-b-2 transition-colors -mb-px ${
-                activeTab === id
-                  ? 'border-brand-primary text-brand-primary'
+        {/* Tabs */}
+        <div className="flex items-end gap-0 border-b border-gray-200 mt-4">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`px-4 py-3 text-[13px] font-medium border-b-2 transition-colors -mb-px ${
+                activeTab === t.id
+                  ? 'border-[#3B82F6] text-[#3B82F6] font-semibold'
                   : 'border-transparent text-text-sec hover:text-text'
-              }`}>
-              <Icon size={14} />
-              {label}
+              }`}
+            >
+              {t.label}
             </button>
           ))}
         </div>
-
-        {/* Non-dismissible amber banner (mock state only) */}
-        {dataState === 'mock' && <AmberBanner />}
       </div>
+
+      {/* ── Filter bar + demo banner ──────────────────────────────────────── */}
+      <MayaBriefingCard isMock={isMock} />
+
+      <FilterBar
+        platform={platformFilter}
+        profile="default"
+        source={sourceFilter}
+        dateRange={dateRange}
+        isMock={isMock}
+        onPlatformChange={setPlatformFilter}
+        onSourceChange={setSourceFilter}
+        onDateRangeChange={setDateRange}
+      />
+
+      {isMock && <AmberBanner />}
 
       {/* Error toast */}
       {oauthError && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-status-danger/20 bg-status-danger/10 px-4 py-3 mb-5">
-          <p className="text-xs font-medium text-status-danger">{oauthError}</p>
-          <button onClick={() => setOauthError('')} className="text-status-danger"><X size={14} /></button>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 mb-5">
+          <p className="text-xs font-medium text-red-600">{oauthError}</p>
+          <button onClick={() => setOauthError('')} className="text-red-400"><X size={14} /></button>
         </div>
       )}
 
       {/* ── Tab content ──────────────────────────────────────────────────── */}
-      <div className={`${dataState === 'mock' ? 'flex gap-5' : ''}`}>
-        <div className="flex-1 min-w-0">
-          {activeTab === 'overview' && (
-            <OverviewTab
-              dataState={dataState}
-              gaId={gaId}
-              gaData={gaData}
-              gaLoading={gaLoading}
-              onConnectGA={handleGAConnect}
-              openConnectPanel={() => setConnectPanelOpen(true)}
-            />
-          )}
-          {activeTab === 'social' && (
-            <SocialTab dataState={dataState} openConnectPanel={() => setConnectPanelOpen(true)} />
-          )}
-          {activeTab === 'ads' && (
-            <AdsTab dataState={dataState} openConnectPanel={() => setConnectPanelOpen(true)} />
-          )}
-          {activeTab === 'inbox' && (
-            <InboxTab dataState={dataState} openConnectPanel={() => setConnectPanelOpen(true)} />
-          )}
-        </div>
-
-        {/* Right sidebar (mock state only) */}
-        {dataState === 'mock' && <MockSidebar />}
-      </div>
+      {activeTab === 'posting' && <PostingAnalyticsContent isMock={isMock} />}
+      {activeTab === 'inbox'   && <InboxAnalyticsContent   isMock={isMock} />}
     </div>
   )
 }

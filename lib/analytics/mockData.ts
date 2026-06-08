@@ -188,3 +188,136 @@ export const MOCK_ANALYTICS_INBOX = {
 
 // Platforms shown in mock state connection strip
 export const MOCK_CONNECTED_PLATFORMS = ['instagram', 'facebook', 'tiktok', 'meta_ads']
+
+export const MOCK_POSTING_ANALYTICS = {
+  // 5 summary stat cards
+  stats: {
+    engagementRate: 3.2,
+    engRateDelta: '+0.4 pts',
+    engRateDeltaPositive: true,
+    totalReach: 18420,
+    reachDelta: '+2.1k new',
+    reachDeltaPositive: true,
+    totalFollowers: 2847,
+    followersDelta: '+124 in last 30d',
+    followersDeltaPositive: true,
+    postsThisPeriod: 14,
+    bestPost: {
+      caption: 'Behind the scenes of our process…',
+      platform: 'instagram',
+      engagements: 218,
+    },
+  },
+
+  // Monthly time series — 13 months (Jun last year → Jun this year)
+  monthly: [
+    { month: 'Jun', posts: 0, likes: 0,   comments: 0,  shares: 0,  saves: 0,  views: 0,     impressions: 0,     reach: 0,     clicks: 0,  engRate: 0 },
+    { month: 'Jul', posts: 2, likes: 182,  comments: 12, shares: 6,  saves: 8,  views: 1240,  impressions: 1480,  reach: 980,   clicks: 14, engRate: 2.8 },
+    { month: 'Aug', posts: 3, likes: 248,  comments: 18, shares: 9,  saves: 12, views: 1840,  impressions: 2200,  reach: 1520,  clicks: 22, engRate: 3.1 },
+    { month: 'Sep', posts: 4, likes: 312,  comments: 24, shares: 11, saves: 15, views: 2180,  impressions: 2640,  reach: 1840,  clicks: 28, engRate: 3.0 },
+    { month: 'Oct', posts: 3, likes: 276,  comments: 19, shares: 8,  saves: 11, views: 1980,  impressions: 2380,  reach: 1640,  clicks: 24, engRate: 2.9 },
+    { month: 'Nov', posts: 5, likes: 418,  comments: 31, shares: 14, saves: 19, views: 2840,  impressions: 3380,  reach: 2420,  clicks: 36, engRate: 3.4 },
+    { month: 'Dec', posts: 4, likes: 384,  comments: 28, shares: 12, saves: 17, views: 2640,  impressions: 3140,  reach: 2180,  clicks: 32, engRate: 3.3 },
+    { month: 'Jan', posts: 3, likes: 294,  comments: 21, shares: 9,  saves: 13, views: 2080,  impressions: 2480,  reach: 1720,  clicks: 26, engRate: 3.1 },
+    { month: 'Feb', posts: 5, likes: 442,  comments: 34, shares: 15, saves: 21, views: 3080,  impressions: 3640,  reach: 2580,  clicks: 39, engRate: 3.6 },
+    { month: 'Mar', posts: 6, likes: 512,  comments: 41, shares: 18, saves: 24, views: 3540,  impressions: 4180,  reach: 2980,  clicks: 44, engRate: 3.8 },
+    { month: 'Apr', posts: 5, likes: 468,  comments: 37, shares: 16, saves: 22, views: 3280,  impressions: 3840,  reach: 2740,  clicks: 41, engRate: 3.7 },
+    { month: 'May', posts: 7, likes: 584,  comments: 48, shares: 21, saves: 28, views: 4180,  impressions: 4940,  reach: 3480,  clicks: 52, engRate: 4.1 },
+    { month: 'Jun', posts: 2, likes: 186,  comments: 16, shares: 7,  saves: 9,  views: 1340,  impressions: 1580,  reach: 1120,  clicks: 17, engRate: 3.9 },
+  ],
+
+  // Posts by platform (bar chart)
+  platformPosts: [
+    { platform: 'instagram', label: 'Instagram', posts: 8  },
+    { platform: 'facebook',  label: 'Facebook',  posts: 4  },
+    { platform: 'tiktok',    label: 'TikTok',    posts: 2  },
+  ],
+
+  // Likes by platform (bar chart)
+  platformLikes: [
+    { platform: 'instagram', label: 'Instagram', likes: 1840 },
+    { platform: 'facebook',  label: 'Facebook',  likes: 486  },
+    { platform: 'tiktok',    label: 'TikTok',    likes: 258  },
+  ],
+
+  // Best time to post heatmap
+  // data[dayIndex][timeIndex] = engagement value 0–10
+  heatmap: {
+    days:  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    times: ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm'],
+    data: [
+      [0, 0, 0, 1, 2, 3, 4, 2],
+      [0, 0, 0, 2, 3, 4, 7, 3],
+      [0, 0, 0, 1, 3, 3, 5, 2],
+      [0, 0, 0, 1, 2, 4, 4, 3],
+      [0, 0, 0, 1, 2, 3, 3, 9],
+      [0, 0, 0, 1, 3, 2, 2, 1],
+      [0, 0, 0, 1, 2, 2, 3, 2],
+    ],
+    bestDay:  'Fri',
+    bestTime: '9pm',
+  },
+
+  // Follower evolution — monthly
+  followerEvolution: [
+    { month: 'Jun', followers: 2420 },
+    { month: 'Jul', followers: 2456 },
+    { month: 'Aug', followers: 2492 },
+    { month: 'Sep', followers: 2534 },
+    { month: 'Oct', followers: 2568 },
+    { month: 'Nov', followers: 2610 },
+    { month: 'Dec', followers: 2648 },
+    { month: 'Jan', followers: 2682 },
+    { month: 'Feb', followers: 2718 },
+    { month: 'Mar', followers: 2758 },
+    { month: 'Apr', followers: 2798 },
+    { month: 'May', followers: 2826 },
+    { month: 'Jun', followers: 2847 },
+  ],
+
+  // Platform breakdown table
+  platformBreakdown: [
+    { platform: 'instagram', label: 'Instagram', posts: 8, likes: 1840, comments: 124, shares: 48, saves: 86,  clicks: 0,  views: 14200, impressions: 16800, reach: 11400, erPct: 3.8 },
+    { platform: 'facebook',  label: 'Facebook',  posts: 4, likes: 486,  comments: 38,  shares: 22, saves: 0,   clicks: 84, views: 3840,  impressions: 4200,  reach: 3180,  erPct: 2.1 },
+    { platform: 'tiktok',    label: 'TikTok',    posts: 2, likes: 258,  comments: 31,  shares: 18, saves: 42,  clicks: 0,  views: 8240,  impressions: 9100,  reach: 7200,  erPct: 5.1 },
+  ],
+
+  // Top performing posts
+  topPosts: [
+    { platform: 'instagram', caption: 'Behind the scenes of our process…',            date: 'Jun 5, 2026',  likes: 187, comments: 14, shares: 9,  saves: 18, clicks: 0,  views: 2840,  impressions: 3280, reach: 2380, erPct: 6.6 },
+    { platform: 'instagram', caption: 'Customer story: how we helped them grow',       date: 'May 28, 2026', likes: 143, comments: 11, shares: 6,  saves: 12, clicks: 0,  views: 2210,  impressions: 2580, reach: 1840, erPct: 5.2 },
+    { platform: 'tiktok',    caption: '3 things nobody tells you about running a small biz', date: 'May 19, 2026', likes: 234, comments: 31, shares: 18, saves: 42, clicks: 0,  views: 8240,  impressions: 9100, reach: 7200, erPct: 5.1 },
+    { platform: 'facebook',  caption: 'Our new summer collection is here',             date: 'May 21, 2026', likes: 89,  comments: 6,  shares: 5,  saves: 0,  clicks: 24, views: 1840,  impressions: 2100, reach: 1480, erPct: 4.1 },
+    { platform: 'instagram', caption: 'Throwback to when we first started this journey', date: 'May 15, 2026', likes: 112, comments: 8,  shares: 4,  saves: 14, clicks: 0,  views: 1640,  impressions: 1920, reach: 1340, erPct: 4.8 },
+  ],
+
+  // Posting frequency vs engagement scatter
+  // x = numeric (1=<1/wk, 2=1-2/wk, 3=3-4/wk, 4=5+/wk)
+  // y = engagement rate %
+  postingFrequency: [
+    { x: 1, y: 2.4, platform: 'instagram', freqLabel: '< 1/wk'  },
+    { x: 2, y: 3.8, platform: 'instagram', freqLabel: '1–2/wk'  },
+    { x: 3, y: 3.2, platform: 'instagram', freqLabel: '3–4/wk'  },
+    { x: 4, y: 2.8, platform: 'instagram', freqLabel: '5+/wk'   },
+    { x: 2, y: 2.1, platform: 'facebook',  freqLabel: '1–2/wk'  },
+    { x: 3, y: 1.9, platform: 'facebook',  freqLabel: '3–4/wk'  },
+  ],
+  optimalCadence: [
+    { platform: 'instagram', label: 'Instagram', cadence: '1–2/wk', engRate: 3.8 },
+    { platform: 'facebook',  label: 'Facebook',  cadence: '1–2/wk', engRate: 2.1 },
+  ],
+
+  // Engagement accumulation over time after publishing
+  engagementAccumulation: [
+    { time: 'Publish', pct: 0   },
+    { time: '0–6h',    pct: 48  },
+    { time: '6–12h',   pct: 62  },
+    { time: '12–24h',  pct: 75  },
+    { time: '1–2d',    pct: 84  },
+    { time: '2–7d',    pct: 91  },
+    { time: '7–30d',   pct: 96  },
+    { time: '30d+',    pct: 100 },
+  ],
+  halfEngagementTime:   '0–6h',
+  eightyPctTime:        '1–2d',
+}
