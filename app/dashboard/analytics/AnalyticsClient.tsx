@@ -82,8 +82,11 @@ function readBestPostUrl(entry: unknown): string {
   const obj = _o(entry)
   const analytics = _o(obj.analytics)
   const nested = _o(obj.post ?? obj.content ?? obj.media ?? obj.metadata)
-  const sources = [obj, analytics, nested]
+  const platformAnalytics = _a<Record<string, unknown>>(obj.platformAnalytics ?? obj.platform_analytics ?? [])
+  const sources = [obj, analytics, nested, ...platformAnalytics]
   const keys = [
+    'platformPostUrl',
+    'platform_post_url',
     'permalink',
     'permalinkUrl',
     'permalink_url',
@@ -1739,6 +1742,9 @@ function PostingAnalyticsContent({ isMock }: { isMock: boolean }) {
     <div className="space-y-4">
       <StatCards isMock={isMock} />
 
+      {/* Keep Maya's briefing only in mock/demo mode; live Zernio layout does not include it. */}
+      {isMock && <MayaBriefingCard isMock={isMock} />}
+
       {/* 2-col grid for paired charts */}
       <div className="grid grid-cols-2 gap-4">
         <PostsPerPlatformChart isMock={isMock} />
@@ -2319,8 +2325,6 @@ export default function AnalyticsClient({
       </div>
 
       {/* ── Filter bar + demo banner ──────────────────────────────────────── */}
-      <MayaBriefingCard isMock={isMock} />
-
       <FilterBar
         platform={platformFilter}
         profile="default"
