@@ -16,10 +16,49 @@ import type { AnalyticsDataState } from './page'
 import {
   MOCK_ANALYTICS_INBOX, MOCK_POSTING_ANALYTICS,
 } from '@/lib/analytics/mockData'
+import { parseAnalyticsEnvelope } from '@/lib/social/zernioAnalyticsParse'
 
 // ── Posting data context ───────────────────────────────────────────────────────
 
 type PostingAnalytics = typeof MOCK_POSTING_ANALYTICS
+
+/** Zeroed shell for live Zernio data — never bleed mock numbers into production analytics */
+function emptyLivePostingAnalytics(): PostingAnalytics {
+  const zeroMatrix = Array.from({ length: 7 }, () => Array(8).fill(0))
+  return {
+    stats: {
+      engagementRate: 0,
+      engRateDelta: 'new',
+      engRateDeltaPositive: true,
+      totalReach: 0,
+      reachDelta: 'new',
+      reachDeltaPositive: true,
+      totalFollowers: 0,
+      followersDelta: '0 in last 30d',
+      followersDeltaPositive: true,
+      postsThisPeriod: 0,
+      bestPost: { caption: '', platform: '', engagements: 0 },
+    },
+    monthly: [],
+    platformPosts: [],
+    platformLikes: [],
+    heatmap: {
+      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      times: ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm'],
+      data: zeroMatrix,
+      bestDay: '',
+      bestTime: '',
+    },
+    followerEvolution: [],
+    platformBreakdown: [],
+    topPosts: [],
+    postingFrequency: [],
+    optimalCadence: [],
+    engagementAccumulation: [],
+    halfEngagementTime: '',
+    eightyPctTime: '',
+  }
+}
 const PostingDataContext = createContext<PostingAnalytics>(MOCK_POSTING_ANALYTICS)
 const DateRangeContext   = createContext<string>('30d')
 
@@ -166,25 +205,9 @@ function bucketLabelForPostsPerWeek(postsPerWeek: number): { x: number; label: s
 
 function normalizeDayIndex(day: number): number {
   if (!Number.isFinite(day)) return 0
+  // Zernio: 0 = Sunday … 6 = Saturday → heatmap rows start on Monday
+  if (day >= 0 && day <= 6) return (day + 6) % 7
   return ((day % 7) + 7) % 7
-}
-
-function shiftUtcToLocal(dayOfWeek: number, utcHour: number): { dayOfWeek: number; hour: number } {
-  const offsetMinutes = new Date().getTimezoneOffset()
-  const offsetHours = offsetMinutes / 60
-  
-  let localHour = utcHour - offsetHours
-  let localDay = dayOfWeek
-  
-  if (localHour < 0) {
-    localHour = (localHour + 24) % 24
-    localDay = (localDay - 1 + 7) % 7
-  } else if (localHour >= 24) {
-    localHour = localHour % 24
-    localDay = (localDay + 1) % 7
-  }
-  
-  return { dayOfWeek: localDay, hour: Math.round(localHour) }
 }
 
 function hourToHeatmapIndex(hour: number): number {
@@ -333,10 +356,13 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
   // `bestTimes`    — /analytics/best-time
   const hasCombined = 'posts' in r && ('daily' in r || 'followerStats' in r || 'allAccounts' in r)
 
-  // Extract the posts sub-object (works for both old flat response and new combined shape)
-  const postsEnvelope = hasCombined ? _o(r.posts) : _o(r.data ?? r.result ?? r.response ?? r)
-  const overview = _o(postsEnvelope.overview ?? postsEnvelope.summary ?? postsEnvelope.stats ?? postsEnvelope)
-  const postsArr = _a<Record<string, unknown>>(postsEnvelope.posts ?? postsEnvelope.items ?? [])
+  // Extract posts — combined route wraps { overview, posts[], accounts[] }
+  const rawPostsBlock = hasCombined ? _o(r.posts) : _o(r.data ?? r.result ?? r.response ?? r)
+  const parsedPosts = hasCombined
+    ? parseAnalyticsEnvelope({ overview: rawPostsBlock.overview, posts: rawPostsBlock.posts, accounts: rawPostsBlock.accounts ?? r.allAccounts })
+    : parseAnalyticsEnvelope(r)
+  const overview = parsedPosts.overview
+  const postsArr = _a<Record<string, unknown>>(parsedPosts.posts)
   const dailyEnvelope = hasCombined ? _o(r.daily) : {}
   const dailyStats = hasCombined
     ? _a<Record<string, unknown>>(dailyEnvelope.stats ?? dailyEnvelope.dailyData ?? dailyEnvelope.data ?? [])
@@ -479,20 +505,20 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
 
   if (!engRate && !reach && !followers && !posts) return null
 
-  const result: PostingAnalytics = {
-    ...MOCK_POSTING_ANALYTICS,
-    stats: {
-      ...MOCK_POSTING_ANALYTICS.stats,
-      engagementRate:  engRate   || MOCK_POSTING_ANALYTICS.stats.engagementRate,
-      engRateDelta:    hasCombined ? 'new' : MOCK_POSTING_ANALYTICS.stats.engRateDelta,
-      engRateDeltaPositive: true,
-      totalReach:      reach     || MOCK_POSTING_ANALYTICS.stats.totalReach,
-      reachDelta:      hasCombined ? 'new' : MOCK_POSTING_ANALYTICS.stats.reachDelta,
-      reachDeltaPositive: true,
-      // In combined (live) mode, always use the real follower count (even 0) — never mock
-      totalFollowers:  hasCombined ? totalFollowers : (followers || MOCK_POSTING_ANALYTICS.stats.totalFollowers),
-      postsThisPeriod: posts     || MOCK_POSTING_ANALYTICS.stats.postsThisPeriod,
-    },
+  const result: PostingAnalytics = hasCombined
+    ? emptyLivePostingAnalytics()
+    : { ...MOCK_POSTING_ANALYTICS }
+
+  result.stats = {
+    ...result.stats,
+    engagementRate: engRate || (hasCombined ? 0 : MOCK_POSTING_ANALYTICS.stats.engagementRate),
+    engRateDelta: hasCombined ? 'new' : MOCK_POSTING_ANALYTICS.stats.engRateDelta,
+    engRateDeltaPositive: true,
+    totalReach: reach || (hasCombined ? 0 : MOCK_POSTING_ANALYTICS.stats.totalReach),
+    reachDelta: hasCombined ? 'new' : MOCK_POSTING_ANALYTICS.stats.reachDelta,
+    reachDeltaPositive: true,
+    totalFollowers: hasCombined ? totalFollowers : (followers || MOCK_POSTING_ANALYTICS.stats.totalFollowers),
+    postsThisPeriod: posts || (hasCombined ? 0 : MOCK_POSTING_ANALYTICS.stats.postsThisPeriod),
   }
 
   // Platform breakdown — Zernio doesn't pre-aggregate; group from posts[]
@@ -594,7 +620,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
   // Top posts — analytics are nested under p.analytics in Zernio's schema
   type EnrichedPost = PostingAnalytics['topPosts'][number] & { url?: string; engagements?: number }
   if (postsArr.length) {
-    const mappedPosts: EnrichedPost[] = postsArr.slice(0, 10).map(p => {
+    const mappedPosts: EnrichedPost[] = postsArr.map(p => {
       const a = _o(p.analytics)
       return {
         platform:    _s(p.platform ?? ''),
@@ -613,11 +639,9 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
         url:         readBestPostUrl(p, activePlatform),
       }
     })
-    result.topPosts = mappedPosts as PostingAnalytics['topPosts']
-    const bestPost = mappedPosts.reduce<EnrichedPost | null>((best, post) => {
-      if (!best) return post
-      return (post.engagements ?? 0) > (best.engagements ?? 0) ? post : best
-    }, null)
+    mappedPosts.sort((a, b) => (b.engagements ?? 0) - (a.engagements ?? 0))
+    result.topPosts = mappedPosts.slice(0, 10) as PostingAnalytics['topPosts']
+    const bestPost = mappedPosts[0] ?? null
     if (bestPost) {
       result.stats = {
         ...result.stats,
@@ -662,7 +686,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
   } else {
     // Legacy path: bucket posts[] by date range granularity
     const apiMonthly = _a<Record<string, unknown>>(
-      postsEnvelope.monthly ?? postsEnvelope.timeSeries ?? postsEnvelope.time_series ?? postsEnvelope.metrics
+      rawPostsBlock.monthly ?? rawPostsBlock.timeSeries ?? rawPostsBlock.time_series ?? rawPostsBlock.metrics
     )
     if (apiMonthly.length) {
       result.monthly = apiMonthly.map(m => ({
@@ -741,8 +765,8 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
 
     // Follower evolution from overview data (legacy path)
     const followerEvo = _a<Record<string, unknown>>(
-      postsEnvelope.followerEvolution ?? postsEnvelope.follower_evolution ??
-      postsEnvelope.followerHistory   ?? postsEnvelope.followers_history
+      rawPostsBlock.followerEvolution ?? rawPostsBlock.follower_evolution ??
+      rawPostsBlock.followerHistory   ?? rawPostsBlock.followers_history
     )
     if (followerEvo.length) {
       result.followerEvolution = followerEvo.map(f => ({
@@ -798,17 +822,15 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
       const rawDay = _n(slot.day_of_week ?? slot.dayOfWeek ?? slot.day_index ?? slot.dayIndex ?? slot.day ?? 0)
       const dayIndex = normalizeDayIndex(rawDay)
       const hour = _n(slot.hour ?? slot.hour_of_day ?? slot.hourOfDay ?? slot.time ?? 0)
-      
-      const { dayOfWeek: localDay, hour: localHour } = shiftUtcToLocal(dayIndex, hour)
-      const timeIndex = hourToHeatmapIndex(localHour)
-      
-      if (localDay >= 0 && localDay < matrix.length && timeIndex >= 0 && timeIndex < matrix[localDay].length) {
-        matrix[localDay][timeIndex] = value
+      const timeIndex = hourToHeatmapIndex(hour)
+
+      if (dayIndex >= 0 && dayIndex < matrix.length && timeIndex >= 0 && timeIndex < matrix[dayIndex].length) {
+        matrix[dayIndex][timeIndex] = value
       }
       if (value > bestSlot.value) {
         bestSlot = {
           value,
-          day: heatmapDays[localDay] || heatmapDays[0],
+          day: heatmapDays[dayIndex] || heatmapDays[0],
           time: heatmapTimes[timeIndex] || heatmapTimes[0],
         }
       }
@@ -877,10 +899,9 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
     contentDecayRaw.buckets ?? contentDecayRaw.data ?? contentDecayRaw.results ?? []
   )
   if (decayBuckets.length) {
-    let runningSum = 0
     const accumulation = decayBuckets.map((bucket) => {
       const time = _s(bucket.bucket_label ?? bucket.label ?? bucket.time ?? bucket.bucket ?? bucket.range ?? '')
-      const pctVal = pctFromValue(
+      const pct = pctFromValue(
         bucket.avg_pct_of_final ??
         bucket.avgPctOfFinal ??
         bucket.pct ??
@@ -890,12 +911,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
         bucket.avgEngagement ??
         0,
       )
-      runningSum += pctVal
-      const pct = Math.min(100, Number(runningSum.toFixed(1)))
-      return {
-        time,
-        pct,
-      }
+      return { time, pct: Math.min(100, Number(pct.toFixed(1))) }
     })
     result.engagementAccumulation = accumulation
     const half = accumulation.find(p => p.pct >= 50)?.time ?? accumulation[Math.min(1, accumulation.length - 1)]?.time ?? result.halfEngagementTime

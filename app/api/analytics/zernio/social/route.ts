@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
+import { filterPostsByPlatform, parseAnalyticsEnvelope, postDedupeKey } from '@/lib/social/zernioAnalyticsParse'
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth()
@@ -34,6 +35,10 @@ export async function GET(req: NextRequest) {
 
   const { fromDate, toDate } = publisher.dateRangeToWindow(dateRange)
 
+  // All accounts on the API key (for profiles that share a key across connections)
+  const apiKeyAccounts = await publisher.listAllAccounts()
+  const profileIdSet = new Set(zernioProfileIds)
+
   // Fan out API requests to all of a user's Zernio profiles
   const results = await Promise.all(
     zernioProfileIds.map(async (pId) => {
@@ -42,12 +47,11 @@ export async function GET(req: NextRequest) {
           publisher.getSocialAnalytics({ profileId: pId, platform, fromDate, toDate }),
           publisher.getProfileAccounts(pId),
           publisher.getDailyAnalytics({ profileId: pId, platform, fromDate, toDate }),
-          platform
-            ? Promise.resolve(null)
-            : publisher.getFollowerStats({ profileId: pId, fromDate, toDate, granularity: 'daily' }),
-          publisher.getBestTimeToPost({ profileId: pId, platform }),
-          publisher.getPostingFrequency({ profileId: pId, platform }),
-          publisher.getContentDecay({ profileId: pId, platform }),
+          publisher.getFollowerStats({ profileId: pId, fromDate, toDate, granularity: 'daily' }),
+          // Zernio clears these when platform= is set — always fetch profile-scoped, filter in UI
+          publisher.getBestTimeToPost({ profileId: pId, source: 'all' }),
+          publisher.getPostingFrequency({ profileId: pId, source: 'all' }),
+          publisher.getContentDecay({ profileId: pId, source: 'all' }),
         ])
         return { pId, rawPostData, accounts, dailyData, followerStats, bestTimesData, postingFrequencyData, contentDecayData }
       } catch (err) {
@@ -71,37 +75,38 @@ export async function GET(req: NextRequest) {
   for (const r of activeResults) {
     const rawPostData = r.rawPostData
     if (typeof rawPostData === 'object' && rawPostData !== null && !('_zernioError' in rawPostData)) {
-      const envelope = rawPostData as Record<string, any>
-      const postsEnvelope = ('posts' in envelope ? envelope.posts : (envelope.data ?? envelope.result ?? envelope.response ?? envelope)) as Record<string, any>
-      if (postsEnvelope) {
-        const overview = (postsEnvelope.overview ?? postsEnvelope.summary ?? postsEnvelope.stats ?? postsEnvelope ?? {}) as Record<string, any>
-        const postsArr = (postsEnvelope.posts ?? postsEnvelope.items ?? []) as any[]
-        const accountsArr = (envelope.accounts ?? []) as any[]
+      const parsed = parseAnalyticsEnvelope(rawPostData)
+      const overview = parsed.overview
 
-        mergedOverview.totalPosts += typeof overview.totalPosts === 'number' ? overview.totalPosts : 0
-        mergedOverview.publishedPosts += typeof overview.publishedPosts === 'number' ? overview.publishedPosts : 0
-        mergedOverview.scheduledPosts += typeof overview.scheduledPosts === 'number' ? overview.scheduledPosts : 0
+      mergedOverview.totalPosts += typeof overview.totalPosts === 'number' ? overview.totalPosts : 0
+      mergedOverview.publishedPosts += typeof overview.publishedPosts === 'number' ? overview.publishedPosts : 0
+      mergedOverview.scheduledPosts += typeof overview.scheduledPosts === 'number' ? overview.scheduledPosts : 0
 
-        mergedPosts.push(...postsArr)
-        mergedAccountsList.push(...accountsArr)
-      }
+      mergedPosts.push(...parsed.posts)
+      mergedAccountsList.push(...parsed.accounts)
     }
   }
 
-  // De-duplicate posts by _id / id
+  // De-duplicate posts by id or content fingerprint
   const seenPosts = new Set<string>()
-  const uniquePosts: any[] = []
+  let uniquePosts: Record<string, unknown>[] = []
   for (const p of mergedPosts) {
-    const id = p._id ?? p.id
-    if (id && !seenPosts.has(id)) {
-      seenPosts.add(id)
-      uniquePosts.push(p)
+    if (!p || typeof p !== 'object') continue
+    const post = p as Record<string, unknown>
+    const key = postDedupeKey(post)
+    if (!seenPosts.has(key)) {
+      seenPosts.add(key)
+      uniquePosts.push(post)
     }
+  }
+
+  if (platform) {
+    uniquePosts = filterPostsByPlatform(uniquePosts, platform) as Record<string, unknown>[]
   }
   // Sort posts by date descending
   uniquePosts.sort((a, b) => {
-    const dateA = new Date(a.publishedAt ?? a.published_at ?? a.date ?? 0).getTime()
-    const dateB = new Date(b.publishedAt ?? b.published_at ?? b.date ?? 0).getTime()
+    const dateA = new Date(String(a.publishedAt ?? a.published_at ?? a.date ?? 0)).getTime()
+    const dateB = new Date(String(b.publishedAt ?? b.published_at ?? b.date ?? 0)).getTime()
     return dateB - dateA
   })
 
@@ -123,11 +128,16 @@ export async function GET(req: NextRequest) {
     pagination: { page: 1, limit: 100, total: uniquePosts.length, pages: 1 }
   }
 
-  // 2. Merge accounts list
-  const mergedAccounts: any[] = []
+  // 2. Merge accounts — profile-scoped + API-key list for this tenant's profiles
+  const mergedAccounts: Array<{ id: string; platform: string; username: string }> = []
   for (const r of activeResults) {
     if (Array.isArray(r.accounts)) {
       mergedAccounts.push(...r.accounts)
+    }
+  }
+  for (const a of apiKeyAccounts) {
+    if (!a.profileId || profileIdSet.has(a.profileId)) {
+      mergedAccounts.push({ id: a.id, platform: a.platform, username: a.username })
     }
   }
   const seenProfileAccs = new Set<string>()
@@ -317,13 +327,15 @@ export async function GET(req: NextRequest) {
     }
   }
   const finalPostingFrequency = {
-    frequency: Array.from(frequencyMap.values()).map(x => ({
-      platform: x.platform,
-      posts_per_week: x.posts_per_week,
-      avg_engagement_rate: x.sum_weeks > 0 ? Number((x.sum_engagement_rate / x.sum_weeks).toFixed(2)) : 0,
-      avg_engagement: x.sum_weeks > 0 ? Number((x.sum_engagement / x.sum_weeks).toFixed(2)) : 0,
-      weeks_count: x.sum_weeks
-    }))
+    frequency: Array.from(frequencyMap.values())
+      .map(x => ({
+        platform: x.platform,
+        posts_per_week: x.posts_per_week,
+        avg_engagement_rate: x.sum_weeks > 0 ? Number((x.sum_engagement_rate / x.sum_weeks).toFixed(2)) : 0,
+        avg_engagement: x.sum_weeks > 0 ? Number((x.sum_engagement / x.sum_weeks).toFixed(2)) : 0,
+        weeks_count: x.sum_weeks,
+      }))
+      .filter(x => !platform || x.platform === platform),
   }
 
   // 7. Merge content decay
@@ -397,6 +409,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  console.log('[zernio/social] posts count:', uniquePosts.length)
   console.log('[zernio/social] followerStats:', JSON.stringify(finalFollowerStats).slice(0, 800))
   console.log('[zernio/social] allAccounts:', JSON.stringify(resolvedAccounts).slice(0, 800))
 

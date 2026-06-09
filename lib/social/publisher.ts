@@ -233,27 +233,48 @@ export async function getSocialAnalytics(params: SocialAnalyticsParams): Promise
 
 // ── Analytics helpers (documented endpoints) ──────────────────────────────────
 
+type ZernioAccountRow = {
+  _id?: string
+  id?: string
+  platform?: string
+  platformUsername?: string
+  username?: string
+  profileId?: string
+}
+
+function mapAccountRows(arr: ZernioAccountRow[]): Array<{ id: string; platform: string; username: string; profileId?: string }> {
+  return arr
+    .map(a => ({
+      id: String(a._id ?? a.id ?? ''),
+      platform: String(a.platform ?? ''),
+      username: String(a.platformUsername ?? a.username ?? ''),
+      profileId: a.profileId ? String(a.profileId) : undefined,
+    }))
+    .filter(a => a.id)
+}
+
+/** List all connected accounts on this API key (Zernio docs: GET /accounts). */
+export async function listAllAccounts(): Promise<Array<{ id: string; platform: string; username: string; profileId?: string }>> {
+  try {
+    const data = await zCall<{ accounts?: ZernioAccountRow[]; results?: ZernioAccountRow[] }>('/accounts')
+    const arr = Array.isArray(data.accounts) ? data.accounts : Array.isArray(data.results) ? data.results : []
+    return mapAccountRows(arr)
+  } catch (err) {
+    console.error('[publisher] listAllAccounts failed:', err)
+    return []
+  }
+}
+
 /** Returns full account objects including _id (accountId needed for analytics calls). */
 export async function getProfileAccounts(
   profileId: string,
 ): Promise<Array<{ id: string; platform: string; username: string }>> {
   try {
-    const data = await zCall<{
-      accounts?: Array<{ _id?: string; id?: string; platform?: string; platformUsername?: string; username?: string; health?: unknown }>
-      results?: Array<{ _id?: string; id?: string; platform?: string; platformUsername?: string; username?: string; health?: unknown }>
-    }>(`/accounts?profileId=${encodeURIComponent(profileId)}`)
-    const arr = Array.isArray(data.accounts)
-      ? data.accounts
-      : Array.isArray(data.results)
-        ? data.results
-        : []
-    return arr
-      .map(a => ({
-        id: String(a._id ?? a.id ?? ''),
-        platform: String(a.platform ?? ''),
-        username: String(a.platformUsername ?? a.username ?? ''),
-      }))
-      .filter(a => a.id)
+    const data = await zCall<{ accounts?: ZernioAccountRow[]; results?: ZernioAccountRow[] }>(
+      `/accounts?profileId=${encodeURIComponent(profileId)}`,
+    )
+    const arr = Array.isArray(data.accounts) ? data.accounts : Array.isArray(data.results) ? data.results : []
+    return mapAccountRows(arr).map(({ id, platform, username }) => ({ id, platform, username }))
   } catch (err) {
     console.error('[publisher] getProfileAccounts failed:', err)
     return []
