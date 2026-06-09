@@ -1,6 +1,9 @@
 # CONTEXTV11 - Design System, Preview Deployment, and Dashboard UI Normalization
 *Snapshot: June 4, 2026*
 
+> Superseded by `CONTEXTV12.md`. This file remains a historical snapshot of the
+> pre-merge design-system branch state.
+
 This is the current technical and product handoff for the experimental v2 app.
 Everything in `CONTEXTV10.md` still applies unless this document explicitly
 changes it.

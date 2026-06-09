@@ -3,27 +3,9 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { logActivity } from '@/lib/activity'
+import { FIELD_EXPECTATIONS } from '@/lib/foundation/score'
 
 export const maxDuration = 30
-
-export const FIELD_EXPECTATIONS: Record<string, { label: string; minWords: number; weight: number }> = {
-  businessDescription:   { label: 'Business description',        minWords: 15, weight: 8  },
-  problemSolved:         { label: 'Problem solved',              minWords: 10, weight: 8  },
-  transformation:        { label: 'Customer transformation',     minWords: 10, weight: 6  },
-  customerWho:           { label: 'Customer description',        minWords: 10, weight: 10 },
-  customerFrustration:   { label: 'Customer frustration',        minWords: 10, weight: 10 },
-  customerTriedBefore:   { label: 'What they tried before',      minWords: 5,  weight: 6  },
-  customerBuyingTrigger: { label: 'Buying trigger',              minWords: 5,  weight: 6  },
-  differentiator:        { label: 'Differentiator',              minWords: 1,  weight: 8  },
-  differentiatorOwn:     { label: 'Differentiator (own words)',  minWords: 0,  weight: 4  },
-  toneTraits:            { label: 'Tone traits',                 minWords: 0,  weight: 6  },
-  brandsAdmired:         { label: 'Brands admired',              minWords: 0,  weight: 3  },
-  neverSoundLike:        { label: 'Never sound like',            minWords: 0,  weight: 3  },
-  marketingBudget:       { label: 'Marketing budget',            minWords: 0,  weight: 6  },
-  channels:              { label: 'Channels',                    minWords: 0,  weight: 6  },
-  monthlyGoal:           { label: 'Monthly goal',                minWords: 0,  weight: 6  },
-  competitors:           { label: 'Competitors',                 minWords: 0,  weight: 4  },
-}
 
 export async function POST(req: Request) {
   const { userId } = await auth()

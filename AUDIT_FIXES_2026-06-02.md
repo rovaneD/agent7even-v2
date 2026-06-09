@@ -309,14 +309,14 @@ Fixes:
 
 ## Follow-On Documentation Added
 
-- `CONTEXTV11.md`
-  - Current design-system branch product/technical handoff.
-- `MAYA_CONTEXT_V02.md`
+- `CONTEXTV12.md`
+  - Current merged design-system product/technical handoff.
+- `MAYA_CONTEXT_V03.md`
   - Current versioned Maya product context and visual-system rules.
 - `AUDIT_FIXES_2026-06-02.md`
   - This file now includes the follow-on fixes above.
 - `AGENTS.md`
-  - Points future sessions to `CONTEXTV11.md` / `MAYA_CONTEXT_V02.md`.
+  - Points future sessions to `CONTEXTV12.md` / `MAYA_CONTEXT_V03.md`.
 
 ## Design-System and Preview Deployment Follow-On
 

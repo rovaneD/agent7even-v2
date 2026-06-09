@@ -192,10 +192,11 @@ export async function POST(req: Request) {
     const { data: cancelledProfile } = await profileQuery
 
     if (cancelledProfile?.zernio_profile_id) {
-      const connected = (cancelledProfile.zernio_connected_platforms as string[] | null) ?? []
-      if (connected.length > 0) {
-        await publisher.disconnectAllAccounts(cancelledProfile.zernio_profile_id as string)
+      const disconnected = await publisher.disconnectAllAccounts(cancelledProfile.zernio_profile_id as string)
+      if (disconnected) {
         console.log(`[stripe/webhook] Disconnected Zernio profile ${cancelledProfile.zernio_profile_id} on subscription cancellation`)
+      } else {
+        console.warn(`[stripe/webhook] Failed to disconnect Zernio profile ${cancelledProfile.zernio_profile_id} on subscription cancellation`)
       }
     }
 

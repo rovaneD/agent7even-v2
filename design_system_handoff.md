@@ -1,10 +1,10 @@
 # Maya Design System — Claude Code Handoff
 
 > Historical handoff. Superseded by `design_system_v2_handoff.md`,
-> `CONTEXTV11.md`, and the implemented `design-system/color-tokens` branch.
+> `CONTEXTV12.md`, and the merged `design-system/color-tokens` branch.
 *Full design pass — unified visual language*
 
-Read MAYA_CONTEXT.md and CONTEXTV9.md before starting.
+Read MAYA_CONTEXT.md and CONTEXTV12.md before starting.
 Confirm `git remote -v` shows `agent7even-v2`.
 
 ---

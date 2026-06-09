@@ -45,37 +45,23 @@ export default async function AnalyticsPage() {
     if (!hasPermission(teamPerms, 'analytics')) redirect('/dashboard')
   }
 
-  // Auto-recover zernio_profile_id when platforms are connected but ID is missing.
-  // This handles cases where profile creation succeeded in Zernio but the DB save failed.
   let zernioProfileId = (profile?.zernio_profile_id as string | null) ?? null
-  if (!zernioProfileId && profile?.zernio_connected_platforms?.length && profile?.id) {
+  let zernioConnectedPlatforms = (profile?.zernio_connected_platforms as string[] | null) ?? []
+  if (zernioProfileId) {
     try {
-      const profiles = await publisher.listProfiles()
-      console.log('[analytics/page] recovery attempt — profiles:', JSON.stringify(profiles.map(p => ({ id: p.id, name: p.name }))))
-      const baseName = (profile.company_name as string | null) ?? 'tenant'
-      const profileName = `${baseName}-${(profile.id as string).slice(0, 8)}`
-      const found =
-        profiles.find(p => p.name === profileName) ??
-        profiles.find(p => p.name.startsWith(baseName)) ??
-        (profiles.length === 1 ? profiles[0] : null)
-      if (found?.id) {
-        zernioProfileId = found.id
-        console.log('[analytics/page] recovered zernio_profile_id:', zernioProfileId)
-        const supabase2 = createServiceClient()
-        await supabase2
-          .from('profiles')
-          .update({ zernio_profile_id: zernioProfileId })
-          .eq('id', profile.id)
+      const connectedPlatforms = await publisher.getConnectedPlatforms(zernioProfileId)
+      if (connectedPlatforms.length > 0) {
+        zernioConnectedPlatforms = connectedPlatforms
       }
     } catch (err) {
-      console.error('[analytics/page] recovery failed:', err)
+      console.error('[analytics/page] connected platform fetch failed:', err)
     }
   }
 
   const dataState = getAnalyticsState({
     plan:                       profile?.plan ?? null,
     zernio_profile_id:          zernioProfileId,
-    zernio_connected_platforms: profile?.zernio_connected_platforms ?? null,
+    zernio_connected_platforms: zernioConnectedPlatforms,
   })
 
   return (
@@ -86,7 +72,7 @@ export default async function AnalyticsPage() {
       gaMeasurementId={profile?.ga_measurement_id ?? null}
       gaOAuthConnected={profile?.ga_connected ?? false}
       gaOAuthEmail={profile?.ga_oauth_email ?? null}
-      zernioConnectedPlatforms={(profile?.zernio_connected_platforms as string[] | null) ?? []}
+      zernioConnectedPlatforms={zernioConnectedPlatforms}
     />
   )
 }

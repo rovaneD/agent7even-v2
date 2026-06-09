@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { computeMemoryStats, type FoundationMemoryResponse } from '@/app/api/foundation/memory/route'
+import { computeMemoryStats, type FoundationMemoryResponse } from '@/lib/foundation/memory'
 
 export interface FoundationContext {
   // Raw Foundation answers from profiles.foundation_answers JSONB.
@@ -83,7 +83,7 @@ export async function loadFoundationMemory(profileId: string): Promise<Foundatio
     .gte('created_at', since)
     .order('created_at', { ascending: false })
 
-  return computeMemoryStats((outputs ?? []) as unknown as Parameters<typeof computeMemoryStats>[0])
+  return computeMemoryStats((outputs ?? []) as never[])
 }
 
 export function formatMemoryForAgent(memory: FoundationMemoryResponse): string {

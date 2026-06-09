@@ -38,7 +38,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
 
   // ── Combined response shape: { posts, daily, followerStats, allAccounts, bestTimes } ──
   // `posts`        — legacy /analytics response (overview + posts array)
-  // `daily`        — /analytics/daily  { stats: [...] }
+  // `daily`        — /analytics/daily-metrics  { stats: [...] }
   // `followerStats`— /accounts/follower-stats  (dedicated follower count endpoint)
   // `allAccounts`  — /accounts  (API-key scoped, all profiles)
   // `bestTimes`    — /analytics/best-time
@@ -1992,9 +1992,10 @@ export default function AnalyticsClient({
   useEffect(() => {
     const connected = searchParams.get('zernio_connected')
     const zernioErr = searchParams.get('zernio_error')
+    const username = searchParams.get('zernio_username')
     if (connected) {
       const label = connected.charAt(0).toUpperCase() + connected.slice(1)
-      setZernioToast(`${label} connected`)
+      setZernioToast(`${label} connected${username ? ` as ${username}` : ''}`)
       setConnectedPlatforms(prev => prev.includes(connected) ? prev : [...prev, connected])
       router.replace('/dashboard/analytics')
     } else if (zernioErr) {
@@ -2003,6 +2004,7 @@ export default function AnalyticsClient({
         invalid_state:      'Session expired — please try again.',
         save_failed:        'Failed to save connection. Please try again.',
         profile_not_found:  'Profile not found. Please try again.',
+        profile_mismatch:   'Zernio profile mismatch. Please reconnect.',
       }
       setOauthError(msgs[zernioErr] ?? 'Something went wrong connecting your account.')
       router.replace('/dashboard/analytics')

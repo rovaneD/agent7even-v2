@@ -1,6 +1,9 @@
 # MAYA_CONTEXT_V02 - Product Context and Visual System
 *Versioned snapshot: June 4, 2026*
 
+> Superseded by `MAYA_CONTEXT_V03.md`. This file remains a historical snapshot
+> of the pre-merge Maya context state.
+
 This is the current versioned Maya product context. It supersedes
 `MAYA_CONTEXT_V01.md` while preserving all prior product decisions unless
 explicitly changed here.

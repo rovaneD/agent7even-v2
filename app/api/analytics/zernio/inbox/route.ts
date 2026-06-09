@@ -24,9 +24,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'not_connected' }, { status: 404 })
   }
 
+  const { fromDate, toDate } = publisher.dateRangeToWindow(dateRange)
   const data = await publisher.getInboxSummary({
     profileId: profile.zernio_profile_id as string,
-    dateRange,
+    fromDate,
+    toDate,
   })
 
   if (!data) {

@@ -29,8 +29,8 @@ The remote must show `rovaneD/agent7even-v2`.
 ## Read First
 
 - `AGENTS.md`
-- `CONTEXTV11.md`
-- `MAYA_CONTEXT_V02.md`
+- `CONTEXTV12.md`
+- `MAYA_CONTEXT_V03.md`
 - `AUDIT_FIXES_2026-06-02.md`
 
 ## Development

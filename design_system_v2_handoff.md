@@ -1,12 +1,12 @@
 # Maya Design System V2 — Claude Code Handoff
 *Full design pass — revised spec*
 
-> Implementation status: active on `design-system/color-tokens`.
-> Read `MAYA_CONTEXT_V02.md` and `CONTEXTV11.md` before continuing.
+> Implementation status: merged into `main` from `design-system/color-tokens`.
+> Read `MAYA_CONTEXT_V03.md` and `CONTEXTV12.md` before continuing.
 > This handoff is retained as the original specification; current implementation
 > decisions and intentional deviations are documented below.
 
-Read MAYA_CONTEXT_V02.md and CONTEXTV11.md before starting.
+Read MAYA_CONTEXT_V03.md and CONTEXTV12.md before starting.
 Confirm `git remote -v` shows `agent7even-v2`.
 
 ---

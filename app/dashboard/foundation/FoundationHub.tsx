@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import type { FoundationMemoryResponse, AgentMemoryStat } from '@/app/api/foundation/memory/route'
+import type { FoundationMemoryResponse, AgentMemoryStat } from '@/lib/foundation/memory'
 
 // Client-side extraction types (mirrored from lib/foundation/extract.ts)
 type ExtractionItem = {

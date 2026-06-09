@@ -72,6 +72,26 @@ async function zCall<T = unknown>(path: string, init?: RequestInit): Promise<T> 
   }
 }
 
+function getDateWindow(dateRange: string): { fromDate: string; toDate: string } {
+  const days =
+    dateRange === '7d'  ? 7 :
+    dateRange === '30d' ? 30 :
+    dateRange === '90d' ? 90 :
+    dateRange === '6m'  ? 180 :
+    dateRange === '1y'  ? 365 :
+    30
+
+  const end = new Date()
+  const to = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()))
+  const from = new Date(to)
+  from.setUTCDate(from.getUTCDate() - (days - 1))
+
+  return {
+    fromDate: from.toISOString().slice(0, 10),
+    toDate: to.toISOString().slice(0, 10),
+  }
+}
+
 // ── Profile management ────────────────────────────────────────────────────────
 
 /**
@@ -132,7 +152,7 @@ export async function getConnectUrl(
   platform: string,
   redirectUri: string,
 ): Promise<string> {
-  const q = new URLSearchParams({ profileId, redirectUrl: redirectUri })
+  const q = new URLSearchParams({ profileId, redirect_url: redirectUri })
   const data = await zCall<{ authUrl?: string; auth_url?: string }>(
     `/connect/${encodeURIComponent(platform)}?${q}`,
   )
@@ -170,11 +190,14 @@ export async function disconnectAllAccounts(profileId: string): Promise<boolean>
 export async function getConnectedPlatforms(profileId: string): Promise<string[]> {
   try {
     const data = await zCall<{
-      accounts?: { platform: string }[]
-      platforms?: string[]
-    }>(`/profiles/${encodeURIComponent(profileId)}/connected-accounts`)
-    if (Array.isArray(data.platforms)) return data.platforms
-    if (Array.isArray(data.accounts)) return data.accounts.map((a) => a.platform)
+      accounts?: Array<{ platform?: string }>
+      results?: Array<{ platform?: string }>
+    }>(`/accounts?profileId=${encodeURIComponent(profileId)}`)
+    const accounts = Array.isArray(data.accounts) ? data.accounts : Array.isArray(data.results) ? data.results : []
+    const platforms = accounts
+      .map((a) => a.platform?.trim())
+      .filter((p): p is string => Boolean(p))
+    if (platforms.length > 0) return Array.from(new Set(platforms))
     return []
   } catch (err) {
     console.error('[publisher] getConnectedPlatforms failed:', err)
@@ -187,48 +210,24 @@ export async function getConnectedPlatforms(profileId: string): Promise<string[]
 export interface SocialAnalyticsParams {
   profileId: string
   platform?: string   // omit for all platforms
-  dateRange: string   // '7d' | '30d' | '90d'
+  fromDate: string
+  toDate: string
 }
 
 /** Fetch organic social analytics from Zernio. Returns null on failure. */
 export async function getSocialAnalytics(params: SocialAnalyticsParams): Promise<unknown> {
   try {
-    const q = new URLSearchParams({ profileId: params.profileId, dateRange: params.dateRange })
+    const q = new URLSearchParams({
+      profileId: params.profileId,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+    })
     if (params.platform) q.set('platform', params.platform)
     return await zCall(`/analytics?${q}`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[publisher] getSocialAnalytics failed:', msg)
     return { _zernioError: msg }
-  }
-}
-
-/**
- * Documented endpoint for follower counts.
- * GET /accounts/follower-stats returns current follower counts for all connected accounts.
- * Per docs: "For follower stats, use /v1/accounts/follower-stats"
- */
-export async function getFollowerStats(): Promise<unknown> {
-  try {
-    return await zCall('/accounts/follower-stats')
-  } catch (err) {
-    console.error('[publisher] getFollowerStats failed:', err)
-    return null
-  }
-}
-
-/**
- * List all connected accounts across all profiles (API-key scoped, not profile-scoped).
- * Used to find accountIds and get follower counts regardless of which profile they're in.
- */
-export async function listAllAccounts(platform?: string): Promise<unknown> {
-  try {
-    const q = new URLSearchParams()
-    if (platform) q.set('platform', platform)
-    return await zCall(`/accounts${q.toString() ? `?${q}` : ''}`)
-  } catch (err) {
-    console.error('[publisher] listAllAccounts failed:', err)
-    return null
   }
 }
 
@@ -241,8 +240,13 @@ export async function getProfileAccounts(
   try {
     const data = await zCall<{
       accounts?: Array<{ _id?: string; id?: string; platform?: string; platformUsername?: string; username?: string; health?: unknown }>
-    }>(`/profiles/${encodeURIComponent(profileId)}/connected-accounts`)
-    const arr = Array.isArray(data.accounts) ? data.accounts : []
+      results?: Array<{ _id?: string; id?: string; platform?: string; platformUsername?: string; username?: string; health?: unknown }>
+    }>(`/accounts?profileId=${encodeURIComponent(profileId)}`)
+    const arr = Array.isArray(data.accounts)
+      ? data.accounts
+      : Array.isArray(data.results)
+        ? data.results
+        : []
     return arr
       .map(a => ({
         id: String(a._id ?? a.id ?? ''),
@@ -257,10 +261,15 @@ export async function getProfileAccounts(
 }
 
 /** Daily time series — for Posts over time / Likes over time charts. */
-export async function getDailyAnalytics(params: { accountId: string; days: number }): Promise<unknown> {
+export async function getDailyAnalytics(params: { profileId: string; platform?: string; fromDate: string; toDate: string }): Promise<unknown> {
   try {
-    const q = new URLSearchParams({ accountId: params.accountId, days: String(params.days) })
-    return await zCall(`/analytics/daily?${q}`)
+    const q = new URLSearchParams({
+      profileId: params.profileId,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+    })
+    if (params.platform) q.set('platform', params.platform)
+    return await zCall(`/analytics/daily-metrics?${q}`)
   } catch (err) {
     console.error('[publisher] getDailyAnalytics failed:', err)
     return null
@@ -268,10 +277,13 @@ export async function getDailyAnalytics(params: { accountId: string; days: numbe
 }
 
 /** Best time to post — for the heatmap. */
-export async function getBestTimeToPost(params: { accountId: string; platform?: string }): Promise<unknown> {
+export async function getBestTimeToPost(params: { profileId?: string; accountId?: string; platform?: string; source?: 'all' | 'late' | 'external' }): Promise<unknown> {
   try {
-    const q = new URLSearchParams({ accountId: params.accountId })
+    const q = new URLSearchParams()
+    if (params.profileId) q.set('profileId', params.profileId)
+    if (params.accountId) q.set('accountId', params.accountId)
     if (params.platform) q.set('platform', params.platform)
+    if (params.source) q.set('source', params.source)
     return await zCall(`/analytics/best-time?${q}`)
   } catch (err) {
     console.error('[publisher] getBestTimeToPost failed:', err)
@@ -279,12 +291,25 @@ export async function getBestTimeToPost(params: { accountId: string; platform?: 
   }
 }
 
-/** Account-level metrics including followers. */
-export async function getAccountMetrics(accountId: string): Promise<unknown> {
+/** Account follower stats for connected accounts. */
+export async function getFollowerStats(params: {
+  profileId: string
+  accountIds?: string[]
+  fromDate: string
+  toDate: string
+  granularity?: 'daily' | 'weekly' | 'monthly'
+}): Promise<unknown> {
   try {
-    return await zCall(`/accounts/${encodeURIComponent(accountId)}`)
+    const q = new URLSearchParams({
+      profileId: params.profileId,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+    })
+    if (params.accountIds?.length) q.set('accountIds', params.accountIds.join(','))
+    if (params.granularity) q.set('granularity', params.granularity)
+    return await zCall(`/accounts/follower-stats?${q}`)
   } catch (err) {
-    console.error('[publisher] getAccountMetrics failed:', err)
+    console.error('[publisher] getFollowerStats failed:', err)
     return null
   }
 }
@@ -292,13 +317,18 @@ export async function getAccountMetrics(accountId: string): Promise<unknown> {
 export interface AdsAnalyticsParams {
   profileId: string
   platform?: string
-  dateRange: string
+  fromDate: string
+  toDate: string
 }
 
 /** Fetch paid ads analytics from Zernio. Returns null on failure. */
 export async function getAdsAnalytics(params: AdsAnalyticsParams): Promise<unknown> {
   try {
-    const q = new URLSearchParams({ profileId: params.profileId, dateRange: params.dateRange })
+    const q = new URLSearchParams({
+      profileId: params.profileId,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+    })
     if (params.platform) q.set('platform', params.platform)
     return await zCall(`/ads?${q}`)
   } catch (err) {
@@ -309,16 +339,25 @@ export async function getAdsAnalytics(params: AdsAnalyticsParams): Promise<unkno
 
 export interface InboxSummaryParams {
   profileId: string
-  dateRange: string
+  fromDate: string
+  toDate: string
 }
 
 /** Fetch inbox summary (comments, DMs, response rate) from Zernio. Returns null on failure. */
 export async function getInboxSummary(params: InboxSummaryParams): Promise<unknown> {
   try {
-    const q = new URLSearchParams({ profileId: params.profileId, dateRange: params.dateRange })
-    return await zCall(`/inbox/summary?${q}`)
+    const q = new URLSearchParams({
+      profileId: params.profileId,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+    })
+    return await zCall(`/analytics/inbox/volume?${q}`)
   } catch (err) {
     console.error('[publisher] getInboxSummary failed:', err)
     return null
   }
+}
+
+export function dateRangeToWindow(dateRange: string): { fromDate: string; toDate: string } {
+  return getDateWindow(dateRange)
 }

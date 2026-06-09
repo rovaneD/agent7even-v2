@@ -49,10 +49,7 @@ export async function POST(req: Request) {
       const profiles = await publisher.listProfiles()
       console.log('[zernio/connect] profiles found:', JSON.stringify(profiles.map(p => ({ id: p.id, name: p.name }))))
 
-      const recovered =
-        profiles.find((p) => p.name === profileName) ??        // exact match (new format)
-        profiles.find((p) => p.name.startsWith(baseName)) ??   // prefix match (old format / diff suffix)
-        (profiles.length === 1 ? profiles[0] : null)           // only one profile → must be ours
+      const recovered = profiles.find((p) => p.name === profileName) ?? null
 
       if (recovered?.id) {
         console.log('[zernio/connect] recovered profile id:', recovered.id, 'name:', recovered.name)
@@ -84,7 +81,7 @@ export async function POST(req: Request) {
 
   // Create CSRF nonce — provider is scoped per platform so two simultaneous connects don't collide
   const nonce = await createOAuthState(userId, `zernio:${platform}`)
-  const callbackUrl = `${callbackBase}/api/integrations/zernio/callback?state=${nonce}&platform=${encodeURIComponent(platform)}`
+  const callbackUrl = `${callbackBase}/api/integrations/zernio/callback?state=${nonce}`
   console.log('[zernio/connect] callbackUrl:', callbackUrl)
 
   let authUrl: string

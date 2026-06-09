@@ -25,16 +25,25 @@ export async function DELETE(req: Request) {
 
   if (platform) {
     // Disconnect a single platform
-    await publisher.disconnectAccount(zernioProfileId, platform)
+    const disconnected = await publisher.disconnectAccount(zernioProfileId, platform)
+    if (!disconnected) {
+      return NextResponse.json({ error: 'Failed to disconnect platform from Zernio' }, { status: 502 })
+    }
+
     const existing = (profile.zernio_connected_platforms as string[] | null) ?? []
+    const remaining = await publisher.getConnectedPlatforms(zernioProfileId)
+    const nextPlatforms = remaining.length > 0 ? remaining : existing.filter((p) => p !== platform)
     await supabase
       .from('profiles')
-      .update({ zernio_connected_platforms: existing.filter((p) => p !== platform) })
+      .update({ zernio_connected_platforms: nextPlatforms })
       .eq('id', profile.id)
-    return NextResponse.json({ success: true, platform })
+    return NextResponse.json({ success: true, platform, remaining: nextPlatforms })
   } else {
     // Disconnect all — called from Stripe webhook or explicit full disconnect
-    await publisher.disconnectAllAccounts(zernioProfileId)
+    const disconnectedAll = await publisher.disconnectAllAccounts(zernioProfileId)
+    if (!disconnectedAll) {
+      return NextResponse.json({ error: 'Failed to disconnect Zernio profile' }, { status: 502 })
+    }
     await supabase
       .from('profiles')
       .update({ zernio_connected_platforms: [], zernio_profile_id: null })

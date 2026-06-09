@@ -12,8 +12,8 @@
 
 ## Read current context before making changes:
 1. `AGENTS.md`
-2. `CONTEXTV11.md`
-3. `MAYA_CONTEXT_V02.md`
+2. `CONTEXTV12.md`
+3. `MAYA_CONTEXT_V03.md`
 4. `AUDIT_FIXES_2026-06-02.md`
 
 ## If you are ever unsure which repo you are in — STOP and ask.
