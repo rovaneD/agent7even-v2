@@ -53,6 +53,89 @@ function readFollowerCount(entry: unknown): number {
   )
 }
 
+function readNumericGrowth(entry: unknown): number | null {
+  const obj = _o(entry)
+  const nested = _o(obj.account ?? obj.metrics ?? obj.profile ?? obj)
+  const candidates = [
+    obj.growth,
+    obj.growthCount,
+    obj.followerGrowth,
+    obj.followerGrowthCount,
+    obj.delta,
+    nested.growth,
+    nested.growthCount,
+    nested.followerGrowth,
+    nested.followerGrowthCount,
+    nested.delta,
+  ]
+  for (const value of candidates) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) return parsed
+    }
+  }
+  return null
+}
+
+function readBestPostUrl(entry: unknown): string {
+  const obj = _o(entry)
+  const analytics = _o(obj.analytics)
+  const nested = _o(obj.post ?? obj.content ?? obj.media ?? obj.metadata)
+  const sources = [obj, analytics, nested]
+  const keys = [
+    'permalink',
+    'permalinkUrl',
+    'permalink_url',
+    'postUrl',
+    'post_url',
+    'url',
+    'link',
+    'linkUrl',
+    'link_url',
+    'externalUrl',
+    'external_url',
+    'instagramUrl',
+    'instagram_url',
+  ]
+  for (const source of sources) {
+    for (const key of keys) {
+      const value = source[key]
+      if (typeof value === 'string' && value.trim()) return value.trim()
+    }
+  }
+  return ''
+}
+
+function readEngagementCount(entry: unknown): number {
+  const obj = _o(entry)
+  const analytics = _o(obj.analytics)
+  const candidates = [
+    analytics.engagements,
+    analytics.engagementCount,
+    analytics.totalEngagements,
+    analytics.engagement_total,
+    analytics.interactions,
+    obj.engagements,
+    obj.engagementCount,
+    obj.totalEngagements,
+  ]
+  for (const value of candidates) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) return parsed
+    }
+  }
+  return (
+    _n(analytics.likes ?? 0) +
+    _n(analytics.comments ?? 0) +
+    _n(analytics.shares ?? 0) +
+    _n(analytics.saves ?? 0) +
+    _n(analytics.clicks ?? 0)
+  )
+}
+
 function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | null {
   if (!raw || typeof raw !== 'object') return null
   const r = _o(raw)
@@ -69,6 +152,11 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
   const postsEnvelope = hasCombined ? _o(r.posts) : _o(r.data ?? r.result ?? r.response ?? r)
   const overview = _o(postsEnvelope.overview ?? postsEnvelope.summary ?? postsEnvelope.stats ?? postsEnvelope)
   const postsArr = _a<Record<string, unknown>>(postsEnvelope.posts ?? postsEnvelope.items ?? [])
+  const followerStatsEntries = hasCombined
+    ? _a<Record<string, unknown>>(
+        _o(r.followerStats).accounts ?? _o(r.followerStats).data ?? r.followerStats ?? []
+      )
+    : []
 
   // Aggregate per-post analytics
   const aggReach   = postsArr.reduce((s, p) => s + _n(_o(p.analytics).reach   ?? 0), 0)
@@ -128,6 +216,17 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
       }
     }
   }
+
+  const followerDeltaFromStats = (() => {
+    const deltas = followerStatsEntries
+      .map(entry => readNumericGrowth(entry))
+      .filter((value): value is number => value !== null)
+    if (deltas.length) {
+      const total = deltas.reduce((sum, value) => sum + value, 0)
+      return { value: Math.abs(total), positive: total >= 0 }
+    }
+    return null
+  })()
 
   // Prefer overview-level fields; fall back to aggregated per-post values
   const engRate   = _n(overview.engagementRate ?? overview.engagement_rate ?? overview.er_pct ?? overview.er) || aggEngRate
@@ -198,8 +297,9 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
   }
 
   // Top posts — analytics are nested under p.analytics in Zernio's schema
+  type EnrichedPost = PostingAnalytics['topPosts'][number] & { url?: string; engagements?: number }
   if (postsArr.length) {
-    result.topPosts = postsArr.slice(0, 10).map(p => {
+    const mappedPosts: EnrichedPost[] = postsArr.slice(0, 10).map(p => {
       const a = _o(p.analytics)
       return {
         platform:    _s(p.platform ?? ''),
@@ -214,8 +314,27 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
         impressions: _n(a.impressions ?? 0),
         reach:       _n(a.reach       ?? 0),
         erPct:       _n(a.engagementRate ?? 0),
+        engagements: readEngagementCount(p),
+        url:         readBestPostUrl(p),
       }
     })
+    result.topPosts = mappedPosts as PostingAnalytics['topPosts']
+    const bestPost = mappedPosts.reduce<EnrichedPost | null>((best, post) => {
+      if (!best) return post
+      return (post.engagements ?? 0) > (best.engagements ?? 0) ? post : best
+    }, null)
+    if (bestPost) {
+      result.stats = {
+        ...result.stats,
+        bestPost: {
+          ...result.stats.bestPost,
+          caption: bestPost.caption || result.stats.bestPost.caption,
+          platform: bestPost.platform || result.stats.bestPost.platform,
+          engagements: bestPost.engagements ?? result.stats.bestPost.engagements,
+          url: bestPost.url || undefined,
+        } as PostingAnalytics['stats']['bestPost'],
+      }
+    }
   }
 
   // ── Time series ────────────────────────────────────────────────────────────────
@@ -368,6 +487,28 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
         month:     _s(f.month ?? f.date ?? f.label ?? ''),
         followers: _n(f.followers ?? 0),
       }))
+    }
+  }
+
+  // Live mode should never fall back to mock deltas when Zernio exposes real data.
+  if (hasCombined) {
+    const followerDelta = followerDeltaFromStats
+      ?? (result.followerEvolution?.length
+        ? (() => {
+            const first = result.followerEvolution[0]?.followers ?? 0
+            const last  = result.followerEvolution[result.followerEvolution.length - 1]?.followers ?? 0
+            const diff  = last - first
+            return { value: Math.abs(diff), positive: diff >= 0 }
+          })()
+        : null)
+
+    result.stats = {
+      ...result.stats,
+      totalFollowers: totalFollowers || result.stats.totalFollowers,
+      followersDelta: followerDelta
+        ? `${followerDelta.value} in last 30d`
+        : '0 in last 30d',
+      followersDeltaPositive: followerDelta ? followerDelta.positive : true,
     }
   }
 
@@ -899,9 +1040,22 @@ function StatCards({ isMock }: { isMock: boolean }) {
                 <span className="text-[24px] font-[500] text-text leading-none">{s.bestPost.engagements}</span>
               </div>
               <p className="text-[11px] text-text-soft truncate">{s.bestPost.caption}</p>
-              <a href="#" className="text-[11px] text-[#3B82F6] font-medium mt-1 inline-flex items-center gap-0.5 hover:underline">
-                View <ExternalLink size={10} />
-              </a>
+              {(() => {
+                const bestPost = s.bestPost as typeof s.bestPost & { url?: string }
+                if (!bestPost.url) {
+                  return null
+                }
+                return (
+                  <a
+                    href={bestPost.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-[#3B82F6] font-medium mt-1 inline-flex items-center gap-0.5 hover:underline"
+                  >
+                    View <ExternalLink size={10} />
+                  </a>
+                )
+              })()}
             </div>
           ) : (
             <div>
