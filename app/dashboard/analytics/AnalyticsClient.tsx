@@ -840,7 +840,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
       return {
         x: bucket.x,
         y,
-        platform,
+        platform: platform.toLowerCase(),
         freqLabel: bucket.label,
       }
     })
@@ -849,11 +849,12 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
     const optimalByPlatform = new Map<string, { platform: string; label: string; cadence: string; engRate: number }>()
     for (const point of scatter) {
       if (!point.platform) continue
-      const current = optimalByPlatform.get(point.platform)
+      const platformKey = point.platform.toLowerCase()
+      const current = optimalByPlatform.get(platformKey)
       if (!current || point.y > current.engRate) {
-        optimalByPlatform.set(point.platform, {
-          platform: point.platform,
-          label: (PLATFORM_META as Record<string, { label: string }>)[point.platform]?.label ?? point.platform,
+        optimalByPlatform.set(platformKey, {
+          platform: platformKey,
+          label: (PLATFORM_META as Record<string, { label: string }>)[platformKey]?.label ?? point.platform,
           cadence: point.freqLabel,
           engRate: point.y,
         })
@@ -1961,8 +1962,8 @@ function PostingFrequencyChart({ isMock }: { isMock: boolean }) {
   const igColor  = '#3B82F6'
   const fbColor  = '#60A5FA'
 
-  const igData = data.filter(d => d.platform === 'instagram')
-  const fbData = data.filter(d => d.platform === 'facebook')
+  const igData = data.filter(d => d.platform?.toLowerCase() === 'instagram')
+  const fbData = data.filter(d => d.platform?.toLowerCase() === 'facebook')
   const maxY = Math.max(5, ...data.map(d => d.y), 0)
 
   const tickFormatter = (v: number) => {

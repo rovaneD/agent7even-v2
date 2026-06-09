@@ -210,6 +210,7 @@ export async function getConnectedPlatforms(profileId: string): Promise<string[]
 export interface SocialAnalyticsParams {
   profileId: string
   platform?: string   // omit for all platforms
+  accountId?: string
   fromDate: string
   toDate: string
 }
@@ -223,6 +224,7 @@ export async function getSocialAnalytics(params: SocialAnalyticsParams): Promise
       toDate: params.toDate,
     })
     if (params.platform) q.set('platform', params.platform)
+    if (params.accountId) q.set('accountId', params.accountId)
     return await zCall(`/analytics?${q}`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -282,7 +284,7 @@ export async function getProfileAccounts(
 }
 
 /** Daily time series — for Posts over time / Likes over time charts. */
-export async function getDailyAnalytics(params: { profileId: string; platform?: string; fromDate: string; toDate: string }): Promise<unknown> {
+export async function getDailyAnalytics(params: { profileId: string; platform?: string; accountId?: string; fromDate: string; toDate: string }): Promise<unknown> {
   try {
     const q = new URLSearchParams({
       profileId: params.profileId,
@@ -290,6 +292,7 @@ export async function getDailyAnalytics(params: { profileId: string; platform?: 
       toDate: params.toDate,
     })
     if (params.platform) q.set('platform', params.platform)
+    if (params.accountId) q.set('accountId', params.accountId)
     return await zCall(`/analytics/daily-metrics?${q}`)
   } catch (err) {
     console.error('[publisher] getDailyAnalytics failed:', err)

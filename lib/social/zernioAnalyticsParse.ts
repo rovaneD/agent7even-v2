@@ -79,7 +79,7 @@ export function postDedupeKey(post: Record<string, unknown>): string {
   return `${date}::${String(content).slice(0, 80)}`
 }
 
-const POST_URL_KEYS = [
+const EXPLICIT_POST_URL_KEYS = [
   'platformPostUrl',
   'platform_post_url',
   'permalink',
@@ -87,6 +87,9 @@ const POST_URL_KEYS = [
   'permalink_url',
   'postUrl',
   'post_url',
+] as const
+
+const FALLBACK_POST_URL_KEYS = [
   'externalUrl',
   'external_url',
   'instagramUrl',
@@ -95,6 +98,20 @@ const POST_URL_KEYS = [
   'link_url',
   'url',
   'link',
+] as const
+
+const SHORTCODE_KEYS = [
+  'shortCode',
+  'shortcode',
+  'mediaShortcode',
+  'platformShortcode',
+] as const
+
+const PLATFORM_POST_ID_KEYS = [
+  'platformPostId',
+  'platform_post_id',
+  'mediaId',
+  'media_id',
 ] as const
 
 function readStringField(obj: Record<string, unknown>, keys: readonly string[]): string {
@@ -130,16 +147,23 @@ export function looksLikePostUrl(url: string, platform?: string): boolean {
   return /\/(p|reel|tv|posts|video|share)\//.test(u)
 }
 
+function isLikelyInstagramShortcode(code: string): boolean {
+  const c = code.trim()
+  if (c.length < 8 || c.length > 15) return false
+  if (/^[a-f0-9]{24}$/i.test(c)) return false
+  if (/^\d+$/.test(c)) return false
+  return /^[A-Za-z0-9_-]+$/.test(c)
+}
+
+function shortcodeFromPostUrl(url: string): string {
+  const match = url.match(/instagram\.com\/(?:p|reel|tv)\/([^/?#]+)/i)
+  return match?.[1] ?? ''
+}
+
 function buildPostUrlFromShortcode(source: Record<string, unknown>, platform: string): string {
   const pl = platform.toLowerCase()
-  const shortcode = readStringField(source, [
-    'shortCode',
-    'shortcode',
-    'mediaShortcode',
-    'platformShortcode',
-    'code',
-  ])
-  if (!shortcode) return ''
+  const shortcode = readStringField(source, SHORTCODE_KEYS)
+  if (!shortcode || !isLikelyInstagramShortcode(shortcode)) return ''
 
   if (pl === 'instagram') {
     const mediaType = String(source.mediaType ?? source.type ?? source.postType ?? '').toLowerCase()
@@ -150,12 +174,43 @@ function buildPostUrlFromShortcode(source: Record<string, unknown>, platform: st
 }
 
 function readUrlFromSource(source: Record<string, unknown>, platform?: string): string {
-  const built = buildPostUrlFromShortcode(source, platform ?? String(source.platform ?? ''))
+  const pl = platform ?? String(source.platform ?? '')
+
+  const explicit = readStringField(source, EXPLICIT_POST_URL_KEYS)
+  if (explicit && looksLikePostUrl(explicit, pl)) return explicit
+
+  const built = buildPostUrlFromShortcode(source, pl)
   if (built) return built
 
-  const url = readStringField(source, POST_URL_KEYS)
-  if (url && looksLikePostUrl(url, platform ?? String(source.platform ?? ''))) return url
+  for (const key of FALLBACK_POST_URL_KEYS) {
+    const value = source[key]
+    if (typeof value === 'string' && value.trim() && looksLikePostUrl(value.trim(), pl)) {
+      return value.trim()
+    }
+  }
   return ''
+}
+
+function readPlatformPostId(source: Record<string, unknown>): string {
+  return readStringField(source, PLATFORM_POST_ID_KEYS)
+}
+
+function platformEntryMatchesPost(entry: Record<string, unknown>, postPlatformPostId: string): boolean {
+  if (!postPlatformPostId) return true
+  const entryId = readPlatformPostId(entry)
+  return entryId === postPlatformPostId
+}
+
+function sortPlatformEntriesForPost(
+  entries: Record<string, unknown>[],
+  postPlatformPostId: string,
+): Record<string, unknown>[] {
+  if (!postPlatformPostId) return entries
+  return [...entries].sort((a, b) => {
+    const aMatch = platformEntryMatchesPost(a, postPlatformPostId) ? 0 : 1
+    const bMatch = platformEntryMatchesPost(b, postPlatformPostId) ? 0 : 1
+    return aMatch - bMatch
+  })
 }
 
 /** Resolve the public post URL for a Zernio analytics post row. */
@@ -180,23 +235,44 @@ export function readBestPostUrl(entry: unknown, activePlatform?: string): string
     ...asArray(analytics.platform_analytics),
   ] as Record<string, unknown>[]
 
+  const postPlatformPostId = readPlatformPostId(obj) || readPlatformPostId(analytics)
+
   const scopedEntries = platformFilter
     ? platformEntries.filter((p) => String(p.platform ?? '').toLowerCase() === platformFilter)
     : platformEntries
 
-  // Platform analytics rows are authoritative — check these before generic post fields.
-  for (const entryRow of scopedEntries.length ? scopedEntries : platformEntries) {
+  const candidateEntries = sortPlatformEntriesForPost(
+    scopedEntries.length ? scopedEntries : platformEntries,
+    postPlatformPostId,
+  )
+
+  // Platform analytics rows carry platformPostUrl — always prefer these over root post fields.
+  for (const entryRow of candidateEntries) {
     const pl = String(entryRow.platform ?? platformFilter ?? postPlatform ?? '')
     const url = readUrlFromSource(entryRow, pl)
     if (url) return url
   }
 
-  const fallbacks = [obj, analytics, obj.post, obj.content, obj.media, obj.metadata]
+  // If a platform row only has platformPostId, derive shortcode from sibling URL fields on the post.
+  if (postPlatformPostId && isLikelyInstagramShortcode(postPlatformPostId)) {
+    const built = buildPostUrlFromShortcode(
+      { shortcode: postPlatformPostId, platform: postPlatform },
+      postPlatform,
+    )
+    if (built) return built
+  }
+
+  const fallbacks = [analytics, obj.post, obj.content, obj.media, obj.metadata, obj]
     .filter((v): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v))
 
   for (const source of fallbacks) {
     const url = readUrlFromSource(source, platformFilter || postPlatform)
-    if (url) return url
+    if (!url) continue
+    if (postPlatformPostId && isLikelyInstagramShortcode(postPlatformPostId)) {
+      const urlShortcode = shortcodeFromPostUrl(url)
+      if (urlShortcode && urlShortcode !== postPlatformPostId) continue
+    }
+    return url
   }
 
   return ''

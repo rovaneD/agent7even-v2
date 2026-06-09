@@ -66,15 +66,32 @@ export async function GET(req: NextRequest) {
   const results = await Promise.all(
     zernioProfileIds.map(async (pId) => {
       try {
-        const [rawPostData, accounts, dailyData, followerStats, bestTimesData, postingFrequencyData, contentDecayData] = await Promise.all([
-          publisher.getSocialAnalytics({ profileId: pId, platform, fromDate, toDate }),
-          publisher.getProfileAccounts(pId),
-          publisher.getDailyAnalytics({ profileId: pId, platform, fromDate, toDate }),
-          publisher.getFollowerStats({ profileId: pId, fromDate, toDate, granularity: 'daily' }),
-          // Zernio clears these when platform= is set — always fetch profile-scoped, filter in UI
-          publisher.getBestTimeToPost({ profileId: pId, source: 'all' }),
-          publisher.getPostingFrequency({ profileId: pId, source: 'all' }),
-          publisher.getContentDecay({ profileId: pId, source: 'all' }),
+        const accounts = await publisher.getProfileAccounts(pId)
+        const scopedAccounts = platform
+          ? accounts.filter(a => a.platform.toLowerCase() === platform.toLowerCase())
+          : accounts
+        const primaryAccountId = scopedAccounts[0]?.id ?? accounts[0]?.id
+        const scopedAccountIds = scopedAccounts.length
+          ? scopedAccounts.map(a => a.id)
+          : accounts.map(a => a.id)
+
+        const rangeParams = { profileId: pId, platform, fromDate, toDate, accountId: primaryAccountId }
+        const secondaryParams = { profileId: pId, source: 'all' as const, accountId: primaryAccountId }
+
+        const [rawPostData, dailyData, followerStats, bestTimesData, postingFrequencyData, contentDecayData] = await Promise.all([
+          publisher.getSocialAnalytics(rangeParams),
+          publisher.getDailyAnalytics(rangeParams),
+          publisher.getFollowerStats({
+            profileId: pId,
+            accountIds: scopedAccountIds.length ? scopedAccountIds : undefined,
+            fromDate,
+            toDate,
+            granularity: 'daily',
+          }),
+          // Never pass platform= — Zernio clears these; scope via accountId instead
+          publisher.getBestTimeToPost(secondaryParams),
+          publisher.getPostingFrequency(secondaryParams),
+          publisher.getContentDecay(secondaryParams),
         ])
         return { pId, rawPostData, accounts, dailyData, followerStats, bestTimesData, postingFrequencyData, contentDecayData }
       } catch (err) {
