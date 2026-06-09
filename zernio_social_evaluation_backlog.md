@@ -1,0 +1,122 @@
+# Social Scheduling Integration — Zernio Evaluation
+*Backlog entry. EVALUATION, not a build. Snapshot: June 4, 2026.*
+*Append to CONTEXTV11 successor as queue item #19-class; gated — see decision gates.*
+
+## Why this exists
+
+Maya's closed loop is: campaign calendar -> create post -> schedule/publish directly from
+Maya. The calendar and create steps are Maya-native. The schedule/publish step needs an
+external publisher. Buffer was the obvious candidate and is now RULED OUT (see below), so
+this entry evaluates the replacement.
+
+## Buffer is out (settled)
+
+- Legacy REST API: OAuth 2.0 exists but Buffer stopped accepting new developer app
+  registrations — no new client_id, so no OAuth flow to build.
+- New GraphQL API: public beta, personal API keys only; third-party end-user OAuth (what a
+  multi-tenant SaaS needs) is not enabled.
+- Net: no path for Maya's users to connect their own socials through Maya. Per-user
+  personal-key-paste is a non-starter. Confirmed June 4, 2026.
+- Publer is similar — dashboard-first, not API-first/white-label for multi-tenant. Also out.
+
+## Candidate: Zernio (https://zernio.com)
+
+Why it fits where Buffer didn't:
+- Multi-tenant OAuth-as-a-service: users link their own social accounts via one OAuth flow,
+  no per-platform developer apps. This is the exact blocker Buffer couldn't clear.
+- Fully white-label: end users never see Zernio branding. Maya stays the only surface.
+- Per-account pricing: first 2 accounts free, then $6/acct (3-10), $3/acct (11-100),
+  $1/acct (101-2,000), all features included, no tiers. Maps cleanly to the credit ledger —
+  each connected client account is one predictable line item.
+- Closes the loop AND the analytics gap: Posting, Analytics, Comments, Messaging, Ads APIs.
+  Publish/fail WEBHOOKS provide the reconciliation layer the closed loop needs (no polling).
+- Platform breadth (15): IG, FB, TikTok, LinkedIn, YouTube, X, Threads, Pinterest, Google
+  Business, Bluesky, Reddit, Telegram, WhatsApp, Snapchat, Discord. Covers SMB needs.
+- Ships an MCP server (280+ tools) for AI-agent publishing — possible future path, but a
+  production multi-tenant flow will use the REST Posting API with our own per-tenant control.
+
+Scope for Maya's FIRST build (when it happens): Posting API ONLY. Analytics is phase 2;
+Comments/Messaging/Ads are out of current scope (ads especially — liability + not SMB-core).
+
+## Risks to resolve BEFORE committing (this is the gate)
+
+Zernio is a small vendor (self-described team of five). For an internal tool that's fine;
+as the load-bearing layer under Maya's core promise, vendor maturity is a real risk — if
+Zernio has an outage or slow incident response, Maya looks broken to the client (white-label
+means they don't know Zernio exists; we inherit Zernio's reliability as our own).
+
+Vendor questions and current status (as of June 4, 2026 webchat with Ana + escalation):
+
+1. TENANT ISOLATION - **OPEN / HARD BLOCKER.** Can we issue per-tenant scoped API keys, or
+   is isolation purely a shared key + profileId parameter? Ana did not guess; escalated to a
+   teammate to confirm scoping options and the best multi-tenant pattern. This is the single
+   biggest unknown - a leaked shared key exposing all clients is unacceptable and must match
+   the ownership-scoping rigor from the June 2 audit. Do NOT move Zernio off "evaluation"
+   until this is answered in writing.
+2. COST CAPS - **ANSWERED (partial).** No per-workspace/per-account caps inside Zernio. The
+   only lever is a hard spending limit in Stripe via zernio.com/dashboard/billing. That
+   protects us from a runaway bill but bluntly - hitting the cap can halt ALL publishing
+   rather than throttling one tenant. => Per-tenant rate limiting (connections + publishes)
+   must live in OUR lib/social/publisher.ts. Treat the Stripe cap as a global backstop only.
+   Note X/Twitter API costs are passed through per-call - confirm the cap covers pass-through.
+3. SUPPORT + RELIABILITY - **trending OK, one data point.** Real human, prompt, honest "let
+   me check" rather than a bluff. For a ~5-person team that's a positive early signal, but
+   still confirm: incident response commitment, status page, breaking-change notice policy,
+   realistic support response time. The teammate's response speed on Q1 is the next data point.
+4. DATA HANDLING / DPA - **NEW, OPEN.** What's their data-processing agreement and retention
+   posture for end-user social tokens and connected-account data? Under white-label, our SMB
+   clients never see Zernio, but Zernio still holds their credentials/connected-account data.
+   Confirm before any real client data flows. (Prompted by Ana referencing our account email
+   in plain chat - a reminder that Zernio sees which of our accounts map to activity.)
+
+Fallback if Zernio fails the gate: Postproxy claims scoped per-client keys, profile-group
+pricing (caps surge exposure), and a higher uptime SLA — but verify its analytics depth and
+platform coverage separately. (Postproxy framing came from their own Zernio comparison —
+treat as adversarial, verify independently.)
+
+## Architecture requirement (build behind a swappable interface)
+
+Whichever vendor wins, the social layer MUST be a thin internal abstraction so the vendor
+is swappable — same pattern as lib/research/exa.ts. Do not let vendor specifics leak into
+Maya's agents or canvas.
+
+    lib/social/publisher.ts   (interface — implementation chosen after the gate)
+      connectAccount(userId, platform)      -> OAuth handoff, store per-tenant connection
+      listChannels(userId)                  -> connected accounts for this tenant
+      schedulePost(userId, payload)         -> validate per-platform rules, schedule
+      onPublishResult(webhook)              -> reconcile publish/fail back to the calendar slot
+
+Rules carried from prior architecture decisions:
+- schedulePost is a side-effectful publish action -> human approval gate (per the agent
+  brand-safety constraints) before it fires.
+- Validate the post payload against each platform's rules BEFORE scheduling (IG business-
+  account requirement, media-hosting, aspect/length, carousel/Reels/Stories support vary).
+- Reconciliation via the publish/fail webhook is mandatory — a silently failed scheduled
+  post breaks the core promise. Surface failures on the calendar.
+- Log the publish action + any pass-through cost to credit_ledger via lib/credits.ts as a
+  distinct "publish" line item, separate from LLM token cost.
+- Per-tenant connection stored scoped to the client (never one shared credential across
+  tenants).
+
+## Decision gates (do not build until BOTH are true)
+
+1. The Exa Foundation pre-fill A/B test (queue #18) has shown value — we don't expand the
+   external-integration surface until the cheapest grounding test pays off. (Independent
+   rationale: social scheduling is a bigger build; sequence behind the validated win.)
+2. Zernio has answered the OPEN questions acceptably - tenant isolation (Q1) and data
+   handling/DPA (Q4) in particular - or a fallback vendor has. (Q2 cost caps answered; Q3
+   support trending OK.)
+
+Validation approach when unblocked: build the publisher interface, wire Zernio behind it on
+the FREE tier (2 accounts), validate the full schedule->publish->reconcile loop AND Zernio's
+support responsiveness with test accounts, before any real client depends on it. Mirror the
+Exa free-tier-first discipline.
+
+## AGENTS.md rule update (apply now)
+
+Replace the Buffer/Later/Publer line with:
+> Social scheduling: Buffer is out (no multi-tenant OAuth for new developers in 2026).
+> Publer is dashboard-first, also out. Leading candidate is Zernio (multi-tenant OAuth,
+> white-label, per-account pricing, publish/fail webhooks) — pending three verification
+> questions (tenant isolation, cost caps, support/reliability). Build behind a swappable
+> lib/social/publisher.ts interface. Do not attempt Buffer OAuth.
