@@ -413,3 +413,210 @@ export async function getInboxSummary(params: InboxSummaryParams): Promise<unkno
 export function dateRangeToWindow(dateRange: string): { fromDate: string; toDate: string } {
   return getDateWindow(dateRange)
 }
+
+// ── Posts (scheduling / publishing) ───────────────────────────────────────────
+
+export type ZernioPostPlatformTarget = {
+  platform: string
+  accountId: string
+  customContent?: string
+  platformSpecificData?: Record<string, unknown>
+}
+
+export type CreatePostParams = {
+  content?: string
+  title?: string
+  profileId: string
+  platforms?: ZernioPostPlatformTarget[]
+  scheduledFor?: string
+  timezone?: string
+  publishNow?: boolean
+  isDraft?: boolean
+  queuedFromProfile?: string
+  queueId?: string
+  mediaItems?: Array<{ type: string; url: string; title?: string }>
+  requestId?: string
+}
+
+export type UpdatePostParams = Partial<Omit<CreatePostParams, 'profileId' | 'requestId'>>
+
+export type ListPostsParams = {
+  profileId?: string
+  accountId?: string
+  platform?: string
+  status?: 'draft' | 'scheduled' | 'published' | 'failed'
+  page?: number
+  limit?: number
+  sortBy?: string
+  search?: string
+  dateFrom?: string
+  dateTo?: string
+}
+
+function postsQuery(params: ListPostsParams): URLSearchParams {
+  const q = new URLSearchParams()
+  if (params.profileId) q.set('profileId', params.profileId)
+  if (params.accountId) q.set('accountId', params.accountId)
+  if (params.platform) q.set('platform', params.platform)
+  if (params.status) q.set('status', params.status)
+  if (params.page) q.set('page', String(params.page))
+  if (params.limit) q.set('limit', String(params.limit))
+  if (params.sortBy) q.set('sortBy', params.sortBy)
+  if (params.search) q.set('search', params.search)
+  if (params.dateFrom) q.set('dateFrom', params.dateFrom)
+  if (params.dateTo) q.set('dateTo', params.dateTo)
+  return q
+}
+
+/** List queue schedules for a profile. Returns [] on failure. */
+export async function listQueueSlots(
+  profileId: string,
+  options?: { all?: boolean },
+): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({ profileId })
+    if (options?.all !== false) q.set('all', 'true')
+    return await zCall(`/queue/slots?${q}`)
+  } catch (err) {
+    console.error('[publisher] listQueueSlots failed:', err)
+    return null
+  }
+}
+
+/** List posts from Zernio. Returns null on failure. */
+export async function listPosts(params: ListPostsParams): Promise<unknown> {
+  try {
+    const q = postsQuery(params)
+    return await zCall(`/posts?${q}`)
+  } catch (err) {
+    console.error('[publisher] listPosts failed:', err)
+    return null
+  }
+}
+
+/** Fetch a single post by Zernio post ID. */
+export async function getPost(postId: string): Promise<unknown> {
+  try {
+    return await zCall(`/posts/${encodeURIComponent(postId)}`)
+  } catch (err) {
+    console.error('[publisher] getPost failed:', err)
+    return null
+  }
+}
+
+/** Create, schedule, draft, or publish a post. Throws on hard failures. */
+export async function createPost(params: CreatePostParams): Promise<unknown> {
+  const body: Record<string, unknown> = {
+    content: params.content,
+    profileId: params.profileId,
+  }
+  if (params.title) body.title = params.title
+  if (params.platforms?.length) body.platforms = params.platforms
+  if (params.scheduledFor) body.scheduledFor = params.scheduledFor
+  if (params.timezone) body.timezone = params.timezone
+  if (params.publishNow) body.publishNow = true
+  if (params.isDraft) body.isDraft = true
+  if (params.queuedFromProfile) body.queuedFromProfile = params.queuedFromProfile
+  if (params.queueId) body.queueId = params.queueId
+  if (params.mediaItems?.length) body.mediaItems = params.mediaItems
+
+  const headers: Record<string, string> = {}
+  if (params.requestId) headers['x-request-id'] = params.requestId
+
+  return await zCall('/posts', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers,
+  })
+}
+
+/** Update a draft or scheduled post. */
+export async function updatePost(postId: string, params: UpdatePostParams): Promise<unknown> {
+  const body: Record<string, unknown> = {}
+  if (params.content !== undefined) body.content = params.content
+  if (params.title !== undefined) body.title = params.title
+  if (params.platforms) body.platforms = params.platforms
+  if (params.scheduledFor) body.scheduledFor = params.scheduledFor
+  if (params.timezone) body.timezone = params.timezone
+  if (params.publishNow !== undefined) body.publishNow = params.publishNow
+  if (params.isDraft !== undefined) body.isDraft = params.isDraft
+  if (params.queuedFromProfile) body.queuedFromProfile = params.queuedFromProfile
+  if (params.queueId) body.queueId = params.queueId
+  if (params.mediaItems) body.mediaItems = params.mediaItems
+
+  return await zCall(`/posts/${encodeURIComponent(postId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+}
+
+/** Delete a draft or scheduled post. Returns false on failure. */
+export async function deletePost(postId: string): Promise<boolean> {
+  try {
+    await zCall(`/posts/${encodeURIComponent(postId)}`, { method: 'DELETE' })
+    return true
+  } catch (err) {
+    console.error('[publisher] deletePost failed:', err)
+    return false
+  }
+}
+
+// ── Media (presigned upload) ──────────────────────────────────────────────────
+
+export type PresignMediaResult = {
+  uploadUrl: string
+  publicUrl: string
+  mediaType: 'image' | 'video'
+}
+
+/** Request a presigned URL from Zernio for direct cloud upload. */
+export async function presignMedia(params: {
+  filename: string
+  contentType: string
+  size?: number
+}): Promise<PresignMediaResult | null> {
+  try {
+    const raw = await zCall<Record<string, unknown>>('/media/presign', {
+      method: 'POST',
+      body: JSON.stringify({
+        filename: params.filename,
+        contentType: params.contentType,
+        ...(params.size != null ? { size: params.size } : {}),
+      }),
+    })
+    const data = (raw.data ?? raw) as Record<string, unknown>
+    const uploadUrl = String(data.uploadUrl ?? '')
+    const publicUrl = String(data.publicUrl ?? '')
+    if (!uploadUrl || !publicUrl) return null
+    const hinted = String(data.type ?? '').toLowerCase()
+    const mediaType: 'image' | 'video' =
+      hinted === 'video' || params.contentType.startsWith('video/') ? 'video' : 'image'
+    return { uploadUrl, publicUrl, mediaType }
+  } catch (err) {
+    console.error('[publisher] presignMedia failed:', err)
+    return null
+  }
+}
+
+/** PUT file bytes to Zernio's presigned upload URL (no auth header). */
+export async function uploadToPresignedUrl(
+  uploadUrl: string,
+  body: ArrayBuffer,
+  contentType: string,
+): Promise<boolean> {
+  try {
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body,
+    })
+    if (!res.ok) {
+      console.error('[publisher] presigned PUT failed:', res.status, await res.text().catch(() => ''))
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[publisher] presigned PUT error:', err)
+    return false
+  }
+}

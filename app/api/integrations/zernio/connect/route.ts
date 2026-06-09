@@ -11,8 +11,15 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const { platform } = body as { platform?: string }
+  const { platform, returnTo: rawReturnTo } = body as { platform?: string; returnTo?: string }
   if (!platform) return NextResponse.json({ error: 'platform is required' }, { status: 400 })
+
+  const returnTo =
+    typeof rawReturnTo === 'string' &&
+    rawReturnTo.startsWith('/dashboard') &&
+    !rawReturnTo.includes('://')
+      ? rawReturnTo.split('?')[0]
+      : '/dashboard/analytics'
 
   const supabase = createServiceClient()
   const { data: profile } = await supabase
@@ -90,7 +97,7 @@ export async function POST(req: Request) {
 
   // Create CSRF nonce — provider is scoped per platform so two simultaneous connects don't collide
   const nonce = await createOAuthState(userId, `zernio:${platform}`)
-  const callbackUrl = `${callbackBase}/api/integrations/zernio/callback?state=${nonce}`
+  const callbackUrl = `${callbackBase}/api/integrations/zernio/callback?state=${nonce}&returnTo=${encodeURIComponent(returnTo)}`
   console.log('[zernio/connect] callbackUrl:', callbackUrl)
 
   let authUrl: string

@@ -8,6 +8,17 @@ const APP_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : process.env.NEXT_PUBLIC_APP_URL!
 
+function safeReturnPath(returnTo: string | null): string {
+  if (
+    returnTo &&
+    returnTo.startsWith('/dashboard') &&
+    !returnTo.includes('://')
+  ) {
+    return returnTo.split('?')[0]
+  }
+  return '/dashboard/analytics'
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
 
@@ -23,16 +34,17 @@ export async function GET(req: NextRequest) {
   const accountId = searchParams.get('accountId')
   const username  = searchParams.get('username')
   const error     = searchParams.get('error')
+  const returnPath = safeReturnPath(searchParams.get('returnTo'))
 
   if (error || !nonce || !platform) {
     console.log('[zernio/callback] missing state/platform — redirecting with error. nonce:', nonce, 'platform:', platform, 'error:', error)
-    return NextResponse.redirect(`${APP_URL}/dashboard/analytics?zernio_error=access_denied`)
+    return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=access_denied`)
   }
 
   // Validate nonce — single-use, bound to clerk_id + platform, expires in 10 min
   const clerkId = await consumeOAuthState(nonce, `zernio:${platform}`)
   if (!clerkId) {
-    return NextResponse.redirect(`${APP_URL}/dashboard/analytics?zernio_error=invalid_state`)
+    return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=invalid_state`)
   }
 
   const supabase = createServiceClient()
@@ -43,7 +55,7 @@ export async function GET(req: NextRequest) {
     .single()
 
   if (!profile) {
-    return NextResponse.redirect(`${APP_URL}/dashboard/analytics?zernio_error=profile_not_found`)
+    return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=profile_not_found`)
   }
 
   const existingIds = (profile.zernio_profile_ids as string[] | null) ?? []
@@ -64,7 +76,7 @@ export async function GET(req: NextRequest) {
       .eq('id', profile.id)
     if (profileUpdateErr) {
       console.error('[zernio/callback] failed to store zernio_profile_id / zernio_profile_ids:', profileUpdateErr)
-      return NextResponse.redirect(`${APP_URL}/dashboard/analytics?zernio_error=save_failed`)
+      return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=save_failed`)
     }
   }
 
@@ -80,11 +92,11 @@ export async function GET(req: NextRequest) {
 
     if (updateErr) {
       console.error('[zernio/callback] failed to store connected platform:', updateErr)
-      return NextResponse.redirect(`${APP_URL}/dashboard/analytics?zernio_error=save_failed`)
+      return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=save_failed`)
     }
   }
 
   return NextResponse.redirect(
-    `${APP_URL}/dashboard/analytics?zernio_connected=${encodeURIComponent(platform)}${accountId ? `&zernio_account_id=${encodeURIComponent(accountId)}` : ''}${username ? `&zernio_username=${encodeURIComponent(username)}` : ''}`,
+    `${APP_URL}${returnPath}?zernio_connected=${encodeURIComponent(platform)}${accountId ? `&zernio_account_id=${encodeURIComponent(accountId)}` : ''}${username ? `&zernio_username=${encodeURIComponent(username)}` : ''}`,
   )
 }
