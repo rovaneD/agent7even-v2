@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const profileId = profile.zernio_profile_id as string
   const { fromDate, toDate } = publisher.dateRangeToWindow(dateRange)
 
-  const [rawPostData, accounts, dailyData, followerStats, bestTimesData] = await Promise.all([
+  const [rawPostData, accounts, dailyData, followerStats, bestTimesData, postingFrequencyData, contentDecayData] = await Promise.all([
     publisher.getSocialAnalytics({ profileId, platform, fromDate, toDate }),
     publisher.getProfileAccounts(profileId),
     publisher.getDailyAnalytics({ profileId, platform, fromDate, toDate }),
@@ -36,6 +36,14 @@ export async function GET(req: NextRequest) {
       ? Promise.resolve(null)
       : publisher.getFollowerStats({ profileId, fromDate, toDate, granularity: 'daily' }),
     publisher.getBestTimeToPost({
+      profileId,
+      platform,
+    }),
+    publisher.getPostingFrequency({
+      profileId,
+      platform,
+    }),
+    publisher.getContentDecay({
       profileId,
       platform,
     }),
@@ -114,5 +122,7 @@ export async function GET(req: NextRequest) {
     followerStats: normalizedFollowerStats,
     allAccounts: resolvedAccounts,
     bestTimes: bestTimesData,
+    postingFrequency: postingFrequencyData,
+    contentDecay: contentDecayData,
   })
 }

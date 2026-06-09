@@ -291,6 +291,34 @@ export async function getBestTimeToPost(params: { profileId?: string; accountId?
   }
 }
 
+/** Posting frequency vs engagement — for the scatter plot and cadence summary. */
+export async function getPostingFrequency(params: { profileId: string; platform?: string; accountId?: string; source?: 'all' | 'late' | 'external' }): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({ profileId: params.profileId })
+    if (params.platform) q.set('platform', params.platform)
+    if (params.accountId) q.set('accountId', params.accountId)
+    if (params.source) q.set('source', params.source)
+    return await zCall(`/analytics/posting-frequency?${q}`)
+  } catch (err) {
+    console.error('[publisher] getPostingFrequency failed:', err)
+    return null
+  }
+}
+
+/** Content decay / engagement accumulation curve. */
+export async function getContentDecay(params: { profileId: string; platform?: string; accountId?: string; source?: 'all' | 'late' | 'external' }): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({ profileId: params.profileId })
+    if (params.platform) q.set('platform', params.platform)
+    if (params.accountId) q.set('accountId', params.accountId)
+    if (params.source) q.set('source', params.source)
+    return await zCall(`/analytics/content-decay?${q}`)
+  } catch (err) {
+    console.error('[publisher] getContentDecay failed:', err)
+    return null
+  }
+}
+
 /** Account follower stats for connected accounts. */
 export async function getFollowerStats(params: {
   profileId: string

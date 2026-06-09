@@ -83,7 +83,8 @@ function readBestPostUrl(entry: unknown): string {
   const analytics = _o(obj.analytics)
   const nested = _o(obj.post ?? obj.content ?? obj.media ?? obj.metadata)
   const platformAnalytics = _a<Record<string, unknown>>(obj.platformAnalytics ?? obj.platform_analytics ?? [])
-  const sources = [obj, analytics, nested, ...platformAnalytics]
+  const nestedPlatformAnalytics = _a<Record<string, unknown>>(analytics.platformAnalytics ?? analytics.platform_analytics ?? [])
+  const sources = [obj, analytics, nested, ...platformAnalytics, ...nestedPlatformAnalytics]
   const keys = [
     'platformPostUrl',
     'platform_post_url',
@@ -139,6 +140,47 @@ function readEngagementCount(entry: unknown): number {
   )
 }
 
+function readDailyMetrics(entry: unknown): Record<string, unknown> {
+  const obj = _o(entry)
+  return _o(obj.metrics ?? obj.metric ?? obj.data ?? obj.stats)
+}
+
+function pctFromValue(value: unknown): number {
+  const n = _n(value)
+  if (!n) return 0
+  return n <= 1 ? n * 100 : n
+}
+
+function bucketLabelForPostsPerWeek(postsPerWeek: number): { x: number; label: string } {
+  if (postsPerWeek < 1) return { x: 1, label: '< 1/wk' }
+  if (postsPerWeek < 3) return { x: 2, label: '1–2/wk' }
+  if (postsPerWeek < 5) return { x: 3, label: '3–4/wk' }
+  return { x: 4, label: '5+/wk' }
+}
+
+function normalizeDayIndex(day: number): number {
+  if (!Number.isFinite(day)) return 0
+  const normalized = ((day % 7) + 7) % 7
+  // Zernio uses day-of-week data with Sunday = 0; our UI is Mon-Sun.
+  return (normalized + 6) % 7
+}
+
+function hourToHeatmapIndex(hour: number): number {
+  if (!Number.isFinite(hour)) return 0
+  const rounded = Math.max(0, Math.min(23, Math.round(hour)))
+  const buckets = [0, 3, 6, 9, 12, 15, 18, 21]
+  let best = 0
+  let bestDiff = Number.POSITIVE_INFINITY
+  for (let i = 0; i < buckets.length; i++) {
+    const diff = Math.abs(rounded - buckets[i])
+    if (diff < bestDiff) {
+      bestDiff = diff
+      best = i
+    }
+  }
+  return best
+}
+
 function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | null {
   if (!raw || typeof raw !== 'object') return null
   const r = _o(raw)
@@ -155,6 +197,16 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
   const postsEnvelope = hasCombined ? _o(r.posts) : _o(r.data ?? r.result ?? r.response ?? r)
   const overview = _o(postsEnvelope.overview ?? postsEnvelope.summary ?? postsEnvelope.stats ?? postsEnvelope)
   const postsArr = _a<Record<string, unknown>>(postsEnvelope.posts ?? postsEnvelope.items ?? [])
+  const dailyEnvelope = hasCombined ? _o(r.daily) : {}
+  const dailyStats = hasCombined
+    ? _a<Record<string, unknown>>(dailyEnvelope.stats ?? dailyEnvelope.dailyData ?? dailyEnvelope.data ?? [])
+    : []
+  const dailyPlatformBreakdown = hasCombined
+    ? _a<Record<string, unknown>>(dailyEnvelope.platformBreakdown ?? dailyEnvelope.platform_breakdown ?? [])
+    : []
+  const bestTimesRaw = hasCombined ? _o(r.bestTimes) : {}
+  const postingFrequencyRaw = hasCombined ? _o(r.postingFrequency) : {}
+  const contentDecayRaw = hasCombined ? _o(r.contentDecay) : {}
   const followerStatsEntries = hasCombined
     ? _a<Record<string, unknown>>(
         _o(r.followerStats).accounts ?? _o(r.followerStats).data ?? r.followerStats ?? []
@@ -163,9 +215,48 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
 
   // Aggregate per-post analytics
   const aggReach   = postsArr.reduce((s, p) => s + _n(_o(p.analytics).reach   ?? 0), 0)
-  const aggLikes   = postsArr.reduce((s, p) => s + _n(_o(p.analytics).likes   ?? 0), 0)
   const erValues   = postsArr.map(p => _n(_o(p.analytics).engagementRate ?? 0)).filter(v => v > 0)
   const aggEngRate = erValues.length ? erValues.reduce((a, b) => a + b, 0) / erValues.length : 0
+  const dailyTotals = dailyStats.reduce<{
+    posts: number
+    likes: number
+    comments: number
+    shares: number
+    saves: number
+    clicks: number
+    views: number
+    impressions: number
+    reach: number
+    engagements: number
+  }>((acc, stat) => {
+    const metrics = readDailyMetrics(stat)
+    acc.posts += _n(stat.posts ?? stat.postCount ?? stat.post_count ?? metrics.posts ?? 0)
+    acc.likes += _n(metrics.likes ?? stat.likes ?? 0)
+    acc.comments += _n(metrics.comments ?? stat.comments ?? 0)
+    acc.shares += _n(metrics.shares ?? stat.shares ?? 0)
+    acc.saves += _n(metrics.saves ?? stat.saves ?? 0)
+    acc.clicks += _n(metrics.clicks ?? stat.clicks ?? 0)
+    acc.views += _n(metrics.views ?? stat.views ?? 0)
+    acc.impressions += _n(metrics.impressions ?? stat.impressions ?? 0)
+    acc.reach += _n(metrics.reach ?? stat.reach ?? 0)
+    acc.engagements += _n(metrics.likes ?? stat.likes ?? 0) +
+      _n(metrics.comments ?? stat.comments ?? 0) +
+      _n(metrics.shares ?? stat.shares ?? 0) +
+      _n(metrics.saves ?? stat.saves ?? 0) +
+      _n(metrics.clicks ?? stat.clicks ?? 0)
+    return acc
+  }, {
+    posts: 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    saves: 0,
+    clicks: 0,
+    views: 0,
+    impressions: 0,
+    reach: 0,
+    engagements: 0,
+  })
 
   // totalFollowers — read from followerStats (dedicated endpoint) or allAccounts fallback
   let totalFollowers = 0
@@ -232,10 +323,19 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
   })()
 
   // Prefer overview-level fields; fall back to aggregated per-post values
-  const engRate   = _n(overview.engagementRate ?? overview.engagement_rate ?? overview.er_pct ?? overview.er) || aggEngRate
-  const reach     = _n(overview.totalReach ?? overview.total_reach ?? overview.reach) || aggReach
+  const liveEngRate = dailyTotals.reach > 0
+    ? Number(((dailyTotals.engagements / dailyTotals.reach) * 100).toFixed(1))
+    : 0
+  const engRate   = liveEngRate
+    || _n(overview.engagementRate ?? overview.engagement_rate ?? overview.er_pct ?? overview.er)
+    || aggEngRate
+  const reach     = dailyTotals.reach
+    || _n(overview.totalReach ?? overview.total_reach ?? overview.reach)
+    || aggReach
   const followers = totalFollowers || _n(overview.totalFollowers ?? overview.total_followers ?? overview.followers)
-  const posts     = _n(overview.totalPosts ?? overview.postsCount ?? overview.posts_count ?? overview.total_posts ?? overview.posts) || postsArr.length
+  const posts     = dailyTotals.posts
+    || _n(overview.totalPosts ?? overview.postsCount ?? overview.posts_count ?? overview.total_posts ?? overview.posts)
+    || postsArr.length
 
   if (!engRate && !reach && !followers && !posts) return null
 
@@ -244,7 +344,11 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
     stats: {
       ...MOCK_POSTING_ANALYTICS.stats,
       engagementRate:  engRate   || MOCK_POSTING_ANALYTICS.stats.engagementRate,
+      engRateDelta:    hasCombined ? 'new' : MOCK_POSTING_ANALYTICS.stats.engRateDelta,
+      engRateDeltaPositive: true,
       totalReach:      reach     || MOCK_POSTING_ANALYTICS.stats.totalReach,
+      reachDelta:      hasCombined ? 'new' : MOCK_POSTING_ANALYTICS.stats.reachDelta,
+      reachDeltaPositive: true,
       // In combined (live) mode, always use the real follower count (even 0) — never mock
       totalFollowers:  hasCombined ? totalFollowers : (followers || MOCK_POSTING_ANALYTICS.stats.totalFollowers),
       postsThisPeriod: posts     || MOCK_POSTING_ANALYTICS.stats.postsThisPeriod,
@@ -252,7 +356,44 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
   }
 
   // Platform breakdown — Zernio doesn't pre-aggregate; group from posts[]
-  if (postsArr.length) {
+  if (dailyPlatformBreakdown.length) {
+    result.platformPosts = dailyPlatformBreakdown.map((entry) => {
+      const metrics = readDailyMetrics(entry)
+      const platform = _s(entry.platform ?? entry.platformName ?? '')
+      return {
+        platform,
+        label:    (PLATFORM_META as Record<string, { label: string }>)[platform]?.label ?? platform,
+        posts:    _n(entry.posts ?? entry.postCount ?? entry.post_count ?? metrics.posts ?? 0),
+      }
+    })
+    result.platformLikes = dailyPlatformBreakdown.map((entry) => {
+      const metrics = readDailyMetrics(entry)
+      const platform = _s(entry.platform ?? entry.platformName ?? '')
+      return {
+        platform,
+        label:    (PLATFORM_META as Record<string, { label: string }>)[platform]?.label ?? platform,
+        likes:    _n(metrics.likes ?? entry.likes ?? 0),
+      }
+    })
+    result.platformBreakdown = dailyPlatformBreakdown.map((entry) => {
+      const metrics = readDailyMetrics(entry)
+      const platform = _s(entry.platform ?? entry.platformName ?? '')
+      return {
+        platform,
+        label:       (PLATFORM_META as Record<string, { label: string }>)[platform]?.label ?? platform,
+        posts:       _n(entry.posts ?? entry.postCount ?? entry.post_count ?? metrics.posts ?? 0),
+        likes:       _n(metrics.likes ?? entry.likes ?? 0),
+        comments:    _n(metrics.comments ?? entry.comments ?? 0),
+        shares:      _n(metrics.shares ?? entry.shares ?? 0),
+        saves:       _n(metrics.saves ?? entry.saves ?? 0),
+        clicks:      _n(metrics.clicks ?? entry.clicks ?? 0),
+        views:       _n(metrics.views ?? entry.views ?? 0),
+        impressions: _n(metrics.impressions ?? entry.impressions ?? 0),
+        reach:       _n(metrics.reach ?? entry.reach ?? 0),
+        erPct:       _n(entry.avgEngagementRate ?? entry.avg_engagement_rate ?? entry.engagementRate ?? metrics.engagementRate ?? 0),
+      }
+    })
+  } else if (postsArr.length) {
     type PlatAgg = { posts: number; likes: number; comments: number; shares: number; saves: number; clicks: number; views: number; impressions: number; reach: number; erSum: number; erCount: number }
     const byPlatform: Record<string, PlatAgg> = {}
     for (const p of postsArr) {
@@ -283,10 +424,10 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
       label:    (PLATFORM_META as Record<string, { label: string }>)[pl]?.label ?? pl,
       likes:    d.likes,
     }))
-    result.platformBreakdown = platEntries.map(([pl, d]) => ({
-      platform:    pl,
-      label:       (PLATFORM_META as Record<string, { label: string }>)[pl]?.label ?? pl,
-      posts:       d.posts,
+      result.platformBreakdown = platEntries.map(([pl, d]) => ({
+        platform:    pl,
+        label:       (PLATFORM_META as Record<string, { label: string }>)[pl]?.label ?? pl,
+        posts:       d.posts,
       likes:       d.likes,
       comments:    d.comments,
       shares:      d.shares,
@@ -295,8 +436,8 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
       views:       d.views,
       impressions: d.impressions,
       reach:       d.reach,
-      erPct:       d.erCount > 0 ? d.erSum / d.erCount : 0,
-    }))
+        erPct:       d.erCount > 0 ? d.erSum / d.erCount : 0,
+      }))
   }
 
   // Top posts — analytics are nested under p.analytics in Zernio's schema
@@ -343,10 +484,6 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
   // ── Time series ────────────────────────────────────────────────────────────────
   // Prefer daily.stats[] (from /analytics/daily) — it has proper date fields.
   // Fall back to bucketing posts[] ourselves if daily is unavailable.
-  const dailyStats = hasCombined
-    ? _a<Record<string, unknown>>(_o(r.daily).stats ?? [])
-    : []
-
   if (dailyStats.length) {
     // Count posts per bucket from postsArr so we have post counts in daily view
     const postsByDate = new Map<string, number>()
@@ -361,6 +498,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
 
     result.monthly = dailyStats.map(stat => {
       const dateStr = _s(stat.date ?? '')
+      const metrics = readDailyMetrics(stat)
       const postsOnDay = postsByDate.get(dateStr) ?? 0
       let label: string
       try {
@@ -378,15 +516,15 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
       return {
         month:       label,
         posts:       postsOnDay,
-        likes:       _n(stat.likes       ?? 0),
-        comments:    _n(stat.comments    ?? 0),
-        shares:      _n(stat.shares      ?? 0),
-        saves:       0,
-        views:       _n(stat.views       ?? 0),
-        impressions: _n(stat.impressions ?? 0),
-        reach:       _n(stat.reach       ?? 0),
-        clicks:      0,
-        engRate:     0,
+        likes:       _n(metrics.likes       ?? stat.likes       ?? 0),
+        comments:    _n(metrics.comments    ?? stat.comments    ?? 0),
+        shares:      _n(metrics.shares      ?? stat.shares      ?? 0),
+        saves:       _n(metrics.saves       ?? stat.saves       ?? 0),
+        views:       _n(metrics.views       ?? stat.views       ?? 0),
+        impressions: _n(metrics.impressions ?? stat.impressions ?? 0),
+        reach:       _n(metrics.reach       ?? stat.reach       ?? 0),
+        clicks:      _n(metrics.clicks      ?? stat.clicks      ?? 0),
+        engRate:     _n(metrics.engagementRate ?? stat.engagementRate ?? 0),
       }
     })
 
@@ -491,6 +629,161 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
         followers: _n(f.followers ?? 0),
       }))
     }
+  }
+
+  // Follower evolution from dedicated follower stats history (preferred live source).
+  if (!result.followerEvolution?.length && hasCombined) {
+    const followerStatsRaw = _o(r.followerStats)
+    const seriesSource = _o(followerStatsRaw.stats ?? followerStatsRaw.history ?? followerStatsRaw.series)
+    const entriesByDate = new Map<string, number>()
+
+    for (const value of Object.values(seriesSource)) {
+      for (const entry of _a<Record<string, unknown>>(value)) {
+        const date = _s(entry.date ?? entry.day ?? entry.month ?? entry.label ?? '')
+        if (!date) continue
+        const followers = _n(entry.followers ?? entry.currentFollowers ?? entry.followers_count ?? entry.count ?? 0)
+        if (!followers) continue
+        entriesByDate.set(date, (entriesByDate.get(date) ?? 0) + followers)
+      }
+    }
+
+    if (entriesByDate.size) {
+      result.followerEvolution = Array.from(entriesByDate.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, followers]) => ({ month, followers }))
+    }
+  }
+
+  // Best time to post heatmap from documented bestTimes slots.
+  const bestTimesSlots = _a<Record<string, unknown>>(
+    bestTimesRaw.slots ?? bestTimesRaw.data ?? bestTimesRaw.times ?? bestTimesRaw.results ?? []
+  )
+  if (bestTimesSlots.length) {
+    const heatmapDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const heatmapTimes = ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm']
+    const matrix = Array.from({ length: heatmapDays.length }, () => Array(heatmapTimes.length).fill(0))
+    let bestSlot = { value: -1, day: heatmapDays[0], time: heatmapTimes[0] }
+
+    for (const slot of bestTimesSlots) {
+      const value = pctFromValue(
+        slot.avg_engagement ??
+        slot.avgEngagement ??
+        slot.avg_engagement_rate ??
+        slot.avgEngagementRate ??
+        slot.engagement ??
+        slot.value ??
+        0,
+      )
+      const dayLabel = _s(
+        slot.day_label ??
+        slot.dayLabel ??
+        slot.day_of_week_label ??
+        slot.weekday ??
+        slot.day ??
+        ''
+      )
+      const rawDay = _n(slot.day_of_week ?? slot.dayOfWeek ?? slot.day_index ?? slot.dayIndex ?? slot.day ?? 0)
+      const dayIndex = dayLabel
+        ? heatmapDays.findIndex(d => d.toLowerCase() === dayLabel.slice(0, 3).toLowerCase())
+        : normalizeDayIndex(rawDay)
+      const hour = _n(slot.hour ?? slot.hour_of_day ?? slot.hourOfDay ?? slot.time ?? 0)
+      const timeIndex = hourToHeatmapIndex(hour)
+      if (dayIndex >= 0 && dayIndex < matrix.length && timeIndex >= 0 && timeIndex < matrix[dayIndex].length) {
+        matrix[dayIndex][timeIndex] = value
+      }
+      if (value > bestSlot.value) {
+        bestSlot = {
+          value,
+          day: dayLabel || heatmapDays[dayIndex] || heatmapDays[0],
+          time: heatmapTimes[timeIndex] || heatmapTimes[0],
+        }
+      }
+    }
+
+    result.heatmap = {
+      days: heatmapDays,
+      times: heatmapTimes,
+      data: matrix,
+      bestDay: bestSlot.day,
+      bestTime: bestSlot.time,
+    }
+  }
+
+  // Posting frequency scatter and cadence summary.
+  const postingFrequencyEntries = _a<Record<string, unknown>>(
+    postingFrequencyRaw.points ?? postingFrequencyRaw.data ?? postingFrequencyRaw.results ?? postingFrequencyRaw.frequency ?? []
+  )
+  if (postingFrequencyEntries.length) {
+    const scatter = postingFrequencyEntries.map(entry => {
+      const platform = _s(entry.platform ?? entry.platformName ?? '')
+      const postsPerWeek = _n(
+        entry.posts_per_week ??
+        entry.postsPerWeek ??
+        entry.frequency ??
+        entry.weeklyPosts ??
+        0,
+      )
+      const bucket = bucketLabelForPostsPerWeek(postsPerWeek)
+      const y = pctFromValue(
+        entry.avg_engagement_rate ??
+        entry.avgEngagementRate ??
+        entry.avg_engagement ??
+        entry.avgEngagement ??
+        entry.engagementRate ??
+        entry.er ??
+        0,
+      )
+      return {
+        x: bucket.x,
+        y,
+        platform,
+        freqLabel: bucket.label,
+      }
+    })
+    result.postingFrequency = scatter as PostingAnalytics['postingFrequency']
+
+    const optimalByPlatform = new Map<string, { platform: string; label: string; cadence: string; engRate: number }>()
+    for (const point of scatter) {
+      if (!point.platform) continue
+      const current = optimalByPlatform.get(point.platform)
+      if (!current || point.y > current.engRate) {
+        optimalByPlatform.set(point.platform, {
+          platform: point.platform,
+          label: (PLATFORM_META as Record<string, { label: string }>)[point.platform]?.label ?? point.platform,
+          cadence: point.freqLabel,
+          engRate: point.y,
+        })
+      }
+    }
+    result.optimalCadence = Array.from(optimalByPlatform.values())
+  }
+
+  // Content decay / engagement accumulation curve.
+  const decayBuckets = _a<Record<string, unknown>>(
+    contentDecayRaw.buckets ?? contentDecayRaw.data ?? contentDecayRaw.results ?? []
+  )
+  if (decayBuckets.length) {
+    const accumulation = decayBuckets.map((bucket) => {
+      const time = _s(bucket.label ?? bucket.time ?? bucket.bucket ?? bucket.range ?? '')
+      return {
+        time,
+        pct: pctFromValue(
+          bucket.avg_pct_of_final ??
+          bucket.avgPctOfFinal ??
+          bucket.pct ??
+          bucket.percentage ??
+          bucket.value ??
+          bucket.avg_engagement ??
+          bucket.avgEngagement ??
+          0,
+        ),
+      }
+    })
+    result.engagementAccumulation = accumulation
+    const half = accumulation.find(p => p.pct >= 50)?.time ?? accumulation[Math.min(1, accumulation.length - 1)]?.time ?? result.halfEngagementTime
+    const eighty = accumulation.find(p => p.pct >= 80)?.time ?? accumulation[accumulation.length - 2]?.time ?? result.eightyPctTime
+    result.halfEngagementTime = half
+    result.eightyPctTime = eighty
   }
 
   // Live mode should never fall back to mock deltas when Zernio exposes real data.
@@ -994,11 +1287,12 @@ function ChartCard({
 
 function StatCards({ isMock }: { isMock: boolean }) {
   const { stats: s } = useContext(PostingDataContext)
+  const formatEngagementRate = (value: number) => isMock ? `${value}%` : `${value.toFixed(1)}%`
 
   const cards = [
     {
       label: 'Engagement rate',
-      value: `${s.engagementRate}%`,
+      value: formatEngagementRate(s.engagementRate),
       delta: s.engRateDelta,
       deltaPos: s.engRateDeltaPositive,
     },
@@ -1020,6 +1314,8 @@ function StatCards({ isMock }: { isMock: boolean }) {
       label: 'Posts this period',
       value: `${s.postsThisPeriod}`,
       icon: <FileText size={14} />,
+      delta: isMock ? undefined : 'new',
+      deltaPos: true,
     },
     {
       label: 'Best post',
