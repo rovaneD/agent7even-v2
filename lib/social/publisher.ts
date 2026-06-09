@@ -203,6 +203,35 @@ export async function getSocialAnalytics(params: SocialAnalyticsParams): Promise
   }
 }
 
+/**
+ * Documented endpoint for follower counts.
+ * GET /accounts/follower-stats returns current follower counts for all connected accounts.
+ * Per docs: "For follower stats, use /v1/accounts/follower-stats"
+ */
+export async function getFollowerStats(): Promise<unknown> {
+  try {
+    return await zCall('/accounts/follower-stats')
+  } catch (err) {
+    console.error('[publisher] getFollowerStats failed:', err)
+    return null
+  }
+}
+
+/**
+ * List all connected accounts across all profiles (API-key scoped, not profile-scoped).
+ * Used to find accountIds and get follower counts regardless of which profile they're in.
+ */
+export async function listAllAccounts(platform?: string): Promise<unknown> {
+  try {
+    const q = new URLSearchParams()
+    if (platform) q.set('platform', platform)
+    return await zCall(`/accounts${q.toString() ? `?${q}` : ''}`)
+  } catch (err) {
+    console.error('[publisher] listAllAccounts failed:', err)
+    return null
+  }
+}
+
 // ── Analytics helpers (documented endpoints) ──────────────────────────────────
 
 /** Returns full account objects including _id (accountId needed for analytics calls). */

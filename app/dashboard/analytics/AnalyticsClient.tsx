@@ -36,12 +36,13 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
   if (!raw || typeof raw !== 'object') return null
   const r = _o(raw)
 
-  // ── New combined response shape: { posts, daily, accounts, bestTimes } ────────
-  // `posts` is the legacy /analytics response (overview + posts array)
-  // `daily` is from /analytics/daily — { stats: [...] }
-  // `accounts` is an array of /accounts/{id} responses
-  // `bestTimes` is from /analytics/best-time
-  const hasCombined = 'posts' in r && ('daily' in r || 'accounts' in r)
+  // ── Combined response shape: { posts, daily, followerStats, allAccounts, bestTimes } ──
+  // `posts`        — legacy /analytics response (overview + posts array)
+  // `daily`        — /analytics/daily  { stats: [...] }
+  // `followerStats`— /accounts/follower-stats  (dedicated follower count endpoint)
+  // `allAccounts`  — /accounts  (API-key scoped, all profiles)
+  // `bestTimes`    — /analytics/best-time
+  const hasCombined = 'posts' in r && ('daily' in r || 'followerStats' in r || 'allAccounts' in r)
 
   // Extract the posts sub-object (works for both old flat response and new combined shape)
   const postsEnvelope = hasCombined ? _o(r.posts) : _o(r.data ?? r.result ?? r.response ?? r)
@@ -54,18 +55,39 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
   const erValues   = postsArr.map(p => _n(_o(p.analytics).engagementRate ?? 0)).filter(v => v > 0)
   const aggEngRate = erValues.length ? erValues.reduce((a, b) => a + b, 0) / erValues.length : 0
 
-  // totalFollowers — sum from accounts[].account.metrics.followersCount (or flat metrics field)
+  // totalFollowers — read from followerStats (dedicated endpoint) or allAccounts fallback
   let totalFollowers = 0
   if (hasCombined) {
-    const accountsArr = _a<Record<string, unknown>>(r.accounts)
-    for (const entry of accountsArr) {
-      if (!entry) continue
-      // /accounts/{id} returns { account: { metrics: { followersCount, ... } } }
-      const acct    = _o(entry.account ?? entry)
-      const metrics = _o(acct.metrics ?? acct)
-      totalFollowers += _n(
-        metrics.followersCount ?? metrics.followers_count ?? metrics.followers ?? metrics.followerCount ?? 0
-      )
+    const fsRaw = r.followerStats
+    if (fsRaw && typeof fsRaw === 'object') {
+      if (Array.isArray(fsRaw)) {
+        for (const entry of (fsRaw as unknown[])) {
+          const e = _o(entry)
+          totalFollowers += _n(e.followers ?? e.followersCount ?? e.followers_count ?? e.count ?? 0)
+        }
+      } else {
+        const fs = _o(fsRaw)
+        if (Array.isArray(fs.data)) {
+          for (const entry of (fs.data as unknown[])) {
+            const e = _o(entry)
+            totalFollowers += _n(e.followers ?? e.followersCount ?? e.followers_count ?? e.count ?? 0)
+          }
+        } else {
+          totalFollowers = _n(fs.total ?? fs.followers ?? fs.followersCount ?? fs.followers_count ?? 0)
+        }
+      }
+    }
+    // Fall back to allAccounts if followerStats gave 0
+    if (totalFollowers === 0 && r.allAccounts) {
+      const accsRaw = Array.isArray(r.allAccounts) ? (r.allAccounts as unknown[]) : _a(r.allAccounts)
+      for (const entry of accsRaw) {
+        if (!entry) continue
+        const acct    = _o(_o(entry).account ?? entry)
+        const metrics = _o(acct.metrics ?? acct)
+        totalFollowers += _n(
+          metrics.followersCount ?? metrics.followers_count ?? metrics.followers ?? metrics.followerCount ?? 0
+        )
+      }
     }
   }
 
@@ -2012,7 +2034,8 @@ export default function AnalyticsClient({
         return
       }
       console.log('[analytics] Zernio social response:', JSON.stringify(json).slice(0, 3000))
-      console.log('[analytics] accounts[]:', JSON.stringify((json as Record<string,unknown>).accounts))
+      console.log('[analytics] followerStats:', JSON.stringify((json as Record<string,unknown>).followerStats))
+      console.log('[analytics] allAccounts:', JSON.stringify((json as Record<string,unknown>).allAccounts))
       const mapped = mapZernioResponse(json, dateRange)
       if (mapped) setPostingData(mapped)
     } catch (err) {
