@@ -78,13 +78,19 @@ function readNumericGrowth(entry: unknown): number | null {
   return null
 }
 
-function readBestPostUrl(entry: unknown): string {
+function readBestPostUrl(entry: unknown, activePlatform?: string): string {
   const obj = _o(entry)
   const analytics = _o(obj.analytics)
   const nested = _o(obj.post ?? obj.content ?? obj.media ?? obj.metadata)
-  const platformAnalytics = _a<Record<string, unknown>>(obj.platformAnalytics ?? obj.platform_analytics ?? [])
-  const nestedPlatformAnalytics = _a<Record<string, unknown>>(analytics.platformAnalytics ?? analytics.platform_analytics ?? [])
-  const sources = [obj, analytics, nested, ...platformAnalytics, ...nestedPlatformAnalytics]
+  const platforms = _a<Record<string, unknown>>(obj.platforms ?? obj.platformAnalytics ?? obj.platform_analytics ?? [])
+  const nestedPlatforms = _a<Record<string, unknown>>(analytics.platforms ?? analytics.platformAnalytics ?? analytics.platform_analytics ?? [])
+  
+  let filteredPlatforms = [...platforms, ...nestedPlatforms]
+  if (activePlatform && activePlatform !== 'all') {
+    filteredPlatforms = filteredPlatforms.filter(p => _s(p.platform).toLowerCase() === activePlatform.toLowerCase())
+  }
+  
+  const sources = [obj, analytics, nested, ...filteredPlatforms]
   const keys = [
     'platformPostUrl',
     'platform_post_url',
@@ -160,9 +166,25 @@ function bucketLabelForPostsPerWeek(postsPerWeek: number): { x: number; label: s
 
 function normalizeDayIndex(day: number): number {
   if (!Number.isFinite(day)) return 0
-  const normalized = ((day % 7) + 7) % 7
-  // Zernio uses day-of-week data with Sunday = 0; our UI is Mon-Sun.
-  return (normalized + 6) % 7
+  return ((day % 7) + 7) % 7
+}
+
+function shiftUtcToLocal(dayOfWeek: number, utcHour: number): { dayOfWeek: number; hour: number } {
+  const offsetMinutes = new Date().getTimezoneOffset()
+  const offsetHours = offsetMinutes / 60
+  
+  let localHour = utcHour - offsetHours
+  let localDay = dayOfWeek
+  
+  if (localHour < 0) {
+    localHour = (localHour + 24) % 24
+    localDay = (localDay - 1 + 7) % 7
+  } else if (localHour >= 24) {
+    localHour = localHour % 24
+    localDay = (localDay + 1) % 7
+  }
+  
+  return { dayOfWeek: localDay, hour: Math.round(localHour) }
 }
 
 function hourToHeatmapIndex(hour: number): number {
@@ -181,7 +203,125 @@ function hourToHeatmapIndex(hour: number): number {
   return best
 }
 
-function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | null {
+function bucketDailyStats(dailyStats: unknown[], postsByDate: Map<string, number>, dateRange: string) {
+  const parsedDays = _a<Record<string, unknown>>(dailyStats).map(stat => {
+    const dateStr = _s(stat.date ?? '')
+    const metrics = readDailyMetrics(stat)
+    const postsOnDay = postsByDate.get(dateStr) ?? 0
+    return {
+      date: new Date(dateStr),
+      dateStr,
+      posts: postsOnDay,
+      likes: _n(metrics.likes ?? stat.likes ?? 0),
+      comments: _n(metrics.comments ?? stat.comments ?? 0),
+      shares: _n(metrics.shares ?? stat.shares ?? 0),
+      saves: _n(metrics.saves ?? stat.saves ?? 0),
+      views: _n(metrics.views ?? stat.views ?? 0),
+      impressions: _n(metrics.impressions ?? stat.impressions ?? 0),
+      reach: _n(metrics.reach ?? stat.reach ?? 0),
+      clicks: _n(metrics.clicks ?? stat.clicks ?? 0),
+    }
+  }).filter(d => !isNaN(d.date.getTime()))
+
+  parsedDays.sort((a, b) => a.date.getTime() - b.date.getTime())
+
+  if (parsedDays.length === 0) return []
+
+  if (dateRange === '7d') {
+    return parsedDays.map(d => ({
+      month: d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      posts: d.posts,
+      likes: d.likes,
+      comments: d.comments,
+      shares: d.shares,
+      saves: d.saves,
+      views: d.views,
+      impressions: d.impressions,
+      reach: d.reach,
+      clicks: d.clicks,
+      engRate: d.reach > 0 ? Number((((d.likes + d.comments + d.shares + d.saves + d.clicks) / d.reach) * 100).toFixed(1)) : 0,
+    }))
+  }
+
+  if (dateRange === '6m' || dateRange === '1y') {
+    const monthlyGroups = new Map<string, typeof parsedDays>()
+    for (const d of parsedDays) {
+      const key = d.date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      if (!monthlyGroups.has(key)) monthlyGroups.set(key, [])
+      monthlyGroups.get(key)!.push(d)
+    }
+    return Array.from(monthlyGroups.entries()).map(([month, days]) => {
+      const sumPosts = days.reduce((s, d) => s + d.posts, 0)
+      const sumLikes = days.reduce((s, d) => s + d.likes, 0)
+      const sumComments = days.reduce((s, d) => s + d.comments, 0)
+      const sumShares = days.reduce((s, d) => s + d.shares, 0)
+      const sumSaves = days.reduce((s, d) => s + d.saves, 0)
+      const sumViews = days.reduce((s, d) => s + d.views, 0)
+      const sumImpressions = days.reduce((s, d) => s + d.impressions, 0)
+      const sumReach = days.reduce((s, d) => s + d.reach, 0)
+      const sumClicks = days.reduce((s, d) => s + d.clicks, 0)
+      const er = sumReach > 0
+        ? Number((((sumLikes + sumComments + sumShares + sumSaves + sumClicks) / sumReach) * 100).toFixed(1))
+        : 0
+      return {
+        month,
+        posts: sumPosts,
+        likes: sumLikes,
+        comments: sumComments,
+        shares: sumShares,
+        saves: sumSaves,
+        views: sumViews,
+        impressions: sumImpressions,
+        reach: sumReach,
+        clicks: sumClicks,
+        engRate: er,
+      }
+    })
+  }
+
+  const weeklyBuckets: typeof parsedDays[] = []
+  let currentBucket: typeof parsedDays = []
+  for (let i = 0; i < parsedDays.length; i++) {
+    currentBucket.push(parsedDays[i])
+    if (currentBucket.length === 7 || i === parsedDays.length - 1) {
+      weeklyBuckets.push(currentBucket)
+      currentBucket = []
+    }
+  }
+
+  return weeklyBuckets.map((bucket) => {
+    const firstDay = bucket[0].date
+    const lastDay = bucket[bucket.length - 1].date
+    const label = `${firstDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}–${lastDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    const sumPosts = bucket.reduce((s, d) => s + d.posts, 0)
+    const sumLikes = bucket.reduce((s, d) => s + d.likes, 0)
+    const sumComments = bucket.reduce((s, d) => s + d.comments, 0)
+    const sumShares = bucket.reduce((s, d) => s + d.shares, 0)
+    const sumSaves = bucket.reduce((s, d) => s + d.saves, 0)
+    const sumViews = bucket.reduce((s, d) => s + d.views, 0)
+    const sumImpressions = bucket.reduce((s, d) => s + d.impressions, 0)
+    const sumReach = bucket.reduce((s, d) => s + d.reach, 0)
+    const sumClicks = bucket.reduce((s, d) => s + d.clicks, 0)
+    const er = sumReach > 0
+      ? Number((((sumLikes + sumComments + sumShares + sumSaves + sumClicks) / sumReach) * 100).toFixed(1))
+      : 0
+    return {
+      month: label,
+      posts: sumPosts,
+      likes: sumLikes,
+      comments: sumComments,
+      shares: sumShares,
+      saves: sumSaves,
+      views: sumViews,
+      impressions: sumImpressions,
+      reach: sumReach,
+      clicks: sumClicks,
+      engRate: er,
+    }
+  })
+}
+
+function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'all'): PostingAnalytics | null {
   if (!raw || typeof raw !== 'object') return null
   const r = _o(raw)
 
@@ -378,19 +518,28 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
     result.platformBreakdown = dailyPlatformBreakdown.map((entry) => {
       const metrics = readDailyMetrics(entry)
       const platform = _s(entry.platform ?? entry.platformName ?? '')
+      const reachVal = _n(metrics.reach ?? entry.reach ?? 0)
+      const likesVal = _n(metrics.likes ?? entry.likes ?? 0)
+      const commentsVal = _n(metrics.comments ?? entry.comments ?? 0)
+      const sharesVal = _n(metrics.shares ?? entry.shares ?? 0)
+      const savesVal = _n(metrics.saves ?? entry.saves ?? 0)
+      const clicksVal = _n(metrics.clicks ?? entry.clicks ?? 0)
+      const calculatedErPct = reachVal > 0
+        ? Number((((likesVal + commentsVal + sharesVal + savesVal + clicksVal) / reachVal) * 100).toFixed(1))
+        : 0
       return {
         platform,
         label:       (PLATFORM_META as Record<string, { label: string }>)[platform]?.label ?? platform,
         posts:       _n(entry.posts ?? entry.postCount ?? entry.post_count ?? metrics.posts ?? 0),
-        likes:       _n(metrics.likes ?? entry.likes ?? 0),
-        comments:    _n(metrics.comments ?? entry.comments ?? 0),
-        shares:      _n(metrics.shares ?? entry.shares ?? 0),
-        saves:       _n(metrics.saves ?? entry.saves ?? 0),
-        clicks:      _n(metrics.clicks ?? entry.clicks ?? 0),
+        likes:       likesVal,
+        comments:    commentsVal,
+        shares:      sharesVal,
+        saves:       savesVal,
+        clicks:      clicksVal,
         views:       _n(metrics.views ?? entry.views ?? 0),
         impressions: _n(metrics.impressions ?? entry.impressions ?? 0),
-        reach:       _n(metrics.reach ?? entry.reach ?? 0),
-        erPct:       _n(entry.avgEngagementRate ?? entry.avg_engagement_rate ?? entry.engagementRate ?? metrics.engagementRate ?? 0),
+        reach:       reachVal,
+        erPct:       calculatedErPct,
       }
     })
   } else if (postsArr.length) {
@@ -424,10 +573,10 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
       label:    (PLATFORM_META as Record<string, { label: string }>)[pl]?.label ?? pl,
       likes:    d.likes,
     }))
-      result.platformBreakdown = platEntries.map(([pl, d]) => ({
-        platform:    pl,
-        label:       (PLATFORM_META as Record<string, { label: string }>)[pl]?.label ?? pl,
-        posts:       d.posts,
+    result.platformBreakdown = platEntries.map(([pl, d]) => ({
+      platform:    pl,
+      label:       (PLATFORM_META as Record<string, { label: string }>)[pl]?.label ?? pl,
+      posts:       d.posts,
       likes:       d.likes,
       comments:    d.comments,
       shares:      d.shares,
@@ -436,8 +585,10 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
       views:       d.views,
       impressions: d.impressions,
       reach:       d.reach,
-        erPct:       d.erCount > 0 ? d.erSum / d.erCount : 0,
-      }))
+      erPct:       d.reach > 0
+        ? Number((((d.likes + d.comments + d.shares + d.saves + d.clicks) / d.reach) * 100).toFixed(1))
+        : (d.erCount > 0 ? Number((d.erSum / d.erCount).toFixed(1)) : 0),
+    }))
   }
 
   // Top posts — analytics are nested under p.analytics in Zernio's schema
@@ -459,7 +610,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
         reach:       _n(a.reach       ?? 0),
         erPct:       _n(a.engagementRate ?? 0),
         engagements: readEngagementCount(p),
-        url:         readBestPostUrl(p),
+        url:         readBestPostUrl(p, activePlatform),
       }
     })
     result.topPosts = mappedPosts as PostingAnalytics['topPosts']
@@ -496,37 +647,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
       postsByDate.set(key, (postsByDate.get(key) ?? 0) + 1)
     }
 
-    result.monthly = dailyStats.map(stat => {
-      const dateStr = _s(stat.date ?? '')
-      const metrics = readDailyMetrics(stat)
-      const postsOnDay = postsByDate.get(dateStr) ?? 0
-      let label: string
-      try {
-        const d = new Date(dateStr)
-        if (dateRange === '7d') {
-          label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        } else if (dateRange === '6m' || dateRange === '1y') {
-          label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-        } else {
-          label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        }
-      } catch {
-        label = dateStr
-      }
-      return {
-        month:       label,
-        posts:       postsOnDay,
-        likes:       _n(metrics.likes       ?? stat.likes       ?? 0),
-        comments:    _n(metrics.comments    ?? stat.comments    ?? 0),
-        shares:      _n(metrics.shares      ?? stat.shares      ?? 0),
-        saves:       _n(metrics.saves       ?? stat.saves       ?? 0),
-        views:       _n(metrics.views       ?? stat.views       ?? 0),
-        impressions: _n(metrics.impressions ?? stat.impressions ?? 0),
-        reach:       _n(metrics.reach       ?? stat.reach       ?? 0),
-        clicks:      _n(metrics.clicks      ?? stat.clicks      ?? 0),
-        engRate:     _n(metrics.engagementRate ?? stat.engagementRate ?? 0),
-      }
-    })
+    result.monthly = bucketDailyStats(dailyStats, postsByDate, dateRange)
 
     // follower evolution — use daily stats if they carry followersCount per day
     const followersByDay = dailyStats
@@ -674,27 +795,20 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
         slot.value ??
         0,
       )
-      const dayLabel = _s(
-        slot.day_label ??
-        slot.dayLabel ??
-        slot.day_of_week_label ??
-        slot.weekday ??
-        slot.day ??
-        ''
-      )
       const rawDay = _n(slot.day_of_week ?? slot.dayOfWeek ?? slot.day_index ?? slot.dayIndex ?? slot.day ?? 0)
-      const dayIndex = dayLabel
-        ? heatmapDays.findIndex(d => d.toLowerCase() === dayLabel.slice(0, 3).toLowerCase())
-        : normalizeDayIndex(rawDay)
+      const dayIndex = normalizeDayIndex(rawDay)
       const hour = _n(slot.hour ?? slot.hour_of_day ?? slot.hourOfDay ?? slot.time ?? 0)
-      const timeIndex = hourToHeatmapIndex(hour)
-      if (dayIndex >= 0 && dayIndex < matrix.length && timeIndex >= 0 && timeIndex < matrix[dayIndex].length) {
-        matrix[dayIndex][timeIndex] = value
+      
+      const { dayOfWeek: localDay, hour: localHour } = shiftUtcToLocal(dayIndex, hour)
+      const timeIndex = hourToHeatmapIndex(localHour)
+      
+      if (localDay >= 0 && localDay < matrix.length && timeIndex >= 0 && timeIndex < matrix[localDay].length) {
+        matrix[localDay][timeIndex] = value
       }
       if (value > bestSlot.value) {
         bestSlot = {
           value,
-          day: dayLabel || heatmapDays[dayIndex] || heatmapDays[0],
+          day: heatmapDays[localDay] || heatmapDays[0],
           time: heatmapTimes[timeIndex] || heatmapTimes[0],
         }
       }
@@ -763,20 +877,24 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
     contentDecayRaw.buckets ?? contentDecayRaw.data ?? contentDecayRaw.results ?? []
   )
   if (decayBuckets.length) {
+    let runningSum = 0
     const accumulation = decayBuckets.map((bucket) => {
-      const time = _s(bucket.label ?? bucket.time ?? bucket.bucket ?? bucket.range ?? '')
+      const time = _s(bucket.bucket_label ?? bucket.label ?? bucket.time ?? bucket.bucket ?? bucket.range ?? '')
+      const pctVal = pctFromValue(
+        bucket.avg_pct_of_final ??
+        bucket.avgPctOfFinal ??
+        bucket.pct ??
+        bucket.percentage ??
+        bucket.value ??
+        bucket.avg_engagement ??
+        bucket.avgEngagement ??
+        0,
+      )
+      runningSum += pctVal
+      const pct = Math.min(100, Number(runningSum.toFixed(1)))
       return {
         time,
-        pct: pctFromValue(
-          bucket.avg_pct_of_final ??
-          bucket.avgPctOfFinal ??
-          bucket.pct ??
-          bucket.percentage ??
-          bucket.value ??
-          bucket.avg_engagement ??
-          bucket.avgEngagement ??
-          0,
-        ),
+        pct,
       }
     })
     result.engagementAccumulation = accumulation
@@ -1502,11 +1620,21 @@ function LikesOverTimeChart({ isMock }: { isMock: boolean }) {
 
 // ── Engagement Over Time (full width) ─────────────────────────────────────────
 
+function engagementTimeSeriesLabel(dr: string) {
+  if (dr === '7d')  return 'Per day · last 7 days'
+  if (dr === '30d') return 'Per week · last 30 days'
+  if (dr === '90d') return 'Per week · last 90 days'
+  if (dr === '6m')  return 'Per month · last 6 months'
+  return 'Per month · last 365 days'
+}
+
 function EngagementOverTimeChart({ isMock }: { isMock: boolean }) {
   const [activeMetrics, setActiveMetrics] = useState<Set<MetricKey>>(
     new Set(DEFAULT_ACTIVE_METRICS)
   )
   const { monthly: data } = useContext(PostingDataContext)
+  const dr = useContext(DateRangeContext)
+  const subtitle = engagementTimeSeriesLabel(dr)
 
   const toggle = (key: MetricKey) => {
     setActiveMetrics(prev => {
@@ -1527,7 +1655,7 @@ function EngagementOverTimeChart({ isMock }: { isMock: boolean }) {
       <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
         <span className="text-[13px] font-semibold text-text">Engagement over time</span>
         {isMock && <DemoChip />}
-        <span className="text-[11px] text-text-soft ml-1">Per month · last 365 days</span>
+        <span className="text-[11px] text-text-soft ml-1">{subtitle}</span>
       </div>
       <div className="flex">
         {/* Chart */}
@@ -2532,7 +2660,7 @@ export default function AnalyticsClient({
       console.log('[analytics] Zernio social response:', JSON.stringify(json).slice(0, 3000))
       console.log('[analytics] followerStats:', JSON.stringify((json as Record<string,unknown>).followerStats))
       console.log('[analytics] allAccounts:', JSON.stringify((json as Record<string,unknown>).allAccounts))
-      const mapped = mapZernioResponse(json, dateRange)
+      const mapped = mapZernioResponse(json, dateRange, platformFilter)
       if (mapped) setPostingData(mapped)
     } catch (err) {
       console.error('[analytics] Zernio fetch failed:', err)

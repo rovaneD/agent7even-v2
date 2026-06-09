@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, plan, company_name, zernio_profile_id')
+    .select('id, plan, company_name, zernio_profile_id, zernio_profile_ids')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -33,6 +33,12 @@ export async function POST(req: Request) {
   // Create Zernio profile on first connection for this tenant.
   // Name includes a profile ID suffix to guarantee uniqueness across tenants.
   let zernioProfileId = (profile.zernio_profile_id as string | null) ?? null
+  const zernioProfileIds = (profile.zernio_profile_ids as string[] | null) ?? []
+
+  if (!zernioProfileId && zernioProfileIds.length > 0) {
+    zernioProfileId = zernioProfileIds[0]
+  }
+
   if (!zernioProfileId) {
     const baseName = (profile.company_name as string | null) ?? 'tenant'
     const profileName = `${baseName}-${(profile.id as string).slice(0, 8)}`
@@ -65,7 +71,10 @@ export async function POST(req: Request) {
 
     const { error: updateErr } = await supabase
       .from('profiles')
-      .update({ zernio_profile_id: zernioProfileId })
+      .update({
+        zernio_profile_id: zernioProfileId,
+        zernio_profile_ids: Array.from(new Set([...zernioProfileIds, zernioProfileId])),
+      })
       .eq('id', profile.id)
     if (updateErr) {
       console.error('[zernio/connect] failed to store profile_id:', updateErr)

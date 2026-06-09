@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, zernio_profile_id, zernio_connected_platforms')
+    .select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
     .eq('clerk_user_id', clerkId)
     .single()
 
@@ -46,18 +46,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${APP_URL}/dashboard/analytics?zernio_error=profile_not_found`)
   }
 
-  if (profileId && !profile.zernio_profile_id) {
+  const existingIds = (profile.zernio_profile_ids as string[] | null) ?? []
+  const updatedIds = profileId ? Array.from(new Set([...existingIds, profileId])) : existingIds
+  const primaryId = profile.zernio_profile_id || profileId || null
+
+  const updatePayload: Record<string, any> = {
+    zernio_profile_ids: updatedIds,
+  }
+  if (primaryId && profile.zernio_profile_id !== primaryId) {
+    updatePayload.zernio_profile_id = primaryId
+  }
+
+  if (profileId && (!profile.zernio_profile_id || !existingIds.includes(profileId))) {
     const { error: profileUpdateErr } = await supabase
       .from('profiles')
-      .update({ zernio_profile_id: profileId })
+      .update(updatePayload)
       .eq('id', profile.id)
     if (profileUpdateErr) {
-      console.error('[zernio/callback] failed to store zernio_profile_id:', profileUpdateErr)
+      console.error('[zernio/callback] failed to store zernio_profile_id / zernio_profile_ids:', profileUpdateErr)
       return NextResponse.redirect(`${APP_URL}/dashboard/analytics?zernio_error=save_failed`)
     }
-  } else if (profileId && profile.zernio_profile_id && profile.zernio_profile_id !== profileId) {
-    console.error('[zernio/callback] profileId mismatch:', { stored: profile.zernio_profile_id, callback: profileId })
-    return NextResponse.redirect(`${APP_URL}/dashboard/analytics?zernio_error=profile_mismatch`)
   }
 
   const existing = (profile.zernio_connected_platforms as string[] | null) ?? []
