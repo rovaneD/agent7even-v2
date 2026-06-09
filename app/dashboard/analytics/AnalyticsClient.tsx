@@ -32,6 +32,27 @@ function _o(v: unknown): Record<string, unknown> {
   return (v && typeof v === 'object' && !Array.isArray(v)) ? (v as Record<string, unknown>) : {}
 }
 
+function readFollowerCount(entry: unknown): number {
+  const obj = _o(entry)
+  const nested = _o(obj.account ?? obj.metrics ?? obj.profile ?? obj)
+  return _n(
+    obj.currentFollowers ??
+    obj.current_followers ??
+    obj.followers ??
+    obj.followersCount ??
+    obj.followers_count ??
+    obj.count ??
+    nested.currentFollowers ??
+    nested.current_followers ??
+    nested.followers ??
+    nested.followersCount ??
+    nested.followers_count ??
+    nested.followerCount ??
+    nested.follower_count ??
+    0,
+  )
+}
+
 function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | null {
   if (!raw || typeof raw !== 'object') return null
   const r = _o(raw)
@@ -62,18 +83,29 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
     if (fsRaw && typeof fsRaw === 'object') {
       if (Array.isArray(fsRaw)) {
         for (const entry of (fsRaw as unknown[])) {
-          const e = _o(entry)
-          totalFollowers += _n(e.followers ?? e.followersCount ?? e.followers_count ?? e.count ?? 0)
+          totalFollowers += readFollowerCount(entry)
         }
       } else {
         const fs = _o(fsRaw)
+        if (Array.isArray(fs.accounts)) {
+          for (const entry of (fs.accounts as unknown[])) {
+            totalFollowers += readFollowerCount(entry)
+          }
+        }
         if (Array.isArray(fs.data)) {
           for (const entry of (fs.data as unknown[])) {
-            const e = _o(entry)
-            totalFollowers += _n(e.followers ?? e.followersCount ?? e.followers_count ?? e.count ?? 0)
+            totalFollowers += readFollowerCount(entry)
           }
         } else {
-          totalFollowers = _n(fs.total ?? fs.followers ?? fs.followersCount ?? fs.followers_count ?? 0)
+          totalFollowers = _n(
+            fs.total ??
+            fs.followers ??
+            fs.followersCount ??
+            fs.followers_count ??
+            fs.currentFollowers ??
+            fs.current_followers ??
+            0,
+          ) || totalFollowers
         }
       }
     }
@@ -85,8 +117,14 @@ function mapZernioResponse(raw: unknown, dateRange = '30d'): PostingAnalytics | 
         const acct    = _o(_o(entry).account ?? entry)
         const metrics = _o(acct.metrics ?? acct)
         totalFollowers += _n(
-          metrics.followersCount ?? metrics.followers_count ?? metrics.followers ?? metrics.followerCount ?? 0
-        )
+          metrics.currentFollowers ??
+          metrics.current_followers ??
+          metrics.followersCount ??
+          metrics.followers_count ??
+          metrics.followers ??
+          metrics.followerCount ??
+          0
+        ) || readFollowerCount(entry)
       }
     }
   }
