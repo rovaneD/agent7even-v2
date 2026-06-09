@@ -172,7 +172,9 @@ export default function PricingPage() {
 
   async function handleCta(planKey: string) {
     if (!isSignedIn) {
-      window.location.href = `/sign-up?plan=${planKey}`
+      const params = new URLSearchParams({ plan: planKey })
+      if (annual) params.set('annual', 'true')
+      window.location.href = `/sign-up?${params.toString()}`
       return
     }
     setLoading(planKey)

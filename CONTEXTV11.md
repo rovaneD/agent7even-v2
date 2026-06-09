@@ -35,12 +35,15 @@ Main changes:
 - Introduced global brand, semantic, surface, border, and text color tokens.
 - Repaired stale `/onboarding` redirects after Foundation became the canonical
   onboarding flow.
-- Preserved pricing plan selection through sign-up, Foundation generation, and
-  checkout.
+- Preserved pricing plan and annual/monthly billing selection through sign-up,
+  Foundation generation, and checkout.
 - Repaired the Campaigns list query by avoiding an explicit PostgREST selection
   of the PostgreSQL ordered-set aggregate name `mode`.
 - Fixed the new-user Foundation Step 5 loop by making onboarding document
   generation platform-funded instead of requiring credits before checkout.
+- Kept that platform-funded Foundation generation scoped to the first onboarding
+  completion; dashboard/post-completion regeneration uses normal credit
+  reservation again.
 - Made Foundation generation failures visible and prevented partial document
   generation from being treated as a successful completion.
 - Filtered internal Foundation generation tasks out of Dashboard agent counts
