@@ -72,6 +72,7 @@
 .lab5 .nav { position: sticky; top: 0; z-index: 40; background: rgba(249,249,250,.78); backdrop-filter: blur(14px); border-bottom: 1px solid var(--l5-line-2); }
 .lab5 .nav-in { max-width: var(--l5-maxw); margin: 0 auto; padding: 0 var(--l5-pad); height: 62px; display: flex; align-items: center; justify-content: space-between; }
 .lab5 .brand { display: flex; align-items: center; gap: 9px; }
+.lab5 .brand-logo { height: 42px; width: auto; display: block; }
 .lab5 .brand-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--l5-ink); display: flex; align-items: center; justify-content: center; font-family: var(--l5-mono); font-size: 12px; font-weight: 500; color: var(--l5-brand); }
 .lab5 .brand-name { font-size: 14.5px; font-weight: 600; letter-spacing: .02em; }
 .lab5 .brand-name b { color: var(--l5-brand); font-weight: 600; }

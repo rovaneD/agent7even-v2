@@ -146,17 +146,17 @@ function Cell({ value, highlight = false }: { value: CellVal; highlight?: boolea
   if (value === true) {
     return (
       <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${
-        highlight ? 'bg-[#3B82F6]/20' : 'bg-white/10'
+        highlight ? 'bg-[#3B82F6]/15' : 'bg-gray-100'
       }`}>
-        <Check size={11} className={highlight ? 'text-[#3B82F6]' : 'text-white/50'} />
+        <Check size={11} className={highlight ? 'text-[#3B82F6]' : 'text-gray-500'} />
       </span>
     )
   }
   if (value === false) {
-    return <span className="text-white/15">—</span>
+    return <span className="text-gray-300">—</span>
   }
   return (
-    <span className={`text-sm font-medium ${highlight ? 'text-[#3B82F6]' : 'text-white/60'}`}>
+    <span className={`text-sm font-medium ${highlight ? 'text-[#3B82F6]' : 'text-gray-600'}`}>
       {value}
     </span>
   )
@@ -190,30 +190,30 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-[#f5f4f0]">
+    <div className="min-h-screen bg-white text-gray-900">
 
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
-        <a href="/" className="text-xs font-bold tracking-widest uppercase">
-          AGENT<span className="text-[#c8522a]">7</span>EVEN
+      <nav className="flex items-center justify-between px-8 py-4 border-b border-gray-100">
+        <a href="/" className="flex items-center">
+          <img src="/agent7even_logo.svg" alt="Agent7even" className="h-[38px] w-auto" />
         </a>
         <div className="flex items-center gap-5">
           {isLoaded && (
             isSignedIn ? (
               <a
                 href="/dashboard"
-                className="text-sm font-medium bg-white/8 hover:bg-white/12 px-4 py-2 rounded-lg transition-colors"
+                className="text-sm font-medium bg-gray-900 text-white hover:bg-black px-4 py-2 rounded-lg transition-colors"
               >
                 Go to dashboard →
               </a>
             ) : (
               <>
-                <a href="/sign-in" className="text-sm text-white/40 hover:text-white/70 transition-colors">
+                <a href="/sign-in" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
                   Sign in
                 </a>
                 <a
                   href="/sign-up"
-                  className="text-sm font-medium bg-white/8 hover:bg-white/12 px-4 py-2 rounded-lg transition-colors"
+                  className="text-sm font-medium bg-gray-900 text-white hover:bg-black px-4 py-2 rounded-lg transition-colors"
                 >
                   Sign up free
                 </a>
@@ -225,23 +225,23 @@ export default function PricingPage() {
 
       {/* Hero */}
       <div className="max-w-4xl mx-auto px-6 pt-20 pb-14 text-center">
-        <p className="text-[11px] font-semibold tracking-widest uppercase text-white/30 mb-4">
+        <p className="text-[11px] font-semibold tracking-widest uppercase text-gray-400 mb-4">
           Pricing
         </p>
         <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-5">
           Simple, transparent pricing
         </h1>
-        <p className="text-lg text-white/40 max-w-xl mx-auto mb-10">
+        <p className="text-lg text-gray-500 max-w-xl mx-auto mb-10">
           One platform for your marketing dashboard, AI tools, and managed
           services. No contracts. Cancel anytime.
         </p>
 
         {/* Monthly / Annual toggle */}
-        <div className="inline-flex items-center gap-1 bg-white/5 rounded-xl p-1">
+        <div className="inline-flex items-center gap-1 bg-gray-100 rounded-xl p-1">
           <button
             onClick={() => setAnnual(false)}
             className={`text-sm font-medium px-5 py-2 rounded-lg transition-all ${
-              !annual ? 'bg-white text-[#0d0d0d]' : 'text-white/40 hover:text-white/60'
+              !annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Monthly
@@ -249,12 +249,12 @@ export default function PricingPage() {
           <button
             onClick={() => setAnnual(true)}
             className={`flex items-center gap-2 text-sm font-medium px-5 py-2 rounded-lg transition-all ${
-              annual ? 'bg-white text-[#0d0d0d]' : 'text-white/40 hover:text-white/60'
+              annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Annual
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
-              annual ? 'bg-[#3B82F6] text-white' : 'bg-white/10 text-white/40'
+              annual ? 'bg-[#3B82F6] text-white' : 'bg-gray-200 text-gray-500'
             }`}>
               2 months free
             </span>
@@ -286,7 +286,7 @@ export default function PricingPage() {
                 {/* Most popular badge */}
                 {plan.popular && (
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
-                    <span className="bg-[#f5f4f0] text-[#0d0d0d] text-[11px] font-bold px-4 py-1 rounded-full tracking-wide uppercase whitespace-nowrap">
+                    <span className="bg-[#3B82F6] text-white text-[11px] font-bold px-4 py-1 rounded-full tracking-wide uppercase whitespace-nowrap">
                       Most Popular
                     </span>
                   </div>
@@ -294,19 +294,19 @@ export default function PricingPage() {
 
                 <div className={`rounded-2xl border flex flex-col h-full transition-all ${
                   plan.popular
-                    ? 'bg-[#2D3748] border-[#2D3748]'
-                    : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+                    ? 'bg-[#16181d] border-[#16181d]'
+                    : 'bg-white border-gray-200 hover:border-gray-300'
                 }`}>
                   <div className="p-8 flex flex-col flex-1">
 
                     {/* Icon + name */}
                     <div className="flex items-center gap-3 mb-5">
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                        plan.popular ? 'bg-white/20' : 'bg-white/6'
+                        plan.popular ? 'bg-white/15' : 'bg-gray-100'
                       }`}>
-                        <Icon size={17} className={plan.popular ? 'text-white' : 'text-white/60'} />
+                        <Icon size={17} className={plan.popular ? 'text-white' : 'text-gray-600'} />
                       </div>
-                      <h3 className={`text-lg font-semibold ${plan.popular ? 'text-white' : 'text-[#f5f4f0]'}`}>
+                      <h3 className={`text-lg font-semibold ${plan.popular ? 'text-white' : 'text-gray-900'}`}>
                         {plan.name}
                       </h3>
                     </div>
@@ -315,21 +315,21 @@ export default function PricingPage() {
                     <div className="mb-1">
                       <div className="flex items-end gap-1.5">
                         <span className={`text-5xl font-semibold tracking-tight leading-none ${
-                          plan.popular ? 'text-white' : 'text-[#f5f4f0]'
+                          plan.popular ? 'text-white' : 'text-gray-900'
                         }`}>
                           ${displayPrice}
                         </span>
-                        <span className={`text-sm mb-1.5 ${plan.popular ? 'text-white/60' : 'text-white/30'}`}>
+                        <span className={`text-sm mb-1.5 ${plan.popular ? 'text-white/60' : 'text-gray-400'}`}>
                           /mo
                         </span>
                       </div>
                       {annual && (
-                        <p className={`text-xs mt-1.5 ${plan.popular ? 'text-white/60' : 'text-white/30'}`}>
+                        <p className={`text-xs mt-1.5 ${plan.popular ? 'text-white/60' : 'text-gray-400'}`}>
                           ${plan.annualPrice} billed annually
                         </p>
                       )}
                       <p className={`text-xs mt-2 font-medium ${
-                        plan.trial ? 'text-emerald-400' : plan.popular ? 'text-white/55' : 'text-white/25'
+                        plan.trial ? 'text-emerald-600' : plan.popular ? 'text-white/55' : 'text-gray-400'
                       }`}>
                         {plan.billingNote}
                       </p>
@@ -337,7 +337,7 @@ export default function PricingPage() {
 
                     {/* Description */}
                     <p className={`text-sm mt-5 mb-7 leading-relaxed ${
-                      plan.popular ? 'text-white/70' : 'text-white/35'
+                      plan.popular ? 'text-white/70' : 'text-gray-500'
                     }`}>
                       {plan.description}
                     </p>
@@ -347,12 +347,12 @@ export default function PricingPage() {
                       {plan.features.map((f) => (
                         <li key={f} className="flex items-start gap-3">
                           <div className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center mt-0.5 ${
-                            plan.popular ? 'bg-white/20' : 'bg-white/8'
+                            plan.popular ? 'bg-white/15' : 'bg-gray-100'
                           }`}>
-                            <Check size={10} className={plan.popular ? 'text-white' : 'text-white/55'} />
+                            <Check size={10} className={plan.popular ? 'text-white' : 'text-gray-500'} />
                           </div>
                           <span className={`text-sm leading-snug ${
-                            plan.popular ? 'text-white/85' : 'text-white/50'
+                            plan.popular ? 'text-white/85' : 'text-gray-600'
                           }`}>
                             {f}
                           </span>
@@ -369,7 +369,7 @@ export default function PricingPage() {
                           ? 'bg-emerald-500 hover:bg-emerald-400 text-white'
                           : plan.popular
                           ? 'bg-[#3B82F6] text-white hover:bg-[#2563EB]'
-                          : 'bg-white/8 text-[#f5f4f0] hover:bg-white/12 border border-white/10'
+                          : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-200'
                       }`}
                     >
                       {isLoading ? 'Redirecting…' : plan.cta}
@@ -382,11 +382,11 @@ export default function PricingPage() {
         </div>
 
         {/* Fine print */}
-        <p className="text-center text-sm text-white/20 mt-10">
+        <p className="text-center text-sm text-gray-400 mt-10">
           Starter includes a 3-day free trial — card required, no charge until day 4.
           Growth and ProAgent are charged immediately.{' '}
           Questions?{' '}
-          <a href="mailto:hello@agent7even.com" className="text-white/40 hover:text-white/60 underline underline-offset-2 transition-colors">
+          <a href="mailto:hello@agent7even.com" className="text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors">
             hello@agent7even.com
           </a>
         </p>
@@ -397,31 +397,31 @@ export default function PricingPage() {
         <h2 className="text-center text-2xl font-semibold tracking-tight mb-2">
           Compare plans
         </h2>
-        <p className="text-center text-sm text-white/30 mb-10">
+        <p className="text-center text-sm text-gray-400 mb-10">
           Everything included in each tier, side by side.
         </p>
 
-        <div className="overflow-x-auto rounded-2xl border border-white/[0.08]">
+        <div className="overflow-x-auto rounded-2xl border border-gray-200">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/[0.08]">
-                <th className="text-left px-6 py-4 text-white/30 font-medium w-[38%]">Feature</th>
-                <th className="text-center px-5 py-4 text-[#f5f4f0] font-semibold w-[20%]">Starter</th>
-                <th className="text-center px-5 py-4 text-[#3B82F6] font-semibold w-[20%] bg-[#3B82F6]/[0.06]">Growth</th>
-                <th className="text-center px-5 py-4 text-[#f5f4f0] font-semibold w-[22%]">ProAgent</th>
+              <tr className="border-b border-gray-200">
+                <th className="text-left px-6 py-4 text-gray-400 font-medium w-[38%]">Feature</th>
+                <th className="text-center px-5 py-4 text-gray-900 font-semibold w-[20%]">Starter</th>
+                <th className="text-center px-5 py-4 text-[#3B82F6] font-semibold w-[20%] bg-[#3B82F6]/[0.05]">Growth</th>
+                <th className="text-center px-5 py-4 text-gray-900 font-semibold w-[22%]">ProAgent</th>
               </tr>
             </thead>
             <tbody>
               {COMPARE_ROWS.map((row, i) => (
                 <tr
                   key={row.feature}
-                  className={`border-b border-white/[0.05] last:border-0 ${i % 2 === 0 ? 'bg-white/[0.01]' : ''}`}
+                  className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? 'bg-gray-50/50' : ''}`}
                 >
-                  <td className="px-6 py-4 text-white/45">{row.feature}</td>
+                  <td className="px-6 py-4 text-gray-600">{row.feature}</td>
                   <td className="px-5 py-4 text-center">
                     <Cell value={row.starter} />
                   </td>
-                  <td className="px-5 py-4 text-center bg-[#3B82F6]/[0.04]">
+                  <td className="px-5 py-4 text-center bg-[#3B82F6]/[0.03]">
                     <Cell value={row.growth} highlight />
                   </td>
                   <td className="px-5 py-4 text-center">
@@ -439,7 +439,7 @@ export default function PricingPage() {
         <h2 className="text-center text-2xl font-semibold tracking-tight mb-2">
           Frequently asked questions
         </h2>
-        <p className="text-center text-sm text-white/30 mb-10">
+        <p className="text-center text-sm text-gray-400 mb-10">
           Everything you need to know before signing up.
         </p>
 
@@ -450,7 +450,7 @@ export default function PricingPage() {
               <div
                 key={i}
                 className={`rounded-xl border transition-colors ${
-                  isOpen ? 'border-white/15 bg-white/[0.04]' : 'border-white/[0.07] bg-white/[0.02]'
+                  isOpen ? 'border-gray-300 bg-gray-50/60' : 'border-gray-200 bg-white'
                 }`}
               >
                 <button
@@ -458,11 +458,11 @@ export default function PricingPage() {
                   className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
                 >
                   <span className={`text-sm font-medium leading-snug transition-colors ${
-                    isOpen ? 'text-[#f5f4f0]' : 'text-white/70'
+                    isOpen ? 'text-gray-900' : 'text-gray-700'
                   }`}>
                     {faq.q}
                   </span>
-                  <span className="flex-shrink-0 text-white/30">
+                  <span className="flex-shrink-0 text-gray-400">
                     {isOpen
                       ? <Minus size={15} className="text-[#3B82F6]" />
                       : <Plus size={15} />
@@ -471,7 +471,7 @@ export default function PricingPage() {
                 </button>
                 {isOpen && (
                   <div className="px-6 pb-5">
-                    <p className="text-sm text-white/45 leading-relaxed">{faq.a}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed">{faq.a}</p>
                   </div>
                 )}
               </div>
@@ -479,28 +479,28 @@ export default function PricingPage() {
           })}
         </div>
 
-        <p className="text-center text-sm text-white/25 mt-10">
+        <p className="text-center text-sm text-gray-400 mt-10">
           Still have questions?{' '}
-          <a href="mailto:hello@agent7even.com" className="text-white/45 hover:text-white/70 underline underline-offset-2 transition-colors">
+          <a href="mailto:hello@agent7even.com" className="text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors">
             hello@agent7even.com
           </a>
         </p>
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-white/5">
+      <footer className="border-t border-gray-100">
         <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-5">
-          <div className="flex flex-col md:flex-row items-center gap-6 text-sm text-white/30">
-            <span className="text-xs font-bold tracking-widest uppercase">
-              AGENT<span className="text-[#c8522a]">7</span>EVEN
-            </span>
-            <a href="/privacy" className="hover:text-white/60 transition-colors">Privacy Policy</a>
-            <a href="/terms"   className="hover:text-white/60 transition-colors">Terms of Service</a>
-            <a href="mailto:hello@agent7even.com" className="hover:text-white/60 transition-colors">
+          <div className="flex flex-col md:flex-row items-center gap-6 text-sm text-gray-400">
+            <a href="/" className="flex items-center">
+              <img src="/agent7even_logo.svg" alt="Agent7even" className="h-[30px] w-auto" />
+            </a>
+            <a href="/privacy" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
+            <a href="/terms"   className="hover:text-gray-600 transition-colors">Terms of Service</a>
+            <a href="mailto:hello@agent7even.com" className="hover:text-gray-600 transition-colors">
               hello@agent7even.com
             </a>
           </div>
-          <p className="text-xs text-white/20">© {new Date().getFullYear()} Agent7even. All rights reserved.</p>
+          <p className="text-xs text-gray-300">© {new Date().getFullYear()} Agent7even. All rights reserved.</p>
         </div>
       </footer>
 

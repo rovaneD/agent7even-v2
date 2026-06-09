@@ -125,20 +125,19 @@ export default function UseCaseDetailPage() {
       {/* NAV */}
       <nav className="nav">
         <div className="nav-in">
-          <a className="brand" href="/lab5">
-            <span className="brand-mark">7</span>
-            <span className="brand-name">AGENT<b>7</b>EVEN</span>
+          <a className="brand" href="/">
+            <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
           </a>
           <div className="nav-links">
-            <a href="/lab5#how">How it works</a>
-            <a href="/lab5#features">Features</a>
-            <a href="/lab5/agents">Agents</a>
-            <a href="/lab5/pricing">Pricing</a>
-            <a href="/lab5/use-cases" style={{ color: 'var(--ink)' }}>Use cases</a>
+            <a href="/#how">How it works</a>
+            <a href="/#features">Features</a>
+            <a href="/agents">Agents</a>
+            <a href="/pricing">Pricing</a>
+            <a href="/use-cases" style={{ color: 'var(--ink)' }}>Use cases</a>
           </div>
           <div className="nav-right">
-            <a className="nav-signin" href="https://app.agent7even.com/sign-in">Sign in</a>
-            <a className="btn btn-primary btn-sm" href="https://app.agent7even.com/sign-up">Sign up</a>
+            <a className="nav-signin" href="/sign-in">Sign in</a>
+            <a className="btn btn-primary btn-sm" href="/sign-up">Sign up</a>
           </div>
         </div>
       </nav>
@@ -147,7 +146,7 @@ export default function UseCaseDetailPage() {
 
         {/* BREADCRUMB */}
         <div className="crumb">
-          <Link href="/lab5/use-cases"><ArrowLeft />Use cases</Link>
+          <Link href="/use-cases"><ArrowLeft />Use cases</Link>
         </div>
 
         {/* HERO */}
@@ -211,7 +210,7 @@ export default function UseCaseDetailPage() {
           <div className="panel">
             <h2>Where Maya sits</h2>
             <p>{uc.where}</p>
-            <a className="btn btn-seg btn-lg seg-cta" href="https://app.agent7even.com/pricing">
+            <a className="btn btn-seg btn-lg seg-cta" href="/pricing">
               Start your free trial
             </a>
           </div>
@@ -221,13 +220,13 @@ export default function UseCaseDetailPage() {
         <section className="uc-more reveal">
           <div className="more-head">
             <h2>More use cases</h2>
-            <Link href="/lab5/use-cases">All use cases <ArrowRight /></Link>
+            <Link href="/use-cases">All use cases <ArrowRight /></Link>
           </div>
           <div className="more-grid">
             {cfg.more.map((m) => (
               <Link
                 key={m.slug}
-                href={`/lab5/use-cases/${m.slug}`}
+                href={`/use-cases/${m.slug}`}
                 className="mcard"
                 style={{ '--seg': m.seg } as React.CSSProperties}
               >
@@ -262,8 +261,8 @@ export default function UseCaseDetailPage() {
             <h2>Put Maya to work<br />for your business.</h2>
             <p>Start your 3-day free trial. No charge until day 4.</p>
             <div className="cta-btns">
-              <a className="btn btn-white btn-lg" href="https://app.agent7even.com/pricing">Start your free trial</a>
-              <a className="btn btn-dark-ghost btn-lg" href="/lab5/pricing">See plans →</a>
+              <a className="btn btn-white btn-lg" href="/pricing">Start your free trial</a>
+              <a className="btn btn-dark-ghost btn-lg" href="/pricing">See plans →</a>
             </div>
           </div>
         </div>
@@ -274,25 +273,24 @@ export default function UseCaseDetailPage() {
         <div className="footer-in">
           <div className="footer-top">
             <div className="footer-brand">
-              <a className="brand" href="/lab5">
-                <span className="brand-mark">7</span>
-                <span className="brand-name">AGENT<b>7</b>EVEN</span>
+              <a className="brand" href="/">
+                <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
               </a>
               <p>The AI-first marketing platform for small business. Meet Maya.</p>
             </div>
             <div className="fcol">
               <h5>Product</h5>
-              <a href="/lab5#how">How it works</a>
-              <a href="/lab5#features">Features</a>
-              <a href="/lab5/agents">Agents</a>
-              <a href="/lab5/pricing">Pricing</a>
+              <a href="/#how">How it works</a>
+              <a href="/#features">Features</a>
+              <a href="/agents">Agents</a>
+              <a href="/pricing">Pricing</a>
             </div>
             <div className="fcol">
               <h5>Use cases</h5>
-              <a href="/lab5/use-cases/ecommerce">E-commerce</a>
-              <a href="/lab5/use-cases/local-service">Local service</a>
-              <a href="/lab5/use-cases/coaches-creators">Creators</a>
-              <a href="/lab5/use-cases/agencies">Agencies</a>
+              <a href="/use-cases/ecommerce">E-commerce</a>
+              <a href="/use-cases/local-service">Local service</a>
+              <a href="/use-cases/coaches-creators">Creators</a>
+              <a href="/use-cases/agencies">Agencies</a>
             </div>
             <div className="fcol">
               <h5>Company</h5>
@@ -300,7 +298,7 @@ export default function UseCaseDetailPage() {
             </div>
             <div className="fcol">
               <h5>Legal</h5>
-              <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a>
+              <a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="#">Security</a>
             </div>
           </div>
           <div className="footer-btm">

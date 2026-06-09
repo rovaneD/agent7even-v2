@@ -39,20 +39,19 @@ export default function AgentsPage() {
       {/* NAV */}
       <nav className="nav">
         <div className="nav-in">
-          <a className="brand" href="/lab5">
-            <span className="brand-mark">7</span>
-            <span className="brand-name">AGENT<b>7</b>EVEN</span>
+          <a className="brand" href="/">
+            <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
           </a>
           <div className="nav-links">
-            <a href="/lab5#how">How it works</a>
-            <a href="/lab5#features">Features</a>
-            <a href="/lab5/agents" style={{ color: 'var(--ink)' }}>Agents</a>
-            <a href="/lab5/pricing">Pricing</a>
-            <a href="/lab5/use-cases">Use cases</a>
+            <a href="/#how">How it works</a>
+            <a href="/#features">Features</a>
+            <a href="/agents" style={{ color: 'var(--ink)' }}>Agents</a>
+            <a href="/pricing">Pricing</a>
+            <a href="/use-cases">Use cases</a>
           </div>
           <div className="nav-right">
-            <a className="nav-signin" href="https://app.agent7even.com/sign-in">Sign in</a>
-            <a className="btn btn-primary btn-sm" href="https://app.agent7even.com/sign-up">Sign up</a>
+            <a className="nav-signin" href="/sign-in">Sign in</a>
+            <a className="btn btn-primary btn-sm" href="/sign-up">Sign up</a>
           </div>
         </div>
       </nav>
@@ -316,8 +315,8 @@ export default function AgentsPage() {
           <h2>Put Maya and the agents<br />to work for your business.</h2>
           <p>Start your 3-day free trial. No charge until day 4.</p>
           <div className="cta-btns">
-            <a className="btn btn-white btn-lg" href="https://app.agent7even.com/pricing">Start your free trial</a>
-            <a className="btn btn-dark-ghost btn-lg" href="/lab5/pricing">See plans →</a>
+            <a className="btn btn-white btn-lg" href="/pricing">Start your free trial</a>
+            <a className="btn btn-dark-ghost btn-lg" href="/pricing">See plans →</a>
           </div>
         </div>
       </div>
@@ -327,25 +326,24 @@ export default function AgentsPage() {
         <div className="footer-in">
           <div className="footer-top">
             <div className="footer-brand">
-              <a className="brand" href="/lab5">
-                <span className="brand-mark">7</span>
-                <span className="brand-name">AGENT<b>7</b>EVEN</span>
+              <a className="brand" href="/">
+                <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
               </a>
               <p>The AI-first marketing platform for small business. Meet Maya.</p>
             </div>
             <div className="fcol">
               <h5>Product</h5>
-              <a href="/lab5#how">How it works</a>
-              <a href="/lab5#features">Features</a>
-              <a href="/lab5/agents">Agents</a>
-              <a href="/lab5/pricing">Pricing</a>
+              <a href="/#how">How it works</a>
+              <a href="/#features">Features</a>
+              <a href="/agents">Agents</a>
+              <a href="/pricing">Pricing</a>
             </div>
             <div className="fcol">
               <h5>Use cases</h5>
-              <a href="/lab5/use-cases/ecommerce">E-commerce</a>
-              <a href="/lab5/use-cases/local-service">Local service</a>
-              <a href="/lab5/use-cases/coaches-creators">Creators</a>
-              <a href="/lab5/use-cases/agencies">Agencies</a>
+              <a href="/use-cases/ecommerce">E-commerce</a>
+              <a href="/use-cases/local-service">Local service</a>
+              <a href="/use-cases/coaches-creators">Creators</a>
+              <a href="/use-cases/agencies">Agencies</a>
             </div>
             <div className="fcol">
               <h5>Company</h5>
@@ -356,8 +354,8 @@ export default function AgentsPage() {
             </div>
             <div className="fcol">
               <h5>Legal</h5>
-              <a href="#">Privacy</a>
-              <a href="#">Terms</a>
+              <a href="/privacy">Privacy</a>
+              <a href="/terms">Terms</a>
               <a href="#">Security</a>
             </div>
           </div>
