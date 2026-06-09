@@ -79,6 +79,129 @@ export function postDedupeKey(post: Record<string, unknown>): string {
   return `${date}::${String(content).slice(0, 80)}`
 }
 
+const POST_URL_KEYS = [
+  'platformPostUrl',
+  'platform_post_url',
+  'permalink',
+  'permalinkUrl',
+  'permalink_url',
+  'postUrl',
+  'post_url',
+  'externalUrl',
+  'external_url',
+  'instagramUrl',
+  'instagram_url',
+  'linkUrl',
+  'link_url',
+  'url',
+  'link',
+] as const
+
+function readStringField(obj: Record<string, unknown>, keys: readonly string[]): string {
+  for (const key of keys) {
+    const value = obj[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return ''
+}
+
+/** Reject profile/CDN assets and other non-post links. */
+export function looksLikePostUrl(url: string, platform?: string): boolean {
+  const u = url.trim().toLowerCase()
+  if (!u.startsWith('http')) return false
+  if (u.includes('cdninstagram.com') || u.includes('scontent-')) return false
+  if (u.includes('fbcdn.net') && !u.includes('/posts/')) return false
+
+  const pl = (platform ?? '').toLowerCase()
+
+  if (pl === 'instagram' || u.includes('instagram.com')) {
+    return /instagram\.com\/(p|reel|tv)\//.test(u)
+  }
+  if (pl === 'facebook' || u.includes('facebook.com') || u.includes('fb.watch')) {
+    return /facebook\.com\/.*\/(posts|photos|videos|reel)|facebook\.com\/share\/|photo\.php|story\.php|fb\.watch/.test(u)
+  }
+  if (pl === 'tiktok' || u.includes('tiktok.com')) {
+    return /tiktok\.com\/@[^/]+\/video\//.test(u) || /\/video\//.test(u)
+  }
+  if (pl === 'linkedin' || u.includes('linkedin.com')) {
+    return u.includes('/feed/update/') || u.includes('/posts/') || u.includes('urn:li:')
+  }
+
+  return /\/(p|reel|tv|posts|video|share)\//.test(u)
+}
+
+function buildPostUrlFromShortcode(source: Record<string, unknown>, platform: string): string {
+  const pl = platform.toLowerCase()
+  const shortcode = readStringField(source, [
+    'shortCode',
+    'shortcode',
+    'mediaShortcode',
+    'platformShortcode',
+    'code',
+  ])
+  if (!shortcode) return ''
+
+  if (pl === 'instagram') {
+    const mediaType = String(source.mediaType ?? source.type ?? source.postType ?? '').toLowerCase()
+    const path = mediaType.includes('reel') ? 'reel' : 'p'
+    return `https://www.instagram.com/${path}/${shortcode}/`
+  }
+  return ''
+}
+
+function readUrlFromSource(source: Record<string, unknown>, platform?: string): string {
+  const built = buildPostUrlFromShortcode(source, platform ?? String(source.platform ?? ''))
+  if (built) return built
+
+  const url = readStringField(source, POST_URL_KEYS)
+  if (url && looksLikePostUrl(url, platform ?? String(source.platform ?? ''))) return url
+  return ''
+}
+
+/** Resolve the public post URL for a Zernio analytics post row. */
+export function readBestPostUrl(entry: unknown, activePlatform?: string): string {
+  if (!entry || typeof entry !== 'object') return ''
+  const obj = entry as Record<string, unknown>
+  const analytics = (obj.analytics && typeof obj.analytics === 'object' && !Array.isArray(obj.analytics))
+    ? obj.analytics as Record<string, unknown>
+    : {}
+
+  const postPlatform = String(obj.platform ?? analytics.platform ?? '').toLowerCase()
+  const platformFilter = activePlatform && activePlatform !== 'all'
+    ? activePlatform.toLowerCase()
+    : postPlatform
+
+  const platformEntries = [
+    ...asArray(obj.platforms),
+    ...asArray(obj.platformAnalytics),
+    ...asArray(obj.platform_analytics),
+    ...asArray(analytics.platforms),
+    ...asArray(analytics.platformAnalytics),
+    ...asArray(analytics.platform_analytics),
+  ] as Record<string, unknown>[]
+
+  const scopedEntries = platformFilter
+    ? platformEntries.filter((p) => String(p.platform ?? '').toLowerCase() === platformFilter)
+    : platformEntries
+
+  // Platform analytics rows are authoritative — check these before generic post fields.
+  for (const entryRow of scopedEntries.length ? scopedEntries : platformEntries) {
+    const pl = String(entryRow.platform ?? platformFilter ?? postPlatform ?? '')
+    const url = readUrlFromSource(entryRow, pl)
+    if (url) return url
+  }
+
+  const fallbacks = [obj, analytics, obj.post, obj.content, obj.media, obj.metadata]
+    .filter((v): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v))
+
+  for (const source of fallbacks) {
+    const url = readUrlFromSource(source, platformFilter || postPlatform)
+    if (url) return url
+  }
+
+  return ''
+}
+
 /** Filter posts when UI platform filter is active */
 export function filterPostsByPlatform(posts: unknown[], platform?: string): unknown[] {
   if (!platform) return posts

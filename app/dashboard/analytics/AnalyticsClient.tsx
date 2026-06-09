@@ -16,7 +16,7 @@ import type { AnalyticsDataState } from './page'
 import {
   MOCK_ANALYTICS_INBOX, MOCK_POSTING_ANALYTICS,
 } from '@/lib/analytics/mockData'
-import { parseAnalyticsEnvelope } from '@/lib/social/zernioAnalyticsParse'
+import { parseAnalyticsEnvelope, readBestPostUrl } from '@/lib/social/zernioAnalyticsParse'
 
 // ── Posting data context ───────────────────────────────────────────────────────
 
@@ -117,45 +117,6 @@ function readNumericGrowth(entry: unknown): number | null {
   return null
 }
 
-function readBestPostUrl(entry: unknown, activePlatform?: string): string {
-  const obj = _o(entry)
-  const analytics = _o(obj.analytics)
-  const nested = _o(obj.post ?? obj.content ?? obj.media ?? obj.metadata)
-  const platforms = _a<Record<string, unknown>>(obj.platforms ?? obj.platformAnalytics ?? obj.platform_analytics ?? [])
-  const nestedPlatforms = _a<Record<string, unknown>>(analytics.platforms ?? analytics.platformAnalytics ?? analytics.platform_analytics ?? [])
-  
-  let filteredPlatforms = [...platforms, ...nestedPlatforms]
-  if (activePlatform && activePlatform !== 'all') {
-    filteredPlatforms = filteredPlatforms.filter(p => _s(p.platform).toLowerCase() === activePlatform.toLowerCase())
-  }
-  
-  const sources = [obj, analytics, nested, ...filteredPlatforms]
-  const keys = [
-    'platformPostUrl',
-    'platform_post_url',
-    'permalink',
-    'permalinkUrl',
-    'permalink_url',
-    'postUrl',
-    'post_url',
-    'url',
-    'link',
-    'linkUrl',
-    'link_url',
-    'externalUrl',
-    'external_url',
-    'instagramUrl',
-    'instagram_url',
-  ]
-  for (const source of sources) {
-    for (const key of keys) {
-      const value = source[key]
-      if (typeof value === 'string' && value.trim()) return value.trim()
-    }
-  }
-  return ''
-}
-
 function readEngagementCount(entry: unknown): number {
   const obj = _o(entry)
   const analytics = _o(obj.analytics)
@@ -205,9 +166,16 @@ function bucketLabelForPostsPerWeek(postsPerWeek: number): { x: number; label: s
 
 function normalizeDayIndex(day: number): number {
   if (!Number.isFinite(day)) return 0
-  // Zernio: 0 = Sunday … 6 = Saturday → heatmap rows start on Monday
-  if (day >= 0 && day <= 6) return (day + 6) % 7
+  // Zernio best-time slots: 0 = Monday … 6 = Sunday (matches heatmap row order)
+  if (day >= 0 && day <= 6) return day
   return ((day % 7) + 7) % 7
+}
+
+function formatHeatmapHour(hour: number): string {
+  const h = Math.max(0, Math.min(23, Math.round(hour))) % 24
+  if (h === 0) return '12am'
+  if (h === 12) return '12pm'
+  return h < 12 ? `${h}am` : `${h - 12}pm`
 }
 
 function hourToHeatmapIndex(hour: number): number {
@@ -636,7 +604,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
         reach:       _n(a.reach       ?? 0),
         erPct:       _n(a.engagementRate ?? 0),
         engagements: readEngagementCount(p),
-        url:         readBestPostUrl(p, activePlatform),
+        url:         readBestPostUrl(p, activePlatform !== 'all' ? activePlatform : _s(p.platform ?? '')),
       }
     })
     mappedPosts.sort((a, b) => (b.engagements ?? 0) - (a.engagements ?? 0))
@@ -831,7 +799,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
         bestSlot = {
           value,
           day: heatmapDays[dayIndex] || heatmapDays[0],
-          time: heatmapTimes[timeIndex] || heatmapTimes[0],
+          time: formatHeatmapHour(hour),
         }
       }
     }
@@ -913,6 +881,9 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
       )
       return { time, pct: Math.min(100, Number(pct.toFixed(1))) }
     })
+    if (accumulation.length && accumulation[0].time.toLowerCase() !== 'publish') {
+      accumulation.unshift({ time: 'Publish', pct: 0 })
+    }
     result.engagementAccumulation = accumulation
     const half = accumulation.find(p => p.pct >= 50)?.time ?? accumulation[Math.min(1, accumulation.length - 1)]?.time ?? result.halfEngagementTime
     const eighty = accumulation.find(p => p.pct >= 80)?.time ?? accumulation[accumulation.length - 2]?.time ?? result.eightyPctTime
@@ -1811,33 +1782,49 @@ function BestTimeToPostHeatmap({ isMock }: { isMock: boolean }) {
 // ── Follower Evolution ─────────────────────────────────────────────────────────
 
 function FollowerEvolutionChart({ isMock }: { isMock: boolean }) {
-  const { followerEvolution: data } = useContext(PostingDataContext)
-  const total = data[data.length - 1]?.followers ?? 0
+  const { followerEvolution: data, stats } = useContext(PostingDataContext)
+  const hasSeries = data.some(point => point.followers > 0)
 
   return (
     <ChartCard
       title="Follower evolution"
       subtitle="Followers per account · top 1"
-      right={<span className="text-[11px] text-text-soft font-medium">{fmt(total)} followers total</span>}
+      right={
+        hasSeries
+          ? <span className="text-[11px] text-text-soft font-medium">{fmt(data[data.length - 1]?.followers ?? 0)} followers total</span>
+          : stats.totalFollowers > 0
+            ? <span className="text-[11px] text-text-soft font-medium">{fmt(stats.totalFollowers)} followers total</span>
+            : null
+      }
       isMock={isMock}
     >
-      <div className="px-4 pt-4 pb-3">
-        <ResponsiveContainer width="100%" height={180}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-            <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={2} />
-            <YAxis
-              tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={40}
-              domain={['auto', 'auto']}
-            />
-            <Tooltip
-              contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }}
-              formatter={(v: unknown) => [fmt(Number(v ?? 0)), 'Followers']}
-            />
-            <Line type="monotone" dataKey="followers" stroke="#3B82F6" strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {!hasSeries ? (
+        <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+          <Users className="w-8 h-8 text-gray-300 mb-3" strokeWidth={1.5} />
+          <p className="text-[13px] font-medium text-text">No Data Available</p>
+          <p className="text-[11px] text-text-soft mt-1 max-w-[220px]">
+            Follower history will appear here once data is collected.
+          </p>
+        </div>
+      ) : (
+        <div className="px-4 pt-4 pb-3">
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={2} />
+              <YAxis
+                tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={40}
+                domain={['auto', 'auto']}
+              />
+              <Tooltip
+                contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }}
+                formatter={(v: unknown) => [fmt(Number(v ?? 0)), 'Followers']}
+              />
+              <Line type="monotone" dataKey="followers" stroke="#3B82F6" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </ChartCard>
   )
 }
@@ -1976,6 +1963,7 @@ function PostingFrequencyChart({ isMock }: { isMock: boolean }) {
 
   const igData = data.filter(d => d.platform === 'instagram')
   const fbData = data.filter(d => d.platform === 'facebook')
+  const maxY = Math.max(5, ...data.map(d => d.y), 0)
 
   const tickFormatter = (v: number) => {
     const labels: Record<number, string> = { 1: '< 1/wk', 2: '1–2/wk', 3: '3–4/wk', 4: '5+/wk' }
@@ -1999,7 +1987,7 @@ function PostingFrequencyChart({ isMock }: { isMock: boolean }) {
             />
             <YAxis
               dataKey="y" type="number"
-              domain={[0, 5]}
+              domain={[0, Math.ceil(maxY + 1)]}
               tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={32}
               tickFormatter={(v: number) => `${v}%`}
             />

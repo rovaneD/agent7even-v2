@@ -4,6 +4,29 @@ import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
 import { filterPostsByPlatform, parseAnalyticsEnvelope, postDedupeKey } from '@/lib/social/zernioAnalyticsParse'
 
+/** Pull a list array from Zernio payloads that may nest under data/result. */
+function extractZernioList(raw: unknown, keys: string[]): any[] {
+  if (!raw || typeof raw !== 'object') return []
+  const obj = raw as Record<string, unknown>
+  for (const key of keys) {
+    const val = obj[key]
+    if (Array.isArray(val)) return val
+  }
+  for (const wrap of ['data', 'result', 'response'] as const) {
+    const nested = obj[wrap]
+    if (nested && typeof nested === 'object') {
+      const found = extractZernioList(nested, keys)
+      if (found.length) return found
+    }
+  }
+  return []
+}
+
+function platformMatches(value: string | undefined, filter: string | undefined): boolean {
+  if (!filter) return true
+  return (value ?? '').toLowerCase() === filter.toLowerCase()
+}
+
 export async function GET(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -274,10 +297,8 @@ export async function GET(req: NextRequest) {
   // 5. Merge bestTimes
   const bestTimesMap = new Map<string, { day_of_week: number, hour: number, sum_engagement: number, sum_posts: number }>()
   for (const r of activeResults) {
-    const bt = r.bestTimesData as Record<string, any> | null
-    if (bt && typeof bt === 'object') {
-      const slots = (bt.slots ?? bt.data ?? bt.times ?? bt.results ?? []) as any[]
-      for (const slot of slots) {
+    const slots = extractZernioList(r.bestTimesData, ['slots', 'times', 'results', 'data'])
+    for (const slot of slots) {
         const rawDay = typeof slot.day_of_week === 'number' ? slot.day_of_week : (slot.dayOfWeek ?? slot.day_index ?? slot.dayIndex ?? slot.day ?? 0)
         const hour = typeof slot.hour === 'number' ? slot.hour : (slot.hour_of_day ?? slot.hourOfDay ?? slot.time ?? 0)
         const engagement = typeof slot.avg_engagement === 'number' ? slot.avg_engagement : (slot.avgEngagement ?? slot.avg_engagement_rate ?? slot.avgEngagementRate ?? slot.engagement ?? slot.value ?? 0)
@@ -290,7 +311,6 @@ export async function GET(req: NextRequest) {
         const current = bestTimesMap.get(key)!
         current.sum_engagement += engagement * posts
         current.sum_posts += posts
-      }
     }
   }
   const finalBestTimes = {
@@ -305,10 +325,8 @@ export async function GET(req: NextRequest) {
   // 6. Merge posting frequency
   const frequencyMap = new Map<string, { platform: string, posts_per_week: number, sum_engagement_rate: number, sum_engagement: number, sum_weeks: number }>()
   for (const r of activeResults) {
-    const pf = r.postingFrequencyData as Record<string, any> | null
-    if (pf && typeof pf === 'object') {
-      const items = (pf.frequency ?? pf.points ?? pf.data ?? pf.results ?? []) as any[]
-      for (const item of items) {
+    const items = extractZernioList(r.postingFrequencyData, ['frequency', 'points', 'results', 'data'])
+    for (const item of items) {
         const pl = item.platform ?? ''
         const posts_per_week = typeof item.posts_per_week === 'number' ? item.posts_per_week : (item.postsPerWeek ?? item.frequency ?? item.weeklyPosts ?? 0)
         const er = typeof item.avg_engagement_rate === 'number' ? item.avg_engagement_rate : (item.avgEngagementRate ?? item.engagementRate ?? item.er ?? 0)
@@ -323,7 +341,6 @@ export async function GET(req: NextRequest) {
         current.sum_engagement_rate += er * weeks
         current.sum_engagement += eng * weeks
         current.sum_weeks += weeks
-      }
     }
   }
   const finalPostingFrequency = {
@@ -335,16 +352,14 @@ export async function GET(req: NextRequest) {
         avg_engagement: x.sum_weeks > 0 ? Number((x.sum_engagement / x.sum_weeks).toFixed(2)) : 0,
         weeks_count: x.sum_weeks,
       }))
-      .filter(x => !platform || x.platform === platform),
+      .filter(x => platformMatches(x.platform, platform)),
   }
 
   // 7. Merge content decay
   const decayMap = new Map<number, { bucket_order: number, bucket_label: string, sum_pct_of_final: number, sum_posts: number }>()
   for (const r of activeResults) {
-    const cd = r.contentDecayData as Record<string, any> | null
-    if (cd && typeof cd === 'object') {
-      const buckets = (cd.buckets ?? cd.data ?? cd.results ?? []) as any[]
-      for (const b of buckets) {
+    const buckets = extractZernioList(r.contentDecayData, ['buckets', 'results', 'data'])
+    for (const b of buckets) {
         const order = typeof b.bucket_order === 'number' ? b.bucket_order : (b.bucketOrder ?? 0)
         const label = b.bucket_label ?? b.label ?? b.time ?? b.bucket ?? b.range ?? ''
         const pct = typeof b.avg_pct_of_final === 'number' ? b.avg_pct_of_final : (b.avgPctOfFinal ?? b.pct ?? b.percentage ?? b.value ?? 0)
@@ -356,7 +371,6 @@ export async function GET(req: NextRequest) {
         const current = decayMap.get(order)!
         current.sum_pct_of_final += pct * posts
         current.sum_posts += posts
-      }
     }
   }
   const finalContentDecay = {
@@ -410,6 +424,9 @@ export async function GET(req: NextRequest) {
   }
 
   console.log('[zernio/social] posts count:', uniquePosts.length)
+  console.log('[zernio/social] bestTimes slots:', finalBestTimes.slots.length)
+  console.log('[zernio/social] postingFrequency rows:', finalPostingFrequency.frequency.length)
+  console.log('[zernio/social] contentDecay buckets:', finalContentDecay.buckets.length)
   console.log('[zernio/social] followerStats:', JSON.stringify(finalFollowerStats).slice(0, 800))
   console.log('[zernio/social] allAccounts:', JSON.stringify(resolvedAccounts).slice(0, 800))
 
@@ -421,5 +438,7 @@ export async function GET(req: NextRequest) {
     bestTimes: finalBestTimes,
     postingFrequency: finalPostingFrequency,
     contentDecay: finalContentDecay,
+  }, {
+    headers: { 'Cache-Control': 'no-store' },
   })
 }
