@@ -1,7 +1,7 @@
 import { SignUp } from '@clerk/nextjs'
 import { Zap, BarChart2, Layers } from 'lucide-react'
 
-type Props = { searchParams: Promise<{ plan?: string }> }
+type Props = { searchParams: Promise<{ plan?: string; annual?: string }> }
 
 const highlights = [
   { icon: Zap, label: 'AI Toolkit', desc: 'Generate copy, campaigns, and strategy in seconds.' },
@@ -10,8 +10,13 @@ const highlights = [
 ]
 
 export default async function SignUpPage({ searchParams }: Props) {
-  const { plan } = await searchParams
-  const postSignUpRedirect = plan ? `/foundation?plan=${encodeURIComponent(plan)}` : '/foundation'
+  const { plan, annual } = await searchParams
+  const foundationParams = new URLSearchParams()
+  if (plan) foundationParams.set('plan', plan)
+  if (annual === 'true') foundationParams.set('annual', 'true')
+  const postSignUpRedirect = foundationParams.size > 0
+    ? `/foundation?${foundationParams.toString()}`
+    : '/foundation'
   return (
     <div className="min-h-screen flex bg-[#0d0d0d]">
 

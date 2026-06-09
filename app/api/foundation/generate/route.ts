@@ -25,11 +25,12 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, plan')
+    .select('id, plan, foundation_complete')
     .eq('clerk_user_id', userId)
     .single()
 
   if (!profile) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const isInitialFoundationGeneration = !profile.foundation_complete
 
   const context = `
 Business: ${companyName}
@@ -103,7 +104,7 @@ Monthly goal: ${answers.monthlyGoal}
           plan:            userPlan,
           orchestrationId,
           maxTokens:       1000,
-          chargeCredits:   false,
+          chargeCredits:   !isInitialFoundationGeneration,
         })
         if (!result.content) throw new Error(`Empty content returned for ${doc.type}`)
         return { ...doc, content: result.content }

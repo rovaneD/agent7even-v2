@@ -46,6 +46,7 @@ interface Props {
   companyName: string
   initialStep: number
   selectedPlan?: string
+  selectedAnnual?: boolean
 }
 
 interface StepAnswers {
@@ -125,7 +126,7 @@ const DOC_LABEL_BY_TYPE: Record<string, string> = {
   plan: '30-day plan',
 }
 
-export default function FoundationFlow({ profileId, companyName, initialStep, selectedPlan }: Props) {
+export default function FoundationFlow({ profileId, companyName, initialStep, selectedPlan, selectedAnnual }: Props) {
   const router = useRouter()
   const [step, setStep] = useState(initialStep)
   const [generating, setGenerating] = useState(false)
@@ -212,7 +213,13 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
       throw new Error(data.error || 'Your Foundation could not be generated. Please try again.')
     }
     setGenerationProgress(ALL_DOCS)
-    router.push(selectedPlan ? `/checkout-now?plan=${encodeURIComponent(selectedPlan)}` : '/pricing?foundation=complete')
+    if (selectedPlan) {
+      const params = new URLSearchParams({ plan: selectedPlan })
+      if (selectedAnnual) params.set('annual', 'true')
+      router.push(`/checkout-now?${params.toString()}`)
+    } else {
+      router.push('/pricing?foundation=complete')
+    }
   }
 
   async function handleGenerate() {
