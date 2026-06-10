@@ -499,7 +499,7 @@ export default function AIToolkitClient({
   }
 
   return (
-    <div className="mx-auto max-w-[1240px] px-8 py-8">
+    <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
 
       {/* Header */}
       <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-7">
@@ -524,7 +524,7 @@ export default function AIToolkitClient({
 
       {/* Brand Kit nudge / active banner */}
       {!brandKitComplete && (
-        <div className="flex items-start gap-3 bg-brand-primary/5 border border-brand-primary/10 rounded-2xl px-4 py-3 mb-5">
+        <div className="flex flex-wrap items-start gap-3 bg-brand-primary/5 border border-brand-primary/10 rounded-2xl px-4 py-3 mb-5">
           <Sparkles size={15} className="text-brand-primary mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-text mb-0.5">Your AI outputs are generic right now</p>

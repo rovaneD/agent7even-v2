@@ -170,7 +170,7 @@ ${nextActions}
 The user is reviewing planned campaign content and may need help turning items into captions, emails, posts, or schedule-ready assets.`
 
   return (
-    <div className="mx-auto max-w-[1440px] px-8 py-8">
+    <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8">
       <CanvasContextDispatcher context={context} />
 
       <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">

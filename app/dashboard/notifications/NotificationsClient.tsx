@@ -158,7 +158,7 @@ The user can mark notifications as read and follow links to relevant pages.`
   })
 
   return (
-    <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
+    <div className="mx-auto max-w-[1240px] space-y-6 px-4 py-8 sm:px-8">
 
       <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">

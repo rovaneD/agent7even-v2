@@ -1392,7 +1392,7 @@ function ChartCard({
   fullWidth?: boolean
 }) {
   return (
-    <div className={`rounded-2xl border border-gray-100 bg-white overflow-hidden ${fullWidth ? 'col-span-2' : ''}`}>
+    <div className={`rounded-2xl border border-gray-100 bg-white overflow-hidden ${fullWidth ? 'col-span-full' : ''}`}>
       <div className="px-5 py-4 border-b border-gray-50 flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -1449,7 +1449,7 @@ function StatCards({ isMock }: { isMock: boolean }) {
   ]
 
   return (
-    <div className="grid grid-cols-5 gap-3 mb-5">
+    <div className="grid grid-cols-2 gap-3 mb-5 sm:grid-cols-3 lg:grid-cols-5">
       {cards.map((c, i) => (
         <div key={i} className="relative bg-white rounded-2xl border border-gray-100 p-4">
           {isMock && <DemoDot />}
@@ -1658,13 +1658,13 @@ function EngagementOverTimeChart({ isMock }: { isMock: boolean }) {
   }, {} as Record<string, number>)
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-2">
+    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-full">
       <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
         <span className="text-[13px] font-semibold text-text">Engagement over time</span>
         {isMock && <DemoChip />}
         <span className="text-[11px] text-text-soft ml-1">{subtitle}</span>
       </div>
-      <div className="flex">
+      <div className="flex flex-col md:flex-row">
         {/* Chart */}
         <div className="flex-1 min-w-0 px-4 pt-4 pb-3">
           <ResponsiveContainer width="100%" height={220}>
@@ -1688,7 +1688,7 @@ function EngagementOverTimeChart({ isMock }: { isMock: boolean }) {
           </ResponsiveContainer>
         </div>
         {/* Legend panel */}
-        <div className="w-52 flex-shrink-0 border-l border-gray-50 py-4 px-4 overflow-y-auto">
+        <div className="w-full flex-shrink-0 border-t border-gray-50 py-4 px-4 overflow-y-auto md:w-52 md:border-t-0 md:border-l">
           <div className="space-y-3">
             {ENG_METRICS.map(m => {
               const active = activeMetrics.has(m.key)
@@ -1752,7 +1752,7 @@ function BestTimeToPostHeatmap({ isMock }: { isMock: boolean }) {
     >
       <div className="px-4 pt-3 pb-4">
         {/* Grid */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 overflow-x-auto">
           {/* Day labels */}
           <div className="flex flex-col gap-1 pr-1">
             <div className="h-5" />
@@ -1761,7 +1761,7 @@ function BestTimeToPostHeatmap({ isMock }: { isMock: boolean }) {
             ))}
           </div>
           {/* Cells */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-[320px]">
             {/* Time labels */}
             <div className="grid mb-1" style={{ gridTemplateColumns: `repeat(${times.length}, 1fr)` }}>
               {times.map(t => (
@@ -1856,7 +1856,7 @@ function PlatformBreakdownTable({ isMock }: { isMock: boolean }) {
   const cols = ['Platform', 'Posts', 'Likes', 'Comments', 'Shares', 'Saves', 'Clicks', 'Views', 'Impressions', 'Reach', 'ER%']
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-2">
+    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-full">
       <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
         <span className="text-[13px] font-semibold text-text">Platform Breakdown</span>
         {isMock && <DemoChip />}
@@ -1919,7 +1919,7 @@ function TopPerformingPostsTable({ isMock }: { isMock: boolean }) {
   ]
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-2">
+    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-full">
       <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
         <span className="text-[13px] font-semibold text-text">Top Performing Posts</span>
         {isMock && <DemoChip />}
@@ -2100,7 +2100,7 @@ function InboxAnalyticsContent({ isMock }: { isMock: boolean }) {
   return (
     <div className="space-y-4">
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
           { label: 'Total Comments', value: `${inbox.totalComments}` },
           { label: 'Total DMs',      value: `${inbox.totalDMs}` },
@@ -2120,7 +2120,8 @@ function InboxAnalyticsContent({ isMock }: { isMock: boolean }) {
           <span className="text-[13px] font-semibold text-text">Platform breakdown</span>
           {isMock && <DemoChip />}
         </div>
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[420px]">
           <thead>
             <tr className="border-b border-gray-50">
               {['Platform', 'Comments', 'DMs', 'Unread'].map(h => (
@@ -2150,6 +2151,7 @@ function InboxAnalyticsContent({ isMock }: { isMock: boolean }) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Engagement trend */}
@@ -2323,7 +2325,7 @@ function GoogleAnalyticsContent({
   return (
     <div className="space-y-4">
       {/* KPI cards */}
-      <div className="grid grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {kpis.map(k => (
           <div key={k.label} className="relative bg-white rounded-2xl border border-gray-100 p-4">
             {isMock && <DemoDot />}
@@ -2337,7 +2339,7 @@ function GoogleAnalyticsContent({
       </div>
 
       {/* Traffic over time + User activity over time */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChartCard title="Traffic over time" subtitle="Sessions and active users" isMock={isMock}>
           <div className="px-4 pt-3 pb-3">
             <div className="flex items-center gap-4 px-2 pb-2">
@@ -2419,7 +2421,7 @@ function GoogleAnalyticsContent({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Top pages */}
         {topPages.length > 0 && (
           <ChartCard title="Top pages" subtitle="Most viewed pages this period" isMock={isMock}>
@@ -2472,7 +2474,7 @@ function GoogleAnalyticsContent({
       </div>
 
       {(countries.length > 0 || devices.length > 0 || events.length > 0) && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Users by country */}
           {countries.length > 0 && (
             <ChartCard title="Users by country" subtitle="Top countries this period" isMock={isMock}>
@@ -2556,7 +2558,7 @@ function PostingAnalyticsContent({ isMock }: { isMock: boolean }) {
       {isMock && <MayaBriefingCard isMock={isMock} />}
 
       {/* 2-col grid for paired charts */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <PostsPerPlatformChart isMock={isMock} />
         <PostsOverTimeChart    isMock={isMock} />
         <LikesPerPlatformChart isMock={isMock} />
@@ -3127,7 +3129,7 @@ export default function AnalyticsClient({
   ]
 
   return (
-    <div className="mx-auto max-w-[1240px] px-8 py-6">
+    <div className="mx-auto max-w-[1240px] px-4 py-6 sm:px-8">
 
       {/* Modals */}
       {showGAModal && (
@@ -3171,7 +3173,7 @@ export default function AnalyticsClient({
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
       <div className="mb-5">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-[22px] font-[500] text-text">Analytics</h1>
             <p className="text-[13px] text-text-sec mt-0.5">View post performance metrics</p>
@@ -3185,12 +3187,12 @@ export default function AnalyticsClient({
         </div>
 
         {/* Tabs */}
-        <div className="flex items-end gap-0 border-b border-gray-200 mt-4">
+        <div className="flex items-end gap-0 border-b border-gray-200 mt-4 overflow-x-auto">
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`px-4 py-3 text-[13px] font-medium border-b-2 transition-colors -mb-px ${
+              className={`whitespace-nowrap px-3 py-3 text-[13px] font-medium border-b-2 transition-colors -mb-px sm:px-4 ${
                 activeTab === t.id
                   ? 'border-[#3B82F6] text-[#3B82F6] font-semibold'
                   : 'border-transparent text-text-sec hover:text-text'

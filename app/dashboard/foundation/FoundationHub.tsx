@@ -892,7 +892,7 @@ function MemoryTab({ data, loading }: { data: FoundationMemoryResponse | null; l
       </div>
 
       {/* Global stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-3">
         {[
           { label: 'Total outputs', value: data.totalOutputs, color: '#1D4ED8' },
           { label: 'Approved', value: data.totalApproved, color: '#10B981' },
@@ -906,7 +906,7 @@ function MemoryTab({ data, loading }: { data: FoundationMemoryResponse | null; l
       </div>
 
       {/* Per-agent grid */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {data.stats.map(stat => (
           <MemoryStatCard key={stat.agentId} stat={stat} />
         ))}
@@ -1207,11 +1207,11 @@ export default function FoundationHub({
   return (
     <div>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-100 px-8 pt-6 pb-0">
+      <div className="bg-white border-b border-gray-100 px-4 pt-6 pb-0 sm:px-8">
         <div className="mx-auto max-w-[1240px]">
 
           {/* Title row */}
-          <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-text-soft mb-1">Foundation</p>
               <h1 className="text-[22px] font-[500] tracking-[-0.015em] text-text leading-tight">
@@ -1254,14 +1254,14 @@ export default function FoundationHub({
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1">
+          <div className="flex gap-1 overflow-x-auto">
             {TABS.map(tab => {
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium border-b-2 transition-colors ${
+                  className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-[13px] font-medium border-b-2 transition-colors sm:px-4 ${
                     isActive
                       ? 'border-[#3B82F6] text-[#3B82F6]'
                       : 'border-transparent text-text-soft hover:text-text-sec'
@@ -1283,14 +1283,14 @@ export default function FoundationHub({
       </div>
 
       {/* ── Body ───────────────────────────────────────────────────────────── */}
-      <div className="mx-auto max-w-[1240px] px-8 py-6">
+      <div className="mx-auto max-w-[1240px] px-4 py-6 sm:px-8">
 
         {/* Intelligence tab */}
         {activeTab === 'intelligence' && (
-          <div className="flex gap-6 items-start">
+          <div className="flex flex-col gap-6 items-start lg:flex-row">
 
             {/* Left — section cards */}
-            <div className="flex-1 min-w-0">
+            <div className="w-full flex-1 min-w-0">
 
               {/* Nudge banner */}
               {currentScore < 70 && weakSections.length > 0 && (
@@ -1373,7 +1373,7 @@ export default function FoundationHub({
             </div>
 
             {/* Right — sidebar */}
-            <div className="w-[280px] flex-shrink-0 space-y-4">
+            <div className="w-full flex-shrink-0 space-y-4 lg:w-[280px]">
               <StrengthCard score={currentScore} healthMap={healthMap} onRescore={handleRescore} rescoring={rescoring} />
               <UploadCard onKnowledgeAdded={handleKnowledgeAdded} />
               <SuggestionsCard suggestions={suggestions} />

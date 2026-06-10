@@ -480,7 +480,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="mx-auto max-w-[1240px] px-8 py-8">
+    <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
 
       <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-[0_20px_60px_rgba(45,55,72,0.08)]">
         <div className="grid gap-0 lg:grid-cols-[1.35fr_0.9fr]">
@@ -601,15 +601,15 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                   </p>
                 </div>
 
-                <div className="mb-4 grid grid-cols-6 gap-3">
+                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-6">
                   {selectedAgentConfig.fields.map(field => {
                     const type = field.type ?? 'text'
                     const columnSpan = field.columns === 1 ? 6 : field.columns === 3 ? 2 : 3
-                    const fieldStyle = { gridColumn: `span ${columnSpan}` }
+                    const spanClass = columnSpan === 6 ? 'sm:col-span-6' : columnSpan === 2 ? 'sm:col-span-2' : 'sm:col-span-3'
                     const controlClass = 'w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-brand-primary'
 
                     return (
-                      <label key={field.key} className="grid gap-1.5" style={fieldStyle}>
+                      <label key={field.key} className={`grid gap-1.5 ${spanClass}`}>
                         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">
                           {field.label}
                         </span>
@@ -903,9 +903,9 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
         </div>
 
         {/* Right: Scorecard */}
-        <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-5">
+        <div className="min-w-0 max-h-[360px] overflow-y-auto overflow-x-auto rounded-2xl border border-gray-100 bg-white p-5">
           <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Agent scorecard</p>
-          <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-4">
+          <div className="grid min-w-[440px] grid-cols-[1fr_auto_auto_auto] items-center gap-x-4">
             {/* Header */}
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Agent</span>
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Last run</span>
@@ -965,7 +965,7 @@ The user can run agents, approve/reject pending outputs, and manage agent constr
                 <Link
                   key={output.id}
                   href={`/dashboard/agents/${output.agent}/outputs?output=${output.id}`}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white px-4 py-3 no-underline transition-colors hover:border-gray-200 hover:bg-surface-2"
+                  className="flex min-w-0 items-center justify-between gap-4 overflow-hidden rounded-xl border border-gray-100 bg-white px-4 py-3 no-underline transition-colors hover:border-gray-200 hover:bg-surface-2"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-text-primary">

@@ -437,7 +437,7 @@ The user is reviewing agent outputs. They can approve, edit-and-approve, or reje
   const allChecked = visible.length > 0 && visible.every(t => checkedIds.has(t.id))
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 32px 64px', fontFamily: 'var(--font-geist), system-ui, sans-serif' }}>
+    <div className="mx-auto max-w-[860px] px-4 pt-8 pb-16 sm:px-8" style={{ fontFamily: 'var(--font-geist), system-ui, sans-serif' }}>
 
       {/* Header */}
       <div style={{ marginBottom: 28 }}>

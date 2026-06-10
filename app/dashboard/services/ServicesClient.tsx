@@ -674,7 +674,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
     const DisplayStatusIcon = displayStatus.icon
 
     return (
-      <div className="mx-auto max-w-[1240px] px-8 py-8">
+      <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
         <button
           onClick={() => setSelectedOrderId(null)}
           className="mb-8 flex items-center gap-2 text-sm text-text-soft transition-colors hover:text-text"
@@ -867,7 +867,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
   }
 
   return (
-    <div className="mx-auto max-w-[1240px] px-8 py-8">
+    <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
 
       <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">

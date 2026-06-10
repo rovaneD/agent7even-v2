@@ -147,7 +147,7 @@ The user can view their current plan, upgrade to a higher tier, and access the S
   }
 
   return (
-    <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
+    <div className="mx-auto max-w-[1240px] space-y-6 px-4 py-8 sm:px-8">
 
       <div className="rounded-2xl border border-gray-100 bg-white p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">

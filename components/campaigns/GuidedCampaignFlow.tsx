@@ -328,7 +328,7 @@ export default function GuidedCampaignFlow() {
           <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#bbb', marginBottom: 10 }}>
             Timeline
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" style={{ marginBottom: 20 }}>
             {TIMELINES.map(t => (
               <button
                 key={t.id}

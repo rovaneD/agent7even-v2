@@ -98,13 +98,13 @@ export default async function AgentOutputsPage({
     null
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 32px 64px', fontFamily: 'var(--font-geist), system-ui, sans-serif' }}>
+    <div className="mx-auto max-w-[1100px] px-4 pt-8 pb-16 sm:px-8" style={{ fontFamily: 'var(--font-geist), system-ui, sans-serif' }}>
       <Link href="/dashboard/agents" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#64748B', fontSize: 12.5, textDecoration: 'none', marginBottom: 22 }}>
         <i className="ti ti-arrow-left" style={{ fontSize: 14 }} />
         Back to Command Center
       </Link>
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
         <div>
           <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#64748B', marginBottom: 4 }}>Agent outputs</p>
           <h1 style={{ fontSize: 24, fontWeight: 600, color: '#2D3748', margin: '0 0 4px' }}>
@@ -121,12 +121,12 @@ export default async function AgentOutputsPage({
       </div>
 
       {selectedOutput ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 18, alignItems: 'start' }}>
+        <div className="grid grid-cols-1 items-start gap-[18px] lg:grid-cols-[320px_1fr]">
           <aside style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 16, overflow: 'hidden' }}>
             <div style={{ padding: '14px 16px', borderBottom: '1px solid #E2E8F0' }}>
               <p style={{ fontSize: 11, fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Archive</p>
             </div>
-            <div style={{ maxHeight: 620, overflowY: 'auto' }}>
+            <div className="max-h-[280px] overflow-y-auto lg:max-h-[620px]">
               {outputRows.map(output => {
                 const selected = output.id === selectedOutput.id
                 return (

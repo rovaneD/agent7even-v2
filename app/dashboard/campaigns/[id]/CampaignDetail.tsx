@@ -139,7 +139,7 @@ export default function CampaignDetail({ campaign }: Props) {
   }
 
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 24px' }}>
+    <div className="mx-auto max-w-[760px] px-4 py-8 sm:px-6">
 
       {/* Back */}
       <Link
@@ -152,7 +152,7 @@ export default function CampaignDetail({ campaign }: Props) {
 
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#3B82F6' }}>
             {campaign.mode === 'guided'
               ? (campaign.segment?.replace(/_/g, ' ') ?? 'Guided')

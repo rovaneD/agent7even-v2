@@ -137,7 +137,7 @@ export default function BrandKitView({
   }
 
   return (
-    <div className="mx-auto max-w-[1240px] px-8 py-8">
+    <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
 
       <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
@@ -541,7 +541,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
 
       <div className="space-y-1">
         {localColors.map(color => (
-          <div key={color.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
+          <div key={color.id} className="flex items-start gap-3 py-3 border-b border-gray-50 last:border-0 sm:items-center">
             <div className="relative flex-shrink-0">
               <div
                 className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer overflow-hidden"
@@ -560,7 +560,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
               </div>
             </div>
 
-            <div className="flex-1 grid grid-cols-4 gap-2">
+            <div className="flex-1 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
               <input
                 value={color.name ?? ''}
                 onChange={e => updateLocal(color.id, 'name', e.target.value)}

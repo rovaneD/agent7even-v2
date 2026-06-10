@@ -72,7 +72,7 @@ The user can create new campaigns or view existing ones.`
   const latestCampaign = campaignRows[0]
 
   return (
-    <div className="mx-auto max-w-[1240px] px-8 py-8">
+    <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
       <CanvasContextDispatcher context={contextString} />
 
       <section className="mb-8 overflow-hidden rounded-2xl border border-gray-100 bg-white">

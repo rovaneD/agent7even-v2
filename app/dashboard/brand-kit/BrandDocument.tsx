@@ -55,10 +55,10 @@ export default function BrandDocument({ document, onBack, onSaved, onRegenerate 
   }
 
   return (
-    <div className="mx-auto max-w-[1240px] px-8 py-8">
+    <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 transition-colors"

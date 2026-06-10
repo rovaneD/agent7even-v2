@@ -159,7 +159,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
   // ── New ticket form ──────────────────────────────────────────────────────────
   if (view === 'new') {
     return (
-      <div className="mx-auto max-w-[1240px] px-8 py-8">
+      <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
         <button
           onClick={() => setView('list')}
           className="mb-6 flex items-center gap-2 text-sm text-text-soft hover:text-text transition-colors"
@@ -252,7 +252,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
   // ── Thread view ──────────────────────────────────────────────────────────────
   if (view === 'thread' && activeTicket) {
     return (
-      <div className="mx-auto max-w-[1240px] px-8 py-8">
+      <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
         <button
           onClick={() => setView('list')}
           className="mb-6 flex items-center gap-2 text-sm text-text-soft hover:text-text transition-colors"
@@ -337,7 +337,7 @@ The user can view existing tickets or open a new support ticket with the Agent7e
 
   // ── Ticket list ──────────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
+    <div className="mx-auto max-w-[1240px] space-y-6 px-4 py-8 sm:px-8">
       <div className="rounded-2xl border border-gray-100 bg-white p-7">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>

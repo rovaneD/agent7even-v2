@@ -366,6 +366,7 @@ export default function DashboardShell({
   function openHelpMode() {
     setHelpMode(true)
     setMayaOpen(true)
+    setMobileOpen(false)
     setActiveSessionId(null)
     setActiveMessages([])
     setActiveMode(null)
@@ -381,6 +382,7 @@ export default function DashboardShell({
     }
     setHelpMode(false)
     setMayaOpen(true)
+    setMobileOpen(false)
     setActiveSessionId(null)
     setActiveMessages([])
     setActiveMode(null)
@@ -397,6 +399,7 @@ export default function DashboardShell({
       setActiveMode(session?.mode ?? null)
       setActiveSessionId(sessionId)
       setMayaOpen(true)
+      setMobileOpen(false)
       setMayaPendingTask(null)
       setPanelKey(k => k + 1)
     } finally {
@@ -865,10 +868,17 @@ export default function DashboardShell({
         </>
       )}
 
-      {/* Maya panel */}
+      {/* Maya panel — inline on desktop, full-height drawer on mobile */}
       {mayaOpen && (
         <div
-          className="hidden lg:block"
+          className="lg:hidden"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.18)', zIndex: 49 }}
+          onClick={() => { setMayaOpen(false); setHelpMode(false) }}
+        />
+      )}
+      {mayaOpen && (
+        <div
+          className="fixed inset-y-0 left-0 z-50 lg:static lg:z-auto"
           style={{ flexShrink: 0, overflow: 'hidden', height: '100%' }}
         >
           <MayChatPanel

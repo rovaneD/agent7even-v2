@@ -348,7 +348,7 @@ export default function MayChatPanel({
 
   return (
     <div
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-surface)', width: panelWidth, flexShrink: 0, position: 'relative', borderRight: '1px solid var(--color-border)' }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-surface)', width: panelWidth, maxWidth: '100vw', flexShrink: 0, position: 'relative', borderRight: '1px solid var(--color-border)' }}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}

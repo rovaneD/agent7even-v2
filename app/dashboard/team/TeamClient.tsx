@@ -208,7 +208,7 @@ The user can invite new team members and manage their roles and permissions.`
   const totalSeats = activeMembers + pendingMembers
 
   return (
-    <div className="mx-auto max-w-[1240px] space-y-6 px-8 py-8">
+    <div className="mx-auto max-w-[1240px] space-y-6 px-4 py-8 sm:px-8">
 
       <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
@@ -320,7 +320,7 @@ The user can invite new team members and manage their roles and permissions.`
         ) : (
           <div className="divide-y divide-gray-50">
             {teamMembers.map(member => (
-              <div key={member.id} className="flex items-center gap-4 px-6 py-4">
+              <div key={member.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
                 {/* Avatar */}
                 <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
                   {member.profiles?.avatar_url ? (

@@ -194,7 +194,7 @@ The user can download files from Agent7even and upload their own briefs and asse
   }
 
   return (
-    <div className="mx-auto max-w-[1240px] px-8 py-8 space-y-6">
+    <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8 space-y-6">
 
       <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">

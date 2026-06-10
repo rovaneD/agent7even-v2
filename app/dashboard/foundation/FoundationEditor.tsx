@@ -526,7 +526,7 @@ export default function FoundationEditor({
 
   if (!initialAnswers) {
     return (
-      <div className="mx-auto max-w-[1240px] px-8 py-8">
+      <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
         <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
           <div className="p-7">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Foundation</p>
@@ -560,7 +560,7 @@ export default function FoundationEditor({
   // ── Main editor ──────────────────────────────────────────────────────────
 
   return (
-    <div className="mx-auto max-w-[1240px] px-8 py-8">
+    <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
 
       <section className="mb-7 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
