@@ -13,7 +13,7 @@ export const models = {
   maya: openrouter('anthropic/claude-sonnet-4'),
   campaignGenerator: openrouter('anthropic/claude-sonnet-4'),
   competitorAnalyzer: openrouter('google/gemini-2.5-flash'),
-  contentWriter: openrouter('anthropic/claude-haiku-4'),
+  contentWriter: openrouter('anthropic/claude-haiku-4-5'),
   brandAnalyzer: openrouter('anthropic/claude-sonnet-4'),
 } as const
 

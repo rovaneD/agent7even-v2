@@ -27,7 +27,14 @@ export async function extractText(
 ): Promise<string> {
   if (type === 'url') {
     const site = await exaReadSite(content)
-    return site?.text ?? ''
+    const text = site?.text ?? ''
+    if (!text.trim()) {
+      console.error('[foundation-ingest-diag] extractText(url): empty after exaReadSite', {
+        url: content,
+        siteReturned: site ? { url: site.url, title: site.title ?? null, textLen: site.text?.length ?? 0 } : null,
+      })
+    }
+    return text
   }
 
   if (type === 'text') return content
@@ -57,7 +64,13 @@ export async function extractText(
 
 async function extractImageText(base64: string, filename?: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) return ''
+  if (!apiKey) {
+    console.error('[foundation-ingest-diag] extractImageText: ANTHROPIC_API_KEY missing or empty at runtime', {
+      filename: filename ?? null,
+      base64Len: base64.length,
+    })
+    return ''
+  }
 
   const mimeType = filename?.endsWith('.png') ? 'image/png'
     : filename?.endsWith('.webp') ? 'image/webp'
@@ -83,10 +96,36 @@ async function extractImageText(base64: string, filename?: string): Promise<stri
         }],
       }),
     })
-    if (!res.ok) return ''
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '')
+      console.error('[foundation-ingest-diag] extractImageText: Anthropic API error', {
+        filename: filename ?? null,
+        mimeType,
+        base64Len: base64.length,
+        status: res.status,
+        statusText: res.statusText,
+        body: errBody.slice(0, 500),
+      })
+      return ''
+    }
     const data = await res.json()
-    return data.content?.[0]?.text ?? ''
-  } catch {
+    const text = data.content?.[0]?.text ?? ''
+    if (!text.trim()) {
+      console.error('[foundation-ingest-diag] extractImageText: Anthropic 200 but empty text', {
+        filename: filename ?? null,
+        mimeType,
+        base64Len: base64.length,
+        stopReason: data.stop_reason ?? null,
+        contentBlocks: Array.isArray(data.content) ? data.content.length : 0,
+      })
+    }
+    return text
+  } catch (err) {
+    console.error('[foundation-ingest-diag] extractImageText: fetch threw', {
+      filename: filename ?? null,
+      base64Len: base64.length,
+      error: err instanceof Error ? err.message : String(err),
+    })
     return ''
   }
 }
@@ -118,6 +157,10 @@ export async function interpretExtraction(
   source: string,
 ): Promise<ExtractionResult> {
   if (!text.trim()) {
+    console.error('[foundation-ingest-diag] interpretExtraction: empty raw text → "No readable content found."', {
+      source,
+      textLen: text.length,
+    })
     return { items: [], summary: 'No readable content found.' }
   }
 
@@ -149,14 +192,29 @@ Rules:
 - Never infer Voice (toneTraits etc.) or Budget from a website URL source
 - Return valid JSON only, no markdown`
 
+  // Same Haiku slug as foundation/score, brand-kit, digest, runLightAgent — verified on OpenRouter.
+  const FIELD_MAPPING_MODEL = 'anthropic/claude-haiku-4-5'
+
+  let content: string
   try {
-    const { content } = await openRouterComplete({
-      model: 'anthropic/claude-haiku-4',
+    const res = await openRouterComplete({
+      model: FIELD_MAPPING_MODEL,
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 1500,
       temperature: 0.1,
     })
+    content = res.content
+  } catch (err) {
+    console.error('[foundation-ingest-diag] interpretExtraction: OpenRouter call failed', {
+      source,
+      textLen: text.length,
+      model: FIELD_MAPPING_MODEL,
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return { items: [], summary: "Couldn't reach the analysis model." }
+  }
 
+  try {
     const raw = content.replace(/```json\n?|\n?```/g, '').trim()
     const parsed = JSON.parse(raw) as { items: Omit<ExtractionItem, 'source'>[]; summary: string }
 
@@ -166,7 +224,14 @@ Rules:
     }))
 
     return { items, summary: parsed.summary ?? `Extracted ${items.length} Foundation fields.` }
-  } catch {
-    return { items: [], summary: 'Could not parse document content.' }
+  } catch (err) {
+    console.error('[foundation-ingest-diag] interpretExtraction: JSON parse failed', {
+      source,
+      textLen: text.length,
+      model: FIELD_MAPPING_MODEL,
+      contentPreview: content.slice(0, 300),
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return { items: [], summary: 'Model returned an unreadable response.' }
   }
 }
