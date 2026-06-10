@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -17,6 +17,8 @@ import {
   MOCK_ANALYTICS_INBOX, MOCK_POSTING_ANALYTICS, MOCK_GA_DATA,
 } from '@/lib/analytics/mockData'
 import { parseAnalyticsEnvelope, readBestPostUrl } from '@/lib/social/zernioAnalyticsParse'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildAnalyticsMayaContext } from '@/lib/maya/summaries/analyticsContext'
 
 // ── Posting data context ───────────────────────────────────────────────────────
 
@@ -1224,9 +1226,11 @@ function FilterDropdown({
 // ── Filter Bar ─────────────────────────────────────────────────────────────────
 
 function FilterBar({
+  activeTab,
   platform, profile, source, dateRange, isMock,
   onPlatformChange, onSourceChange, onDateRangeChange,
 }: {
+  activeTab: PostingTab
   platform: string; profile: string; source: string; dateRange: DateRange; isMock: boolean
   onPlatformChange: (v: string) => void
   onSourceChange:   (v: string) => void
@@ -1260,36 +1264,38 @@ function FilterBar({
     { value: '1y',  label: 'Last year'     },
   ]
 
-  const currentPlatformLabel = platform === 'all'
-    ? 'All platforms'
-    : PLATFORM_META[platform]?.label ?? platform
+  const showSocialFilters = activeTab === 'posting'
 
   return (
     <div className="flex items-center gap-2 flex-wrap mb-4">
-      {/* Platform */}
-      <FilterDropdown
-        value={platform}
-        options={platformOptions}
-        onChange={onPlatformChange}
-        isMock={isMock}
-      />
+      {showSocialFilters && (
+        <>
+          {/* Platform — Zernio posting only */}
+          <FilterDropdown
+            value={platform}
+            options={platformOptions}
+            onChange={onPlatformChange}
+            isMock={isMock}
+          />
 
-      {/* Profile (static in demo) */}
-      <button className="flex items-center gap-1.5 text-[12.5px] font-medium text-text-sec bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:border-gray-300 transition-colors">
-        {isMock ? 'Demo Profile' : 'Default'}
-        <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
-      </button>
+          {/* Profile (static in demo) */}
+          <button className="flex items-center gap-1.5 text-[12.5px] font-medium text-text-sec bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:border-gray-300 transition-colors">
+            {isMock ? 'Demo Profile' : 'Default'}
+            <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
+          </button>
 
-      {/* Source */}
-      <FilterDropdown
-        value={source}
-        options={sourceOptions}
-        onChange={onSourceChange}
-        isMock={isMock}
-        mayaSourceTooltip
-      />
+          {/* Source — Zernio posting only */}
+          <FilterDropdown
+            value={source}
+            options={sourceOptions}
+            onChange={onSourceChange}
+            isMock={isMock}
+            mayaSourceTooltip
+          />
+        </>
+      )}
 
-      {/* Date range */}
+      {/* Date range — all tabs */}
       <FilterDropdown
         value={dateRange}
         options={dateOptions}
@@ -3024,11 +3030,35 @@ export default function AnalyticsClient({
 
   const isMock = dataState === 'mock'
 
-  // Maya canvas context
-  useEffect(() => {
-    const ctx = `ANALYTICS PAGE\nCompany: ${companyName}\nState: ${dataState}\nGA: ${gaId ? `Property ${gaId}` : 'Not connected'}\nZernio: ${connectedPlatforms.join(', ') || 'None'}`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: ctx } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(
+    () => buildAnalyticsMayaContext({
+      companyName,
+      dataState,
+      activeTab,
+      dateRange,
+      gaId,
+      oauthConnected,
+      gaOAuthEmail,
+      gaData,
+      gaPending,
+      connectedPlatforms,
+      postingData,
+    }),
+    [
+      companyName,
+      dataState,
+      activeTab,
+      dateRange,
+      gaId,
+      oauthConnected,
+      gaOAuthEmail,
+      gaData,
+      gaPending,
+      connectedPlatforms,
+      postingData,
+    ],
+  )
+  useMayaContext(mayaContext)
 
   // GA OAuth redirects
   useEffect(() => {
@@ -3206,6 +3236,7 @@ export default function AnalyticsClient({
 
       {/* ── Filter bar + demo banner ──────────────────────────────────────── */}
       <FilterBar
+        activeTab={activeTab}
         platform={platformFilter}
         profile="default"
         source={sourceFilter}
