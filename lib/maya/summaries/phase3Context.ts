@@ -1,0 +1,242 @@
+import type { MayaDataSource, MayaPageContext } from '@/lib/maya/contextTypes'
+import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
+
+type PostsDataState = 'mock' | 'live' | 'empty'
+
+function postsDataSource(state: PostsDataState): MayaDataSource {
+  if (state === 'mock') return 'sample'
+  if (state === 'empty') return 'none'
+  return 'live'
+}
+
+const POSTS_AFFORDANCE =
+  `${MAYA_VOICE_RULE} User is on the Posts page — create, schedule, and publish to connected social accounts inside Agent7even. Help with captions, timing, and platform choices; do not reference internal integration vendors.`
+
+export function buildPostsMayaContext(input: {
+  companyName: string
+  plan: string
+  dataState: PostsDataState
+  connectedPlatforms: string[]
+  accounts: { platform: string; username: string }[]
+  posts: { status: string }[]
+  statusFilter: string
+  platformFilter: string
+  drawerOpen: boolean
+  publishMode: string
+  selectedAccountCount: number
+}): MayaPageContext {
+  const counts = input.posts.reduce<Record<string, number>>((acc, p) => {
+    acc[p.status] = (acc[p.status] ?? 0) + 1
+    return acc
+  }, {})
+  const countSummary = Object.entries(counts).map(([s, n]) => `${s}: ${n}`).join('; ') || 'none loaded'
+
+  const platformLabels = input.connectedPlatforms.length
+    ? input.connectedPlatforms.join(', ')
+    : 'none connected'
+
+  const accountSummary = input.accounts.length
+    ? input.accounts.map(a => `${a.platform} (@${a.username})`).join('; ')
+    : 'no accounts'
+
+  return {
+    page: 'POSTS PAGE',
+    dataSource: postsDataSource(input.dataState),
+    company: input.companyName || undefined,
+    activeView: input.drawerOpen ? `compose (${input.publishMode})` : 'post list',
+    connections: [
+      `Plan: ${input.plan || 'none'}`,
+      `Connected platforms: ${platformLabels}`,
+      `Accounts: ${accountSummary}`,
+    ],
+    metrics: [
+      `Posts on screen (${input.posts.length}): ${countSummary}`,
+      `Filters: status=${input.statusFilter}, platform=${input.platformFilter}`,
+      input.drawerOpen
+        ? `Composer: ${input.selectedAccountCount} account(s) selected, mode=${input.publishMode}`
+        : 'Composer closed',
+    ],
+    affordance: POSTS_AFFORDANCE,
+  }
+}
+
+export function buildFoundationHubMayaContext(input: {
+  companyName: string
+  activeTab: string
+  score: number
+  sectionHealth: Record<string, string>
+  editingSection: string | null
+  knowledgeCount: number
+  memoryOutputCount?: number
+  weakSections: string[]
+}): MayaPageContext {
+  const healthLine = Object.entries(input.sectionHealth)
+    .map(([k, h]) => `${k}: ${h}`)
+    .join('; ')
+  return {
+    page: 'FOUNDATION PAGE',
+    dataSource: 'live',
+    company: input.companyName || undefined,
+    activeView: input.editingSection
+      ? `${input.activeTab} — editing ${input.editingSection}`
+      : input.activeTab,
+    metrics: [
+      `Foundation score: ${input.score}%`,
+      `Section health: ${healthLine}`,
+      `Knowledge sources: ${input.knowledgeCount}`,
+      ...(input.memoryOutputCount != null ? [`Agent memory outputs: ${input.memoryOutputCount}`] : []),
+      ...(input.weakSections.length ? [`Needs work: ${input.weakSections.join(', ')}`] : []),
+    ],
+    affordance: `${MAYA_VOICE_RULE} User manages Foundation intelligence, knowledge uploads, agent memory, and connections. Help strengthen thin sections and explain how Foundation feeds agents.`,
+  }
+}
+
+export function buildAiToolkitMayaContext(input: {
+  plan: string | null
+  monthlyRuns: number
+  unlimited: boolean
+  limit: number
+  activeCategory: string
+  activeTab: string
+  visibleToolCount: number
+  runningPromptTitle: string | null
+  brandKitComplete: boolean
+  totalRuns: number
+}): MayaPageContext {
+  const usage = input.unlimited
+    ? `${input.monthlyRuns} runs this month (unlimited plan)`
+    : `${input.monthlyRuns}/${input.limit} runs used this month`
+  return {
+    page: 'AI TOOLKIT PAGE',
+    dataSource: 'live',
+    activeView: input.runningPromptTitle
+      ? `running "${input.runningPromptTitle}"`
+      : `${input.activeTab} · ${input.activeCategory}`,
+    metrics: [
+      `Plan: ${input.plan ?? 'none'}`,
+      `Usage: ${usage}`,
+      `Lifetime outputs: ${input.totalRuns}`,
+      `Tools visible: ${input.visibleToolCount}`,
+      `Brand voice in prompts: ${input.brandKitComplete ? 'available' : 'Brand Kit incomplete'}`,
+    ],
+    affordance: `${MAYA_VOICE_RULE} User runs reusable marketing prompts from the library. Help pick tools, fill variables, and refine generated copy.`,
+  }
+}
+
+export function buildCampaignDetailMayaContext(input: {
+  title: string
+  status: string
+  mode: string
+  segment: string | null
+  goal: string | null
+  timelineDays: number | null
+  strategySummary: string | null
+  doThisTodayCount: number
+  weekCount: number
+  plannedItemCount: number
+}): MayaPageContext {
+  return {
+    page: 'CAMPAIGN DETAIL PAGE',
+    dataSource: 'live',
+    metrics: [
+      `Campaign: ${input.title} [${input.status}]`,
+      `Mode: ${input.mode}${input.segment ? ` · segment: ${input.segment}` : ''}${input.goal ? ` · goal: ${input.goal}` : ''}`,
+      input.timelineDays ? `Timeline: ${input.timelineDays} days` : 'Timeline: not set',
+      `Do today items: ${input.doThisTodayCount}`,
+      `Week plan: ${input.weekCount} week(s), ${input.plannedItemCount} planned item(s)`,
+      input.strategySummary
+        ? `Strategy: ${input.strategySummary.slice(0, 200)}${input.strategySummary.length > 200 ? '…' : ''}`
+        : 'Strategy summary: not set',
+    ],
+    affordance: `${MAYA_VOICE_RULE} User is reviewing a campaign plan. Help execute today's tasks, adapt weekly content, or refine strategy.`,
+  }
+}
+
+export function buildGuidedCampaignMayaContext(input: {
+  step: number
+  segment: string
+  goal: string
+  timeline: number
+  budget: string
+  isGenerating: boolean
+}): MayaPageContext {
+  return {
+    page: 'NEW CAMPAIGN PAGE',
+    dataSource: 'live',
+    activeView: input.isGenerating ? 'generating plan' : `guided flow step ${input.step}/3`,
+    metrics: [
+      `Audience segment: ${input.segment || 'not selected'}`,
+      `Goal: ${input.goal || 'not selected'}`,
+      `Timeline: ${input.timeline} days`,
+      `Budget band: ${input.budget}`,
+    ],
+    affordance: `${MAYA_VOICE_RULE} User is creating a guided campaign. Help them choose segment, goal, and timeline before generation runs.`,
+  }
+}
+
+export function buildOpenCanvasCampaignMayaContext(input: {
+  messageCount: number
+  readyToGenerate: boolean
+  isCreating: boolean
+  selectedModel: string
+}): MayaPageContext {
+  return {
+    page: 'NEW CAMPAIGN PAGE',
+    dataSource: 'live',
+    activeView: input.isCreating
+      ? 'generating from open canvas'
+      : input.readyToGenerate
+        ? 'ready to generate'
+        : 'open canvas chat',
+    metrics: [
+      `Chat messages: ${input.messageCount}`,
+      `Model: ${input.selectedModel}`,
+      `Ready to build: ${input.readyToGenerate ? 'yes' : 'no'}`,
+    ],
+    affordance: `${MAYA_VOICE_RULE} User is in open-canvas campaign creation — conversational planning before the campaign is generated.`,
+  }
+}
+
+export function buildAgentOutputsMayaContext(input: {
+  agentName: string
+  companyName: string
+  outputCount: number
+  selectedTitle: string | null
+  selectedStatus: string | null
+  autonomyLevel: string
+}): MayaPageContext {
+  return {
+    page: 'AGENT OUTPUTS ARCHIVE',
+    dataSource: 'live',
+    company: input.companyName || undefined,
+    activeView: input.selectedTitle ?? 'none selected',
+    metrics: [
+      `Agent: ${input.agentName} (${input.autonomyLevel === 'autonomous' ? 'auto' : 'approval required'})`,
+      `Saved outputs: ${input.outputCount}`,
+      input.selectedTitle
+        ? `Selected: "${input.selectedTitle}" [${input.selectedStatus ?? 'unknown'}]`
+        : 'No output selected',
+    ],
+    affordance: `${MAYA_VOICE_RULE} User is browsing saved agent outputs. Help summarize, repurpose, or explain selected output content.`,
+  }
+}
+
+export function buildServiceInquiryMayaContext(input: {
+  companyName: string
+  step: number
+  serviceType: string
+  projectName: string
+  submitted: boolean
+}): MayaPageContext {
+  return {
+    page: 'SERVICE INQUIRY PAGE',
+    dataSource: 'live',
+    company: input.companyName || undefined,
+    activeView: input.submitted ? 'submitted' : `step ${input.step}`,
+    metrics: [
+      `Service type: ${input.serviceType || 'not selected'}`,
+      `Project name: ${input.projectName || 'not set'}`,
+    ],
+    affordance: `${MAYA_VOICE_RULE} User is submitting a scoped design or development inquiry — help clarify scope, timeline, and budget before submit.`,
+  }
+}

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildFoundationHubMayaContext } from '@/lib/maya/summaries/phase3Context'
 import type { FoundationMemoryResponse, AgentMemoryStat } from '@/lib/foundation/memory'
 
 // Client-side extraction types (mirrored from lib/foundation/extract.ts)
@@ -1169,6 +1171,33 @@ export default function FoundationHub({
   const suggestions = useMemo(() => deriveSuggestions(localAnswers, healthMap), [localAnswers, healthMap])
 
   const weakSections = SECTIONS.filter(s => s.key !== 'memory' && healthMap[s.key] !== 'strong')
+  const mayaContext = useMemo(
+    () =>
+      buildFoundationHubMayaContext({
+        companyName,
+        activeTab,
+        score: currentScore,
+        sectionHealth: Object.fromEntries(
+          Object.entries(healthMap).map(([k, v]) => [k, v]),
+        ),
+        editingSection,
+        knowledgeCount: knowledgeItems.length,
+        memoryOutputCount: memoryData?.totalOutputs,
+        weakSections: weakSections.map(s => s.title),
+      }),
+    [
+      companyName,
+      activeTab,
+      currentScore,
+      healthMap,
+      editingSection,
+      knowledgeItems.length,
+      memoryData,
+      weakSections,
+    ],
+  )
+  useMayaContext(mayaContext)
+
   const limitedAgentCount = useMemo(() => {
     const names = new Set<string>()
     for (const s of weakSections) {

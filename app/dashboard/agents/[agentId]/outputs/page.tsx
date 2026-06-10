@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import { buildAgentOutputsMayaContext } from '@/lib/maya/summaries/phase3Context'
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -97,8 +99,18 @@ export default async function AgentOutputsPage({
     outputRows[0] ??
     null
 
+  const mayaPayload = buildAgentOutputsMayaContext({
+    agentName: agent.name,
+    companyName: profile.company_name ?? 'Your business',
+    outputCount: outputRows.length,
+    selectedTitle: selectedOutput ? getOutputDescription(selectedOutput) : null,
+    selectedStatus: selectedOutput?.status ?? null,
+    autonomyLevel: agent.autonomyLevel,
+  })
+
   return (
     <div className="mx-auto max-w-[1100px] px-4 pt-8 pb-16 sm:px-8" style={{ fontFamily: 'var(--font-geist), system-ui, sans-serif' }}>
+      <CanvasContextDispatcher payload={mayaPayload} />
       <Link href="/dashboard/agents" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#64748B', fontSize: 12.5, textDecoration: 'none', marginBottom: 22 }}>
         <i className="ti ti-arrow-left" style={{ fontSize: 14 }} />
         Back to Command Center

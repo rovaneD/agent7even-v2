@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildServiceInquiryMayaContext } from '@/lib/maya/summaries/phase3Context'
 import { useRouter } from 'next/navigation'
 import {
   ChevronLeft, Send, Loader2, AlertCircle,
@@ -68,6 +70,19 @@ export default function InquiryForm({ companyName }: Props) {
   const [timeline, setTimeline] = useState('')
   const [budgetRange, setBudgetRange] = useState('')
   const [additionalNotes, setAdditionalNotes] = useState('')
+
+  const mayaContext = useMemo(
+    () =>
+      buildServiceInquiryMayaContext({
+        companyName,
+        step,
+        serviceType,
+        projectName,
+        submitted,
+      }),
+    [companyName, step, serviceType, projectName, submitted],
+  )
+  useMayaContext(mayaContext)
 
   function togglePlatform(p: string) {
     setPlatforms(prev =>

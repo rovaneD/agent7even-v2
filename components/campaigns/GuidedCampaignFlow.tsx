@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildGuidedCampaignMayaContext } from '@/lib/maya/summaries/phase3Context'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, Circle, ArrowLeft } from 'lucide-react'
 import OrchestrationProgress from '@/components/agents/OrchestrationProgress'
@@ -99,6 +101,20 @@ export default function GuidedCampaignFlow() {
   const [campaignId, setCampaignId]           = useState<string | null>(null)
 
   const goals = GOALS_BY_SEGMENT[segment] ?? []
+
+  const mayaContext = useMemo(
+    () =>
+      buildGuidedCampaignMayaContext({
+        step,
+        segment,
+        goal,
+        timeline,
+        budget,
+        isGenerating,
+      }),
+    [step, segment, goal, timeline, budget, isGenerating],
+  )
+  useMayaContext(mayaContext)
 
   async function generate() {
     setIsGenerating(true)

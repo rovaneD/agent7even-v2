@@ -9,6 +9,8 @@ import {
 import type { PostsDataState } from './page'
 import type { ZernioPostRow } from '@/lib/social/zernioPostsParse'
 import type { ZernioQueueRow } from '@/lib/social/zernioQueuesParse'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildPostsMayaContext } from '@/lib/maya/summaries/phase3Context'
 import {
   type PostType,
   captionLimitForPlatform,
@@ -105,6 +107,8 @@ function platformLabel(id: string) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function PostsClient({
+  companyName,
+  plan,
   dataState,
   zernioProfileId,
   zernioProfileIds,
@@ -145,6 +149,37 @@ export default function PostsClient({
   const [validationHints, setValidationHints] = useState<string[]>([])
 
   const isLive = dataState === 'live'
+
+  const mayaContext = useMemo(
+    () =>
+      buildPostsMayaContext({
+        companyName,
+        plan,
+        dataState,
+        connectedPlatforms: zernioConnectedPlatforms,
+        accounts,
+        posts,
+        statusFilter,
+        platformFilter,
+        drawerOpen,
+        publishMode,
+        selectedAccountCount: selectedAccountIds.length,
+      }),
+    [
+      companyName,
+      plan,
+      dataState,
+      zernioConnectedPlatforms,
+      accounts,
+      posts,
+      statusFilter,
+      platformFilter,
+      drawerOpen,
+      publishMode,
+      selectedAccountIds.length,
+    ],
+  )
+  useMayaContext(mayaContext)
 
   const selectedAccounts = useMemo(
     () => accounts.filter(a => selectedAccountIds.includes(a.id)),

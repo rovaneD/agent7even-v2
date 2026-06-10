@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildCampaignDetailMayaContext } from '@/lib/maya/summaries/phase3Context'
 import Link from 'next/link'
 import {
   Hash,
@@ -134,6 +136,28 @@ function WeekAccordion({ week }: { week: WeekItem }) {
 // ── Main component ────────────────────────────────────────────────────────
 
 export default function CampaignDetail({ campaign }: Props) {
+  const plannedItemCount = (campaign.week_plan ?? []).reduce(
+    (sum, week) => sum + (week.days?.length ?? 0),
+    0,
+  )
+  const mayaContext = useMemo(
+    () =>
+      buildCampaignDetailMayaContext({
+        title: campaign.title,
+        status: campaign.status,
+        mode: campaign.mode,
+        segment: campaign.segment,
+        goal: campaign.goal,
+        timelineDays: campaign.timeline_days,
+        strategySummary: campaign.strategy_summary,
+        doThisTodayCount: campaign.do_this_today?.length ?? 0,
+        weekCount: campaign.week_plan?.length ?? 0,
+        plannedItemCount,
+      }),
+    [campaign, plannedItemCount],
+  )
+  useMayaContext(mayaContext)
+
   function openMayaWithTask(task: string) {
     window.dispatchEvent(new CustomEvent('maya:open-task', { detail: { task } }))
   }

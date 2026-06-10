@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildOpenCanvasCampaignMayaContext } from '@/lib/maya/summaries/phase3Context'
 import { useRouter } from 'next/navigation'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
@@ -88,6 +90,18 @@ export default function OpenCanvasFlow() {
     const t = getMsgText(msg)
     return !t.startsWith('__')
   })
+
+  const mayaContext = useMemo(
+    () =>
+      buildOpenCanvasCampaignMayaContext({
+        messageCount: messages.length,
+        readyToGenerate,
+        isCreating,
+        selectedModel,
+      }),
+    [messages.length, readyToGenerate, isCreating, selectedModel],
+  )
+  useMayaContext(mayaContext)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

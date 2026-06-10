@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildAiToolkitMayaContext } from '@/lib/maya/summaries/phase3Context'
 import {
   Zap, Mail, Hash, Megaphone, Brush,
   BookOpen, Search, Copy, Check, Loader2,
@@ -483,6 +485,35 @@ export default function AIToolkitClient({
       p.description?.toLowerCase().includes(search.toLowerCase())
     return matchesTier && matchesCategory && matchesSearch
   })
+
+  const mayaContext = useMemo(
+    () =>
+      buildAiToolkitMayaContext({
+        plan,
+        monthlyRuns,
+        unlimited,
+        limit: unlimited ? 0 : limit,
+        activeCategory,
+        activeTab,
+        visibleToolCount: filtered.length,
+        runningPromptTitle: runningPrompt?.title ?? null,
+        brandKitComplete,
+        totalRuns,
+      }),
+    [
+      plan,
+      monthlyRuns,
+      unlimited,
+      limit,
+      activeCategory,
+      activeTab,
+      filtered.length,
+      runningPrompt,
+      brandKitComplete,
+      totalRuns,
+    ],
+  )
+  useMayaContext(mayaContext)
 
   const totalHours = Math.round(totalTimeSaved / 60 * 10) / 10
 
