@@ -46,7 +46,7 @@
 
     /* ===== ANALYTICS — performance overview (NET-NEW, not the chat dashboard) ===== */
     analytics: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/analytics</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/analytics</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['grid', false], ['chart', true], ['mega', false], ['cal', false]])}
         <div class="mk-main">
@@ -95,7 +95,7 @@
 
     /* ===== ANALYTICS — Maya reads the numbers (Performance Digest output) ===== */
     digest: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/digest</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/digest</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['grid', false], ['chart', true], ['mega', false], ['cal', false]])}
         <div class="mk-main">
@@ -120,7 +120,7 @@
 
     /* ===== CAMPAIGN BUILDER — one sentence → full multi-day push (NET-NEW) ===== */
     campaignBuilder: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/agents/campaign-builder</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/agents/campaign-builder</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['grid', false], ['mega', true], ['cal', false]])}
         <div class="mk-main">
@@ -150,13 +150,13 @@
 
     /* ===== WEEKLY CONTENT — 7-day plan, drafted in your voice (NET-NEW) ===== */
     contentPlanner: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/agents/weekly-content</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/agents/weekly-content</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['grid', false], ['cal', true], ['mega', false]])}
         <div class="mk-main">
           <div class="mk-main-hd"><div><div class="ttl">Content plan</div><div class="sub">Week of Jun 8 · written in your voice</div></div><span class="tag tag-green">5 drafted</span></div>
           <div class="mk-pad" style="gap:12px">
-            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
+            <div style="display:grid;grid-template-columns:repeat(7,minmax(56px,1fr));gap:6px;overflow-x:auto">
               ${[['MON','IG','var(--brand)','New roast drop'],['TUE','','',''],['WED','Email','var(--blue)','Loyalty offer'],['THU','IG','var(--brand)','Behind the bake'],['FRI','Story','var(--amber)','Slow-day promo'],['SAT','IG','var(--brand)','Weekend hours'],['SUN','','','']].map(([d,ch,c,t]) => `
                 <div style="border:1px solid var(--line-2);border-radius:9px;min-height:96px;padding:7px 6px;background:${ch?'#fff':'#FCFCFD'};display:flex;flex-direction:column;gap:5px">
                   <div style="font-family:var(--mono);font-size:8.5px;color:var(--faint);text-align:center">${d}</div>
@@ -169,52 +169,30 @@
         </div>
       </div>`,
 
-    /* ===== BRAND VOICE GUARDIAN — reviews tone/brand/compliance (NET-NEW) ===== */
-    voiceGuardian: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/agents/brand-voice-guardian</div></div>
+    /* ===== REPUTATION & FOLLOW-UP — drafted replies awaiting sign-off (NET-NEW) ===== */
+    reputationQueue: () => `
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/agents/reputation-follow-up</div></div>
       <div class="mk-body" style="height:430px">
-        ${rail([['grid', false], ['shield', true], ['mega', false]])}
-        <div class="mk-main" style="border-right:1px solid var(--line-2)">
-          <div class="mk-main-hd"><div><div class="ttl">Reviewing draft</div><div class="sub">Friday promo email · before it reaches you</div></div><span class="tag tag-ghost">In review</span></div>
+        ${rail([['grid', false], ['mail', true], ['mega', false]])}
+        <div class="mk-main">
+          <div class="mk-main-hd"><div><div class="ttl">Reputation &amp; follow-up</div><div class="sub">3 drafts waiting · Ember Coffee</div></div><span class="pill" style="font-size:11px;padding:5px 11px">3 waiting</span></div>
           <div class="mk-pad" style="gap:10px">
-            <div style="border:1px solid var(--line-2);border-radius:11px;overflow:hidden;background:#fff">
-              <div style="padding:9px 12px;border-bottom:1px solid var(--line-2);font-size:11.5px;color:var(--faint)">Subject · <span style="color:var(--ink-2);font-weight:500">Your Friday just got better ☕</span></div>
-              <div style="padding:11px 13px;display:flex;flex-direction:column;gap:7px">
-                <div style="height:7px;border-radius:4px;background:#F1F1F3;width:92%"></div>
-                <div style="height:7px;border-radius:4px;background:#F1F1F3;width:84%"></div>
-                <div style="font-size:11.5px;line-height:1.5;color:var(--ink-2)">Stop in this Friday for <span style="background:#FFE8DE;border-bottom:1.5px solid var(--orange);padding:0 2px;border-radius:3px">a crazy deal</span> — 20% off every drink, all day.</div>
-                <div style="height:7px;border-radius:4px;background:#F1F1F3;width:70%"></div>
-              </div>
+            <div class="mk-row" style="border-color:#DCE9FF;background:#F8FBFF;align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:5px"></span><div class="grow"><div class="rt">New 4★ review — Google</div><div class="rs">2 hours ago · reply drafted in your voice</div></div>
+              <div style="display:flex;gap:6px"><span class="btn-blue" style="font-size:12px;padding:6px 13px;border-radius:8px;color:#fff;font-weight:500">Approve</span><span class="tag tag-ghost" style="padding:6px 11px">Edit</span></div></div>
+            <div style="border:1px solid var(--line-2);border-radius:11px;background:#fff;padding:11px 13px;margin:-2px 0 2px">
+              <div style="font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:5px">Drafted reply</div>
+              <div style="font-size:11.5px;line-height:1.5;color:var(--ink-2)">Thanks so much, Dana — glad the new roast landed. The slow pour is on us next time you&rsquo;re in. — the Ember crew</div>
             </div>
-          </div>
-        </div>
-        <div style="width:188px;flex-shrink:0;background:#FCFCFD;display:flex;flex-direction:column">
-          <div style="padding:11px 13px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Brand Voice Guardian</div>
-          <div style="padding:13px;display:flex;flex-direction:column;gap:11px;flex:1">
-            <div style="display:flex;align-items:center;gap:11px">
-              <div style="width:46px;height:46px;border-radius:50%;background:conic-gradient(var(--green) 94%, #EBEEF1 0);display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--ink)">94</div></div>
-              <div><div style="font-size:13px;font-weight:600">On-brand</div><div style="font-size:11px;color:var(--faint)">Matches your Brand Kit</div></div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-2)"><span style="color:var(--green)">${check}</span>Tone · warm, casual</div>
-              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-2)"><span style="color:var(--green)">${check}</span>Claims · compliant</div>
-              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-2)"><span style="color:var(--green)">${check}</span>Reading level · grade 6</div>
-            </div>
-            <div style="background:#FFF4F2;border:1px solid #FBD9D2;border-radius:9px;padding:9px 10px">
-              <div style="font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--orange);margin-bottom:4px">1 fix suggested</div>
-              <div style="font-size:11px;color:var(--ink-2);line-height:1.45">"crazy deal" feels off-brand — try <b style="color:var(--ink)">"too good to miss"</b></div>
-            </div>
-            <div style="display:flex;gap:7px;margin-top:auto">
-              <span class="btn-blue" style="flex:1;justify-content:center;font-size:12px;padding:8px 0;border-radius:8px;color:#fff;font-weight:500;text-align:center">Apply &amp; pass</span>
-              <span class="tag tag-ghost" style="padding:8px 11px">Edit</span>
-            </div>
+            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--amber);margin-top:5px"></span><div class="grow"><div class="rt">Win-back — Sarah M.</div><div class="rs">No reply in 14 days · follow-up ready</div></div><span class="tag tag-amber" style="padding:6px 12px">Send</span></div>
+            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--blue);margin-top:5px"></span><div class="grow"><div class="rt">Inquiry — catering for 30</div><div class="rs">Came in Tuesday · response drafted</div></div><span class="tag tag-blue" style="padding:6px 12px">Reply</span></div>
+            <div class="mk-note accent-pink" style="margin-top:2px"><div class="nl">Maya · waiting on you</div><div class="nt">You approve, Maya sends. Nothing slips because you were heads-down.</div></div>
           </div>
         </div>
       </div>`,
 
     /* ===== COMPETITOR WATCHER — weekly board of rival moves (NET-NEW) ===== */
     competitorBoard: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/agents/competitor-watcher</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/agents/competitor-watcher</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['grid', false], ['eye', true], ['mega', false]])}
         <div class="mk-main">

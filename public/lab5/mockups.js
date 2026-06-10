@@ -30,7 +30,7 @@
     /* hero dashboard: rail + maya chat + dashboard canvas */
     dashboard: () => `
       <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div>
-        <div class="mk-url">agent7even.com/dashboard</div></div>
+        <div class="mk-url">agent7even.ai/dashboard</div></div>
       <div class="mk-body" style="height:418px">
         ${rail([['grid', true], ['spark', false], ['mega', false], ['cal', false]])}
         <div class="mk-chat">
@@ -59,10 +59,10 @@
 
     /* campaign canvas: list + detail + copy options */
     campaign: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/campaigns</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/campaigns</div></div>
       <div class="mk-body" style="height:392px">
         ${rail([['grid', false], ['mega', true], ['cal', false]])}
-        <div style="width:156px;flex-shrink:0;border-right:1px solid var(--line-2);background:#fff">
+        <div class="mk-side" style="width:156px;flex-shrink:0;border-right:1px solid var(--line-2);background:#fff">
           <div style="padding:11px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Campaigns</div>
           <div style="padding:11px 14px;background:#F4F8FF;border-left:2px solid var(--blue)"><div style="font-size:12.5px;font-weight:600">Friday Slow-Day</div><div style="font-size:11px;color:var(--faint);margin-top:2px">Draft · Week 1</div></div>
           <div style="padding:11px 14px;border-bottom:1px solid var(--line-2)"><div style="font-size:12.5px;font-weight:500">Summer Launch</div><div style="font-size:11px;color:var(--faint);margin-top:2px">Live · Week 2</div></div>
@@ -77,7 +77,7 @@
             <div class="mk-row" style="padding:9px 12px"><span class="tag tag-blue">IG</span><div class="grow"><div class="rt" style="font-weight:500">Post 2 — offer close</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Do this ${chev}</span></div>
           </div>
         </div>
-        <div style="width:158px;flex-shrink:0;background:#FCFCFD">
+        <div class="mk-side" style="width:158px;flex-shrink:0;background:#FCFCFD">
           <div style="padding:11px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Copy options</div>
           <div style="padding:12px 13px;display:flex;flex-direction:column;gap:9px">
             <div style="background:#fff;border:1.5px solid var(--blue);border-radius:10px;padding:10px 12px"><div style="font-family:var(--mono);font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Option A</div><div style="font-size:12px;color:var(--ink-2);line-height:1.45">Fridays just got better. 20% off every drink — this Friday only.</div></div>
@@ -88,7 +88,7 @@
 
     /* approval queue */
     approvals: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/approvals</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/approvals</div></div>
       <div class="mk-body" style="height:392px">
         ${rail([['inbox', true], ['mega', false], ['cal', false]])}
         <div class="mk-main">
@@ -105,7 +105,7 @@
 
     /* content calendar */
     calendar: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/calendar</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/calendar</div></div>
       <div class="mk-body" style="height:392px">
         ${rail([['cal', true], ['mega', false], ['grid', false]])}
         <div class="mk-main">
@@ -124,7 +124,7 @@
 
     /* competitor watch */
     competitor: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/watch</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/watch</div></div>
       <div class="mk-body" style="height:392px">
         ${rail([['eye', true], ['mega', false], ['cal', false]])}
         <div class="mk-main">

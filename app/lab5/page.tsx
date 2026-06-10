@@ -110,6 +110,7 @@ export default function Lab5Page() {
               <a className="btn btn-ghost btn-lg" href="#how"
                 onClick={() => trackEvent('cta_click', { cta: 'see_how_it_works', location: 'hero' })}>See how it works →</a>
             </div>
+            <p className="hero-note">3-day free trial. No charge until day 4.</p>
           </div>
           <div className="hero-orb">
             <Metaballs
@@ -176,7 +177,7 @@ export default function Lab5Page() {
           <div className="sec-head reveal">
             <span className="eyebrow">What Maya runs</span>
             <h2 className="t-h2">A world-class marketing team, on call.</h2>
-            <p className="t-lead">Over eight hours a week of marketing work — planned, drafted, scheduled and sent — while you keep the lights on.</p>
+            <p className="t-lead">Planned, drafted, scheduled and sent — while you run the business.</p>
           </div>
 
           <div className="feat reveal">
@@ -237,6 +238,10 @@ export default function Lab5Page() {
             </div>
             <div className="feat-visual"><div className="mk" data-mk="competitor"></div></div>
           </div>
+
+          <p className="agents-bridge reveal">
+            Plus analytics, trends, SEO, and email — nine agents in all. <a href="/agents">See the team →</a>
+          </p>
         </div>
       </section>
 
@@ -257,7 +262,7 @@ export default function Lab5Page() {
             <div className="lcard reveal">
               <div className="swatch" style={{ background: 'var(--orange)' }}></div>
               <h3>Competitor watch</h3>
-              <p>Maya tracks your market and flags what rivals are running before it costs you the weekend.</p>
+              <p>Maya tracks your market and flags what rivals are running before it costs you.</p>
               <a href="#features">See it →</a>
             </div>
             <div className="lcard reveal">
@@ -370,6 +375,7 @@ export default function Lab5Page() {
             <a className="btn btn-dark-ghost btn-lg" href="/pricing"
               onClick={() => trackEvent('cta_click', { cta: 'see_plans', location: 'footer_cta' })}>See plans →</a>
           </div>
+          <p className="cta-note">3-day free trial. No charge until day 4.</p>
         </div>
       </div>
 
@@ -402,7 +408,7 @@ export default function Lab5Page() {
               <a href="#">About</a>
               <a href="#">Blog</a>
               <a href="#">Careers</a>
-              <a href="#">Contact</a>
+              <a href="mailto:support@agent7even.ai">Contact</a>
             </div>
             <div className="fcol">
               <h5>Legal</h5>

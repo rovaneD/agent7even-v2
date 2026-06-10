@@ -42,7 +42,7 @@
     /* ---------------- E-COMMERCE ---------------- *
        "Maker & Co." — a drop becomes a full launch sequence in an afternoon. */
     ecommerce: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/campaigns</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/campaigns</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['grid', false], ['mega', true], ['cart', false], ['cal', false]])}
         ${chat('Maker &amp; Co.', 'Marketing for Maker &amp; Co.', `
@@ -69,7 +69,7 @@
     /* ---------------- LOCAL SERVICE ---------------- *
        "Cedar Lane" — fill the slow week, answer every review, watch the street. */
     local: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/approvals</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/approvals</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['grid', false], ['inbox', true], ['star', false], ['eye', false]])}
         ${chat('Cedar Lane', 'Marketing for Cedar Lane', `
@@ -92,7 +92,7 @@
     /* ---------------- CREATORS / SOLO ---------------- *
        "Lena Ray" coach — a launch runs itself, in your voice, while you deliver. */
     creators: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/campaigns</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/campaigns</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['grid', false], ['mega', true], ['cal', false], ['spark', false]])}
         ${chat('Lena Ray', 'Marketing for Lena Ray', `
@@ -119,10 +119,10 @@
     /* ---------------- AGENCIES ---------------- *
        The production layer, per client, in each client's voice, routed to the team. */
     agencies: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.com/studio</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/studio</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['layers', true], ['mega', false], ['grid', false], ['eye', false]])}
-        <div style="width:172px;flex-shrink:0;border-right:1px solid var(--line-2);background:#fff">
+        <div class="mk-side" style="width:172px;flex-shrink:0;border-right:1px solid var(--line-2);background:#fff">
           <div style="padding:11px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Client workspaces</div>
           <div style="padding:11px 14px;background:#F4F8FF;border-left:2px solid var(--blue)"><div style="display:flex;align-items:center;gap:8px"><span style="width:18px;height:18px;border-radius:6px;background:var(--orange);flex-shrink:0"></span><div><div style="font-size:12.5px;font-weight:600">Vela Skincare</div><div style="font-size:10.5px;color:var(--faint)">3 drafts to review</div></div></div></div>
           <div style="padding:11px 14px;border-bottom:1px solid var(--line-2)"><div style="display:flex;align-items:center;gap:8px"><span style="width:18px;height:18px;border-radius:6px;background:var(--green);flex-shrink:0"></span><div><div style="font-size:12.5px;font-weight:500">Northwind Gear</div><div style="font-size:10.5px;color:var(--faint)">Live · week 3</div></div></div></div>

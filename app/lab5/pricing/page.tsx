@@ -287,7 +287,7 @@ export default function PricingPage() {
               <a href="#">About</a>
               <a href="#">Blog</a>
               <a href="#">Careers</a>
-              <a href="#">Contact</a>
+              <a href="mailto:support@agent7even.ai">Contact</a>
             </div>
             <div className="fcol">
               <h5>Legal</h5>

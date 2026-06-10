@@ -134,7 +134,7 @@ export default function AgentsPage() {
           <div>
             <span className="eyebrow">Maya</span>
             <h2>The brain that<br />orchestrates the agents.</h2>
-            <p>Maya isn&rsquo;t one of the nine agents — she&rsquo;s the intelligence layer above them. She reads your goals, watches your context, and decides which agents to run, when to run them, and what to do with their output. <b>You talk to Maya in plain language; she handles the coordination.</b> The agents just do their jobs.</p>
+            <p>Maya isn&rsquo;t one of the nine agents — she&rsquo;s the intelligence layer above them. She reads your goals, watches your context, and decides which agents to run, when, and what to do with their output. <b>Every draft also passes through her brand-voice review before it reaches you — checking tone, brand fit, and risky claims, so you approve a clean draft, not a first one.</b> You talk to Maya in plain language; she runs the team.</p>
           </div>
         </div>
       </div>
@@ -186,27 +186,8 @@ export default function AgentsPage() {
           </div>
           <hr className="feat-rule" />
 
-          {/* Brand Voice Guardian */}
-          <div className="feat reveal">
-            <div className="feat-copy">
-              <div className="feat-relief">
-                <span className="r-label">Brand Voice Guardian</span>
-                <span className="auto-badge appr"><span className="d"></span>Reviews everything</span>
-              </div>
-              <h3 className="t-h3">Nothing ships without<br />your sign-off.</h3>
-              <p className="t-body">Every piece of content runs through the Brand Voice Guardian first — checking tone, brand fit, and compliance before it ever reaches your queue. You get a clean draft to approve, not a first draft to fix.</p>
-              <div className="checks">
-                <div className="check"><i>✓</i>Tone and brand fit scored on every output</div>
-                <div className="check"><i>✓</i>Off-brand phrasing and risky claims flagged automatically</div>
-                <div className="check"><i>✓</i>Maya never posts without a green light from you</div>
-              </div>
-            </div>
-            <div className="feat-visual"><div className="mk" data-am="voiceGuardian"></div></div>
-          </div>
-          <hr className="feat-rule" />
-
           {/* Competitor Watcher */}
-          <div className="feat flip reveal">
+          <div className="feat reveal">
             <div className="feat-copy">
               <div className="feat-relief">
                 <span className="r-label">Competitor Watcher</span>
@@ -221,6 +202,25 @@ export default function AgentsPage() {
               </div>
             </div>
             <div className="feat-visual"><div className="mk" data-am="competitorBoard"></div></div>
+          </div>
+          <hr className="feat-rule" />
+
+          {/* Reputation & Follow-up */}
+          <div className="feat flip reveal">
+            <div className="feat-copy">
+              <div className="feat-relief">
+                <span className="r-label">Reputation &amp; Follow-up</span>
+                <span className="auto-badge appr"><span className="d"></span>Requires approval</span>
+              </div>
+              <h3 className="t-h3">The leads, still warm.<br />The reviews, answered.</h3>
+              <p className="t-body">The inquiry from Tuesday. The customer you meant to win back. The review that deserved a reply. Maya drafts each follow-up in your voice and queues it for your sign-off — nothing slips because you were heads-down.</p>
+              <div className="checks">
+                <div className="check"><i>✓</i>Cold leads followed up before they go cold for good</div>
+                <div className="check"><i>✓</i>Reviews answered in your voice, same day</div>
+                <div className="check"><i>✓</i>Drafted and queued — you approve, Maya sends</div>
+              </div>
+            </div>
+            <div className="feat-visual"><div className="mk" data-am="reputationQueue"></div></div>
           </div>
         </div>
       </section>
@@ -350,7 +350,7 @@ export default function AgentsPage() {
               <a href="#">About</a>
               <a href="#">Blog</a>
               <a href="#">Careers</a>
-              <a href="#">Contact</a>
+              <a href="mailto:support@agent7even.ai">Contact</a>
             </div>
             <div className="fcol">
               <h5>Legal</h5>

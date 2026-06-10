@@ -294,7 +294,7 @@ export default function UseCaseDetailPage() {
             </div>
             <div className="fcol">
               <h5>Company</h5>
-              <a href="#">About</a><a href="#">Blog</a><a href="#">Careers</a><a href="#">Contact</a>
+              <a href="#">About</a><a href="#">Blog</a><a href="#">Careers</a><a href="mailto:support@agent7even.ai">Contact</a>
             </div>
             <div className="fcol">
               <h5>Legal</h5>
