@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import Script from 'next/script'
-import { Metaballs } from '@paper-design/shaders-react'
+import Metaballs from '../SafeMetaballs'
 import MarketingNav from '../MarketingNav'
 
 declare global {
@@ -340,7 +340,7 @@ export default function AgentsPage() {
               <h5>Legal</h5>
               <a href="/privacy">Privacy</a>
               <a href="/terms">Terms</a>
-              <a href="#">Security</a>
+              <a href="/security">Security</a>
             </div>
           </div>
           <div className="footer-btm">

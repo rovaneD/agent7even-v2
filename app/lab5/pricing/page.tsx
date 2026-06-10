@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Metaballs } from '@paper-design/shaders-react'
+import Metaballs from '../SafeMetaballs'
 import MarketingNav from '../MarketingNav'
 
 function CheckIcon() {
@@ -277,7 +277,7 @@ export default function PricingPage() {
               <h5>Legal</h5>
               <a href="/privacy">Privacy</a>
               <a href="/terms">Terms</a>
-              <a href="#">Security</a>
+              <a href="/security">Security</a>
             </div>
           </div>
           <div className="footer-btm">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Script from 'next/script'
-import { Metaballs } from '@paper-design/shaders-react'
+import Metaballs from './SafeMetaballs'
 import { trackEvent } from '@/lib/gtag'
 import MarketingNav from './MarketingNav'
 
@@ -99,7 +99,7 @@ export default function Lab5Page() {
             <Metaballs
               speed={1}
               count={10}
-              size={0.36}
+              size={0.52}
               scale={1}
               colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
               colorBack="#00000000"
@@ -397,7 +397,7 @@ export default function Lab5Page() {
               <h5>Legal</h5>
               <a href="/privacy">Privacy</a>
               <a href="/terms">Terms</a>
-              <a href="#">Security</a>
+              <a href="/security">Security</a>
             </div>
           </div>
           <div className="footer-btm">

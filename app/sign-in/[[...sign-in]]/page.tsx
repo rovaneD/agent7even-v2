@@ -54,6 +54,7 @@ export default function SignInPage() {
         </a>
 
         <SignIn
+          forceRedirectUrl="/dashboard"
           appearance={{
             variables: {
               colorPrimary: '#3B82F6',

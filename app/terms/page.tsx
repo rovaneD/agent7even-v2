@@ -5,9 +5,9 @@ export const metadata = {
   description: 'Terms and conditions for using the Agent7even platform.',
 }
 
-const LAST_UPDATED = 'May 23, 2026'
-const CONTACT_EMAIL = 'hello@agent7even.com'
-const APP_URL = 'https://app.agent7even.com'
+const LAST_UPDATED = 'June 9, 2026'
+const CONTACT_EMAIL = 'support@agent7even.ai'
+const APP_URL = 'https://www.agent7even.ai'
 
 export default function TermsPage() {
   return (
@@ -15,11 +15,11 @@ export default function TermsPage() {
       {/* Header */}
       <header className="border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
-          <Link href="https://agent7even.com" className="text-lg font-bold text-gray-900 tracking-tight">
-            Agent<span className="text-[#64748B]">7even</span>
+          <Link href="/" className="flex items-center">
+            <img src="/agent7even_logo.svg" alt="Agent7even" className="h-[34px] w-auto" />
           </Link>
-          <Link href={APP_URL} className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
-            ← Back to app
+          <Link href="/" className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+            ← Back to agent7even.ai
           </Link>
         </div>
       </header>
@@ -151,7 +151,7 @@ export default function TermsPage() {
             <div className="mt-4 bg-gray-50 rounded-2xl p-5 space-y-1">
               <p className="font-semibold text-gray-900">Agent7even</p>
               <p><a href={`mailto:${CONTACT_EMAIL}`} className="text-[#64748B] no-underline hover:underline">{CONTACT_EMAIL}</a></p>
-              <p><a href="https://agent7even.com" className="text-[#64748B] no-underline hover:underline">agent7even.com</a></p>
+              <p><a href="/" className="text-[#64748B] no-underline hover:underline">agent7even.ai</a></p>
             </div>
           </section>
 

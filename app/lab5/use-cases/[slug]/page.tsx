@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import Script from 'next/script'
 import { notFound, useParams } from 'next/navigation'
-import { Metaballs } from '@paper-design/shaders-react'
+import Metaballs from '../../SafeMetaballs'
 import { cases } from '../../../lab-use-cases/_data'
 import MarketingNav from '../../MarketingNav'
 
@@ -282,7 +282,7 @@ export default function UseCaseDetailPage() {
             </div>
             <div className="fcol">
               <h5>Legal</h5>
-              <a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="#">Security</a>
+              <a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/security">Security</a>
             </div>
           </div>
           <div className="footer-btm">
