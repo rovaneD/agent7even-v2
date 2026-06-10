@@ -339,6 +339,7 @@ Never use markdown in conversation. Save structure for the plan.`
 
         const costUsd = await calculateCost(MAYA_MODEL, inputTokens, outputTokens)
 
+        const now = new Date().toISOString()
         const { error: taskErr } = await supabase
           .from('agent_tasks')
           .update({
@@ -346,7 +347,8 @@ Never use markdown in conversation. Save structure for the plan.`
             input_tokens:  inputTokens,
             output_tokens: outputTokens,
             cost_usd:      costUsd,
-            updated_at:    new Date().toISOString(),
+            updated_at:    now,
+            completed_at:  now,
           })
           .eq('id', taskId)
         if (taskErr) console.error('[maya/chat] agent_tasks update error:', taskErr.message)

@@ -308,14 +308,35 @@ export async function runAgent(opts: {
   // 3. Calculate cost using live OpenRouter pricing
   const costUsd = await calculateCost(raw.modelUsed, raw.inputTokens, raw.outputTokens)
 
-  // 4. Save output row
-  await supabase.from('agent_outputs').insert({
+  // 4. Save output row (agent + output_type are NOT NULL in agent_outputs)
+  const agentDef = AGENTS[opts.agentId as AgentId]
+  const outputType = agentDef?.outputType
+    ?? (opts.agentId.startsWith('foundation_generate_')
+      ? opts.agentId.replace('foundation_generate_', '')
+      : 'agent_output')
+
+  const { error: outputErr } = await supabase.from('agent_outputs').insert({
     task_id:       taskId,
-    content:       raw.content,
+    user_id:       opts.userId,
+    agent:         opts.agentId,
+    output_type:   outputType,
+    content:       { raw: raw.content },
     input_tokens:  raw.inputTokens,
     output_tokens: raw.outputTokens,
     cost_usd:      costUsd,
+    status:        agentDef?.autonomyLevel === 'approval_required'
+      ? 'pending_approval'
+      : 'approved',
   })
+
+  if (outputErr) {
+    console.error(
+      `[runAgent] agent_outputs insert failed task=${taskId} agent=${opts.agentId}:`,
+      outputErr.code,
+      outputErr.message,
+      outputErr.details,
+    )
+  }
 
   // 5. Update task — completed + cost data
   await supabase
