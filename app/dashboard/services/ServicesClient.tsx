@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildServicesMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import { useRouter } from 'next/navigation'
 import {
   Globe, Hash, Camera, Mail, Search,
@@ -460,21 +462,16 @@ export default function ServicesClient({
   const [localOrders, setLocalOrders] = useState<Order[]>(orders)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(initialOrderId ?? null)
 
-  useEffect(() => {
-    const activeOrders = localOrders.filter(o => !CLOSED_STATUSES.includes(o.status))
-    const activeOrderLines = activeOrders.length
-      ? activeOrders.map(o => `- ${o.title} (status: ${o.status})`).join('\n')
-      : '- No active orders'
-    const serviceLines = SERVICES.map(s => `- ${s.name}: ${s.price} (${s.type})`).join('\n')
-    const context = `SERVICES PAGE
-Plan: ${profile?.plan ?? 'none'}
-Active orders (${activeOrders.length}):
-${activeOrderLines}
-Available services:
-${serviceLines}
-The user can request new marketing services or track existing orders.`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, [localOrders, profile?.plan])
+  const mayaContext = useMemo(
+    () =>
+      buildServicesMayaContext({
+        plan: profile?.plan,
+        orders: localOrders,
+        services: SERVICES.map(s => ({ name: s.name, price: s.price, type: s.type })),
+      }),
+    [localOrders, profile?.plan],
+  )
+  useMayaContext(mayaContext)
   const [requestingService, setRequestingService] = useState<typeof SERVICES[0] | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')

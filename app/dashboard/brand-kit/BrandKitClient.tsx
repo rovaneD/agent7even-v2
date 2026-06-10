@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildBrandKitDocumentsMayaContext } from '@/lib/maya/summaries/brandKitContext'
 import { Sparkles, FileText, RefreshCw, ChevronRight } from 'lucide-react'
 import BrandFlow from './BrandFlow'
 import BrandDocument from './BrandDocument'
@@ -39,19 +41,17 @@ export default function BrandKitClient({
   const [generating, setGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const docLines = initialDocuments.length
-      ? initialDocuments.map(d => `- ${d.title} (type: ${d.type}, version: ${d.version})`).join('\n')
-      : '- No brand documents generated yet'
-    const context = `BRAND KIT PAGE
-Company: ${companyName}
-Brand questionnaire complete: ${answersComplete ? 'Yes' : 'No'}
-Documents generated (${initialDocuments.length}):
-${docLines}
-${!answersComplete ? 'User needs to complete the brand questionnaire to generate their brand documents.' : 'User can view and edit their brand documents.'}
-${generating ? 'Brand documents are currently being generated.' : ''}`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(
+    () =>
+      buildBrandKitDocumentsMayaContext({
+        companyName,
+        answersComplete,
+        documents,
+        generating,
+      }),
+    [companyName, answersComplete, documents, generating],
+  )
+  useMayaContext(mayaContext)
 
   const hasDocuments = documents.length > 0
 

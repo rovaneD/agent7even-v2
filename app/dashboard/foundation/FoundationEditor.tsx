@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildFoundationEditorMayaContext } from '@/lib/maya/summaries/foundationContext'
 import Link from 'next/link'
 import { Loader2, Check } from 'lucide-react'
 import {
@@ -435,33 +437,17 @@ export default function FoundationEditor({
   const [dirty, setDirty] = useState(false)
   const [lastUpdatedAt, setLastUpdatedAt] = useState(lastUpdated)
 
-  function dispatchCanvasContext(ans: Answers, currentScore: number, weak: string[]) {
-    const display = (v: string | string[]): string => {
-      if (Array.isArray(v)) {
-        const filled = v.filter(Boolean)
-        return filled.length ? filled.join(', ') : '(not filled in)'
-      }
-      return v?.trim() ? v.trim() : '(not filled in)'
-    }
-    const lines = [
-      'FOUNDATION PAGE',
-      `Score: ${currentScore}%`,
-      '',
-      'CURRENT ANSWERS:',
-      ...Object.entries(FIELD_LABELS).map(([k, label]) =>
-        `${label}: ${display(ans[k as keyof Answers] as string | string[])}`
-      ),
-    ]
-    if (weak.length) {
-      lines.push('', 'WEAK AREAS (below 70%):')
-      weak.forEach(f => lines.push(`- ${FIELD_LABELS[f]}`))
-    }
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
-  }
-
-  useEffect(() => {
-    dispatchCanvasContext(answers, score, weakFields)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(
+    () =>
+      buildFoundationEditorMayaContext({
+        score,
+        fieldLabels: FIELD_LABELS,
+        answers: answers as unknown as Record<string, unknown>,
+        weakFields,
+      }),
+    [score, answers, weakFields],
+  )
+  useMayaContext(mayaContext)
 
   function updateText(key: string, value: string) {
     setAnswers(prev => ({ ...prev, [key]: value }))
@@ -505,7 +491,6 @@ export default function FoundationEditor({
       setRescored(true)
 
       window.dispatchEvent(new CustomEvent('foundation:rescored', { detail: { score: newScore } }))
-      dispatchCanvasContext(answers, newScore, newWeak)
       setTimeout(() => setRescored(false), 3000)
 
       // Regenerate foundation documents in background

@@ -31,8 +31,8 @@ export interface MayaPageContext {
 /** Leading line injected for every payload — do not duplicate in metrics. */
 export const MAYA_DATA_SOURCE_LINE: Record<MayaDataSource, string> = {
   sample: 'DATA SOURCE: SAMPLE / MOCK — not the user\'s real performance.',
-  live:   'DATA SOURCE: LIVE — connected accounts and/or GA property.',
-  none:   'DATA SOURCE: NONE — no analytics sources connected yet.',
+  live:   'DATA SOURCE: LIVE — reflects this user\'s account and on-screen data.',
+  none:   'DATA SOURCE: NONE — no data loaded on this page yet.',
 }
 
 export function serializeMayaPageContext(payload: MayaPageContext): string {

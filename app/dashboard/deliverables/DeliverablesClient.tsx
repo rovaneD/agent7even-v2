@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildDeliverablesMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import {
   Upload, Download, Folder, File, FileText, Image,
   Video, Archive, Loader2, AlertCircle, CheckCircle, X,
@@ -66,22 +68,11 @@ export default function DeliverablesClient({ profileId: _profileId, companyName,
   const [deliverables, setDeliverables] = useState<Deliverable[]>(initial)
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    const grouped = initial.reduce<Record<string, number>>((acc, d) => {
-      acc[d.project_name] = (acc[d.project_name] ?? 0) + 1
-      return acc
-    }, {})
-    const projectLines = Object.keys(grouped).length
-      ? Object.entries(grouped).map(([name, count]) => `- ${name}: ${count} file(s)`).join('\n')
-      : '- No projects or files yet'
-    const context = `DELIVERABLES PAGE
-Company: ${companyName}
-Total files: ${initial.length}
-Projects:
-${projectLines}
-The user can download files from Agent7even and upload their own briefs and assets.`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(
+    () => buildDeliverablesMayaContext({ companyName, deliverables }),
+    [companyName, deliverables],
+  )
+  useMayaContext(mayaContext)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null)

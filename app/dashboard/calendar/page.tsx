@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { CalendarDays, Hash, Mail, Megaphone, MousePointer, Plus, Clock } from 'lucide-react'
 import { createServiceClient } from '@/lib/supabase/server'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import { buildCalendarMayaContext } from '@/lib/maya/summaries/pageOverviewContext'
 import CalendarMayaButton from './CalendarMayaButton'
 
 type DayItem = {
@@ -154,24 +155,22 @@ export default async function CalendarPage() {
   const weeks = groupByWeek(entries)
   const totalMinutes = entries.reduce((sum, entry) => sum + (entry.mins ?? 0), 0)
   const channelCount = new Set(entries.map(entry => entry.channel)).size
-  const campaignLines = activeCampaigns.length
-    ? activeCampaigns.map(c => `- ${c.title} (${c.status})`).join('\n')
-    : '- No active campaigns'
-  const nextActions = entries.slice(0, 5).map(entry => `- Week ${entry.week} ${entry.day}: ${entry.channel} ${entry.type} — ${entry.content}`).join('\n') || '- No planned content items'
 
-  const context = `CONTENT CALENDAR PAGE
-Company: ${profile.company_name ?? profile.full_name ?? 'Unknown'}
-Active campaigns: ${activeCampaigns.length}
-Planned content items: ${entries.length}
-Campaigns:
-${campaignLines}
-Upcoming/planned items:
-${nextActions}
-The user is reviewing planned campaign content and may need help turning items into captions, emails, posts, or schedule-ready assets.`
+  const mayaPayload = buildCalendarMayaContext({
+    companyName: profile.company_name ?? profile.full_name ?? 'Unknown',
+    activeCampaigns: activeCampaigns.map(c => ({ title: c.title, status: c.status })),
+    entries: entries.map(e => ({
+      week: e.week,
+      day: e.day,
+      channel: e.channel,
+      type: e.type,
+      content: e.content,
+    })),
+  })
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8">
-      <CanvasContextDispatcher context={context} />
+      <CanvasContextDispatcher payload={mayaPayload} />
 
       <section className="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 lg:flex-row lg:items-center lg:justify-between">

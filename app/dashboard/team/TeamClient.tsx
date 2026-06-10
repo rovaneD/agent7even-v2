@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildTeamMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import {
   Users, Plus, Mail, Trash2, Loader2, CheckCircle,
   AlertCircle, X, Shield, Settings, Eye, EyeOff,
@@ -98,21 +100,21 @@ export default function TeamClient({
   const extraSeats = Math.max(0, totalMembers - includedSeats)
   const canAddMore = true // Always can add, just costs more
 
-  useEffect(() => {
-    const memberLines = initial.length
-      ? initial.map(m => `- ${m.profiles?.full_name ?? m.invited_email} (role: ${m.role}, status: ${m.status})`).join('\n')
-      : '- No team members yet (only the account owner)'
-    const context = `TEAM PAGE
-Company: ${companyName}
-Plan: ${plan}
-Seats included in plan: ${includedSeats}
-Seats used: ${totalMembers + 1} (${activeMembers} active member(s) + ${pendingMembers} pending + 1 owner)
-Extra paid seats: ${extraSeats}
-Team members:
-${memberLines}
-The user can invite new team members and manage their roles and permissions.`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(
+    () =>
+      buildTeamMayaContext({
+        companyName,
+        plan,
+        includedSeats,
+        totalMembers,
+        activeMembers,
+        pendingMembers,
+        extraSeats,
+        members: initial,
+      }),
+    [companyName, plan, includedSeats, totalMembers, activeMembers, pendingMembers, extraSeats, initial],
+  )
+  useMayaContext(mayaContext)
 
   function togglePermission(key: keyof Permission) {
     if (key === 'support') return // Support always visible

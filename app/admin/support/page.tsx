@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/requireAdmin'
 import Link from 'next/link'
 import { MessageSquare, ChevronRight } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import { buildAdminSupportListMayaContext } from '@/lib/maya/summaries/adminContext'
 
 function priorityBadge(priority: string | null) {
   const map: Record<string, string> = {
@@ -57,17 +58,20 @@ export default async function AdminSupportPage() {
   const open = tickets?.filter(t => t.status === 'open') ?? []
   const closed = tickets?.filter(t => t.status === 'closed') ?? []
 
-  const contextStr = [
-    'ADMIN — SUPPORT',
-    `Total tickets: ${tickets?.length ?? 0} (${open.length} open, ${closed.length} closed)`,
-    open.length > 0
-      ? `Open tickets: ${open.map((t: any) => `"${t.subject}" [${t.priority ?? 'low'}] from ${(t.profiles as any)?.company_name ?? (t.profiles as any)?.full_name ?? '—'}`).join(' | ')}`
+  const mayaPayload = buildAdminSupportListMayaContext({
+    total: tickets?.length ?? 0,
+    openCount: open.length,
+    closedCount: closed.length,
+    openSummary: open.length > 0
+      ? open.map((t: { subject: string; priority?: string | null; profiles?: { company_name?: string | null; full_name?: string | null } | null }) =>
+          `"${t.subject}" [${t.priority ?? 'low'}] from ${t.profiles?.company_name ?? t.profiles?.full_name ?? '—'}`,
+        ).join(' | ')
       : 'No open tickets',
-  ].join('\n')
+  })
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-      <CanvasContextDispatcher context={contextStr} />
+      <CanvasContextDispatcher payload={mayaPayload} />
       <div>
         <h1 className="text-[26px] font-semibold text-[#2D3748]">Support</h1>
         <p className="text-sm text-gray-400 mt-0.5">

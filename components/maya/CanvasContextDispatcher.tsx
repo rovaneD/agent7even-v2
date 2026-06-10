@@ -1,8 +1,9 @@
 'use client'
-import { useEffect } from 'react'
-export default function CanvasContextDispatcher({ context }: { context: string }) {
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, [context])
+
+import { useMayaContext } from '@/hooks/useMayaContext'
+import type { MayaPageContext } from '@/lib/maya/contextTypes'
+
+export default function CanvasContextDispatcher({ payload }: { payload: MayaPageContext }) {
+  useMayaContext(payload)
   return null
 }

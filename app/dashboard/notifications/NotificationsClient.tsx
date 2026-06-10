@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildNotificationsMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import { Bell, CheckCheck, Loader2, Filter } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -81,18 +83,11 @@ export default function NotificationsClient({ profileId, initialNotifications }:
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  useEffect(() => {
-    const recentLines = initialNotifications.slice(0, 5).map(n =>
-      `- [${typeLabel(n.type)}] "${n.title}" (${n.read ? 'read' : 'unread'})`
-    ).join('\n')
-    const context = `NOTIFICATIONS PAGE
-Unread notifications: ${initialNotifications.filter(n => !n.read).length}
-Total notifications: ${initialNotifications.length}
-Recent notifications:
-${recentLines || '- No notifications yet'}
-The user can mark notifications as read and follow links to relevant pages.`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(
+    () => buildNotificationsMayaContext({ notifications, typeLabel }),
+    [notifications],
+  )
+  useMayaContext(mayaContext)
 
   // Realtime subscription
   useEffect(() => {

@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildBrandKitEditorMayaContext } from '@/lib/maya/summaries/brandKitContext'
 import {
   Shapes, Palette, Type, Image as ImageIcon, MessageSquare, Layout,
   Plus, Trash2, Upload, ExternalLink, Sparkles, Loader2, Check,
@@ -108,16 +110,23 @@ export default function BrandKitView({
     sections.find(r => r.section_key === s.key)?.completed
   ).length
 
-  // Maya canvas context + nav progress
+  const mayaContext = useMemo(
+    () =>
+      buildBrandKitEditorMayaContext({
+        completedCount,
+        colors,
+        fonts,
+        assetCount: assets.length,
+        documentTypes: documents.map(d => d.type),
+      }),
+    [completedCount, colors, fonts, assets.length, documents],
+  )
+  useMayaContext(mayaContext)
+
+  // Nav progress (separate from Maya context)
   useEffect(() => {
-    const colorCtx  = colors.length > 0 ? `Colors: ${colors.map(c => `${c.name ?? ''} ${c.hex} (${c.role})`).join(', ')}` : 'Colors: not set'
-    const fontCtx   = fonts.length  > 0 ? `Fonts: ${fonts.map(f => `${f.family} (${f.role})`).join(', ')}` : 'Typography: not set'
-    const assetCtx  = assets.length > 0 ? `Assets: ${assets.length} files uploaded` : 'Assets: none uploaded'
-    const docCtx    = documents.length > 0 ? `Documents: ${documents.map(d => d.type).join(', ')}` : 'Voice documents: not yet generated'
-    const ctx = [`Brand Kit — ${completedCount}/6 sections complete`, colorCtx, fontCtx, assetCtx, docCtx].join('\n')
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: ctx } }))
     window.dispatchEvent(new CustomEvent('brandkit:progress', { detail: { completed: completedCount } }))
-  }, [colors, fonts, assets, documents, completedCount])
+  }, [completedCount])
 
   async function markSection(key: SectionKey, completed: boolean) {
     setSections(prev => {

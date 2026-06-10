@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildAdminClientDetailMayaContext } from '@/lib/maya/summaries/adminContext'
 import Link from 'next/link'
 import {
   ArrowLeft, Building2, Globe, Hash, Calendar, Clock,
@@ -201,24 +203,28 @@ export default function ClientDetail({
     }
   }, [tab, clientId, billingData, billingLoading])
 
-  useEffect(() => {
-    const lines = [
-      `ADMIN — CLIENT DETAIL: ${profile.full_name || profile.company_name || profile.email || clientId}`,
-      `Company: ${profile.company_name ?? '—'}`,
-      `Email: ${profile.email ?? '—'}`,
-      `Plan: ${profile.plan ?? 'none'} | Status: ${profile.status ?? '—'}`,
-      `Foundation score: ${profile.foundation_score ?? 0} | Engagement score: ${profile.engagement_score ?? 0}`,
-      `Foundation complete: ${profile.foundation_complete ? 'yes' : 'no'}`,
-      `Last active: ${profile.last_active_at ?? 'never'}`,
-      initialActivity.length > 0
-        ? `Recent activity: ${initialActivity.slice(0, 5).map(e => e.event_type.replace(/_/g, ' ')).join(', ')}`
-        : 'No activity recorded',
-      initialTickets.length > 0
-        ? `Support tickets: ${initialTickets.map(t => `"${t.subject}" [${t.status}]`).join(', ')}`
-        : 'No support tickets',
-    ]
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
-  }, [])
+  const mayaContext = useMemo(
+    () =>
+      buildAdminClientDetailMayaContext({
+        clientName: profile.full_name || profile.company_name || profile.email || clientId,
+        companyName: profile.company_name,
+        email: profile.email,
+        plan: profile.plan,
+        status: profile.status,
+        foundationScore: profile.foundation_score,
+        engagementScore: profile.engagement_score,
+        foundationComplete: profile.foundation_complete,
+        lastActive: profile.last_active_at,
+        recentActivity: initialActivity.length > 0
+          ? initialActivity.slice(0, 5).map(e => e.event_type.replace(/_/g, ' ')).join(', ')
+          : undefined,
+        supportTickets: initialTickets.length > 0
+          ? initialTickets.map(t => `"${t.subject}" [${t.status}]`).join(', ')
+          : undefined,
+      }),
+    [profile, clientId, initialActivity, initialTickets],
+  )
+  useMayaContext(mayaContext)
 
   // ── Actions ──────────────────────────────────────────────────────────────
 

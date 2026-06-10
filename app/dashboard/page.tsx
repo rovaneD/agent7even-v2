@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import { buildDashboardOverviewMayaContext } from '@/lib/maya/summaries/pageOverviewContext'
 import MorningDigest from '@/components/dashboard/MorningDigest'
 import GettingStarted from '@/components/dashboard/GettingStarted'
 
@@ -184,15 +185,15 @@ export default async function DashboardPage() {
       : { href: '/dashboard/services', title: 'Use Marketing Services', desc: 'Request help or generate a self-serve asset', Icon: Sparkles },
   ]
 
-  const contextString = `DASHBOARD PAGE
-Company: ${displayName}
-Plan: ${profile?.plan ?? 'none'}
-The user is on their main dashboard overview.
-${!hasPlan ? 'No active plan — user needs to choose a plan to unlock agents and campaigns.' : `Plan is active: ${profile.plan}.`}`
+  const mayaPayload = buildDashboardOverviewMayaContext({
+    displayName,
+    plan: profile?.plan,
+    hasPlan,
+  })
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
-      <CanvasContextDispatcher context={contextString} />
+      <CanvasContextDispatcher payload={mayaPayload} />
 
       <section className="mb-6 overflow-hidden rounded-[24px] border border-border bg-surface shadow-[0_20px_60px_rgba(45,55,72,0.08)]">
         <div className="grid gap-0 lg:grid-cols-[1.45fr_0.9fr]">

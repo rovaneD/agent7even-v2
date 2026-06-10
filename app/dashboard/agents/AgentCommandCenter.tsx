@@ -1,6 +1,8 @@
 'use client'
 
-import { Fragment, useState, useEffect } from 'react'
+import { Fragment, useState, useEffect, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildAgentCommandCenterMayaContext } from '@/lib/maya/summaries/agentsContext'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { AGENTS, AgentId, AgentDefinition, AGENT_COLORS } from '@/lib/agents/registry'
@@ -301,20 +303,17 @@ export default function AgentCommandCenter({
     { label: 'No sensitive topics', text: 'Never engage with political, religious, or controversial social topics.' },
   ]
 
-  // Canvas context for Maya
-  useEffect(() => {
-    const scorecardLines = scorecard
-      .map(e => `- ${e.name}: last run ${e.lastRunAt ?? 'never'}, ${e.totalOutputs} output(s), ${e.isScheduled ? 'scheduled/active' : 'idle'}`)
-      .join('\n')
-    const context = `AGENT COMMAND CENTER PAGE
-Company: ${companyName}
-Active tasks: ${activeTasks.length}
-Pending approvals: ${pendingApprovals.length}
-Agents:
-${scorecardLines || '- No agent activity yet'}
-The user can run agents, approve/reject pending outputs, and manage agent constraints.`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(
+    () =>
+      buildAgentCommandCenterMayaContext({
+        companyName,
+        activeTaskCount: activeTasks.length,
+        pendingApprovalCount: pendingApprovals.length,
+        scorecard,
+      }),
+    [companyName, activeTasks.length, pendingApprovals.length, scorecard],
+  )
+  useMayaContext(mayaContext)
 
   // Fetch active + recent orchestrations on mount
   useEffect(() => {

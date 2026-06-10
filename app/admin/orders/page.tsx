@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ChevronRight, Mail, MessageSquare, ShoppingBag } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import { buildAdminOrdersMayaContext } from '@/lib/maya/summaries/adminContext'
 import AdminOrderConversation from './AdminOrderConversation'
 import AdminOrderStatusControls from './AdminOrderStatusControls'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
@@ -103,17 +104,20 @@ export default async function AdminOrdersPage({
   const selectedOrder = selectedOrderId ? orders.find((order: any) => order.id === selectedOrderId) : null
   const selectedTicket = selectedOrder ? supportTicketByOrderId.get(selectedOrder.id) : null
 
-  const contextStr = [
-    'ADMIN — ORDERS',
-    `Total: ${orders?.length ?? 0} (${active.length} active, ${completed.length} completed)`,
-    active.length > 0
-      ? `Active orders: ${active.map((o: any) => `${o.title} [${o.status}] — ${o.profiles?.company_name || o.profiles?.full_name || o.profiles?.email || '—'}`).join(' | ')}`
+  const mayaPayload = buildAdminOrdersMayaContext({
+    total: orders?.length ?? 0,
+    activeCount: active.length,
+    completedCount: completed.length,
+    activeSummary: active.length > 0
+      ? active.map((o: { title: string; status: string; profiles?: { company_name?: string | null; full_name?: string | null; email?: string | null } | null }) =>
+          `${o.title} [${o.status}] — ${o.profiles?.company_name || o.profiles?.full_name || o.profiles?.email || '—'}`,
+        ).join(' | ')
       : 'No active orders',
-  ].join('\n')
+  })
 
   return (
     <div className="px-8 py-8 max-w-[1440px]">
-      <CanvasContextDispatcher context={contextStr} />
+      <CanvasContextDispatcher payload={mayaPayload} />
       <div className="mb-8">
         <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Orders</h1>

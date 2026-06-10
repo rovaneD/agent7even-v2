@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildBillingMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import { useSearchParams } from 'next/navigation'
 import { Check, ExternalLink, Zap, TrendingUp, Star, AlertCircle, CheckCircle2 } from 'lucide-react'
 import CreditTopUp from '@/components/billing/CreditTopUp'
@@ -110,19 +112,19 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
   const upgradeTo = plan ? (UPGRADE_PATHS[plan] ?? []) : ['starter', 'growth', 'proagent']
   const PlanIcon = currentPlan?.icon ?? Zap
 
-  useEffect(() => {
-    const invoiceLines = invoices.slice(0, 5).map(inv =>
-      `- ${inv.number ?? 'Invoice'}: ${formatAmount(inv.amount_paid)} (${inv.status ?? 'unknown'}) — ${formatDate(inv.created)}`
-    ).join('\n')
-    const context = `BILLING PAGE
-Current plan: ${currentPlan ? `${currentPlan.name} ($${currentPlan.monthlyPrice}/mo)` : 'No active plan'}
-Subscription status: ${status ?? 'none'}
-Subscription ID: ${subscriptionId ?? 'none'}
-Recent invoices (${invoices.length} total):
-${invoiceLines || '- No invoices yet'}
-The user can view their current plan, upgrade to a higher tier, and access the Stripe billing portal.`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(
+    () =>
+      buildBillingMayaContext({
+        currentPlan,
+        status,
+        subscriptionId,
+        invoices,
+        formatAmount: (cents) => formatAmount(cents ?? 0),
+        formatDate: (unix) => formatDate(unix ?? 0),
+      }),
+    [currentPlan, status, subscriptionId, invoices],
+  )
+  useMayaContext(mayaContext)
 
   async function handleUpgrade(targetPlan: string) {
     setUpgradeLoading(targetPlan)

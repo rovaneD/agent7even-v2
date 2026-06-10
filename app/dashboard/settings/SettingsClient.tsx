@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildSettingsMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import { useRouter } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
 import { Save, Loader2, CheckCircle, AlertCircle, User, Building, Globe, Hash, Bell } from 'lucide-react'
@@ -85,19 +87,8 @@ export default function SettingsClient({ profile }: Props) {
   const [emailApprovals, setEmailApprovals] = useState(profile.email_approvals ?? true)
   const [emailWeekly, setEmailWeekly]       = useState(profile.email_weekly    ?? true)
 
-  useEffect(() => {
-    const context = `SETTINGS PAGE
-Full name: ${profile.full_name ?? 'not set'}
-Email: ${profile.email ?? 'not set'}
-Company name: ${profile.company_name ?? 'not set'}
-Website URL: ${profile.website_url ?? 'not set'}
-Instagram handle: ${profile.instagram_handle ? `@${profile.instagram_handle}` : 'not set'}
-Business type: ${profile.business_type ?? 'not set'}
-Plan: ${profile.plan ?? 'none'}
-Account status: ${profile.status ?? 'unknown'}
-The user can update their company name, website URL, and Instagram handle. Name and email are managed via Clerk.`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(() => buildSettingsMayaContext(profile), [profile])
+  useMayaContext(mayaContext)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)

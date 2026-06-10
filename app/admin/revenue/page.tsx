@@ -4,6 +4,7 @@ import type Stripe from 'stripe'
 import { getStripeClient } from '@/lib/stripe'
 import { TrendingUp, Users, DollarSign, ArrowUpRight } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import { buildAdminRevenueMayaContext } from '@/lib/maya/summaries/adminContext'
 
 const PLAN_PRICES: Record<string, number> = {
   starter: 49,
@@ -103,20 +104,21 @@ export default async function AdminRevenuePage() {
     },
   ]
 
-  const contextStr = [
-    'ADMIN — REVENUE',
-    `MRR: $${mrr.toLocaleString()} / ARR: $${(mrr * 12).toLocaleString()}`,
-    `Active clients: ${activeClients.length} | Paused: ${pausedClients.length}`,
-    `Plan breakdown — Starter: ${planCounts['starter'] ?? 0}, Growth: ${planCounts['growth'] ?? 0}, ProAgent: ${planCounts['proagent'] ?? 0}`,
-    `Recent Stripe charges (20): ${formatCurrency(totalFromCharges)} across ${recentCharges.length} payments`,
-    activeClients.length > 0
-      ? `Active subscribers: ${activeClients.map(c => `${c.company_name ?? c.full_name ?? c.email} (${c.plan})`).join(', ')}`
+  const mayaPayload = buildAdminRevenueMayaContext({
+    mrr,
+    activeCount: activeClients.length,
+    pausedCount: pausedClients.length,
+    planCounts,
+    recentChargesTotal: formatCurrency(totalFromCharges),
+    recentChargesCount: recentCharges.length,
+    activeSubscribers: activeClients.length > 0
+      ? activeClients.map(c => `${c.company_name ?? c.full_name ?? c.email} (${c.plan})`).join(', ')
       : 'No active subscribers',
-  ].join('\n')
+  })
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-      <CanvasContextDispatcher context={contextStr} />
+      <CanvasContextDispatcher payload={mayaPayload} />
 
       {/* Header */}
       <div>

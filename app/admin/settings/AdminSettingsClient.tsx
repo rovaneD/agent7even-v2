@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildAdminSettingsMayaContext } from '@/lib/maya/summaries/adminContext'
 import {
   Bell, Zap, ShoppingBag, Users, Megaphone,
   CreditCard, Save, Loader2, CheckCircle, AlertCircle,
@@ -121,18 +123,25 @@ export default function AdminSettingsClient({
 }: Props) {
   const [activeTab, setActiveTab] = useState('notifications')
 
-  useEffect(() => {
-    const lines = [
-      'ADMIN — SETTINGS',
-      `Notification email: ${initialEmail}`,
-      `Starter AI run limit: ${initialLimit} runs/month`,
-      `Platform banner: ${initialBanner.enabled ? `ACTIVE — "${initialBanner.message}" (${initialBanner.type})` : 'disabled'}`,
-      `Prompt library: ${initialPrompts.length} prompts (${initialPrompts.filter(p => p.is_active).length} active)`,
-      `Service catalogue: ${initialServices.length} services (${initialServices.filter(s => s.is_active).length} active)`,
-      `Total users: ${initialUsers.length} (${initialUsers.filter(u => u.role === 'client').length} clients, ${initialUsers.filter(u => u.role === 'admin' || u.role === 'owner').length} admins)`,
-    ]
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
-  }, [])
+  const mayaContext = useMemo(
+    () =>
+      buildAdminSettingsMayaContext({
+        notifyEmail: initialEmail,
+        starterAiLimit: initialLimit,
+        bannerActive: initialBanner.enabled,
+        bannerMessage: initialBanner.message,
+        bannerType: initialBanner.type,
+        promptCount: initialPrompts.length,
+        activePromptCount: initialPrompts.filter(p => p.is_active).length,
+        serviceCount: initialServices.length,
+        activeServiceCount: initialServices.filter(s => s.is_active).length,
+        userCount: initialUsers.length,
+        clientCount: initialUsers.filter(u => u.role === 'client').length,
+        adminCount: initialUsers.filter(u => u.role === 'admin' || u.role === 'owner').length,
+      }),
+    [initialEmail, initialLimit, initialBanner, initialPrompts, initialServices, initialUsers],
+  )
+  useMayaContext(mayaContext)
 
   const tabs = [
     { id: 'notifications', label: 'Notifications', icon: Bell },

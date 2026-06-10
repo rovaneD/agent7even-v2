@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildAdminCostActivityMayaContext } from '@/lib/maya/summaries/adminContext'
 import { DollarSign, Zap, TrendingUp, Users, ChevronUp, ChevronDown, RefreshCw } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -146,22 +148,22 @@ export default function CostActivityView() {
 
   useEffect(() => { load() }, [])
 
-  useEffect(() => {
-    if (loading || !summary) return
+  const mayaContext = useMemo(() => {
+    if (loading || !summary) return null
     const topAccounts = [...accounts]
       .sort((a, b) => (b.cost_usd ?? 0) - (a.cost_usd ?? 0))
       .slice(0, 5)
-    const lines = [
-      'ADMIN — COST & USAGE',
-      `MRR: $${summary.total_mrr} | AI cost this month: $${summary.total_cost.toFixed(4)}`,
-      `Active accounts: ${summary.active_accounts} | Total tasks: ${summary.total_tasks}`,
-      `Gross margin: $${((summary.total_mrr) - (summary.total_cost)).toFixed(2)}`,
-      topAccounts.length > 0
-        ? `Top accounts by cost: ${topAccounts.map(a => `${a.company_name || a.user_id.slice(-6)} (${a.plan ?? '—'}) MRR $${a.mrr_usd} cost $${Number(a.cost_usd).toFixed(4)}`).join(' | ')}`
+    return buildAdminCostActivityMayaContext({
+      mrr: summary.total_mrr,
+      totalCost: summary.total_cost,
+      activeAccounts: summary.active_accounts,
+      totalTasks: summary.total_tasks,
+      topAccountsSummary: topAccounts.length
+        ? topAccounts.map(a => `${a.company_name || a.user_id.slice(-6)} (${a.plan ?? '—'}) MRR $${a.mrr_usd} cost $${Number(a.cost_usd).toFixed(4)}`).join(' | ')
         : 'No account data',
-    ]
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
+    })
   }, [accounts, summary, loading])
+  useMayaContext(mayaContext)
 
   function toggleSort(k: AccountSortKey) {
     if (sortKey === k) setSortAsc(v => !v)

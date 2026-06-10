@@ -3,7 +3,9 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildAdminAgentCostsMayaContext } from '@/lib/maya/summaries/adminContext'
 import { createClient } from '@/lib/supabase/client'
 
 interface CostRow {
@@ -78,22 +80,24 @@ export default function AdminAgentCosts() {
         .limit(10)
 
       if (orchs) setRecentOrchestrations(orchs)
-
-      const totalCost = modelRows.reduce((s, r) => s + r.total_cost_usd, 0)
-      const lines = [
-        'ADMIN — REVENUE: AGENT COSTS',
-        `Total agent API cost this month: $${totalCost.toFixed(4)}`,
-        modelRows.length > 0
-          ? `Cost by model: ${modelRows.map(r => `${r.model} — ${r.runs} runs, $${r.total_cost_usd.toFixed(4)}`).join(' | ')}`
-          : 'No model data',
-        orchs && orchs.length > 0
-          ? `Recent orchestrations: ${orchs.slice(0, 5).map((o: OrchestrationRow) => `${o.triggered_by} [${o.status}] $${(o.total_cost_usd ?? 0).toFixed(4)}`).join(' | ')}`
-          : 'No recent orchestrations',
-      ]
-      window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
     }
     load()
   }, [])
+
+  const mayaContext = useMemo(
+    () =>
+      buildAdminAgentCostsMayaContext({
+        totalCost: totalThisMonth,
+        modelSummary: costByModel.length
+          ? costByModel.map(r => `${r.model} — ${r.runs} runs, $${r.total_cost_usd.toFixed(4)}`).join(' | ')
+          : 'No model data',
+        orchestrationSummary: recentOrchestrations.length
+          ? recentOrchestrations.slice(0, 5).map(o => `${o.triggered_by} [${o.status}] $${(o.total_cost_usd ?? 0).toFixed(4)}`).join(' | ')
+          : 'No recent orchestrations',
+      }),
+    [totalThisMonth, costByModel, recentOrchestrations],
+  )
+  useMayaContext(mayaContext)
 
   return (
     <div className="space-y-8">

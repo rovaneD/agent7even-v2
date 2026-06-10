@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
 import { Plus, Megaphone, ArrowRight, Sparkles } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import { buildCampaignsMayaContext } from '@/lib/maya/summaries/pageOverviewContext'
 
 type Campaign = {
   id: string
@@ -57,15 +58,7 @@ export default async function CampaignsPage() {
 
   if (error) console.error('[campaigns] fetch error:', error.message)
 
-  const campaignLines = campaigns?.length
-    ? (campaigns as Campaign[]).map(c => `- ${c.title} (status: ${c.status})`).join('\n')
-    : '- No campaigns yet'
-
-  const contextString = `CAMPAIGNS PAGE
-Total campaigns: ${campaigns?.length ?? 0}
-Campaigns:
-${campaignLines}
-The user can create new campaigns or view existing ones.`
+  const mayaPayload = buildCampaignsMayaContext((campaigns ?? []) as Campaign[])
 
   const campaignRows = (campaigns ?? []) as Campaign[]
   const activeCount = campaignRows.filter(c => c.status === 'active').length
@@ -73,7 +66,7 @@ The user can create new campaigns or view existing ones.`
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
-      <CanvasContextDispatcher context={contextString} />
+      <CanvasContextDispatcher payload={mayaPayload} />
 
       <section className="mb-8 overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="flex flex-col gap-6 p-7 lg:flex-row lg:items-center lg:justify-between">

@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildApprovalsMayaContext } from '@/lib/maya/summaries/agentsContext'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronDown, ChevronUp, CheckCircle2, RotateCcw, ArrowLeft, Filter, SortDesc } from 'lucide-react'
@@ -327,16 +329,8 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
     }
   }, [autoExpandId])
 
-  // Maya canvas context
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', {
-      detail: {
-        context: `APPROVAL QUEUE
-Pending approvals: ${tasks.length}
-The user is reviewing agent outputs. They can approve, edit-and-approve, or reject-and-redo each item. Bulk actions are available after expanding at least one item.`,
-      },
-    }))
-  }, [tasks.length])
+  const mayaContext = useMemo(() => buildApprovalsMayaContext(tasks.length), [tasks.length])
+  useMayaContext(mayaContext)
 
   // Derived: unique agents in queue
   const agentsInQueue = [...new Set(tasks.map(t => t.agent))]

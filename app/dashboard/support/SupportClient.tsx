@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildSupportMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import {
   MessageSquare, Plus, ChevronRight, ChevronLeft,
   Loader2, AlertCircle, X, CheckCircle,
@@ -77,19 +79,11 @@ export default function SupportClient({
   const initialTicket = initialTicketId ? initial.find(t => t.id === initialTicketId) ?? null : null
   const [view, setView] = useState<'list' | 'new' | 'thread'>(initialTicket ? 'thread' : 'list')
 
-  useEffect(() => {
-    const openTickets = initial.filter(t => t.status === 'open')
-    const ticketLines = initial.length
-      ? initial.map(t => `- "${t.subject}" (status: ${t.status}, priority: ${t.priority ?? 'low'})`).join('\n')
-      : '- No support tickets yet'
-    const context = `SUPPORT PAGE
-Company: ${companyName}
-Open tickets: ${openTickets.length}
-All tickets (${initial.length}):
-${ticketLines}
-The user can view existing tickets or open a new support ticket with the Agent7even team.`
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context } }))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const mayaContext = useMemo(
+    () => buildSupportMayaContext({ companyName, tickets }),
+    [companyName, tickets],
+  )
+  useMayaContext(mayaContext)
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(initialTicket)
 
   const [subject, setSubject] = useState('')

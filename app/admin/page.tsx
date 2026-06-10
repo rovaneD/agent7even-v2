@@ -6,6 +6,7 @@ import {
   TrendingUp, AlertCircle, Clock, ChevronRight, CheckCircle, Zap, DollarSign
 } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import { buildAdminCommandCenterMayaContext } from '@/lib/maya/summaries/adminContext'
 
 export default async function AdminPage() {
   await requireAdmin()
@@ -57,20 +58,21 @@ export default async function AdminPage() {
     done_for_you: 'Done For You',
   }
 
-  const contextStr = [
-    'ADMIN — COMMAND CENTER',
-    `Total clients: ${totalClients ?? 0} (${activeClients ?? 0} active, ${atRiskClients ?? 0} at-risk)`,
-    `Pending orders: ${pendingOrders.length}`,
-    `Open support tickets: ${openTickets ?? 0}`,
-    `Agent runs this month: ${agentRunsThisMonth ?? 0}`,
-    `API cost this month: $${apiCostThisMonth.toFixed(2)}`,
-    `Recent orders (${recentOrders?.length ?? 0}): ${(recentOrders ?? []).map((o: any) => `${o.title} [${o.status}]`).join(', ')}`,
-    `Recent clients (${recentClients?.length ?? 0}): ${(recentClients ?? []).map((c: any) => c.company_name || c.full_name || c.email).join(', ')}`,
-  ].join('\n')
+  const mayaPayload = buildAdminCommandCenterMayaContext({
+    totalClients: totalClients ?? 0,
+    activeClients: activeClients ?? 0,
+    atRiskClients: atRiskClients ?? 0,
+    pendingOrderCount: pendingOrders.length,
+    openTickets: openTickets ?? 0,
+    agentRunsThisMonth: agentRunsThisMonth ?? 0,
+    apiCostThisMonth,
+    recentOrders: (recentOrders ?? []).map((o: { title: string; status: string }) => ({ title: o.title, status: o.status })),
+    recentClients: (recentClients ?? []) as { company_name?: string | null; full_name?: string | null; email?: string | null }[],
+  })
 
   return (
     <div className="px-8 py-8 max-w-6xl">
-      <CanvasContextDispatcher context={contextStr} />
+      <CanvasContextDispatcher payload={mayaPayload} />
 
       {/* Header */}
       <div className="mb-8">

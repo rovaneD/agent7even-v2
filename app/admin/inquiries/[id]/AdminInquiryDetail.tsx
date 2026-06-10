@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildAdminInquiryDetailMayaContext } from '@/lib/maya/summaries/adminContext'
 import Link from 'next/link'
 import {
   ChevronLeft, Save, Loader2, CheckCircle,
@@ -66,18 +68,21 @@ export default function AdminInquiryDetail({ inquiry: initial }: Props) {
 
   const client = inquiry.profiles
 
-  useEffect(() => {
-    const lines = [
-      `ADMIN — INQUIRY DETAIL: ${inquiry.project_name}`,
-      `Service type: ${SERVICE_LABELS[inquiry.service_type] ?? inquiry.service_type}`,
-      `Client: ${client.company_name ?? client.full_name} (${client.email})`,
-      `Status: ${inquiry.status}`,
-      `Timeline: ${inquiry.timeline ?? 'not specified'} | Budget: ${inquiry.budget_range ?? 'not specified'}`,
-      `Existing brand: ${inquiry.has_existing_brand === null ? 'not specified' : inquiry.has_existing_brand ? 'yes' : 'no'}`,
-      inquiry.proposal_url ? `Proposal: ${inquiry.proposal_url}` : 'No proposal link yet',
-    ]
-    window.dispatchEvent(new CustomEvent('maya:canvas-context', { detail: { context: lines.join('\n') } }))
-  }, [])
+  const mayaContext = useMemo(
+    () =>
+      buildAdminInquiryDetailMayaContext({
+        projectName: inquiry.project_name,
+        serviceLabel: SERVICE_LABELS[inquiry.service_type] ?? inquiry.service_type,
+        clientLabel: `${client.company_name ?? client.full_name} (${client.email})`,
+        status: inquiry.status,
+        timeline: inquiry.timeline,
+        budgetRange: inquiry.budget_range,
+        hasExistingBrand: inquiry.has_existing_brand,
+        proposalUrl: inquiry.proposal_url,
+      }),
+    [inquiry, client],
+  )
+  useMayaContext(mayaContext)
 
   async function handleSave() {
     setSaving(true)
