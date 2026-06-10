@@ -430,50 +430,92 @@ const FIELD_LABELS: Record<string, string> = {
   monthlyGoal: 'Monthly Goal',
 }
 
+const INGEST_FAILURE_SUMMARIES = new Set([
+  'No readable content found.',
+  "Couldn't reach the analysis model.",
+  'Model returned an unreadable response.',
+])
+
+const DEFAULT_INGEST_ERROR = "Maya couldn't read this — try another file or paste the text directly."
+
 function UploadCard({ onKnowledgeAdded }: { onKnowledgeAdded: (item: KnowledgeItem) => void }) {
-  const [phase, setPhase] = useState<'idle' | 'url-input' | 'processing' | 'confirm'>('idle')
+  const [phase, setPhase] = useState<'idle' | 'url-input' | 'processing' | 'confirm' | 'error'>('idle')
   const [dragOver, setDragOver] = useState(false)
   const [urlValue, setUrlValue] = useState('')
   const [ingestId, setIngestId] = useState<string | null>(null)
   const [result, setResult] = useState<ExtractionResult | null>(null)
+  const [confirmSourceName, setConfirmSourceName] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [checked, setChecked] = useState<Record<number, boolean>>({})
   const [saving, setSaving] = useState(false)
+  const [ingesting, setIngesting] = useState(false)
+  const ingestInFlight = useRef(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const showIngestError = useCallback((message: string) => {
+    setErrorMessage(message)
+    setPhase('error')
+  }, [])
+
   const runIngest = useCallback(async (type: string, content: string, filename?: string) => {
+    if (ingestInFlight.current) return
+    ingestInFlight.current = true
+    setIngesting(true)
+    setErrorMessage(null)
     setPhase('processing')
+    const sourceName = type === 'url' ? content : (filename ?? type)
     try {
       const res = await fetch('/api/foundation/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, content, filename }),
       })
-      const data = await res.json()
-      if (data.extractionResult) {
-        const er: ExtractionResult = data.extractionResult
-        setResult(er)
-        setIngestId(data.id ?? null)
-        const initial: Record<number, boolean> = {}
-        er.items.forEach((item, i) => { initial[i] = item.confidence !== 'low' })
-        setChecked(initial)
-        setPhase('confirm')
-        if (data.id) {
-          onKnowledgeAdded({
-            id: data.id,
-            source_type: type,
-            source_name: type === 'url' ? content : (filename ?? type),
-            extraction_result: er,
-            confirmed_fields: null,
-            created_at: new Date().toISOString(),
-          })
-        }
-      } else {
-        setPhase('idle')
+      const data = await res.json().catch(() => ({})) as {
+        extractionResult?: ExtractionResult
+        id?: string
+        error?: string
+      }
+
+      if (!res.ok) {
+        showIngestError(data.error ?? DEFAULT_INGEST_ERROR)
+        return
+      }
+
+      const er = data.extractionResult
+      if (!er) {
+        showIngestError(DEFAULT_INGEST_ERROR)
+        return
+      }
+
+      if (INGEST_FAILURE_SUMMARIES.has(er.summary)) {
+        showIngestError(er.summary)
+        return
+      }
+
+      setResult(er)
+      setConfirmSourceName(sourceName)
+      setIngestId(data.id ?? null)
+      const initial: Record<number, boolean> = {}
+      er.items.forEach((item, i) => { initial[i] = item.confidence !== 'low' })
+      setChecked(initial)
+      setPhase('confirm')
+      if (data.id) {
+        onKnowledgeAdded({
+          id: data.id,
+          source_type: type,
+          source_name: sourceName,
+          extraction_result: er,
+          confirmed_fields: null,
+          created_at: new Date().toISOString(),
+        })
       }
     } catch {
-      setPhase('idle')
+      showIngestError(DEFAULT_INGEST_ERROR)
+    } finally {
+      ingestInFlight.current = false
+      setIngesting(false)
     }
-  }, [onKnowledgeAdded])
+  }, [onKnowledgeAdded, showIngestError])
 
   const handleFile = useCallback(async (file: File) => {
     const type = file.name.endsWith('.pdf') ? 'pdf'
@@ -509,11 +551,40 @@ function UploadCard({ onKnowledgeAdded }: { onKnowledgeAdded: (item: KnowledgeIt
     setSaving(false)
     setPhase('idle')
     setResult(null)
+    setConfirmSourceName(null)
     setIngestId(null)
     setUrlValue('')
+    setErrorMessage(null)
+  }
+
+  function dismissReview() {
+    setPhase('idle')
+    setResult(null)
+    setConfirmSourceName(null)
+    setIngestId(null)
   }
 
   const confirmedCount = Object.values(checked).filter(Boolean).length
+
+  if (phase === 'error') {
+    return (
+      <div className="rounded-2xl border border-gray-100 bg-white p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft mb-3">Uploaded Knowledge</p>
+        <div className="flex items-start gap-2 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-3 mb-3">
+          <AlertCircle size={15} className="text-[#EF4444] flex-shrink-0 mt-0.5" />
+          <p className="text-[12px] text-[#991B1B] leading-relaxed">
+            {errorMessage ?? DEFAULT_INGEST_ERROR}
+          </p>
+        </div>
+        <button
+          onClick={() => { setPhase('idle'); setErrorMessage(null) }}
+          className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-text-sec hover:border-gray-400 transition-colors"
+        >
+          Try again
+        </button>
+      </div>
+    )
+  }
 
   if (phase === 'processing') {
     return (
@@ -532,10 +603,15 @@ function UploadCard({ onKnowledgeAdded }: { onKnowledgeAdded: (item: KnowledgeIt
       <div className="rounded-2xl border border-gray-100 bg-white p-5">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Review Findings</p>
-          <button onClick={() => { setPhase('idle'); setResult(null) }} className="text-text-soft hover:text-text">
+          <button onClick={dismissReview} className="text-text-soft hover:text-text">
             <X size={14} />
           </button>
         </div>
+        {confirmSourceName && (
+          <p className="text-[11px] font-medium text-text-soft mb-2 truncate" title={confirmSourceName}>
+            From: <span className="text-text-sec">{confirmSourceName}</span>
+          </p>
+        )}
         <p className="text-[11px] text-text-sec mb-3 leading-relaxed">{result.summary}</p>
         {result.items.length === 0 ? (
           <div className="flex items-center gap-2 text-xs text-text-soft py-2">
@@ -578,7 +654,7 @@ function UploadCard({ onKnowledgeAdded }: { onKnowledgeAdded: (item: KnowledgeIt
           {saving ? 'Saving…' : `Save ${confirmedCount} item${confirmedCount !== 1 ? 's' : ''}`}
         </button>
         {result.items.length > 0 && (
-          <button onClick={() => { setPhase('idle'); setResult(null) }} className="w-full text-center text-xs text-text-soft mt-2 hover:text-text-sec transition-colors">
+          <button onClick={dismissReview} className="w-full text-center text-xs text-text-soft mt-2 hover:text-text-sec transition-colors">
             Dismiss all
           </button>
         )}
@@ -599,16 +675,18 @@ function UploadCard({ onKnowledgeAdded }: { onKnowledgeAdded: (item: KnowledgeIt
           placeholder="https://yoursite.com"
           value={urlValue}
           onChange={e => setUrlValue(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && urlValue.trim() && runIngest('url', urlValue.trim())}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && urlValue.trim() && !ingesting) runIngest('url', urlValue.trim())
+          }}
           className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#3B82F6] mb-3"
         />
         <button
           onClick={() => urlValue.trim() && runIngest('url', urlValue.trim())}
-          disabled={!urlValue.trim()}
+          disabled={!urlValue.trim() || ingesting}
           className="w-full py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
           style={{ backgroundColor: '#3B82F6' }}
         >
-          Read this page
+          {ingesting ? 'Reading…' : 'Read this page'}
         </button>
       </div>
     )
@@ -1096,6 +1174,19 @@ export default function FoundationHub({
   const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([])
   const [knowledgeLoading, setKnowledgeLoading] = useState(false)
   const [knowledgeFetched, setKnowledgeFetched] = useState(false)
+  const [scrollToUpload, setScrollToUpload] = useState(false)
+  const uploadCardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!scrollToUpload || activeTab !== 'intelligence') return
+    uploadCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setScrollToUpload(false)
+  }, [scrollToUpload, activeTab])
+
+  function handleAddKnowledge() {
+    setActiveTab('intelligence')
+    setScrollToUpload(true)
+  }
 
   useEffect(() => {
     if (activeTab !== 'memory' || memoryData) return
@@ -1262,6 +1353,8 @@ export default function FoundationHub({
                 Rescore
               </button>
               <button
+                type="button"
+                onClick={handleAddKnowledge}
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold text-white transition-colors"
                 style={{ backgroundColor: '#3B82F6' }}
               >
@@ -1406,7 +1499,9 @@ export default function FoundationHub({
             {/* Right — sidebar */}
             <div className="w-full flex-shrink-0 space-y-4 lg:w-[280px]">
               <StrengthCard score={currentScore} healthMap={healthMap} onRescore={handleRescore} rescoring={rescoring} />
-              <UploadCard onKnowledgeAdded={handleKnowledgeAdded} />
+              <div ref={uploadCardRef}>
+                <UploadCard onKnowledgeAdded={handleKnowledgeAdded} />
+              </div>
               <SuggestionsCard suggestions={suggestions} />
             </div>
           </div>
