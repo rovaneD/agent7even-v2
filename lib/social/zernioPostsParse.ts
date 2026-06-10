@@ -17,6 +17,7 @@ export type ZernioPostMedia = {
 
 export type ZernioPostRow = {
   id: string
+  profileId: string | null
   title: string
   content: string
   status: string
@@ -80,6 +81,17 @@ function readMediaUrl(row: Record<string, unknown>): string {
   )
 }
 
+function readProfileId(row: Record<string, unknown>): string | null {
+  const raw = row.profileId ?? row.profile_id ?? row.profile
+  if (typeof raw === 'string' && raw) return raw
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>
+    const id = asString(obj._id ?? obj.id ?? obj.profileId ?? obj.profile_id)
+    return id || null
+  }
+  return null
+}
+
 function mapMediaItems(raw: unknown[]): ZernioPostMedia[] {
   return raw
     .map((item) => {
@@ -129,6 +141,7 @@ export function mapZernioPost(raw: unknown): ZernioPostRow | null {
 
   return {
     id,
+    profileId: readProfileId(obj),
     title: asString(obj.title),
     content: asString(obj.content ?? obj.caption ?? obj.text),
     status: asString(obj.status).toLowerCase() || 'draft',

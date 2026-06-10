@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
+import { getZernioProfileIds, ownsZernioPost } from '@/lib/social/zernioPostAccess'
 import { parseSinglePost } from '@/lib/social/zernioPostsParse'
 
 async function requireZernioProfile() {
@@ -19,7 +20,26 @@ async function requireZernioProfile() {
     return { error: NextResponse.json({ error: 'active_plan_required' }, { status: 403 }) }
   }
 
-  return { ok: true as const }
+  const profileIds = getZernioProfileIds(profile)
+  if (profileIds.length === 0) {
+    return { error: NextResponse.json({ error: 'not_connected' }, { status: 404 }) }
+  }
+
+  return { profileIds }
+}
+
+async function getOwnedPost(postId: string, profileIds: string[]) {
+  const raw = await publisher.getPost(postId)
+  if (!raw) return { error: NextResponse.json({ error: 'not_found' }, { status: 404 }) }
+
+  const post = parseSinglePost(raw)
+  if (!post) return { error: NextResponse.json({ error: 'invalid_response' }, { status: 502 }) }
+
+  if (!ownsZernioPost(post, profileIds)) {
+    return { error: NextResponse.json({ error: 'not_found' }, { status: 404 }) }
+  }
+
+  return { raw, post }
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ postId: string }> }) {
@@ -27,13 +47,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ pos
   if ('error' in ctx && ctx.error) return ctx.error
 
   const { postId } = await params
-  const raw = await publisher.getPost(postId)
-  if (!raw) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  const result = await getOwnedPost(postId, ctx.profileIds)
+  if ('error' in result && result.error) return result.error
 
-  const post = parseSinglePost(raw)
-  if (!post) return NextResponse.json({ error: 'invalid_response' }, { status: 502 })
-
-  return NextResponse.json({ post })
+  return NextResponse.json({ post: result.post })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ postId: string }> }) {
@@ -49,6 +66,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ po
   }
 
   try {
+    const existing = await getOwnedPost(postId, ctx.profileIds)
+    if ('error' in existing && existing.error) return existing.error
+
+    const queuedFromProfile =
+      typeof body.queuedFromProfile === 'string' && ctx.profileIds.includes(body.queuedFromProfile)
+        ? body.queuedFromProfile
+        : undefined
+
     const raw = await publisher.updatePost(postId, {
       content: typeof body.content === 'string' ? body.content : undefined,
       title: typeof body.title === 'string' ? body.title : undefined,
@@ -57,7 +82,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ po
       timezone: typeof body.timezone === 'string' ? body.timezone : undefined,
       publishNow: body.publishNow === true,
       isDraft: body.isDraft === true,
-      queuedFromProfile: typeof body.queuedFromProfile === 'string' ? body.queuedFromProfile : undefined,
+      queuedFromProfile,
     })
     const post = parseSinglePost(raw)
     return NextResponse.json({ post, raw })
@@ -72,6 +97,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if ('error' in ctx && ctx.error) return ctx.error
 
   const { postId } = await params
+  const existing = await getOwnedPost(postId, ctx.profileIds)
+  if ('error' in existing && existing.error) return existing.error
+
   const ok = await publisher.deletePost(postId)
   if (!ok) return NextResponse.json({ error: 'delete_failed' }, { status: 502 })
   return NextResponse.json({ ok: true })
