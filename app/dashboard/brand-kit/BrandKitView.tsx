@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
-import { buildBrandKitEditorMayaContext } from '@/lib/maya/summaries/brandKitContext'
+import { buildBrandKitEditorMayaContext, type BrandKitSectionKey } from '@/lib/maya/summaries/brandKitContext'
 import {
   Shapes, Palette, Type, Image as ImageIcon, MessageSquare, Layout,
   Plus, Trash2, Upload, ExternalLink, Sparkles, Loader2, Check,
@@ -113,13 +113,19 @@ export default function BrandKitView({
   const mayaContext = useMemo(
     () =>
       buildBrandKitEditorMayaContext({
+        companyName,
+        activeSection: activeSection as BrandKitSectionKey,
+        sectionCompleted: sections.find(s => s.section_key === activeSection)?.completed ?? false,
         completedCount,
         colors,
         fonts,
         assetCount: assets.length,
-        documentTypes: documents.map(d => d.type),
+        identityAssetCount: assets.filter(a => a.section_key === 'identity').length,
+        imageryAssetCount: assets.filter(a => a.section_key === 'imagery').length,
+        templateAssetCount: assets.filter(a => a.section_key === 'templates').length,
+        documents,
       }),
-    [completedCount, colors, fonts, assets.length, documents],
+    [companyName, activeSection, sections, completedCount, colors, fonts, assets, documents],
   )
   useMayaContext(mayaContext)
 

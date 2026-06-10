@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
-import { buildFoundationHubMayaContext } from '@/lib/maya/summaries/phase3Context'
+import { buildFoundationHubMayaContext } from '@/lib/maya/summaries/foundationHubContext'
 import type { FoundationMemoryResponse, AgentMemoryStat } from '@/lib/foundation/memory'
 
 // Client-side extraction types (mirrored from lib/foundation/extract.ts)
@@ -1181,8 +1181,9 @@ export default function FoundationHub({
           Object.entries(healthMap).map(([k, v]) => [k, v]),
         ),
         editingSection,
-        knowledgeCount: knowledgeItems.length,
-        memoryOutputCount: memoryData?.totalOutputs,
+        regenProgress,
+        knowledgeItems,
+        memoryData,
         weakSections: weakSections.map(s => s.title),
       }),
     [
@@ -1191,7 +1192,8 @@ export default function FoundationHub({
       currentScore,
       healthMap,
       editingSection,
-      knowledgeItems.length,
+      regenProgress,
+      knowledgeItems,
       memoryData,
       weakSections,
     ],

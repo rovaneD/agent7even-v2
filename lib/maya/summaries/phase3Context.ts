@@ -60,37 +60,6 @@ export function buildPostsMayaContext(input: {
   }
 }
 
-export function buildFoundationHubMayaContext(input: {
-  companyName: string
-  activeTab: string
-  score: number
-  sectionHealth: Record<string, string>
-  editingSection: string | null
-  knowledgeCount: number
-  memoryOutputCount?: number
-  weakSections: string[]
-}): MayaPageContext {
-  const healthLine = Object.entries(input.sectionHealth)
-    .map(([k, h]) => `${k}: ${h}`)
-    .join('; ')
-  return {
-    page: 'FOUNDATION PAGE',
-    dataSource: 'live',
-    company: input.companyName || undefined,
-    activeView: input.editingSection
-      ? `${input.activeTab} — editing ${input.editingSection}`
-      : input.activeTab,
-    metrics: [
-      `Foundation score: ${input.score}%`,
-      `Section health: ${healthLine}`,
-      `Knowledge sources: ${input.knowledgeCount}`,
-      ...(input.memoryOutputCount != null ? [`Agent memory outputs: ${input.memoryOutputCount}`] : []),
-      ...(input.weakSections.length ? [`Needs work: ${input.weakSections.join(', ')}`] : []),
-    ],
-    affordance: `${MAYA_VOICE_RULE} User manages Foundation intelligence, knowledge uploads, agent memory, and connections. Help strengthen thin sections and explain how Foundation feeds agents.`,
-  }
-}
-
 export function buildAiToolkitMayaContext(input: {
   plan: string | null
   monthlyRuns: number

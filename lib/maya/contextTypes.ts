@@ -1,5 +1,5 @@
 /**
- * Maya page-context payload contract (Phase 2 pages implement this shape).
+ * Maya page-context payload contract (Phases 1–3 pages implement this shape).
  *
  * Rules:
  * - Summaries only: put compact labeled lines in `metrics`. Never raw chart
@@ -9,17 +9,34 @@
  * - `live`: connected sources with fetched data the user is viewing.
  * - `none`: no sources connected yet (distinct from zero traffic on a live source).
  * - Keep `metrics` token-cheap (~15–25 lines max per page).
+ *
+ * activeView (Phase 4 — optional sub-page state):
+ * - Describes the ONE sub-surface the user is currently looking at — not an
+ *   inventory of all tabs. Page-level `metrics` stay as background context.
+ * - Prefer the object form `{ label, state? }` for tabbed pages; serialized as
+ *   `CURRENTLY VIEWING: <label> — <state>` above the on-screen summary.
+ * - Legacy string form is still accepted (Phases 1–3) and serializes as
+ *   `Active view: <string>` — unchanged until those pages migrate in Phase 5.
+ * - If the active sub-surface shows sample/mock data, say so in `state`.
  */
 
 export type MayaDataSource = 'live' | 'sample' | 'none'
+
+/** Sub-page / tab the user is focused on (Phase 4+). */
+export interface MayaActiveView {
+  /** Human name of the current tab or sub-surface, e.g. "Voice" */
+  label: string
+  /** Compact state of THAT sub-surface only, e.g. "Brand Voice Guide: not yet generated" */
+  state?: string
+}
 
 export interface MayaPageContext {
   /** Page identifier, e.g. "ANALYTICS PAGE" */
   page: string
   dataSource: MayaDataSource
   company?: string
-  /** Tab, step, or sub-view the user is on */
-  activeView?: string
+  /** Sub-view: object (Phase 4+) foregrounds CURRENTLY VIEWING; string (legacy) unchanged */
+  activeView?: string | MayaActiveView
   /** Connection-state lines — disconnected vs connected vs pending */
   connections?: string[]
   /** Compact on-screen metrics Maya can discuss */
@@ -42,11 +59,23 @@ export function serializeMayaPageContext(payload: MayaPageContext): string {
   ]
 
   if (payload.company) lines.push(`Company: ${payload.company}`)
-  if (payload.activeView) lines.push(`Active view: ${payload.activeView}`)
+
+  if (typeof payload.activeView === 'string') {
+    lines.push(`Active view: ${payload.activeView}`)
+  }
 
   if (payload.connections?.length) {
     lines.push('Connections:')
     for (const c of payload.connections) lines.push(`- ${c}`)
+  }
+
+  if (payload.activeView && typeof payload.activeView !== 'string') {
+    const { label, state } = payload.activeView
+    lines.push(
+      state
+        ? `CURRENTLY VIEWING: ${label} — ${state}`
+        : `CURRENTLY VIEWING: ${label}`,
+    )
   }
 
   if (payload.metrics?.length) {

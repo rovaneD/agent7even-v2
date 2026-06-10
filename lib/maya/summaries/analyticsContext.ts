@@ -142,6 +142,55 @@ function summarizeInbox(): string[] {
   ]
 }
 
+/** Posting metrics are sample/demo until Zernio live fetch (dataState === 'live'). */
+function isPostingMock(input: AnalyticsMayaInput): boolean {
+  return input.dataState !== 'live'
+}
+
+/** GA demo numbers only when the whole page is in trial/no-plan mock mode. */
+function isGaMock(input: AnalyticsMayaInput): boolean {
+  return input.dataState === 'mock'
+}
+
+function gaStatusLine(input: AnalyticsMayaInput): string {
+  const { gaId, oauthConnected, gaOAuthEmail, gaPending } = input
+  if (isGaMock(input)) {
+    return gaId
+      ? `Google Analytics: SAMPLE / MOCK — demo property ${gaId}`
+      : 'Google Analytics: SAMPLE / MOCK — demo sample data'
+  }
+  if (oauthConnected && gaId) {
+    return `Google Analytics: connected, property ${gaId}${gaOAuthEmail ? ` (${gaOAuthEmail})` : ''}`
+  }
+  if (oauthConnected) {
+    return 'Google Analytics: OAuth connected, property not selected'
+  }
+  if (gaPending) {
+    return 'Google Analytics: sync pending'
+  }
+  return 'Google Analytics: not connected'
+}
+
+/** Thin posting reference for non-posting tabs (not full metrics). */
+function postingThinLine(input: AnalyticsMayaInput): string {
+  const { connectedPlatforms, dateRange, dataState } = input
+  if (isPostingMock(input)) {
+    if (dataState === 'mock') {
+      return 'Social posting: SAMPLE / MOCK — demo mode (see Posting analytics tab for sample metrics)'
+    }
+    return 'Social posting: no accounts connected for posting yet'
+  }
+  return `Social posting: connected (${connectedPlatforms.join(', ')}) — see Posting analytics tab for ${dateRange} metrics`
+}
+
+function postingThinLineGaTab(input: AnalyticsMayaInput): string {
+  const { connectedPlatforms } = input
+  if (!connectedPlatforms.length) {
+    return 'Social posting: no accounts connected for posting — unrelated to Google Analytics Traffic channels on this tab.'
+  }
+  return `Social accounts connected for posting (${connectedPlatforms.join(', ')}) — see Posting analytics tab. Unrelated to Google Analytics Traffic channels on this tab.`
+}
+
 const TAB_LABELS: Record<PostingTab, string> = {
   posting: 'Posting analytics',
   inbox:   'Inbox analytics',
@@ -158,6 +207,59 @@ const TAB_AFFORDANCE: Record<PostingTab, string> = {
     `${VOICE_RULE} User is on Inbox analytics. Only the date range filter is interactive. Inbox numbers are sample/demo until live inbox data is available. Do not tell the user to click anything.`,
   ga:
     `${VOICE_RULE} User is on the Google analytics tab inside Agent7even — not analytics.google.com. UI RULES: (1) KPI cards, traffic charts, Traffic channels, Top pages, Countries, and Devices are read-only displays — nothing is clickable and there is no drill-down. (2) The ONLY interactive control on this tab is the date range dropdown (e.g. Last 30 days). (3) Answer by interpreting the ON-SCREEN SUMMARY below — quote numbers directly in your reply. (4) NEVER say click, tap, drill down, open, check the chart, look at the section, or filter. (5) METRIC RULE: Traffic channels are SESSION counts, not new-user counts. This dashboard does not show new users by channel. If asked where new users come from, give the new-users KPI total and describe session mix separately — never attribute channel session numbers to new users. (6) GA "Organic Social" = website sessions Google attributes to social referrals — NOT social post stats from the Posting analytics tab. If contrasting low Organic Social with Instagram, explain: connected for posting in Agent7even vs website click-through tracked in Google Analytics are separate — never name internal vendors. (7) Do not send them to analytics.google.com.`,
+}
+
+/** Tab-local headline for activeView.state (foreground); page metrics stay in background. */
+function buildAnalyticsActiveViewState(input: AnalyticsMayaInput): string {
+  const {
+    activeTab,
+    dateRange,
+    gaData,
+    oauthConnected,
+    gaId,
+    gaPending,
+    postingData,
+    connectedPlatforms,
+  } = input
+
+  if (activeTab === 'posting') {
+    if (isPostingMock(input)) {
+      const s = MOCK_POSTING_ANALYTICS.stats
+      return `SAMPLE / MOCK — engagement ${s.engagementRate}%, reach ${fmtNum(s.totalReach)} (${s.reachDelta}), followers ${fmtNum(s.totalFollowers)} (${s.followersDelta}); best post on ${s.bestPost.platform} (${s.bestPost.engagements} engagements)`
+    }
+    if (!connectedPlatforms.length) {
+      return 'No social accounts connected for posting yet'
+    }
+    const s = postingData.stats
+    return `Engagement ${s.engagementRate}%, reach ${fmtNum(s.totalReach)} (${s.reachDelta}), followers ${fmtNum(s.totalFollowers)} (${s.followersDelta}), ${s.postsThisPeriod} posts; best: "${truncate(s.bestPost.caption, 45)}" on ${s.bestPost.platform}`
+  }
+
+  if (activeTab === 'inbox') {
+    const inbox = MOCK_ANALYTICS_INBOX
+    return `SAMPLE / MOCK — ${inbox.totalComments} comments, ${inbox.totalDMs} DMs, ${inbox.responseRate}% response rate (${dateRange})`
+  }
+
+  if (activeTab === 'ga') {
+    if (isGaMock(input)) {
+      const s = MOCK_GA_DATA.summary
+      const top = MOCK_GA_DATA.trafficSources[0]
+      return `SAMPLE / MOCK — ${s.sessions.toLocaleString()} sessions, ${s.users.toLocaleString()} users, bounce ${s.bounceRate}%; top channel ${top?.source ?? 'n/a'} (${dateRange})`
+    }
+    if (gaPending && !gaData) {
+      return 'GA sync in progress'
+    }
+    if (!oauthConnected || !gaId) {
+      return 'GA not connected — connect to read website analytics'
+    }
+    if (gaData) {
+      const s = gaData.summary
+      const top = gaData.channels?.[0]
+      return `${s.sessions.toLocaleString()} sessions, ${s.users.toLocaleString()} users, bounce ${s.bounceRate}%; top channel ${top?.channel ?? 'n/a'} (${top?.sessions ?? 0} sessions) — ${dateRange}`
+    }
+    return 'GA not connected — connect to read website analytics'
+  }
+
+  return dateRange
 }
 
 export function buildAnalyticsMayaContext(input: AnalyticsMayaInput): MayaPageContext {
@@ -205,43 +307,38 @@ export function buildAnalyticsMayaContext(input: AnalyticsMayaInput): MayaPageCo
 
   const metrics: string[] = []
 
-  // Posting — omit on GA tab so Maya stays focused on website analytics
-  if (activeTab !== 'ga') {
-    if (dataState === 'mock') {
+  if (activeTab === 'posting') {
+    if (isPostingMock(input)) {
+      metrics.push(
+        'POSTING DATA: SAMPLE / MOCK — demo posting metrics until social accounts are connected.',
+      )
       metrics.push(...summarizePosting(MOCK_POSTING_ANALYTICS, dateRange))
-    } else if (dataState === 'live' && connectedPlatforms.length) {
+    } else if (connectedPlatforms.length) {
       metrics.push(...summarizePosting(postingData, dateRange))
-    } else if (dataState === 'empty') {
+    } else {
       metrics.push('Posting: no social accounts connected yet')
     }
-  }
-
-  // GA — mock demo, live fetched data, or explicit not-connected / pending states
-  if (dataState === 'mock') {
-    metrics.push(...summarizeGaFromMock(dateRange))
-  } else if (gaData) {
-    metrics.push(...summarizeGa(gaData, dateRange))
-  } else if (gaPending) {
-    metrics.push('Google Analytics: data sync in progress')
-  } else if (!oauthConnected || !gaId) {
-    metrics.push('Google Analytics: connect a property to see website analytics')
-  }
-
-  // Inbox tab always reads MOCK_ANALYTICS_INBOX in the UI today
-  if (activeTab === 'inbox') {
+    metrics.push(gaStatusLine(input))
+  } else if (activeTab === 'inbox') {
     metrics.push('INBOX DATA: SAMPLE / MOCK — inbox tab uses demo data until live inbox is available.')
     metrics.push(...summarizeInbox())
-  }
-
-  if (activeTab === 'ga') {
-    metrics.unshift(
+    metrics.push(postingThinLine(input))
+    metrics.push(gaStatusLine(input))
+  } else if (activeTab === 'ga') {
+    metrics.push(
       `Active filter: date range ${dateRange} (only interactive control on this tab). All charts below are read-only.`,
     )
-    if (connectedPlatforms.length > 0) {
-      metrics.push(
-        `Social accounts connected for posting (${connectedPlatforms.join(', ')}) — see Posting analytics tab. Unrelated to Google Analytics Traffic channels on this tab.`,
-      )
+    if (isGaMock(input)) {
+      metrics.push('GA DATA: SAMPLE / MOCK — demo website analytics until a property is connected.')
+      metrics.push(...summarizeGaFromMock(dateRange))
+    } else if (gaData) {
+      metrics.push(...summarizeGa(gaData, dateRange))
+    } else if (gaPending) {
+      metrics.push('Google Analytics: data sync in progress')
+    } else if (!oauthConnected || !gaId) {
+      metrics.push('Google Analytics: connect a property to see website analytics')
     }
+    metrics.push(postingThinLineGaTab(input))
     metrics.push(
       'Google Analytics "Organic Social" = website visits from social click-through — not post reach/engagement and not whether Instagram is connected for posting in Agent7even.',
     )
@@ -251,7 +348,10 @@ export function buildAnalyticsMayaContext(input: AnalyticsMayaInput): MayaPageCo
     page: 'ANALYTICS PAGE',
     dataSource,
     company: companyName || undefined,
-    activeView: `${TAB_LABELS[activeTab]} (${dateRange})`,
+    activeView: {
+      label: TAB_LABELS[activeTab],
+      state: buildAnalyticsActiveViewState(input),
+    },
     connections,
     metrics,
     affordance: TAB_AFFORDANCE[activeTab],
