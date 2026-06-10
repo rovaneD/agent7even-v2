@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Metaballs } from '@paper-design/shaders-react'
+import MarketingNav from '../MarketingNav'
 
 function CheckIcon() {
   return (
@@ -130,24 +131,7 @@ export default function PricingPage() {
   return (
     <div className="lab5">
       {/* NAV */}
-      <nav className="nav">
-        <div className="nav-in">
-          <a className="brand" href="/">
-            <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
-          </a>
-          <div className="nav-links">
-            <a href="/#how">How it works</a>
-            <a href="/#features">Features</a>
-            <a href="/agents">Agents</a>
-            <a href="/pricing" style={{ color: 'var(--ink)' }}>Pricing</a>
-            <a href="/use-cases">Use cases</a>
-          </div>
-          <div className="nav-right">
-            <a className="nav-signin" href="/sign-in">Sign in</a>
-            <a className="btn btn-primary btn-sm" href="/sign-up">Sign up</a>
-          </div>
-        </div>
-      </nav>
+      <MarketingNav active="pricing" />
 
       {/* PRICING HEADER */}
       <section id="pricing">

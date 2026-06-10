@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Script from 'next/script'
 import { Metaballs } from '@paper-design/shaders-react'
 import { trackEvent } from '@/lib/gtag'
+import MarketingNav from './MarketingNav'
 
 declare global {
   interface Window {
@@ -76,25 +77,7 @@ export default function Lab5Page() {
       />
 
       {/* NAV */}
-      <nav className="nav">
-        <div className="nav-in">
-          <a className="brand" href="/">
-            <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
-          </a>
-          <div className="nav-links">
-            <a href="#how">How it works</a>
-            <a href="#features">Features</a>
-            <a href="/agents">Agents</a>
-            <a href="/pricing">Pricing</a>
-            <a href="/use-cases">Use cases</a>
-          </div>
-          <div className="nav-right">
-            <a className="nav-signin" href="/sign-in">Sign in</a>
-            <a className="btn btn-primary btn-sm" href="/sign-up"
-              onClick={() => trackEvent('sign_up_click', { location: 'nav' })}>Sign up</a>
-          </div>
-        </div>
-      </nav>
+      <MarketingNav />
 
       {/* HERO */}
       <header className="hero">
