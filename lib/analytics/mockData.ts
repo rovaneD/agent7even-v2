@@ -3,7 +3,15 @@
 // Not aspirational (enterprise) and not minimal (near-zero).
 
 export const MOCK_GA_DATA = {
-  summary: { sessions: 1240, users: 890, pageviews: 2180, bounceRate: '42' },
+  summary: {
+    sessions: 1240,
+    users: 890,
+    pageviews: 2180,
+    bounceRate: '42',
+    newUsers: 412,
+    avgSessionDuration: 154,
+  },
+  deltas: { sessions: 12.4, users: 9.1, pageviews: 8.3, newUsers: 15.2 },
   chartData: [
     { day: 'Mon', sessions: 142, users: 118 },
     { day: 'Tue', sessions: 224, users: 191 },
@@ -12,6 +20,15 @@ export const MOCK_GA_DATA = {
     { day: 'Fri', sessions: 176, users: 143 },
     { day: 'Sat', sessions: 152, users: 121 },
     { day: 'Sun', sessions: 156, users: 124 },
+  ],
+  activityData: [
+    { day: 'Mon', dau: 38, wau: 198, mau: 642 },
+    { day: 'Tue', dau: 52, wau: 214, mau: 668 },
+    { day: 'Wed', dau: 44, wau: 221, mau: 691 },
+    { day: 'Thu', dau: 61, wau: 238, mau: 724 },
+    { day: 'Fri', dau: 47, wau: 246, mau: 758 },
+    { day: 'Sat', dau: 35, wau: 252, mau: 781 },
+    { day: 'Sun', dau: 58, wau: 267, mau: 812 },
   ],
   topPages: [
     { path: '/services', sessions: 342, bounceRate: '38%' },
@@ -25,6 +42,29 @@ export const MOCK_GA_DATA = {
     { source: 'Social',   pct: 28 },
     { source: 'Organic',  pct: 22 },
     { source: 'Referral', pct: 12 },
+  ],
+  countries: [
+    { country: 'United States',  users: 524 },
+    { country: 'Canada',         users: 118 },
+    { country: 'United Kingdom', users: 86 },
+    { country: 'Australia',      users: 64 },
+    { country: 'Germany',        users: 41 },
+    { country: 'Netherlands',    users: 28 },
+  ],
+  devices: [
+    { device: 'mobile',  users: 498 },
+    { device: 'desktop', users: 342 },
+    { device: 'tablet',  users: 50 },
+  ],
+  events: [
+    { name: 'page_view',      count: 2180 },
+    { name: 'session_start',  count: 1240 },
+    { name: 'scroll',         count: 942 },
+    { name: 'cta_click',      count: 387 },
+    { name: 'user_engagement', count: 356 },
+    { name: 'select_plan',    count: 92 },
+    { name: 'faq_open',       count: 74 },
+    { name: 'sign_up_click',  count: 58 },
   ],
 }
 

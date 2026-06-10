@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import type { AnalyticsDataState } from './page'
 import {
-  MOCK_ANALYTICS_INBOX, MOCK_POSTING_ANALYTICS,
+  MOCK_ANALYTICS_INBOX, MOCK_POSTING_ANALYTICS, MOCK_GA_DATA,
 } from '@/lib/analytics/mockData'
 import { parseAnalyticsEnvelope, readBestPostUrl } from '@/lib/social/zernioAnalyticsParse'
 
@@ -924,7 +924,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type PostingTab = 'posting' | 'inbox'
+type PostingTab = 'posting' | 'inbox' | 'ga'
 type DateRange = '7d' | '30d' | '90d' | '6m' | '1y'
 
 interface Props {
@@ -939,7 +939,26 @@ interface Props {
 
 interface GaData {
   chartData: { day: string; sessions: number; users: number }[]
-  summary: { sessions: number; users: number; pageviews: number; bounceRate: string }
+  activityData?: { day: string; dau: number; wau: number; mau: number }[]
+  summary: {
+    sessions: number
+    users: number
+    pageviews: number
+    bounceRate: string
+    newUsers?: number
+    avgSessionDuration?: number
+  }
+  deltas?: {
+    sessions?: number | null
+    users?: number | null
+    pageviews?: number | null
+    newUsers?: number | null
+  }
+  topPages?: { path: string; views: number }[]
+  channels?: { channel: string; sessions: number }[]
+  countries?: { country: string; users: number }[]
+  devices?: { device: string; users: number }[]
+  events?: { name: string; count: number }[]
 }
 
 interface GAProperty { id: string; name: string; account?: string }
@@ -2164,6 +2183,368 @@ function InboxAnalyticsContent({ isMock }: { isMock: boolean }) {
   )
 }
 
+// ── Google Analytics Tab ───────────────────────────────────────────────────────
+
+const GA_CHANNEL_COLORS = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#06B6D4', '#F97316', '#64748B']
+
+/** Live GA returns YYYYMMDD date strings; mock data uses weekday labels. */
+function fmtGaDay(day: string) {
+  if (/^\d{8}$/.test(day)) return `${Number(day.slice(4, 6))}/${Number(day.slice(6, 8))}`
+  return day
+}
+
+function fmtDuration(seconds: number) {
+  const m = Math.floor(seconds / 60)
+  const s = Math.round(seconds % 60)
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
+}
+
+/** Recharts dot renderer that marks only the last data point, GA-style. */
+function makeEndDot(color: string, lastIndex: number) {
+  return function EndDot(props: { cx?: number; cy?: number; index?: number }) {
+    const { cx, cy, index } = props
+    if (index !== lastIndex || cx === undefined || cy === undefined) {
+      return <g key={`end-dot-${index}`} />
+    }
+    return (
+      <g key={`end-dot-${index}`}>
+        <circle cx={cx} cy={cy} r={6} fill={color} fillOpacity={0.2} />
+        <circle cx={cx} cy={cy} r={3.5} fill={color} stroke="#fff" strokeWidth={1.5} />
+      </g>
+    )
+  }
+}
+
+function GaDelta({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) return null
+  const positive = value >= 0
+  return (
+    <span className={`flex items-center gap-0.5 text-[11px] font-medium ${positive ? 'text-emerald-600' : 'text-red-500'}`}>
+      {positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+      {Math.abs(value)}%
+      <span className="text-text-soft font-normal ml-0.5">vs prev</span>
+    </span>
+  )
+}
+
+function GoogleAnalyticsContent({
+  isMock, gaId, gaData, gaPending, onConnect,
+}: {
+  isMock: boolean
+  gaId: string | null
+  gaData: GaData | null
+  gaPending: boolean
+  onConnect: () => void
+}) {
+  const data: GaData | null = isMock
+    ? {
+        summary: MOCK_GA_DATA.summary,
+        deltas: MOCK_GA_DATA.deltas,
+        chartData: MOCK_GA_DATA.chartData,
+        activityData: MOCK_GA_DATA.activityData,
+        topPages: MOCK_GA_DATA.topPages.map(p => ({ path: p.path, views: p.sessions })),
+        channels: MOCK_GA_DATA.trafficSources.map(s => ({ channel: s.source, sessions: s.pct })),
+        countries: MOCK_GA_DATA.countries,
+        devices: MOCK_GA_DATA.devices,
+        events: MOCK_GA_DATA.events,
+      }
+    : gaData
+
+  // Live state, no property connected yet
+  if (!isMock && !gaId) {
+    return (
+      <div className="rounded-2xl border border-gray-100 bg-white px-8 py-16 flex flex-col items-center text-center">
+        <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+          <Globe size={22} className="text-[#3B82F6]" />
+        </div>
+        <p className="text-[15px] font-semibold text-text mb-1.5">Connect Google Analytics</p>
+        <p className="text-[13px] text-text-sec max-w-sm leading-relaxed mb-5">
+          See your website traffic next to your social performance — sessions, visitors,
+          top pages, and where your traffic comes from.
+        </p>
+        <button
+          onClick={onConnect}
+          className="bg-[#3B82F6] text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors"
+        >
+          Connect Google Analytics
+        </button>
+      </div>
+    )
+  }
+
+  // Connected, but the service account / OAuth user can't read the property yet
+  if (!isMock && gaPending && !data) {
+    return (
+      <div className="rounded-2xl border border-amber-100 bg-amber-50 px-6 py-5 flex items-start gap-3">
+        <Info size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-[13px] font-semibold text-amber-800">Access pending</p>
+          <p className="text-[12px] text-amber-700 mt-0.5">
+            Property {gaId} is linked, but Google hasn&apos;t granted read access yet.
+            This usually resolves within a few minutes of granting Viewer access.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Connected, data still loading
+  if (!data) {
+    return (
+      <div className="rounded-2xl border border-gray-100 bg-white px-8 py-16 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[#3B82F6] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  const s = data.summary
+  const d = data.deltas
+  const activity = data.activityData ?? []
+  const topPages = data.topPages ?? []
+  const channels = data.channels ?? []
+  const countries = data.countries ?? []
+  const devices = data.devices ?? []
+  const events = data.events ?? []
+  const maxPageViews = Math.max(...topPages.map(p => p.views), 1)
+  const totalChannelSessions = channels.reduce((sum, c) => sum + c.sessions, 0) || 1
+  const maxCountryUsers = Math.max(...countries.map(c => c.users), 1)
+  const totalDeviceUsers = devices.reduce((sum, dv) => sum + dv.users, 0) || 1
+  const maxEventCount = Math.max(...events.map(e => e.count), 1)
+
+  const kpis: { label: string; value: string; delta?: number | null }[] = [
+    { label: 'Sessions',     value: fmt(s.sessions),  delta: d?.sessions },
+    { label: 'Active users', value: fmt(s.users),     delta: d?.users },
+    { label: 'New users',    value: s.newUsers !== undefined ? fmt(s.newUsers) : '—', delta: d?.newUsers },
+    { label: 'Pageviews',    value: fmt(s.pageviews), delta: d?.pageviews },
+    { label: 'Bounce rate',  value: `${s.bounceRate}%` },
+    { label: 'Avg session',  value: s.avgSessionDuration !== undefined ? fmtDuration(s.avgSessionDuration) : '—' },
+  ]
+
+  return (
+    <div className="space-y-4">
+      {/* KPI cards */}
+      <div className="grid grid-cols-3 xl:grid-cols-6 gap-3">
+        {kpis.map(k => (
+          <div key={k.label} className="relative bg-white rounded-2xl border border-gray-100 p-4">
+            {isMock && <DemoDot />}
+            <p className="text-[11px] font-medium text-text-soft uppercase tracking-wide mb-2">{k.label}</p>
+            <span className="text-[22px] font-[500] text-text leading-none">{k.value}</span>
+            <div className="mt-2 h-4">
+              <GaDelta value={k.delta} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Traffic over time + User activity over time */}
+      <div className="grid grid-cols-2 gap-4">
+        <ChartCard title="Traffic over time" subtitle="Sessions and active users" isMock={isMock}>
+          <div className="px-4 pt-3 pb-3">
+            <div className="flex items-center gap-4 px-2 pb-2">
+              <span className="flex items-center gap-1.5 text-[11px] text-text-sec">
+                <span className="w-2 h-2 rounded-full bg-[#3B82F6]" /> Sessions
+              </span>
+              <span className="flex items-center gap-1.5 text-[11px] text-text-sec">
+                <span className="w-2 h-2 rounded-full bg-[#10B981]" /> Active users
+              </span>
+            </div>
+            <ResponsiveContainer width="100%" height={210}>
+              <AreaChart data={data.chartData}>
+                <defs>
+                  <linearGradient id="gaGradSessions" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="gaGradUsers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.22} />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                <XAxis dataKey="day" tickFormatter={fmtGaDay} tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} minTickGap={24} />
+                <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={32} />
+                <Tooltip
+                  labelFormatter={(v) => fmtGaDay(String(v))}
+                  contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid #f0f0f0', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}
+                />
+                <Area type="monotone" dataKey="sessions" stroke="#3B82F6" strokeWidth={2.5} fill="url(#gaGradSessions)" name="Sessions"
+                  dot={makeEndDot('#3B82F6', data.chartData.length - 1)} activeDot={{ r: 4 }} />
+                <Area type="monotone" dataKey="users" stroke="#10B981" strokeWidth={2.5} fill="url(#gaGradUsers)" name="Active users"
+                  dot={makeEndDot('#10B981', data.chartData.length - 1)} activeDot={{ r: 4 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+
+        {/* User activity over time — rolling 1 / 7 / 30-day active users */}
+        {activity.length > 0 && (
+          <ChartCard title="User activity over time" subtitle="Rolling active users" isMock={isMock}>
+            <div className="flex items-stretch px-4 pt-3 pb-3 gap-2">
+              <div className="flex-1 min-w-0 pt-7">
+                <ResponsiveContainer width="100%" height={210}>
+                  <LineChart data={activity}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                    <XAxis dataKey="day" tickFormatter={fmtGaDay} tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} minTickGap={24} />
+                    <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={36} />
+                    <Tooltip
+                      labelFormatter={(v) => fmtGaDay(String(v))}
+                      contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid #f0f0f0', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}
+                    />
+                    <Line type="monotone" dataKey="mau" stroke="#3B82F6" strokeWidth={2.5} name="30 days"
+                      dot={makeEndDot('#3B82F6', activity.length - 1)} activeDot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="wau" stroke="#10B981" strokeWidth={2.5} name="7 days"
+                      dot={makeEndDot('#10B981', activity.length - 1)} activeDot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="dau" stroke="#F59E0B" strokeWidth={2.5} name="1 day"
+                      dot={makeEndDot('#F59E0B', activity.length - 1)} activeDot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-col justify-center gap-4 pl-3 pr-2 border-l border-gray-50 flex-shrink-0">
+                {[
+                  { label: '30 days', value: activity[activity.length - 1]?.mau ?? 0, color: '#3B82F6' },
+                  { label: '7 days',  value: activity[activity.length - 1]?.wau ?? 0, color: '#10B981' },
+                  { label: '1 day',   value: activity[activity.length - 1]?.dau ?? 0, color: '#F59E0B' },
+                ].map(item => (
+                  <div key={item.label}>
+                    <span className="flex items-center gap-1.5 text-[10px] font-medium text-text-soft uppercase tracking-wide">
+                      <span className="w-2 h-2 rounded-full" style={{ background: item.color }} />
+                      {item.label}
+                    </span>
+                    <span className="block text-[22px] font-[500] text-text leading-tight mt-0.5">{fmt(item.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </ChartCard>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* Top pages */}
+        {topPages.length > 0 && (
+          <ChartCard title="Top pages" subtitle="Most viewed pages this period" isMock={isMock}>
+            <div className="px-5 py-4 space-y-3">
+              {topPages.map(p => (
+                <div key={p.path} className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span className="text-[12px] font-medium text-text truncate">{p.path}</span>
+                      <span className="text-[12px] text-text-sec flex-shrink-0">{fmt(p.views)}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#3B82F6]"
+                        style={{ width: `${Math.max((p.views / maxPageViews) * 100, 3)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ChartCard>
+        )}
+
+        {/* Traffic channels */}
+        {channels.length > 0 && (
+          <ChartCard title="Traffic channels" subtitle="Where your sessions come from" isMock={isMock}>
+            <div className="px-5 py-4 space-y-3">
+              {channels.map((c, i) => {
+                const pct = Math.round((c.sessions / totalChannelSessions) * 100)
+                const color = GA_CHANNEL_COLORS[i % GA_CHANNEL_COLORS.length]
+                return (
+                  <div key={c.channel} className="flex items-center gap-3">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <span className="text-[12px] font-medium text-text truncate">{c.channel}</span>
+                        <span className="text-[12px] text-text-sec flex-shrink-0">{pct}%</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.max(pct, 3)}%`, background: color }} />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </ChartCard>
+        )}
+      </div>
+
+      {(countries.length > 0 || devices.length > 0 || events.length > 0) && (
+        <div className="grid grid-cols-3 gap-4">
+          {/* Users by country */}
+          {countries.length > 0 && (
+            <ChartCard title="Users by country" subtitle="Top countries this period" isMock={isMock}>
+              <div className="px-5 py-4 space-y-3">
+                {countries.map(c => (
+                  <div key={c.country} className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span className="text-[12px] font-medium text-text truncate">{c.country}</span>
+                      <span className="text-[12px] text-text-sec flex-shrink-0">{fmt(c.users)}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#3B82F6]"
+                        style={{ width: `${Math.max((c.users / maxCountryUsers) * 100, 3)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ChartCard>
+          )}
+
+          {/* Devices */}
+          {devices.length > 0 && (
+            <ChartCard title="Devices" subtitle="Active users by device" isMock={isMock}>
+              <div className="px-5 py-4 space-y-4">
+                {devices.map((dv, i) => {
+                  const pct = Math.round((dv.users / totalDeviceUsers) * 100)
+                  const color = GA_CHANNEL_COLORS[i % GA_CHANNEL_COLORS.length]
+                  return (
+                    <div key={dv.device} className="flex items-center gap-3">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-3 mb-1">
+                          <span className="text-[12px] font-medium text-text capitalize">{dv.device}</span>
+                          <span className="text-[12px] text-text-sec flex-shrink-0">{pct}% · {fmt(dv.users)}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${Math.max(pct, 3)}%`, background: color }} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </ChartCard>
+          )}
+
+          {/* Top events */}
+          {events.length > 0 && (
+            <ChartCard title="Top events" subtitle="Event count by event name" isMock={isMock}>
+              <div className="px-5 py-4 space-y-2.5">
+                {events.map(e => (
+                  <div key={e.name} className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="h-1 rounded-full bg-[#8B5CF6]/60 flex-shrink-0" style={{ width: `${Math.max((e.count / maxEventCount) * 48, 4)}px` }} />
+                      <span className="text-[12px] font-medium text-text truncate font-mono">{e.name}</span>
+                    </div>
+                    <span className="text-[12px] text-text-sec flex-shrink-0">{fmt(e.count)}</span>
+                  </div>
+                ))}
+              </div>
+            </ChartCard>
+          )}
+        </div>
+      )}
+
+      {isMock && <UpgradeCard />}
+    </div>
+  )
+}
+
 // ── Posting Analytics Tab ──────────────────────────────────────────────────────
 
 function PostingAnalyticsContent({ isMock }: { isMock: boolean }) {
@@ -2198,12 +2579,17 @@ function PostingAnalyticsContent({ isMock }: { isMock: boolean }) {
 
 function ConnectPanel({
   open, onClose, dataState, connectedPlatforms, onDisconnect,
+  gaPropertyId, gaOAuthEmail, onGAConnect, onGADisconnect,
 }: {
   open: boolean
   onClose: () => void
   dataState: AnalyticsDataState
   connectedPlatforms: string[]
   onDisconnect: (platform: string) => void
+  gaPropertyId: string | null
+  gaOAuthEmail: string | null
+  onGAConnect: () => void
+  onGADisconnect: () => Promise<void>
 }) {
   const [connecting, setConnecting] = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
@@ -2252,6 +2638,15 @@ function ConnectPanel({
         body: JSON.stringify({ platform }),
       })
       onDisconnect(platform)
+    } finally {
+      setDisconnecting(null)
+    }
+  }
+
+  const handleGADisconnect = async () => {
+    setDisconnecting('google_analytics')
+    try {
+      await onGADisconnect()
     } finally {
       setDisconnecting(null)
     }
@@ -2324,6 +2719,41 @@ function ConnectPanel({
                 {connectError}
               </div>
             )}
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft mb-3">Web analytics</p>
+            <div className="flex items-center justify-between py-2.5 mb-5 border-b border-gray-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <Globe size={15} className="text-gray-500" />
+                </div>
+                <div>
+                  <span className="text-[13px] font-medium text-text">Google Analytics</span>
+                  {gaPropertyId ? (
+                    <p className="text-[11px] text-[#10B981]">
+                      Connected{gaOAuthEmail ? ` · ${gaOAuthEmail}` : ` · Property ${gaPropertyId}`}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-text-soft">Website traffic & top pages</p>
+                  )}
+                </div>
+              </div>
+              {gaPropertyId ? (
+                <button
+                  onClick={handleGADisconnect}
+                  disabled={disconnecting === 'google_analytics'}
+                  className="text-[12px] font-medium text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors"
+                >
+                  {disconnecting === 'google_analytics' ? 'Removing…' : 'Disconnect'}
+                </button>
+              ) : (
+                <button
+                  onClick={onGAConnect}
+                  className="text-[12px] font-semibold text-[#3B82F6] border border-[#BFDBFE] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  Connect
+                </button>
+              )}
+            </div>
+
             <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft mb-3">Social accounts</p>
             <div className="space-y-0.5">
               {ALL_PLATFORMS.map(id => {
@@ -2585,6 +3015,7 @@ export default function AnalyticsClient({
   const [gaId, setGaId]                     = useState(gaMeasurementId)
   const [oauthConnected, setOauthConnected] = useState(gaOAuthConnected)
   const [gaData, setGaData]                 = useState<GaData | null>(null)
+  const [gaPending, setGaPending]           = useState(false)
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(zernioConnectedPlatforms)
   const [zernioToast, setZernioToast]       = useState('')
   const [postingData, setPostingData]       = useState<PostingAnalytics>(MOCK_POSTING_ANALYTICS)
@@ -2644,7 +3075,12 @@ export default function AnalyticsClient({
     try {
       const res  = await fetch(`/api/analytics/ga-data?range=${dateRange}`)
       const json = await res.json()
-      if (json.connected) setGaData(json)
+      if (json.connected) {
+        setGaData(json)
+        setGaPending(false)
+      } else if (json.pending) {
+        setGaPending(true)
+      }
     } catch { /* fail soft */ }
   }, [dataState, gaId, dateRange])
 
@@ -2676,9 +3112,18 @@ export default function AnalyticsClient({
 
   const handleGAConnect = () => oauthConnected ? setShowPropertySelector(true) : setShowGAModal(true)
 
+  const handleGADisconnect = async () => {
+    await fetch('/api/analytics/disconnect', { method: 'POST' })
+    setGaId(null)
+    setGaData(null)
+    setGaPending(false)
+    setOauthConnected(false)
+  }
+
   const TABS: { id: PostingTab; label: string }[] = [
     { id: 'posting', label: 'Posting analytics' },
     { id: 'inbox',   label: 'Inbox analytics'   },
+    { id: 'ga',      label: 'Google analytics'  },
   ]
 
   return (
@@ -2706,6 +3151,10 @@ export default function AnalyticsClient({
         dataState={dataState}
         connectedPlatforms={connectedPlatforms}
         onDisconnect={(p) => setConnectedPlatforms(prev => prev.filter(x => x !== p))}
+        gaPropertyId={gaId}
+        gaOAuthEmail={gaOAuthEmail}
+        onGAConnect={() => { setConnectPanelOpen(false); handleGAConnect() }}
+        onGADisconnect={handleGADisconnect}
       />
 
       {/* Zernio connect toast */}
@@ -2780,6 +3229,15 @@ export default function AnalyticsClient({
         <PostingDataContext.Provider value={postingData}>
           {activeTab === 'posting' && <PostingAnalyticsContent isMock={isMock} />}
           {activeTab === 'inbox'   && <InboxAnalyticsContent   isMock={isMock} />}
+          {activeTab === 'ga'      && (
+            <GoogleAnalyticsContent
+              isMock={isMock}
+              gaId={gaId}
+              gaData={gaData}
+              gaPending={gaPending}
+              onConnect={handleGAConnect}
+            />
+          )}
         </PostingDataContext.Provider>
       </DateRangeContext.Provider>
     </div>

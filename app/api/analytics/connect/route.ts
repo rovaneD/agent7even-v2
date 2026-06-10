@@ -34,9 +34,12 @@ export async function POST(req: NextRequest) {
   const column = columnMap[platform]
   if (!column) return NextResponse.json({ error: 'Unknown platform' }, { status: 400 })
 
+  const updates: Record<string, string | boolean> = { [column]: value.trim() }
+  if (platform === 'google_analytics') updates.ga_connected = true
+
   const { error: updateError } = await supabase
     .from('profiles')
-    .update({ [column]: value.trim() })
+    .update(updates)
     .eq('id', profile.id)
 
   if (updateError) {

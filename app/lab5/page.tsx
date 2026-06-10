@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Script from 'next/script'
 import { Metaballs } from '@paper-design/shaders-react'
+import { trackEvent } from '@/lib/gtag'
 
 declare global {
   interface Window {
@@ -89,7 +90,8 @@ export default function Lab5Page() {
           </div>
           <div className="nav-right">
             <a className="nav-signin" href="/sign-in">Sign in</a>
-            <a className="btn btn-primary btn-sm" href="/sign-up">Sign up</a>
+            <a className="btn btn-primary btn-sm" href="/sign-up"
+              onClick={() => trackEvent('sign_up_click', { location: 'nav' })}>Sign up</a>
           </div>
         </div>
       </nav>
@@ -103,8 +105,10 @@ export default function Lab5Page() {
             <p className="t-lead">Campaigns planned, copy drafted, content posted — in your voice, approved by you. She runs the marketing while you run the business.</p>
             <p className="hero-tag">No agency. No busywork. No missed momentum.</p>
             <div className="hero-cta">
-              <a className="btn btn-blue btn-lg" href="/pricing">Start your free trial</a>
-              <a className="btn btn-ghost btn-lg" href="#how">See how it works →</a>
+              <a className="btn btn-blue btn-lg" href="/pricing"
+                onClick={() => trackEvent('cta_click', { cta: 'start_trial', location: 'hero' })}>Start your free trial</a>
+              <a className="btn btn-ghost btn-lg" href="#how"
+                onClick={() => trackEvent('cta_click', { cta: 'see_how_it_works', location: 'hero' })}>See how it works →</a>
             </div>
           </div>
           <div className="hero-orb">
@@ -330,7 +334,10 @@ export default function Lab5Page() {
           <div className="faq reveal">
             {FAQ_ITEMS.map(({ q, a }, i) => (
               <div key={q} className="faq-item">
-                <button className="faq-q" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                <button className="faq-q" onClick={() => {
+                  if (openFaq !== i) trackEvent('faq_open', { question: q, location: 'landing' })
+                  setOpenFaq(openFaq === i ? null : i)
+                }}>
                   {q}
                   <span className={`faq-icon${openFaq === i ? ' open' : ''}`}>+</span>
                 </button>
@@ -358,8 +365,10 @@ export default function Lab5Page() {
           <h2>Work like you have a full<br />marketing team. Because now you do.</h2>
           <p>Hire Maya and spend your hours on the work only you can do.</p>
           <div className="cta-btns">
-            <a className="btn btn-white btn-lg" href="/pricing">Start your free trial</a>
-            <a className="btn btn-dark-ghost btn-lg" href="/pricing">See plans →</a>
+            <a className="btn btn-white btn-lg" href="/pricing"
+              onClick={() => trackEvent('cta_click', { cta: 'start_trial', location: 'footer_cta' })}>Start your free trial</a>
+            <a className="btn btn-dark-ghost btn-lg" href="/pricing"
+              onClick={() => trackEvent('cta_click', { cta: 'see_plans', location: 'footer_cta' })}>See plans →</a>
           </div>
         </div>
       </div>
@@ -379,7 +388,7 @@ export default function Lab5Page() {
               <a href="#how">How it works</a>
               <a href="#features">Features</a>
               <a href="/pricing">Pricing</a>
-              <a href="/sign-up">Sign up</a>
+              <a href="/sign-up" onClick={() => trackEvent('sign_up_click', { location: 'footer' })}>Sign up</a>
             </div>
             <div className="fcol">
               <h5>Use cases</h5>
