@@ -46,6 +46,15 @@ export async function POST(req: Request) {
 
     // Extract raw text
     const rawText = await extractText(type, content, filename)
+    if (!rawText.trim()) {
+      console.error('[foundation-ingest-diag] ingest: extractText returned empty', {
+        type,
+        filename: filename ?? null,
+        contentLen: content.length,
+        exaKeySet: Boolean(process.env.EXA_API_KEY),
+        anthropicKeySet: Boolean(process.env.ANTHROPIC_API_KEY),
+      })
+    }
 
     // Interpret into Foundation fields
     const sourceName = type === 'url' ? content : (filename ?? `${type} upload`)
@@ -61,7 +70,15 @@ export async function POST(req: Request) {
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
         .upload(path, buf, { contentType: mimeTypeFor(type, filename), upsert: false })
-      if (!uploadError) storagePath = path
+      if (uploadError) {
+        console.error('[foundation-ingest-diag] ingest: storage upload failed', {
+          type,
+          path,
+          message: uploadError.message,
+        })
+      } else {
+        storagePath = path
+      }
     }
 
     const { data: knowledgeRow } = await supabase

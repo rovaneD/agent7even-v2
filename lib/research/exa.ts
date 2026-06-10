@@ -32,19 +32,40 @@ export type ExaGrounding = DeepSearchOutputGrounding
 // Read the user's own website. /contents options are TOP-LEVEL on getContents.
 export async function exaReadSite(url: string): Promise<ExaSiteRead | null> {
   const exa = getExa()
-  if (!exa) return null
+  if (!exa) {
+    console.error('[foundation-ingest-diag] exaReadSite: EXA_API_KEY missing or empty at runtime')
+    return null
+  }
   try {
     const res = await exa.getContents([url], {
       text: { maxCharacters: 4000, verbosity: 'compact' },
     })
     const first = res?.results?.[0]
-    if (!first) return null
+    if (!first) {
+      console.error('[foundation-ingest-diag] exaReadSite: no results', {
+        url,
+        resultCount: res?.results?.length ?? 0,
+      })
+      return null
+    }
+    if (!first.text?.trim()) {
+      console.error('[foundation-ingest-diag] exaReadSite: result has no text', {
+        url,
+        returnedUrl: first.url,
+        title: first.title ?? null,
+      })
+    }
     return {
       url: first.url,
       title: first.title ?? undefined,
       text: first.text ?? undefined,
     }
-  } catch {
+  } catch (err) {
+    console.error('[foundation-ingest-diag] exaReadSite: Exa getContents failed', {
+      url,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    })
     return null
   }
 }
