@@ -1147,15 +1147,16 @@ function PlatformAvatar({ id, size = 22 }: { id: string; size?: number }) {
     )
   }
   // fallback letter avatar
-  const label = meta?.label ?? id
+  const label = (meta?.label ?? id).trim()
   const color = meta?.color ?? '#6B7280'
+  const initial = label[0]?.toUpperCase() ?? '?'
   return (
     <div
       className="flex-shrink-0 flex items-center justify-center rounded-full font-bold text-white"
       style={{ width: size, height: size, backgroundColor: color, fontSize: size * 0.42 }}
-      title={label}
+      title={label || id || 'Unknown platform'}
     >
-      {label[0].toUpperCase()}
+      {initial}
     </div>
   )
 }
@@ -1457,31 +1458,47 @@ function StatCards({ isMock }: { isMock: boolean }) {
           <p className="text-[11px] font-medium text-text-soft uppercase tracking-wide mb-2">{c.label ?? 'Best post'}</p>
 
           {c.isBestPost ? (
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <PlatformAvatar id={s.bestPost.platform} size={20} />
-                </div>
-                <span className="text-[24px] font-[500] text-text leading-none">{s.bestPost.engagements}</span>
-              </div>
-              <p className="text-[11px] text-text-soft truncate">{s.bestPost.caption}</p>
-              {(() => {
-                const bestPost = s.bestPost as typeof s.bestPost & { url?: string }
-                if (!bestPost.url) {
-                  return null
-                }
+            (() => {
+              const bestPost = s.bestPost as typeof s.bestPost & { url?: string }
+              const hasBestPost = Boolean(
+                bestPost.platform?.trim()
+                || bestPost.caption?.trim()
+                || bestPost.engagements > 0
+                || bestPost.url,
+              )
+              if (!isMock && !hasBestPost) {
                 return (
-                  <a
-                    href={bestPost.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[11px] text-[#3B82F6] font-medium mt-1 inline-flex items-center gap-0.5 hover:underline"
-                  >
-                    View <ExternalLink size={10} />
-                  </a>
+                  <p className="text-[12px] text-text-soft leading-snug">
+                    No post details available yet
+                  </p>
                 )
-              })()}
-            </div>
+              }
+              return (
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    {bestPost.platform?.trim() ? (
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <PlatformAvatar id={bestPost.platform} size={20} />
+                      </div>
+                    ) : null}
+                    <span className="text-[24px] font-[500] text-text leading-none">{s.bestPost.engagements}</span>
+                  </div>
+                  {bestPost.caption?.trim() ? (
+                    <p className="text-[11px] text-text-soft truncate">{bestPost.caption}</p>
+                  ) : null}
+                  {bestPost.url ? (
+                    <a
+                      href={bestPost.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-[#3B82F6] font-medium mt-1 inline-flex items-center gap-0.5 hover:underline"
+                    >
+                      View <ExternalLink size={10} />
+                    </a>
+                  ) : null}
+                </div>
+              )
+            })()
           ) : (
             <div>
               <div className="flex items-center gap-1.5 mb-1">
