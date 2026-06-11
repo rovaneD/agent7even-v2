@@ -438,7 +438,13 @@ const INGEST_FAILURE_SUMMARIES = new Set([
 
 const DEFAULT_INGEST_ERROR = "Maya couldn't read this — try another file or paste the text directly."
 
-function UploadCard({ onKnowledgeAdded }: { onKnowledgeAdded: (item: KnowledgeItem) => void }) {
+function UploadCard({
+  onKnowledgeAdded,
+  onKnowledgeConfirmed,
+}: {
+  onKnowledgeAdded: (item: KnowledgeItem) => void
+  onKnowledgeConfirmed: (id: string, confirmedFields: Record<string, unknown>) => void
+}) {
   const [phase, setPhase] = useState<'idle' | 'url-input' | 'processing' | 'confirm' | 'error'>('idle')
   const [dragOver, setDragOver] = useState(false)
   const [urlValue, setUrlValue] = useState('')
@@ -536,17 +542,17 @@ function UploadCard({ onKnowledgeAdded }: { onKnowledgeAdded: (item: KnowledgeIt
   async function handleSave() {
     if (!result) return
     setSaving(true)
-    const confirmed: Record<number, boolean> = checked
-    const answers: Record<string, unknown> = {}
+    const confirmedFields: Record<string, unknown> = {}
     result.items.forEach((item, i) => {
-      if (confirmed[i]) answers[item.field] = item.value
+      if (checked[i]) confirmedFields[item.field] = item.value
     })
-    if (Object.keys(answers).length > 0) {
-      await fetch('/api/foundation/save-answers', {
-        method: 'POST',
+    if (Object.keys(confirmedFields).length > 0 && ingestId) {
+      const res = await fetch(`/api/foundation/knowledge/${encodeURIComponent(ingestId)}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers }),
-      }).catch(() => {})
+        body: JSON.stringify({ confirmed_fields: confirmedFields }),
+      }).catch(() => null)
+      if (res?.ok) onKnowledgeConfirmed(ingestId, confirmedFields)
     }
     setSaving(false)
     setPhase('idle')
@@ -807,7 +813,7 @@ function KnowledgeTab({
   return (
     <div className="max-w-[860px]">
       <div className="flex items-center justify-between mb-5">
-        <p className="text-sm text-text-sec">{items.length} item{items.length !== 1 ? 's' : ''} uploaded · Maya pulls from these when generating content</p>
+        <p className="text-sm text-text-sec">{items.length} item{items.length !== 1 ? 's' : ''} uploaded · saved to your knowledge library</p>
       </div>
       <div className="space-y-3">
         {items.map(item => {
@@ -835,7 +841,7 @@ function KnowledgeTab({
                     {total > 0 && (
                       <p className="text-[11px] text-text-soft mt-1">
                         {confirmed > 0 ? `${confirmed} of ${total}` : total} field{total !== 1 ? 's' : ''} extracted
-                        {confirmed > 0 && ' · applied to Foundation'}
+                        {confirmed > 0 && ' · saved to knowledge library'}
                       </p>
                     )}
                   </div>
@@ -1253,6 +1259,12 @@ export default function FoundationHub({
     setKnowledgeItems(prev => prev.filter(k => k.id !== id))
   }, [])
 
+  const handleKnowledgeConfirmed = useCallback((id: string, confirmedFields: Record<string, unknown>) => {
+    setKnowledgeItems(prev =>
+      prev.map(item => (item.id === id ? { ...item, confirmed_fields: confirmedFields } : item)),
+    )
+  }, [])
+
   const healthMap = useMemo(() => {
     const m = {} as Record<SectionKey, Health>
     for (const s of SECTIONS) m[s.key] = sectionHealth(localAnswers, fieldScores, s.key)
@@ -1500,7 +1512,10 @@ export default function FoundationHub({
             <div className="w-full flex-shrink-0 space-y-4 lg:w-[280px]">
               <StrengthCard score={currentScore} healthMap={healthMap} onRescore={handleRescore} rescoring={rescoring} />
               <div ref={uploadCardRef}>
-                <UploadCard onKnowledgeAdded={handleKnowledgeAdded} />
+                <UploadCard
+                  onKnowledgeAdded={handleKnowledgeAdded}
+                  onKnowledgeConfirmed={handleKnowledgeConfirmed}
+                />
               </div>
               <SuggestionsCard suggestions={suggestions} />
             </div>
