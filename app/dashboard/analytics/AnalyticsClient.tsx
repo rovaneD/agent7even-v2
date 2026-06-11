@@ -61,6 +61,11 @@ function emptyLivePostingAnalytics(): PostingAnalytics {
     eightyPctTime: '',
   }
 }
+
+function initialPostingData(dataState: AnalyticsDataState): PostingAnalytics {
+  return dataState === 'mock' ? MOCK_POSTING_ANALYTICS : emptyLivePostingAnalytics()
+}
+
 const PostingDataContext = createContext<PostingAnalytics>(MOCK_POSTING_ANALYTICS)
 const DateRangeContext   = createContext<string>('30d')
 
@@ -473,22 +478,19 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
     || _n(overview.totalPosts ?? overview.postsCount ?? overview.posts_count ?? overview.total_posts ?? overview.posts)
     || postsArr.length
 
-  if (!engRate && !reach && !followers && !posts) return null
-
-  const result: PostingAnalytics = hasCombined
-    ? emptyLivePostingAnalytics()
-    : { ...MOCK_POSTING_ANALYTICS }
+  // Live-only mapper — never seed from MOCK_POSTING_ANALYTICS; sparse/zero is honest truth.
+  const result = emptyLivePostingAnalytics()
 
   result.stats = {
     ...result.stats,
-    engagementRate: engRate || (hasCombined ? 0 : MOCK_POSTING_ANALYTICS.stats.engagementRate),
-    engRateDelta: hasCombined ? 'new' : MOCK_POSTING_ANALYTICS.stats.engRateDelta,
+    engagementRate: engRate,
+    engRateDelta: 'new',
     engRateDeltaPositive: true,
-    totalReach: reach || (hasCombined ? 0 : MOCK_POSTING_ANALYTICS.stats.totalReach),
-    reachDelta: hasCombined ? 'new' : MOCK_POSTING_ANALYTICS.stats.reachDelta,
+    totalReach: reach,
+    reachDelta: 'new',
     reachDeltaPositive: true,
-    totalFollowers: hasCombined ? totalFollowers : (followers || MOCK_POSTING_ANALYTICS.stats.totalFollowers),
-    postsThisPeriod: posts || (hasCombined ? 0 : MOCK_POSTING_ANALYTICS.stats.postsThisPeriod),
+    totalFollowers: totalFollowers || followers,
+    postsThisPeriod: posts,
   }
 
   // Platform breakdown — Zernio doesn't pre-aggregate; group from posts[]
@@ -894,31 +896,24 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
     result.eightyPctTime = eighty
   }
 
-  // Live mode should never fall back to mock deltas when Zernio exposes real data.
-  if (hasCombined) {
-    const followerDelta = followerDeltaFromStats
-      ?? (result.followerEvolution?.length
-        ? (() => {
-            const first = result.followerEvolution[0]?.followers ?? 0
-            const last  = result.followerEvolution[result.followerEvolution.length - 1]?.followers ?? 0
-            const diff  = last - first
-            return { value: Math.abs(diff), positive: diff >= 0 }
-          })()
-        : null)
+  // Follower delta from dedicated stats or evolution series.
+  const followerDelta = followerDeltaFromStats
+    ?? (result.followerEvolution?.length
+      ? (() => {
+          const first = result.followerEvolution[0]?.followers ?? 0
+          const last  = result.followerEvolution[result.followerEvolution.length - 1]?.followers ?? 0
+          const diff  = last - first
+          return { value: Math.abs(diff), positive: diff >= 0 }
+        })()
+      : null)
 
-    result.stats = {
-      ...result.stats,
-      totalFollowers: totalFollowers || result.stats.totalFollowers,
-      followersDelta: followerDelta
-        ? `${followerDelta.value} in last 30d`
-        : '0 in last 30d',
-      followersDeltaPositive: followerDelta ? followerDelta.positive : true,
-    }
-  }
-
-  // Log bestTimes for inspection (heatmap wiring is a follow-up)
-  if (hasCombined && r.bestTimes) {
-    console.log('[analytics] bestTimes data available:', JSON.stringify(r.bestTimes).slice(0, 300))
+  result.stats = {
+    ...result.stats,
+    totalFollowers: totalFollowers || result.stats.totalFollowers,
+    followersDelta: followerDelta
+      ? `${followerDelta.value} in last 30d`
+      : '0 in last 30d',
+    followersDeltaPositive: followerDelta ? followerDelta.positive : true,
   }
 
   return result
@@ -1827,9 +1822,13 @@ function FollowerEvolutionChart({ isMock }: { isMock: boolean }) {
       {!hasSeries ? (
         <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
           <Users className="w-8 h-8 text-gray-300 mb-3" strokeWidth={1.5} />
-          <p className="text-[13px] font-medium text-text">No Data Available</p>
-          <p className="text-[11px] text-text-soft mt-1 max-w-[220px]">
-            Follower history will appear here once data is collected.
+          <p className="text-[13px] font-medium text-text">
+            {isMock ? 'No Data Available' : 'Follower history is still collecting'}
+          </p>
+          <p className="text-[11px] text-text-soft mt-1 max-w-[240px]">
+            {isMock
+              ? 'Follower history will appear here once data is collected.'
+              : 'Daily follower counts will appear here once Zernio has enough history for this account.'}
           </p>
         </div>
       ) : (
@@ -1944,7 +1943,16 @@ function TopPerformingPostsTable({ isMock }: { isMock: boolean }) {
             </tr>
           </thead>
           <tbody>
-            {data.map((post, i) => (
+            {data.length === 0 && !isMock ? (
+              <tr>
+                <td colSpan={metaCols.length + 1} className="px-4 py-10 text-center">
+                  <p className="text-[13px] font-medium text-text">No post details available yet</p>
+                  <p className="text-[11px] text-text-soft mt-1 max-w-[320px] mx-auto">
+                    Post-level metrics will appear here once Zernio returns individual post records for this period.
+                  </p>
+                </td>
+              </tr>
+            ) : data.map((post, i) => (
               <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
@@ -2555,9 +2563,54 @@ function GoogleAnalyticsContent({
 
 // ── Posting Analytics Tab ──────────────────────────────────────────────────────
 
-function PostingAnalyticsContent({ isMock }: { isMock: boolean }) {
+function PostingAnalyticsContent({
+  isMock,
+  dataState,
+  fetchError,
+  loading,
+  onConnect,
+}: {
+  isMock: boolean
+  dataState: AnalyticsDataState
+  fetchError: string
+  loading: boolean
+  onConnect: () => void
+}) {
+  if (dataState === 'empty') {
+    return (
+      <div className="rounded-2xl border border-gray-100 bg-white px-6 py-14 text-center">
+        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
+          <Plus size={20} className="text-[#3B82F6]" />
+        </div>
+        <p className="text-[15px] font-semibold text-text mb-2">Connect a social account</p>
+        <p className="text-[13px] text-text-sec max-w-md mx-auto mb-5">
+          Posting analytics will populate from your connected accounts. Connect Instagram, Facebook, or other platforms to get started.
+        </p>
+        <button
+          type="button"
+          onClick={onConnect}
+          className="inline-flex items-center gap-1.5 bg-[#3B82F6] text-white text-[13px] font-semibold px-4 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors"
+        >
+          <Plus size={14} /> Connect accounts
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
+      {fetchError && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+          <p className="text-xs font-medium text-red-600">{fetchError}</p>
+        </div>
+      )}
+
+      {loading && !fetchError && (
+        <div className="rounded-xl border border-gray-100 bg-white px-4 py-3">
+          <p className="text-xs text-text-sec">Loading analytics…</p>
+        </div>
+      )}
+
       <StatCards isMock={isMock} />
 
       {/* Keep Maya's briefing only in mock/demo mode; live Zernio layout does not include it. */}
@@ -3026,7 +3079,9 @@ export default function AnalyticsClient({
   const [gaPending, setGaPending]           = useState(false)
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(zernioConnectedPlatforms)
   const [zernioToast, setZernioToast]       = useState('')
-  const [postingData, setPostingData]       = useState<PostingAnalytics>(MOCK_POSTING_ANALYTICS)
+  const [postingData, setPostingData]       = useState<PostingAnalytics>(() => initialPostingData(dataState))
+  const [postingFetchError, setPostingFetchError] = useState('')
+  const [postingLoading, setPostingLoading] = useState(false)
 
   const isMock = dataState === 'mock'
 
@@ -3121,22 +3176,30 @@ export default function AnalyticsClient({
   // Fetch Zernio social analytics (live state only)
   const fetchZernioData = useCallback(async () => {
     if (dataState !== 'live') return
+    setPostingLoading(true)
+    setPostingFetchError('')
     try {
       const q = new URLSearchParams({ dateRange })
       if (platformFilter !== 'all') q.set('platform', platformFilter)
       const res  = await fetch(`/api/analytics/zernio/social?${q}`)
       const json = await res.json()
-      if (json.error) {
-        console.error('[analytics] Zernio API error:', json.error, json.detail ?? '')
+      if (!res.ok || json.error) {
+        const detail = typeof json.detail === 'string' ? json.detail : ''
+        setPostingFetchError(
+          detail
+            ? `Couldn't load analytics — ${detail}`
+            : "Couldn't load analytics. Try again or reconnect your accounts.",
+        )
+        setPostingData(emptyLivePostingAnalytics())
         return
       }
-      console.log('[analytics] Zernio social response:', JSON.stringify(json).slice(0, 3000))
-      console.log('[analytics] followerStats:', JSON.stringify((json as Record<string,unknown>).followerStats))
-      console.log('[analytics] allAccounts:', JSON.stringify((json as Record<string,unknown>).allAccounts))
       const mapped = mapZernioResponse(json, dateRange, platformFilter)
-      if (mapped) setPostingData(mapped)
-    } catch (err) {
-      console.error('[analytics] Zernio fetch failed:', err)
+      setPostingData(mapped ?? emptyLivePostingAnalytics())
+    } catch {
+      setPostingFetchError("Couldn't load analytics. Check your connection and try again.")
+      setPostingData(emptyLivePostingAnalytics())
+    } finally {
+      setPostingLoading(false)
     }
   }, [dataState, dateRange, platformFilter])
 
@@ -3260,7 +3323,15 @@ export default function AnalyticsClient({
       {/* ── Tab content ──────────────────────────────────────────────────── */}
       <DateRangeContext.Provider value={dateRange}>
         <PostingDataContext.Provider value={postingData}>
-          {activeTab === 'posting' && <PostingAnalyticsContent isMock={isMock} />}
+          {activeTab === 'posting' && (
+            <PostingAnalyticsContent
+              isMock={isMock}
+              dataState={dataState}
+              fetchError={postingFetchError}
+              loading={postingLoading}
+              onConnect={() => setConnectPanelOpen(true)}
+            />
+          )}
           {activeTab === 'inbox'   && <InboxAnalyticsContent   isMock={isMock} />}
           {activeTab === 'ga'      && (
             <GoogleAnalyticsContent

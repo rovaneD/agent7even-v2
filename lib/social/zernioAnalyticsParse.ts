@@ -132,7 +132,7 @@ export function looksLikePostUrl(url: string, platform?: string): boolean {
   const pl = (platform ?? '').toLowerCase()
 
   if (pl === 'instagram' || u.includes('instagram.com')) {
-    return /instagram\.com\/(p|reel|tv)\//.test(u)
+    return /instagram\.com\/(p|reel|reels|tv)\//.test(u)
   }
   if (pl === 'facebook' || u.includes('facebook.com') || u.includes('fb.watch')) {
     return /facebook\.com\/.*\/(posts|photos|videos|reel)|facebook\.com\/share\/|photo\.php|story\.php|fb\.watch/.test(u)
@@ -144,7 +144,7 @@ export function looksLikePostUrl(url: string, platform?: string): boolean {
     return u.includes('/feed/update/') || u.includes('/posts/') || u.includes('urn:li:')
   }
 
-  return /\/(p|reel|tv|posts|video|share)\//.test(u)
+  return /\/(p|reel|reels|tv|posts|video|share)\//.test(u)
 }
 
 function isLikelyInstagramShortcode(code: string): boolean {
@@ -156,7 +156,7 @@ function isLikelyInstagramShortcode(code: string): boolean {
 }
 
 function shortcodeFromPostUrl(url: string): string {
-  const match = url.match(/instagram\.com\/(?:p|reel|tv)\/([^/?#]+)/i)
+  const match = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([^/?#]+)/i)
   return match?.[1] ?? ''
 }
 

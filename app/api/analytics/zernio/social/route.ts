@@ -62,46 +62,75 @@ export async function GET(req: NextRequest) {
   const apiKeyAccounts = await publisher.listAllAccounts()
   const profileIdSet = new Set(zernioProfileIds)
 
-  // Fan out API requests to all of a user's Zernio profiles
-  const results = await Promise.all(
+  // Fan out per Zernio profile × connected account — every analytics call is accountId-pinned.
+  // Never pass platform= on secondary endpoints; scope via account selection instead.
+  type AccountFetchBundle = {
+    pId: string
+    accountId: string
+    accounts: Array<{ id: string; platform: string; username: string }>
+    rawPostData: unknown
+    dailyData: unknown
+    followerStats: unknown
+    bestTimesData: unknown
+    postingFrequencyData: unknown
+    contentDecayData: unknown
+  }
+
+  const profileBundles = await Promise.all(
     zernioProfileIds.map(async (pId) => {
       try {
         const accounts = await publisher.getProfileAccounts(pId)
         const scopedAccounts = platform
           ? accounts.filter(a => a.platform.toLowerCase() === platform.toLowerCase())
           : accounts
-        const primaryAccountId = scopedAccounts[0]?.id ?? accounts[0]?.id
-        const scopedAccountIds = scopedAccounts.length
-          ? scopedAccounts.map(a => a.id)
-          : accounts.map(a => a.id)
+        const accountsToQuery = scopedAccounts.length > 0 ? scopedAccounts : accounts
 
-        const rangeParams = { profileId: pId, platform, fromDate, toDate, accountId: primaryAccountId }
-        const secondaryParams = { profileId: pId, source: 'all' as const, accountId: primaryAccountId }
+        if (accountsToQuery.length === 0) {
+          return [] as AccountFetchBundle[]
+        }
 
-        const [rawPostData, dailyData, followerStats, bestTimesData, postingFrequencyData, contentDecayData] = await Promise.all([
-          publisher.getSocialAnalytics(rangeParams),
-          publisher.getDailyAnalytics(rangeParams),
-          publisher.getFollowerStats({
-            profileId: pId,
-            accountIds: scopedAccountIds.length ? scopedAccountIds : undefined,
-            fromDate,
-            toDate,
-            granularity: 'daily',
+        return Promise.all(
+          accountsToQuery.map(async (acct) => {
+            const rangeParams = { profileId: pId, fromDate, toDate, accountId: acct.id }
+            const secondaryParams = { profileId: pId, source: 'all' as const, accountId: acct.id }
+
+            const [rawPostData, dailyData, followerStats, bestTimesData, postingFrequencyData, contentDecayData] =
+              await Promise.all([
+                publisher.getSocialAnalytics(rangeParams),
+                publisher.getDailyAnalytics(rangeParams),
+                publisher.getFollowerStats({
+                  profileId: pId,
+                  accountIds: [acct.id],
+                  fromDate,
+                  toDate,
+                  granularity: 'daily',
+                }),
+                publisher.getBestTimeToPost(secondaryParams),
+                publisher.getPostingFrequency(secondaryParams),
+                publisher.getContentDecay(secondaryParams),
+              ])
+
+            return {
+              pId,
+              accountId: acct.id,
+              accounts,
+              rawPostData,
+              dailyData,
+              followerStats,
+              bestTimesData,
+              postingFrequencyData,
+              contentDecayData,
+            }
           }),
-          // Never pass platform= — Zernio clears these; scope via accountId instead
-          publisher.getBestTimeToPost(secondaryParams),
-          publisher.getPostingFrequency(secondaryParams),
-          publisher.getContentDecay(secondaryParams),
-        ])
-        return { pId, rawPostData, accounts, dailyData, followerStats, bestTimesData, postingFrequencyData, contentDecayData }
+        )
       } catch (err) {
         console.error(`[zernio/social] Failed fetching for profile ${pId}:`, err)
-        return null
+        return [] as AccountFetchBundle[]
       }
-    })
+    }),
   )
 
-  const activeResults = results.filter((r): r is NonNullable<typeof r> => r !== null)
+  const activeResults = profileBundles.flat()
 
   if (activeResults.length === 0) {
     return NextResponse.json({ error: 'zernio_api_error', detail: 'All profile requests failed.' }, { status: 502 })
