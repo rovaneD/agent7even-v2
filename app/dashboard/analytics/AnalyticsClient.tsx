@@ -10,7 +10,8 @@ import {
 import {
   Globe, X, CheckCircle, ChevronDown, ChevronUp, Sparkles,
   Plus, ArrowUpRight, ArrowDownRight, Eye, Users, FileText,
-  ExternalLink, Info,
+  ExternalLink, Info, Heart, MessageCircle, Share2, Bookmark,
+  MousePointerClick, TrendingUp,
 } from 'lucide-react'
 import type { AnalyticsDataState } from './page'
 import {
@@ -201,15 +202,76 @@ function hourToHeatmapIndex(hour: number): number {
   return best
 }
 
+function dateRangeWindow(dateRange: string): { fromDate: Date; toDate: Date; days: number } {
+  const days =
+    dateRange === '7d'  ? 7 :
+    dateRange === '30d' ? 30 :
+    dateRange === '90d' ? 90 :
+    dateRange === '6m'  ? 180 :
+    dateRange === '1y'  ? 365 :
+    30
+
+  const end = new Date()
+  const toDate = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()))
+  const fromDate = new Date(toDate)
+  fromDate.setUTCDate(fromDate.getUTCDate() - (days - 1))
+  return { fromDate, toDate, days }
+}
+
+type DailyMetricRow = {
+  date: Date
+  dateStr: string
+  posts: number
+  likes: number
+  comments: number
+  shares: number
+  saves: number
+  views: number
+  impressions: number
+  reach: number
+  clicks: number
+}
+
+function aggregateDailyRows(rows: DailyMetricRow[], label: string) {
+  const sumPosts = rows.reduce((s, d) => s + d.posts, 0)
+  const sumLikes = rows.reduce((s, d) => s + d.likes, 0)
+  const sumComments = rows.reduce((s, d) => s + d.comments, 0)
+  const sumShares = rows.reduce((s, d) => s + d.shares, 0)
+  const sumSaves = rows.reduce((s, d) => s + d.saves, 0)
+  const sumViews = rows.reduce((s, d) => s + d.views, 0)
+  const sumImpressions = rows.reduce((s, d) => s + d.impressions, 0)
+  const sumReach = rows.reduce((s, d) => s + d.reach, 0)
+  const sumClicks = rows.reduce((s, d) => s + d.clicks, 0)
+  const er = sumReach > 0
+    ? Number((((sumLikes + sumComments + sumShares + sumSaves + sumClicks) / sumReach) * 100).toFixed(2))
+    : 0
+  return {
+    month: label,
+    posts: sumPosts,
+    likes: sumLikes,
+    comments: sumComments,
+    shares: sumShares,
+    saves: sumSaves,
+    views: sumViews,
+    impressions: sumImpressions,
+    reach: sumReach,
+    clicks: sumClicks,
+    engRate: er,
+  }
+}
+
 function bucketDailyStats(dailyStats: unknown[], postsByDate: Map<string, number>, dateRange: string) {
-  const parsedDays = _a<Record<string, unknown>>(dailyStats).map(stat => {
+  const byDate = new Map<string, DailyMetricRow>()
+  for (const stat of _a<Record<string, unknown>>(dailyStats)) {
     const dateStr = _s(stat.date ?? '')
+    if (!dateStr) continue
+    const date = new Date(`${dateStr}T00:00:00.000Z`)
+    if (isNaN(date.getTime())) continue
     const metrics = readDailyMetrics(stat)
-    const postsOnDay = postsByDate.get(dateStr) ?? 0
-    return {
-      date: new Date(dateStr),
+    byDate.set(dateStr, {
+      date,
       dateStr,
-      posts: postsOnDay,
+      posts: postsByDate.get(dateStr) ?? _n(stat.posts ?? stat.postCount ?? stat.post_count ?? metrics.posts ?? 0),
       likes: _n(metrics.likes ?? stat.likes ?? 0),
       comments: _n(metrics.comments ?? stat.comments ?? 0),
       shares: _n(metrics.shares ?? stat.shares ?? 0),
@@ -218,104 +280,58 @@ function bucketDailyStats(dailyStats: unknown[], postsByDate: Map<string, number
       impressions: _n(metrics.impressions ?? stat.impressions ?? 0),
       reach: _n(metrics.reach ?? stat.reach ?? 0),
       clicks: _n(metrics.clicks ?? stat.clicks ?? 0),
-    }
-  }).filter(d => !isNaN(d.date.getTime()))
+    })
+  }
 
-  parsedDays.sort((a, b) => a.date.getTime() - b.date.getTime())
-
-  if (parsedDays.length === 0) return []
+  const { fromDate, toDate } = dateRangeWindow(dateRange)
+  const allDays: DailyMetricRow[] = []
+  const cursor = new Date(fromDate)
+  while (cursor.getTime() <= toDate.getTime()) {
+    const dateStr = cursor.toISOString().slice(0, 10)
+    allDays.push(
+      byDate.get(dateStr) ?? {
+        date: new Date(cursor),
+        dateStr,
+        posts: postsByDate.get(dateStr) ?? 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        saves: 0,
+        views: 0,
+        impressions: 0,
+        reach: 0,
+        clicks: 0,
+      },
+    )
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
 
   if (dateRange === '7d') {
-    return parsedDays.map(d => ({
-      month: d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      posts: d.posts,
-      likes: d.likes,
-      comments: d.comments,
-      shares: d.shares,
-      saves: d.saves,
-      views: d.views,
-      impressions: d.impressions,
-      reach: d.reach,
-      clicks: d.clicks,
-      engRate: d.reach > 0 ? Number((((d.likes + d.comments + d.shares + d.saves + d.clicks) / d.reach) * 100).toFixed(1)) : 0,
-    }))
+    return allDays.map(d => aggregateDailyRows(
+      [d],
+      d.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    ))
   }
 
   if (dateRange === '6m' || dateRange === '1y') {
-    const monthlyGroups = new Map<string, typeof parsedDays>()
-    for (const d of parsedDays) {
+    const monthlyGroups = new Map<string, DailyMetricRow[]>()
+    for (const d of allDays) {
       const key = d.date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
       if (!monthlyGroups.has(key)) monthlyGroups.set(key, [])
       monthlyGroups.get(key)!.push(d)
     }
-    return Array.from(monthlyGroups.entries()).map(([month, days]) => {
-      const sumPosts = days.reduce((s, d) => s + d.posts, 0)
-      const sumLikes = days.reduce((s, d) => s + d.likes, 0)
-      const sumComments = days.reduce((s, d) => s + d.comments, 0)
-      const sumShares = days.reduce((s, d) => s + d.shares, 0)
-      const sumSaves = days.reduce((s, d) => s + d.saves, 0)
-      const sumViews = days.reduce((s, d) => s + d.views, 0)
-      const sumImpressions = days.reduce((s, d) => s + d.impressions, 0)
-      const sumReach = days.reduce((s, d) => s + d.reach, 0)
-      const sumClicks = days.reduce((s, d) => s + d.clicks, 0)
-      const er = sumReach > 0
-        ? Number((((sumLikes + sumComments + sumShares + sumSaves + sumClicks) / sumReach) * 100).toFixed(1))
-        : 0
-      return {
-        month,
-        posts: sumPosts,
-        likes: sumLikes,
-        comments: sumComments,
-        shares: sumShares,
-        saves: sumSaves,
-        views: sumViews,
-        impressions: sumImpressions,
-        reach: sumReach,
-        clicks: sumClicks,
-        engRate: er,
-      }
-    })
+    return Array.from(monthlyGroups.entries()).map(([month, days]) => aggregateDailyRows(days, month))
   }
 
-  const weeklyBuckets: typeof parsedDays[] = []
-  let currentBucket: typeof parsedDays = []
-  for (let i = 0; i < parsedDays.length; i++) {
-    currentBucket.push(parsedDays[i])
-    if (currentBucket.length === 7 || i === parsedDays.length - 1) {
-      weeklyBuckets.push(currentBucket)
-      currentBucket = []
-    }
+  // 30d / 90d — fixed weekly buckets from window start (Zernio-style week labels)
+  const weeklyBuckets: DailyMetricRow[][] = []
+  for (let i = 0; i < allDays.length; i += 7) {
+    weeklyBuckets.push(allDays.slice(i, i + 7))
   }
 
   return weeklyBuckets.map((bucket) => {
-    const firstDay = bucket[0].date
-    const lastDay = bucket[bucket.length - 1].date
-    const label = `${firstDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}–${lastDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-    const sumPosts = bucket.reduce((s, d) => s + d.posts, 0)
-    const sumLikes = bucket.reduce((s, d) => s + d.likes, 0)
-    const sumComments = bucket.reduce((s, d) => s + d.comments, 0)
-    const sumShares = bucket.reduce((s, d) => s + d.shares, 0)
-    const sumSaves = bucket.reduce((s, d) => s + d.saves, 0)
-    const sumViews = bucket.reduce((s, d) => s + d.views, 0)
-    const sumImpressions = bucket.reduce((s, d) => s + d.impressions, 0)
-    const sumReach = bucket.reduce((s, d) => s + d.reach, 0)
-    const sumClicks = bucket.reduce((s, d) => s + d.clicks, 0)
-    const er = sumReach > 0
-      ? Number((((sumLikes + sumComments + sumShares + sumSaves + sumClicks) / sumReach) * 100).toFixed(1))
-      : 0
-    return {
-      month: label,
-      posts: sumPosts,
-      likes: sumLikes,
-      comments: sumComments,
-      shares: sumShares,
-      saves: sumSaves,
-      views: sumViews,
-      impressions: sumImpressions,
-      reach: sumReach,
-      clicks: sumClicks,
-      engRate: er,
-    }
+    const label = bucket[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return aggregateDailyRows(bucket, label)
   })
 }
 
@@ -629,20 +645,18 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
   }
 
   // ── Time series ────────────────────────────────────────────────────────────────
-  // Prefer daily.stats[] (from /analytics/daily) — it has proper date fields.
-  // Fall back to bucketing posts[] ourselves if daily is unavailable.
-  if (dailyStats.length) {
-    // Count posts per bucket from postsArr so we have post counts in daily view
-    const postsByDate = new Map<string, number>()
-    for (const p of postsArr) {
-      const raw = _s(p.publishedAt ?? p.published_at ?? p.date ?? '')
-      if (!raw) continue
-      const d = new Date(raw)
-      if (isNaN(d.getTime())) continue
-      const key = d.toISOString().slice(0, 10)
-      postsByDate.set(key, (postsByDate.get(key) ?? 0) + 1)
-    }
+  // Prefer daily.stats[] (from /analytics/daily) — fill the full date window, zero-padding sparse gaps.
+  const postsByDate = new Map<string, number>()
+  for (const p of postsArr) {
+    const raw = _s(p.publishedAt ?? p.published_at ?? p.date ?? '')
+    if (!raw) continue
+    const d = new Date(raw)
+    if (isNaN(d.getTime())) continue
+    const key = d.toISOString().slice(0, 10)
+    postsByDate.set(key, (postsByDate.get(key) ?? 0) + 1)
+  }
 
+  if (dailyStats.length || hasCombined) {
     result.monthly = bucketDailyStats(dailyStats, postsByDate, dateRange)
 
     // follower evolution — use daily stats if they carry followersCount per day
@@ -992,18 +1006,90 @@ const ALL_PLATFORMS = [
 // ── Engagement metrics config ──────────────────────────────────────────────────
 
 const ENG_METRICS = [
-  { key: 'likes',       label: 'Likes',       color: '#3B82F6', icon: '♥'   },
-  { key: 'comments',    label: 'Comments',    color: '#10B981', icon: '💬'  },
-  { key: 'shares',      label: 'Shares',      color: '#8B5CF6', icon: '↗'   },
-  { key: 'saves',       label: 'Saves',       color: '#F59E0B', icon: '🔖'  },
-  { key: 'views',       label: 'Views',       color: '#06B6D4', icon: '👁'  },
-  { key: 'impressions', label: 'Impressions', color: '#64748B', icon: '↗'   },
-  { key: 'reach',       label: 'Reach',       color: '#14B8A6', icon: '👥'  },
-  { key: 'clicks',      label: 'Clicks',      color: '#F97316', icon: '🖱'  },
+  { key: 'likes',       label: 'Likes',       color: '#EF4444', icon: Heart },
+  { key: 'comments',    label: 'Comments',    color: '#3B82F6', icon: MessageCircle },
+  { key: 'shares',      label: 'Shares',      color: '#8B5CF6', icon: Share2 },
+  { key: 'saves',       label: 'Saves',       color: '#F59E0B', icon: Bookmark },
+  { key: 'views',       label: 'Views',       color: '#6366F1', icon: Eye },
+  { key: 'impressions', label: 'Impress.',    color: '#06B6D4', icon: TrendingUp },
+  { key: 'reach',       label: 'Reach',       color: '#14B8A6', icon: Users },
+  { key: 'clicks',      label: 'Clicks',      color: '#F97316', icon: MousePointerClick },
 ] as const
 
 type MetricKey = typeof ENG_METRICS[number]['key']
-const DEFAULT_ACTIVE_METRICS: Set<MetricKey> = new Set(['likes', 'comments', 'views', 'impressions', 'reach'])
+const HIGH_SCALE_METRICS = new Set<MetricKey>(['views', 'impressions', 'reach'])
+const DEFAULT_ACTIVE_METRICS: Set<MetricKey> = new Set(['likes', 'comments', 'views', 'impressions'])
+
+function EngagementMetricTile({
+  label,
+  value,
+  color,
+  icon: Icon,
+  active,
+  toggleable = true,
+  onToggle,
+}: {
+  label: string
+  value: string
+  color: string
+  icon: typeof Heart
+  active?: boolean
+  toggleable?: boolean
+  onToggle?: () => void
+}) {
+  const content = (
+    <>
+      <div className="flex items-center gap-1.5 min-w-0">
+        {toggleable ? (
+          <div
+            className="w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all"
+            style={{
+              borderColor: active ? color : '#D1D5DB',
+              background: active ? color : 'transparent',
+            }}
+          >
+            {active && <span className="text-white text-[8px] leading-none font-bold">✓</span>}
+          </div>
+        ) : (
+          <div className="w-4 h-4 flex-shrink-0" aria-hidden />
+        )}
+        <Icon
+          size={13}
+          className="flex-shrink-0"
+          style={{ color: toggleable ? (active ? color : '#9BA1AE') : '#6B7280' }}
+        />
+        <span
+          className={`text-[11px] leading-tight truncate ${
+            toggleable ? (active ? 'text-text font-medium' : 'text-text-soft') : 'text-text-soft font-medium'
+          }`}
+        >
+          {label}
+        </span>
+      </div>
+      <p
+        className={`text-[15px] font-semibold leading-none tabular-nums pl-[22px] ${
+          toggleable ? (active ? 'text-text' : 'text-text-soft') : 'text-text'
+        }`}
+      >
+        {value}
+      </p>
+    </>
+  )
+
+  if (!toggleable) {
+    return <div className="min-w-0">{content}</div>
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="min-w-0 text-left rounded-lg px-1 py-1.5 hover:bg-gray-50/80 transition-colors"
+    >
+      {content}
+    </button>
+  )
+}
 
 // ── Heatmap color helper ───────────────────────────────────────────────────────
 
@@ -1675,6 +1761,14 @@ function EngagementOverTimeChart({ isMock }: { isMock: boolean }) {
     return acc
   }, {} as Record<string, number>)
 
+  const totalEngagements = totals.likes + totals.comments + totals.shares + totals.saves + totals.clicks
+  const engRateTotal = totals.reach > 0
+    ? ((totalEngagements / totals.reach) * 100).toFixed(2)
+    : '0.00'
+
+  const hasLeftAxis = ENG_METRICS.some(m => activeMetrics.has(m.key) && !HIGH_SCALE_METRICS.has(m.key))
+  const hasRightAxis = ENG_METRICS.some(m => activeMetrics.has(m.key) && HIGH_SCALE_METRICS.has(m.key))
+
   return (
     <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden col-span-full">
       <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
@@ -1682,60 +1776,81 @@ function EngagementOverTimeChart({ isMock }: { isMock: boolean }) {
         {isMock && <DemoChip />}
         <span className="text-[11px] text-text-soft ml-1">{subtitle}</span>
       </div>
-      <div className="flex flex-col md:flex-row">
-        {/* Chart */}
-        <div className="flex-1 min-w-0 px-4 pt-4 pb-3">
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={data}>
+      <div className="flex flex-col xl:flex-row">
+        {/* Chart — ~65% width on desktop, matching Zernio split */}
+        <div className="flex-1 min-w-0 px-4 pt-4 pb-4 xl:pr-2">
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-              <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} interval={1} />
-              <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={36} />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 10, fill: '#9BA1AE' }}
+                tickLine={false}
+                axisLine={false}
+                interval="preserveStartEnd"
+              />
+              {hasLeftAxis && (
+                <YAxis
+                  yAxisId="left"
+                  tick={{ fontSize: 10, fill: '#9BA1AE' }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={36}
+                  allowDecimals={false}
+                />
+              )}
+              {hasRightAxis && (
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 10, fill: '#9BA1AE' }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={40}
+                  allowDecimals={false}
+                />
+              )}
+              {!hasLeftAxis && hasRightAxis && (
+                <YAxis yAxisId="left" hide />
+              )}
               <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
               {ENG_METRICS.filter(m => activeMetrics.has(m.key)).map(m => (
                 <Line
                   key={m.key}
                   type="monotone"
                   dataKey={m.key}
+                  yAxisId={HIGH_SCALE_METRICS.has(m.key) ? 'right' : 'left'}
                   stroke={m.color}
                   strokeWidth={2}
                   dot={false}
+                  connectNulls
                   name={m.label}
                 />
               ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
-        {/* Legend panel */}
-        <div className="w-full flex-shrink-0 border-t border-gray-50 py-4 px-4 overflow-y-auto md:w-52 md:border-t-0 md:border-l">
-          <div className="space-y-3">
-            {ENG_METRICS.map(m => {
-              const active = activeMetrics.has(m.key)
-              return (
-                <button
-                  key={m.key}
-                  onClick={() => toggle(m.key)}
-                  className="w-full flex items-center justify-between gap-2 group"
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3.5 h-3.5 rounded-sm border-2 flex items-center justify-center flex-shrink-0 transition-all"
-                      style={{
-                        borderColor: active ? m.color : '#D1D5DB',
-                        background: active ? m.color : 'transparent',
-                      }}
-                    >
-                      {active && <span className="text-white text-[8px] leading-none">✓</span>}
-                    </div>
-                    <span className={`text-[11px] ${active ? 'text-text font-medium' : 'text-text-soft'}`}>
-                      {m.icon} {m.label}
-                    </span>
-                  </div>
-                  <span className={`text-[12px] font-semibold ${active ? 'text-text' : 'text-text-soft'}`}>
-                    {fmt(totals[m.key])}
-                  </span>
-                </button>
-              )
-            })}
+        {/* Extended metrics — Zernio 3×3 grid */}
+        <div className="w-full flex-shrink-0 border-t border-gray-100 py-5 px-5 xl:w-[min(100%,420px)] xl:border-t-0 xl:border-l xl:py-4">
+          <div className="grid grid-cols-3 gap-x-4 gap-y-5">
+            {ENG_METRICS.map(m => (
+              <EngagementMetricTile
+                key={m.key}
+                label={m.label}
+                value={fmt(totals[m.key])}
+                color={m.color}
+                icon={m.icon}
+                active={activeMetrics.has(m.key)}
+                onToggle={() => toggle(m.key)}
+              />
+            ))}
+            <EngagementMetricTile
+              label="Eng. Rate"
+              value={`${engRateTotal}%`}
+              color="#6B7280"
+              icon={TrendingUp}
+              toggleable={false}
+            />
           </div>
         </div>
       </div>
