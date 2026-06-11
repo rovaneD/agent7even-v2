@@ -282,6 +282,24 @@ function formatRelative(iso: string | null): string {
   return `Updated ${days} days ago`
 }
 
+/** Raw relative time for snapshot subline — no "Updated" prefix. */
+function formatSnapshotRelative(iso: string): string {
+  const then = new Date(iso)
+  const ms = Date.now() - then.getTime()
+  if (ms < 60000) return 'just now'
+  const minutes = Math.floor(ms / 60000)
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`
+  const hours = Math.floor(ms / 3600000)
+  if (hours < 24 && then.toDateString() === new Date().toDateString()) {
+    return `${hours} hour${hours !== 1 ? 's' : ''} ago`
+  }
+  const days = Math.floor(ms / 86400000)
+  if (days === 0) return 'today'
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days} days ago`
+  return then.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 function deriveSuggestions(answers: Answers, healthMap: Record<SectionKey, Health>): string[] {
   const s: string[] = []
   if (healthMap.position !== 'strong') {
@@ -437,14 +455,19 @@ function StrengthCard({
       </button>
 
       {answersPreviousAt && !showRestoreConfirm && (
-        <button
-          onClick={() => setShowRestoreConfirm(true)}
-          disabled={rescoring || restoring}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-text-sec hover:border-gray-400 hover:text-text transition-colors disabled:opacity-40 mt-2"
-        >
-          {restoring ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
-          Restore version from {formatRelative(answersPreviousAt)}
-        </button>
+        <div className="mt-2">
+          <button
+            onClick={() => setShowRestoreConfirm(true)}
+            disabled={rescoring || restoring}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-text-sec hover:border-gray-400 hover:text-text transition-colors disabled:opacity-40"
+          >
+            {restoring ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+            Restore previous version
+          </button>
+          <p className="text-[11px] text-text-soft text-center mt-1">
+            from {formatSnapshotRelative(answersPreviousAt)}
+          </p>
+        </div>
       )}
 
       {showRestoreConfirm && (
