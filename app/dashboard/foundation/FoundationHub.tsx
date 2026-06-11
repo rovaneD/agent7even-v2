@@ -24,7 +24,7 @@ type KnowledgeItem = {
 }
 import {
   Building2, Users, Target, Mic, Calendar, History,
-  Upload, Sparkles, RefreshCw, Plus, Pencil,
+  Upload, Sparkles, RefreshCw, Plus, Pencil, RotateCcw,
   Eye, Rocket, BarChart2, TrendingUp, Mail, Megaphone, Search, ShieldCheck,
   Loader2, CloudUpload, Link2, FileText, Brain, Info,
   CheckSquare, Square, X, AlertCircle, Trash2, ChevronDown,
@@ -85,6 +85,7 @@ export interface Props {
   score: number
   fieldScores: Record<string, FieldScore>
   lastUpdated: string | null
+  answersPreviousAt: string | null
 }
 
 // ── Registry-derived agent connectivity ───────────────────────────────────────
@@ -361,14 +362,41 @@ function InfoTooltip({ text }: { text: string }) {
   )
 }
 
+function coerceHubAnswers(raw: Record<string, unknown>): Answers {
+  const toArray = (v: unknown): string[] => {
+    if (Array.isArray(v)) return v as string[]
+    if (typeof v === 'string' && v.trim()) return v.split(',').map(s => s.trim()).filter(Boolean)
+    return []
+  }
+  const emptyAnswers = {
+    businessDescription: '', problemSolved: '', transformation: '',
+    customerWho: '', customerFrustration: '', customerTriedBefore: '',
+    customerBuyingTrigger: '', competitors: ['', '', ''] as string[],
+    differentiator: '', differentiatorOwn: '', toneTraits: [] as string[],
+    brandsAdmired: '', neverSoundLike: '', marketingBudget: '',
+    channels: [] as string[], monthlyGoal: '',
+  }
+  const merged = { ...emptyAnswers, ...raw } as Answers
+  merged.toneTraits = toArray(merged.toneTraits)
+  merged.channels = toArray(merged.channels)
+  const comps = toArray(merged.competitors)
+  merged.competitors = [...comps, '', '', ''].slice(0, 3)
+  return merged
+}
+
 function StrengthCard({
   score, healthMap, onRescore, rescoring,
+  answersPreviousAt, onRestore, restoring,
 }: {
   score: number
   healthMap: Record<SectionKey, Health>
   onRescore: () => void
   rescoring: boolean
+  answersPreviousAt: string | null
+  onRestore: () => void
+  restoring: boolean
 }) {
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
   const color = barColor(score)
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5">
@@ -401,12 +429,49 @@ function StrengthCard({
 
       <button
         onClick={onRescore}
-        disabled={rescoring}
+        disabled={rescoring || restoring}
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-text-sec hover:border-gray-400 hover:text-text transition-colors disabled:opacity-40"
       >
         {rescoring ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
         Rescore my foundation
       </button>
+
+      {answersPreviousAt && !showRestoreConfirm && (
+        <button
+          onClick={() => setShowRestoreConfirm(true)}
+          disabled={rescoring || restoring}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-text-sec hover:border-gray-400 hover:text-text transition-colors disabled:opacity-40 mt-2"
+        >
+          {restoring ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+          Restore version from {formatRelative(answersPreviousAt)}
+        </button>
+      )}
+
+      {showRestoreConfirm && (
+        <div className="mt-3 rounded-xl border border-[#FEF3C7] bg-[#FFFBEB] p-3">
+          <p className="text-[12px] text-[#92400E] leading-relaxed mb-3">
+            This will replace your current Foundation answers with the previous version.
+            You can restore again to swap back.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowRestoreConfirm(false); onRestore() }}
+              disabled={restoring}
+              className="flex-1 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-40"
+              style={{ backgroundColor: '#3B82F6' }}
+            >
+              {restoring ? 'Restoring…' : 'Restore'}
+            </button>
+            <button
+              onClick={() => setShowRestoreConfirm(false)}
+              disabled={restoring}
+              className="px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 text-text-sec hover:border-gray-400 transition-colors disabled:opacity-40"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1163,11 +1228,14 @@ function SectionEditCard({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function FoundationHub({
-  companyName, answers, score: initialScore, fieldScores, lastUpdated,
+  companyName, answers, score: initialScore, fieldScores, lastUpdated, answersPreviousAt: initialAnswersPreviousAt,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('intelligence')
   const [currentScore, setCurrentScore] = useState(initialScore)
   const [rescoring, setRescoring] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+  const [restoreNotice, setRestoreNotice] = useState<string | null>(null)
+  const [answersPreviousAt, setAnswersPreviousAt] = useState<string | null>(initialAnswersPreviousAt)
   const [lastScored, setLastScored] = useState<string | null>(lastUpdated)
   const [localAnswers, setLocalAnswers] = useState<Answers>(answers)
   const [editingSection, setEditingSection] = useState<SectionKey | null>(null)
@@ -1231,6 +1299,7 @@ export default function FoundationHub({
       })
       setLocalAnswers(merged)
       setEditingSection(null)
+      setAnswersPreviousAt(new Date().toISOString())
 
       // Partial regen
       if (section.affectedDocs.length > 0) {
@@ -1313,6 +1382,7 @@ export default function FoundationHub({
 
   async function handleRescore() {
     setRescoring(true)
+    setRestoreNotice(null)
     try {
       const res = await fetch('/api/foundation/score', {
         method: 'POST',
@@ -1326,6 +1396,25 @@ export default function FoundationHub({
       }
     } finally {
       setRescoring(false)
+    }
+  }
+
+  async function handleRestorePrevious() {
+    setRestoring(true)
+    try {
+      const res = await fetch('/api/foundation/restore-previous', { method: 'POST' })
+      const data = await res.json() as {
+        hasPrevious?: boolean
+        answers?: Record<string, unknown>
+        previousAt?: string | null
+      }
+      if (!data.hasPrevious || !data.answers) return
+      setLocalAnswers(coerceHubAnswers(data.answers))
+      setAnswersPreviousAt(data.previousAt ?? null)
+      setEditingSection(null)
+      setRestoreNotice('Foundation answers restored. Rescore to regenerate your Foundation documents.')
+    } finally {
+      setRestoring(false)
     }
   }
 
@@ -1510,7 +1599,27 @@ export default function FoundationHub({
 
             {/* Right — sidebar */}
             <div className="w-full flex-shrink-0 space-y-4 lg:w-[280px]">
-              <StrengthCard score={currentScore} healthMap={healthMap} onRescore={handleRescore} rescoring={rescoring} />
+              <StrengthCard
+                score={currentScore}
+                healthMap={healthMap}
+                onRescore={handleRescore}
+                rescoring={rescoring}
+                answersPreviousAt={answersPreviousAt}
+                onRestore={handleRestorePrevious}
+                restoring={restoring}
+              />
+              {restoreNotice && (
+                <div className="rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] px-3 py-2.5">
+                  <p className="text-[12px] text-[#1E40AF] leading-relaxed">{restoreNotice}</p>
+                  <button
+                    onClick={handleRescore}
+                    disabled={rescoring}
+                    className="mt-2 text-[12px] font-semibold text-[#3B82F6] hover:underline disabled:opacity-40"
+                  >
+                    Rescore now
+                  </button>
+                </div>
+              )}
               <div ref={uploadCardRef}>
                 <UploadCard
                   onKnowledgeAdded={handleKnowledgeAdded}

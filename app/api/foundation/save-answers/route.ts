@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { buildIdentityUpdateWithSnapshot, legacyColumnsFromAnswers } from '@/lib/foundation/answersSnapshot'
 
 // Hub editing route — merges updated answers into foundation_answers without
 // touching foundation_step (unlike save-step which is for the onboarding wizard).
@@ -25,20 +26,12 @@ export async function POST(req: Request) {
 
     await supabase
       .from('profiles')
-      .update({
+      .update(buildIdentityUpdateWithSnapshot(profile.foundation_answers, {
         foundation_answers: merged,
-        // Mirror individual columns for backward compat
-        ideal_customer:     (answers.customerWho as string) || null,
-        marketing_challenge:(answers.customerFrustration as string) || null,
-        competitors:        (answers.competitors as string[])?.filter(Boolean) ?? undefined,
-        content_comfort:    Array.isArray(answers.toneTraits)
-                              ? (answers.toneTraits as string[]).join(', ')
-                              : undefined,
-        marketing_budget:   (answers.marketingBudget as string) || null,
-        sell_locations:     (answers.channels as string[]) ?? undefined,
-        top_goals:          answers.monthlyGoal ? [(answers.monthlyGoal as string)] : undefined,
-        updated_at:         new Date().toISOString(),
-      })
+        ...legacyColumnsFromAnswers(answers),
+        foundation_updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }))
       .eq('id', profile.id)
 
     return NextResponse.json({ success: true })

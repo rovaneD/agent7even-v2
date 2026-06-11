@@ -103,8 +103,8 @@ Return format exactly:
   await supabase
     .from('profiles')
     .update({
-      foundation_score:      parsed.overallScore,
-      foundation_answers:    answers,
+      foundation_score: parsed.overallScore,
+      foundation_answers: answers,
       foundation_updated_at: new Date().toISOString(),
     })
     .eq('id', profile.id)

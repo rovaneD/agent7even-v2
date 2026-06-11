@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { buildIdentityUpdateWithSnapshot, legacyColumnsFromAnswers } from '@/lib/foundation/answersSnapshot'
 
 export async function POST(req: Request) {
   try {
@@ -15,21 +16,21 @@ export async function POST(req: Request) {
     const supabase = createServiceClient()
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, foundation_answers')
       .eq('clerk_user_id', userId)
       .single()
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     await supabase
       .from('profiles')
-      .update({
-        foundation_answers:          answers,
-        foundation_step:             5,
+      .update(buildIdentityUpdateWithSnapshot(profile.foundation_answers, {
+        foundation_answers: answers,
+        foundation_step: 5,
         foundation_research_variant: 'exa_prefill',
-        ideal_customer:              (answers.customerWho as string) || null,
-        competitors:                 (answers.competitors as string[])?.filter(Boolean) ?? [],
-        updated_at:                  new Date().toISOString(),
-      })
+        ...legacyColumnsFromAnswers(answers),
+        foundation_updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }))
       .eq('id', profile.id)
 
     return NextResponse.json({ ok: true })

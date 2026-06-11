@@ -16,7 +16,7 @@ export default async function FoundationPage() {
     .from('profiles')
     .select(`
       id, company_name, foundation_answers, foundation_score,
-      foundation_updated_at, foundation_complete,
+      foundation_updated_at, foundation_complete, foundation_answers_previous_at,
       ideal_customer, marketing_challenge, competitors,
       content_comfort, marketing_budget, sell_locations, top_goals
     `)
@@ -96,6 +96,7 @@ export default async function FoundationPage() {
         score={profile.foundation_score ?? 0}
         fieldScores={fieldScoreMap}
         lastUpdated={profile.foundation_updated_at ?? null}
+        answersPreviousAt={profile.foundation_answers_previous_at ?? null}
       />
     )
   }
