@@ -1,8 +1,12 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/requireAdmin'
-import type Stripe from 'stripe'
 import { getStripeClient } from '@/lib/stripe'
-import { TrendingUp, Users, DollarSign, ArrowUpRight } from 'lucide-react'
+import {
+  enrichRevenueCharges,
+  isPlatformRevenueCharge,
+  isStripeTestMode,
+} from '@/lib/stripeRevenue'
+import { TrendingUp, Users, DollarSign, ArrowUpRight, AlertTriangle } from 'lucide-react'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 import { buildAdminRevenueMayaContext } from '@/lib/maya/summaries/adminContext'
 
@@ -60,12 +64,33 @@ export default async function AdminRevenuePage() {
     return acc
   }, {})
 
-  let recentCharges: Stripe.Charge[] = []
+  const knownCustomerIds = new Set(
+    (clients ?? []).map(c => c.stripe_customer_id).filter((id): id is string => Boolean(id))
+  )
+  const profileByCustomerId = new Map(
+    (clients ?? [])
+      .filter(c => c.stripe_customer_id)
+      .map(c => [c.stripe_customer_id!, {
+        full_name: c.full_name,
+        company_name: c.company_name,
+        email: c.email,
+        plan: c.plan,
+      }])
+  )
+
+  let recentCharges: ReturnType<typeof enrichRevenueCharges> = []
+  let excludedChargeCount = 0
+  const stripeTestMode = isStripeTestMode()
   try {
     const stripe = getStripeClient()
     if (stripe) {
-      const charges = await stripe.charges.list({ limit: 20 })
-      recentCharges = charges.data.filter(c => c.paid && !c.refunded)
+      const charges = await stripe.charges.list({ limit: 50 })
+      const paid = charges.data.filter(c => c.paid && !c.refunded)
+      excludedChargeCount = paid.filter(c => !isPlatformRevenueCharge(c, knownCustomerIds)).length
+      const platformCharges = paid
+        .filter(c => isPlatformRevenueCharge(c, knownCustomerIds))
+        .slice(0, 20)
+      recentCharges = enrichRevenueCharges(platformCharges, profileByCustomerId)
     }
   } catch (err) {
     console.error('Stripe charges fetch error:', err)
@@ -96,9 +121,9 @@ export default async function AdminRevenuePage() {
       accent: false,
     },
     {
-      label: 'Recent charges (20)',
+      label: 'Recent SaaS charges',
       value: formatCurrency(totalFromCharges),
-      sub: `${recentCharges.length} successful payments`,
+      sub: `${recentCharges.length} platform payment${recentCharges.length !== 1 ? 's' : ''}`,
       icon: DollarSign,
       accent: false,
     },
@@ -125,6 +150,23 @@ export default async function AdminRevenuePage() {
         <h1 className="text-[26px] font-semibold text-[#2D3748]">Revenue</h1>
         <p className="text-sm text-gray-400 mt-0.5">Subscription overview and payment history</p>
       </div>
+
+      {(stripeTestMode || excludedChargeCount > 0) && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div className="text-sm text-amber-900">
+            {stripeTestMode && (
+              <p className="font-medium">Stripe test mode — figures are from sandbox charges, not live revenue.</p>
+            )}
+            {excludedChargeCount > 0 && (
+              <p className={stripeTestMode ? 'mt-1 text-amber-800' : ''}>
+                {excludedChargeCount} charge{excludedChargeCount !== 1 ? 's' : ''} hidden
+                {' '}(unlinked customers, legacy $7,500 packages, or Stripe CLI tests).
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -214,20 +256,24 @@ export default async function AdminRevenuePage() {
 
       {/* Recent charges from Stripe */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-5">Recent charges</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-1">Recent SaaS charges</h2>
+        <p className="text-xs text-gray-400 mb-5">
+          Subscription, seat, and credit top-ups from linked platform customers only
+        </p>
         {recentCharges.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-6">No recent charges found</p>
+          <p className="text-sm text-gray-400 text-center py-6">No platform charges found</p>
         ) : (
           <div className="divide-y divide-gray-50">
             {recentCharges.map(charge => (
               <div key={charge.id} className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    {charge.billing_details?.name ?? String(charge.customer ?? 'Unknown')}
+                  <p className="text-sm font-medium text-gray-800">{charge.label}</p>
+                  <p className="text-xs text-gray-400">
+                    {charge.email ?? '—'} · {formatDate(charge.created)}
                   </p>
-                  <p className="text-xs text-gray-400">{formatDate(charge.created)}</p>
                 </div>
                 <div className="flex items-center gap-3">
+                  {charge.plan && planBadge(charge.plan)}
                   <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                     Paid
                   </span>
