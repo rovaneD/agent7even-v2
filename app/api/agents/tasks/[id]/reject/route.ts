@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
+import { buildRequeueTaskInput } from '@/lib/agents/requeueTaskInput'
 
 export async function POST(
   req: Request,
@@ -11,7 +12,7 @@ export async function POST(
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id: taskId } = await params
-  const { outputId, note = '', feedback, feedbackNote } = await req.json()
+  const { outputId, note = '', feedback, feedbackNote, rerun = false } = await req.json()
 
   const supabase = createServiceClient()
 
@@ -59,14 +60,25 @@ export async function POST(
 
   const task = taskRes.data?.[0] ?? null
 
-  // Re-queue with rejection note as additional context
-  if (task && rejectionText) {
+  if (task && rerun && rejectionText) {
+    const { data: outputRow } = await supabase
+      .from('agent_outputs')
+      .select('content')
+      .eq('id', outputId)
+      .eq('user_id', profile.id)
+      .maybeSingle()
+
     const { createTask } = await import('@/lib/agents/runner')
     const { dispatchAgentTask } = await import('@/lib/agents/dispatch')
+    const requeueInput = buildRequeueTaskInput(
+      task.input as Record<string, unknown>,
+      (outputRow?.content ?? null) as Record<string, unknown> | null,
+      rejectionText,
+    )
     const replacement = await createTask({
       userId:      profile.id,
       agent:       task.agent,
-      input:       { ...(task.input as Record<string, unknown>), rejection_feedback: rejectionText },
+      input:       requeueInput,
       triggerType: 'user',
       priority:    task.priority,
     })
@@ -74,7 +86,7 @@ export async function POST(
       dispatchAgentTask({
         taskId: replacement.id,
         agent: task.agent,
-        input: { ...(task.input as Record<string, unknown>), rejection_feedback: rejectionText },
+        input: requeueInput,
         userId: profile.id,
       })
     )

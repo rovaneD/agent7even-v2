@@ -10,6 +10,13 @@ export interface BreakdownItem {
   color: string
 }
 
+export interface CreditActivityItem {
+  description: string
+  credits: number
+  type: string
+  createdAt: string
+}
+
 export interface CreditsUsageData {
   monthlyAllocation: number
   monthlyUsed: number
@@ -18,6 +25,7 @@ export interface CreditsUsageData {
   totalAvailable: number
   resetDate: string
   breakdown: BreakdownItem[]
+  recentActivity: CreditActivityItem[]
 }
 
 interface Props {
@@ -48,6 +56,7 @@ export default function CreditsUsage({ data }: Props) {
     totalAvailable,
     resetDate,
     breakdown,
+    recentActivity,
   } = data
 
   const monthlyUsedCapped = Math.min(monthlyUsed, monthlyAllocation)
@@ -154,6 +163,31 @@ export default function CreditsUsage({ data }: Props) {
 
       {breakdown.length === 0 && (
         <p className="text-sm text-[#64748B] mt-2">No usage this month yet.</p>
+      )}
+
+      {recentActivity.length > 0 && (
+        <>
+          <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-widest mt-5 mb-3">
+            Recent activity
+          </p>
+          <div className="space-y-2">
+            {recentActivity.map(item => (
+              <div key={`${item.createdAt}-${item.description}`} className="flex items-start justify-between gap-3 text-sm">
+                <div className="min-w-0">
+                  <p className="text-[#2D3748] truncate">{item.description}</p>
+                  <p className="text-[11px] text-[#64748B]">
+                    {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {' · '}
+                    {item.type}
+                  </p>
+                </div>
+                <span className={`whitespace-nowrap font-medium ${item.credits < 0 ? 'text-[#2D3748]' : 'text-[#10B981]'}`}>
+                  {item.credits > 0 ? '+' : ''}{item.credits.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

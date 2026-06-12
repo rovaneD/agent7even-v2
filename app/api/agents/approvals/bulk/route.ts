@@ -2,13 +2,14 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
+import { buildRequeueTaskInput } from '@/lib/agents/requeueTaskInput'
 import { logActivity } from '@/lib/activity'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { action, taskIds, feedback, feedbackNote } = await req.json()
+  const { action, taskIds, feedback, feedbackNote, rerun = false } = await req.json()
 
   if (!Array.isArray(taskIds) || taskIds.length === 0) {
     return NextResponse.json({ error: 'taskIds required' }, { status: 400 })
@@ -82,16 +83,29 @@ export async function POST(req: Request) {
     if (tasksRes.error) return NextResponse.json({ error: tasksRes.error.message }, { status: 500 })
     if (outputsRes.error) return NextResponse.json({ error: outputsRes.error.message }, { status: 500 })
 
-    if (feedback && tasksToRequeue) {
+    if (rerun && feedback && tasksToRequeue) {
       const { createTask } = await import('@/lib/agents/runner')
       const { dispatchAgentTask } = await import('@/lib/agents/dispatch')
       await Promise.all(
         tasksToRequeue.map(async task => {
-          const input = { ...(task.input as Record<string, unknown>), rejection_feedback: feedback }
+          const { data: outputRow } = await supabase
+            .from('agent_outputs')
+            .select('content')
+            .eq('task_id', task.id)
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          const requeueInput = buildRequeueTaskInput(
+            task.input as Record<string, unknown>,
+            (outputRow?.content ?? null) as Record<string, unknown> | null,
+            feedbackNote ?? feedback,
+          )
           const replacement = await createTask({
             userId: profile.id,
             agent: task.agent,
-            input,
+            input: requeueInput,
             triggerType: 'user',
             priority: task.priority,
           })
@@ -99,7 +113,7 @@ export async function POST(req: Request) {
             dispatchAgentTask({
               taskId: replacement.id,
               agent: task.agent,
-              input,
+              input: requeueInput,
               userId: profile.id,
             })
           )

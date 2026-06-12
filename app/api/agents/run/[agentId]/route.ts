@@ -50,6 +50,15 @@ export async function POST(
   const taskInput = (input ?? {}) as Record<string, unknown>
   const media = readPostMediaRef(taskInput)
   const hasImage = Boolean(media.media_storage_path && media.media_mime)
+  const singlePostRun = isSinglePostRun(agentId, taskInput)
+
+  if (singlePostRun && !hasImage) {
+    await updateTaskStatus(taskId, 'failed').catch(() => {})
+    return NextResponse.json(
+      { error: 'Single post requires an attached image. Re-attach your image and run again.' },
+      { status: 400 },
+    )
+  }
 
   const supabase = createServiceClient()
   const { data: taskRow } = await supabase
@@ -69,7 +78,7 @@ export async function POST(
     .single()
 
   await updateTaskStatus(taskId, 'running')
-  const tier: RunTier = hasImage ? 'standard' : 'light'
+  const tier: RunTier = hasImage || singlePostRun ? 'standard' : 'light'
   const creditsNeeded = CREDIT_COST[tier]
   let creditsReserved = false
 
@@ -78,7 +87,7 @@ export async function POST(
     creditsReserved = true
 
     const [baseSystem, flowSystem] = await Promise.all([
-      buildSystemPrompt(userId, agentId),
+      buildSystemPrompt(userId, agentId, taskInput),
       buildAgentFlowPrompt(userId, agentId, taskInput),
     ])
 

@@ -357,6 +357,7 @@ export default function AgentCommandCenter({
     filename?: string
   } | null>(null)
   const [postImageRequiredError, setPostImageRequiredError] = useState<string | null>(null)
+  const [taskCreateError, setTaskCreateError] = useState<string | null>(null)
 
   // Orchestration state
   const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
@@ -549,6 +550,7 @@ export default function AgentCommandCenter({
   async function handleCreateTask() {
     if (!selectedAgent) return
     setPostImageRequiredError(null)
+    setTaskCreateError(null)
     setSubmitting(true)
     try {
       let input: Record<string, unknown>
@@ -573,7 +575,7 @@ export default function AgentCommandCenter({
         input = { instructions, ...form }
       }
 
-      await fetch('/api/agents/tasks/create', {
+      const res = await fetch('/api/agents/tasks/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -582,6 +584,11 @@ export default function AgentCommandCenter({
           priority: taskPriority,
         }),
       })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setTaskCreateError(typeof data.error === 'string' ? data.error : 'Could not queue this agent run.')
+        return
+      }
       setSubmitted(true)
       setTaskInstructions('')
       setPostImageMedia(null)
@@ -875,6 +882,9 @@ export default function AgentCommandCenter({
               </div>
             )}
             <div className="flex flex-wrap items-center gap-3">
+              {taskCreateError && (
+                <p className="w-full text-sm text-red-600">{taskCreateError}</p>
+              )}
               <div className="flex gap-2">
                 {(['normal', 'high'] as const).map(p => (
                   <button key={p} onClick={() => setTaskPriority(p)}

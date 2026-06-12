@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { calculateCost, classifyRunTier, BUDGET_CAPS_USD, CREDIT_COST, type RunTier } from './cost'
 import { openRouterComplete, openRouterCompleteWithFallback, type OpenRouterMessage } from './openrouter'
 import { buildAgentContext } from './buildAgentContext'
+import { resolveContentPostingFlow } from './contentPosting'
 import { AGENTS, type AgentId } from './registry'
 import { deductCredits, refundCredits } from '@/lib/credits'
 
@@ -41,12 +42,21 @@ export async function getAgentSkill(agentId: string): Promise<{ skill_prompt: st
 
 // Assembles full system prompt: brand context + agent skill + constraints.
 // All three fetches run in parallel. Per-user constraints take precedence over registry defaults.
-export async function buildSystemPrompt(userId: string, agentId: string): Promise<string> {
+export async function buildSystemPrompt(
+  userId: string,
+  agentId: string,
+  taskInput?: Record<string, unknown>,
+): Promise<string> {
   const supabase = createServiceClient()
+
+  let skillAgentId = agentId
+  if (agentId === 'content_posting' && taskInput) {
+    skillAgentId = resolveContentPostingFlow(taskInput) === 'weekly' ? 'weekly_content' : 'post_caption'
+  }
 
   const [brandContext, skill, { data: userConstraintsRow }] = await Promise.all([
     buildAgentContext(userId),
-    getAgentSkill(agentId),
+    getAgentSkill(skillAgentId),
     supabase
       .from('agent_constraints')
       .select('constraints')

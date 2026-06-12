@@ -43,7 +43,7 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     id: 'content_posting',
     name: 'Content Posting',
     description: 'Single post with your image, or plan a week of content',
-    icon: 'ti-layout-media-right',
+    icon: 'ti-image',
     autonomyLevel: 'approval_required',
     outputType: 'content_posting',
     model: 'anthropic/claude-haiku-4-5',

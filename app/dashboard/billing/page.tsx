@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import BillingClient from './BillingClient'
 import { getStripeClient } from '@/lib/stripe'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
-import type { CreditsUsageData, BreakdownItem } from '@/components/billing/CreditsUsage'
+import type { CreditsUsageData, BreakdownItem, CreditActivityItem } from '@/components/billing/CreditsUsage'
 
 export default async function BillingPage() {
   const { userId } = await auth()
@@ -86,12 +86,12 @@ export default async function BillingPage() {
 
     const topupSinceAlloc = (topupRows ?? []).reduce((s, r) => s + (r.credits ?? 0), 0)
 
-    // Debits since last allocation
+    // Debits/usage since last allocation (ledger uses type "usage"; legacy rows may use "debit")
     const { data: debitRows } = await supabase
       .from('credit_ledger')
-      .select('credits, description')
+      .select('credits, description, type, created_at')
       .eq('user_id', profile.id)
-      .eq('type', 'debit')
+      .in('type', ['usage', 'debit'])
       .gte('created_at', periodStart)
 
     const debits = debitRows ?? []
@@ -103,6 +103,8 @@ export default async function BillingPage() {
       if (desc.startsWith('Maya chat')) return 'Maya chat'
       if (desc.startsWith('Campaign generation')) return 'Campaign generation'
       if (desc.startsWith('Brand Kit')) return 'Brand Kit'
+      if (desc.startsWith('agent_run')) return 'Agent runs'
+      if (desc.includes('publish')) return 'Publishing'
       return 'Agent runs'
     }
 
@@ -123,8 +125,24 @@ export default async function BillingPage() {
       .sort((a, b) => b[1] - a[1])
       .map(([label, credits]) => ({ label, credits, color: COLORS[label] ?? '#9BA1AE' }))
 
-    const monthlyRemaining = Math.max(0, monthlyAllocation - monthlyUsed)
-    const topupBalance = creditBalance - monthlyRemaining
+    const monthlyRemainingRaw = Math.max(0, monthlyAllocation - monthlyUsed)
+    const monthlyRemaining = Math.min(monthlyRemainingRaw, creditBalance)
+    const topupBalance = Math.max(0, creditBalance - monthlyRemaining)
+
+    const { data: activityRows } = await supabase
+      .from('credit_ledger')
+      .select('credits, description, type, created_at')
+      .eq('user_id', profile.id)
+      .in('type', ['usage', 'debit', 'refund', 'topup', 'allocation'])
+      .order('created_at', { ascending: false })
+      .limit(12)
+
+    const recentActivity: CreditActivityItem[] = (activityRows ?? []).map(row => ({
+      description: row.description ?? row.type ?? 'Credit change',
+      credits: row.credits ?? 0,
+      type: row.type ?? 'usage',
+      createdAt: row.created_at ?? new Date().toISOString(),
+    }))
 
     creditsUsage = {
       monthlyAllocation,
@@ -134,6 +152,7 @@ export default async function BillingPage() {
       totalAvailable: creditBalance,
       resetDate,
       breakdown,
+      recentActivity,
     }
   }
 

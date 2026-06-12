@@ -95,7 +95,7 @@ function ApprovalItem({
   onToggleExpand: () => void
   onToggleCheck: () => void
   onApprove: (taskId: string, outputId: string, edited?: string) => Promise<void>
-  onReject: (taskId: string, outputId: string, note: string, reason: string) => Promise<void>
+  onReject: (taskId: string, outputId: string, note: string, reason: string, rerun: boolean) => Promise<void>
   onMarkReviewed: () => void
 }) {
   const agentDef  = AGENTS[task.agent as AgentId]
@@ -132,11 +132,11 @@ function ApprovalItem({
     }
   }
 
-  async function doReject() {
+  async function doReject(rerun: boolean) {
     if (!output) return
     setRejecting(true)
     try {
-      await onReject(task.id, output.id, rejectNote, activeChip ?? '')
+      await onReject(task.id, output.id, rejectNote, activeChip ?? '', rerun)
       setShowReject(false)
       setRejectNote('')
       setActiveChip(null)
@@ -302,9 +302,16 @@ function ApprovalItem({
             ) : showReject ? (
               <>
                 <button
-                  onClick={doReject}
+                  onClick={() => doReject(false)}
                   disabled={rejecting}
-                  style={{ padding: '6px 16px', borderRadius: 7, background: '#3B82F6', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: rejecting ? 0.6 : 1, fontFamily: 'inherit' }}
+                  style={{ padding: '6px 16px', borderRadius: 7, background: 'transparent', color: '#64748B', border: '0.5px solid #CBD5E1', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: rejecting ? 0.6 : 1, fontFamily: 'inherit' }}
+                >
+                  {rejecting ? 'Rejecting…' : 'Reject only'}
+                </button>
+                <button
+                  onClick={() => doReject(true)}
+                  disabled={rejecting || !rejectNote.trim()}
+                  style={{ padding: '6px 16px', borderRadius: 7, background: '#3B82F6', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', opacity: rejecting || !rejectNote.trim() ? 0.6 : 1, fontFamily: 'inherit' }}
                 >
                   {rejecting ? 'Rejecting…' : 'Reject & re-run'}
                 </button>
@@ -331,10 +338,16 @@ function ApprovalItem({
                   Edit &amp; approve
                 </button>
                 <button
+                  onClick={() => doReject(false)}
+                  style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#64748B', border: '0.5px solid #CBD5E1', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Reject
+                </button>
+                <button
                   onClick={() => setShowReject(true)}
                   style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#bbb', border: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
-                  Reject &amp; redo
+                  Reject &amp; re-run
                 </button>
               </>
             )}
@@ -431,11 +444,11 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
     removeTask(taskId)
   }
 
-  async function handleReject(taskId: string, outputId: string, note: string, reason: string) {
+  async function handleReject(taskId: string, outputId: string, note: string, reason: string, rerun: boolean) {
     await fetch(`/api/agents/tasks/${taskId}/reject`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ outputId, note, feedback: reason, feedbackNote: note }),
+      body: JSON.stringify({ outputId, note, feedback: reason, feedbackNote: note, rerun }),
     })
     removeTask(taskId)
   }
@@ -452,6 +465,7 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
           taskIds:      [...checkedIds],
           feedback:     action === 'reject' ? bulkNote : undefined,
           feedbackNote: action === 'reject' ? bulkNote : undefined,
+          rerun:        false,
         }),
       })
       const done = new Set(checkedIds)

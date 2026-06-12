@@ -4,7 +4,9 @@ import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createTask } from '@/lib/agents/runner'
 import { dispatchAgentTask } from '@/lib/agents/dispatch'
+import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { AgentId } from '@/lib/agents/registry'
+import { readPostMediaRef } from '@/lib/postAssets'
 import { logActivity } from '@/lib/activity'
 
 export async function POST(req: Request) {
@@ -26,11 +28,23 @@ export async function POST(req: Request) {
 
   if (!agent) return NextResponse.json({ error: 'agent is required' }, { status: 400 })
 
+  const taskInput = (input ?? {}) as Record<string, unknown>
+  if (
+    agent === 'content_posting'
+    && resolveContentPostingFlow(taskInput) === 'single'
+    && !readPostMediaRef(taskInput).media_storage_path
+  ) {
+    return NextResponse.json(
+      { error: 'Attach the post image before running Single post.' },
+      { status: 400 },
+    )
+  }
+
   try {
     const task = await createTask({
       userId: profile.id,
       agent: agent as AgentId,
-      input,
+      input: taskInput,
       triggerType: 'user',
       priority,
       scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
@@ -44,7 +58,7 @@ export async function POST(req: Request) {
         dispatchAgentTask({
           taskId: task.id,
           agent,
-          input,
+          input: taskInput,
           userId: profile.id,
         })
       )
