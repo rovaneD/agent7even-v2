@@ -46,6 +46,52 @@ export async function POST(req: Request) {
     const email = email_addresses?.[0]?.email_address ?? ''
     const fullName = [first_name, last_name].filter(Boolean).join(' ')
 
+    // Same email + new Clerk user used to create a second profile row. Reuse canonical.
+    if (email) {
+      const { data: existingByEmail } = await supabase
+        .from('profiles')
+        .select('id, clerk_user_id, stripe_customer_id, stripe_subscription_id, plan, status, created_at')
+        .ilike('email', email)
+        .neq('status', 'churned')
+        .order('created_at', { ascending: true })
+
+      const others = (existingByEmail ?? []).filter(p => p.clerk_user_id !== id)
+      if (others.length > 0) {
+        const canonical = [...(existingByEmail ?? [])].sort((a, b) => {
+          if (a.stripe_customer_id && !b.stripe_customer_id) return -1
+          if (!a.stripe_customer_id && b.stripe_customer_id) return 1
+          if (a.plan && !b.plan) return -1
+          if (!a.plan && b.plan) return 1
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        })[0]
+
+        await supabase
+          .from('profiles')
+          .update({
+            full_name: fullName || undefined,
+            avatar_url: image_url ?? '',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', canonical.id)
+
+        const orphanIds = (existingByEmail ?? [])
+          .filter(p => p.id !== canonical.id && !p.stripe_customer_id && !p.stripe_subscription_id)
+          .map(p => p.id)
+
+        if (orphanIds.length > 0) {
+          await supabase.from('profiles').delete().in('id', orphanIds)
+        }
+
+        console.warn('[clerk/webhook] Blocked duplicate profile for email', email, {
+          clerkUserId: id,
+          canonicalProfileId: canonical.id,
+          removedOrphans: orphanIds,
+        })
+
+        return new Response('OK', { status: 200 })
+      }
+    }
+
     const { data: newProfile, error } = await supabase.from('profiles').upsert({
       clerk_user_id: id,
       email,
