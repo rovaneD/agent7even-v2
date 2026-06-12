@@ -49,6 +49,15 @@ export function captionLimitForPlatform(platform: string): number {
   return PLATFORM_CAPTION_LIMITS[platform.toLowerCase()] ?? 5000
 }
 
+/** First platform from agent task input (platform / platforms fields). */
+export function primaryPlatformFromTaskInput(input: Record<string, unknown>): string {
+  const fromPlatforms = typeof input.platforms === 'string' ? input.platforms : ''
+  const fromPlatform = typeof input.platform === 'string' ? input.platform : ''
+  const raw = fromPlatforms || fromPlatform
+  const first = raw.split(/[,/|]/)[0]?.trim()
+  return first || 'Instagram'
+}
+
 export function buildPlatformSpecificData(
   platform: string,
   postType: PostType,

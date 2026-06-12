@@ -1,5 +1,5 @@
 import type { AgentId } from '@/lib/agents/registry'
-import { platformCharLimit, primaryPlatformFromInput } from '@/lib/agents/visionCaption'
+import { captionLimitForPlatform, primaryPlatformFromTaskInput } from '@/lib/social/postConstraints'
 import { readPostMediaRef } from '@/lib/postAssetLimits'
 
 export type ContentPostingFlow = 'single' | 'weekly'
@@ -107,8 +107,8 @@ export function singlePostPublishBlockReason(opts: {
     return 'Output looks like a weekly content plan, not one social caption. Edit it or reject and re-run Single post.'
   }
 
-  const platform = primaryPlatformFromInput(opts.taskInput)
-  const limit = platformCharLimit(platform)
+  const platform = primaryPlatformFromTaskInput(opts.taskInput)
+  const limit = captionLimitForPlatform(platform)
   if (caption.length > limit) {
     return `Caption is ${caption.length.toLocaleString()} characters — over the ${platform} limit of ${limit.toLocaleString()}. Shorten it before approving.`
   }

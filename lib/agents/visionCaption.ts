@@ -17,22 +17,10 @@ Write ONE social caption for ${params.companyName}. The image is attached — re
 Channel: ${params.platform}. Keep within ${params.charLimit} characters. Return ONLY the caption text — no headings, no quotes, no markdown.`
 }
 
-export function platformCharLimit(platform: string): number {
-  const p = platform.toLowerCase()
-  if (p.includes('instagram') || p === 'ig') return 2200
-  if (p.includes('linkedin')) return 3000
-  if (p.includes('facebook') || p === 'fb') return 63206
-  if (p.includes('x') || p.includes('twitter')) return 280
-  return 2200
-}
-
-export function primaryPlatformFromInput(input: Record<string, unknown>): string {
-  const fromPlatforms = typeof input.platforms === 'string' ? input.platforms : ''
-  const fromPlatform = typeof input.platform === 'string' ? input.platform : ''
-  const raw = fromPlatforms || fromPlatform
-  const first = raw.split(/[,/|]/)[0]?.trim()
-  return first || 'Instagram'
-}
+export {
+  captionLimitForPlatform as platformCharLimit,
+  primaryPlatformFromTaskInput as primaryPlatformFromInput,
+} from '@/lib/social/postConstraints'
 
 export function buildVisionUserMessage(params: {
   textInstruction: string
