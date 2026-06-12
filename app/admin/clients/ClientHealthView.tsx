@@ -18,6 +18,7 @@ type Client = {
   instagram_handle: string | null
   plan: string | null
   status: string | null
+  stripe_customer_id: string | null
   last_active_at: string | null
   engagement_score: number | null
   foundation_score: number | null
@@ -27,13 +28,38 @@ type Client = {
 type SortKey = 'last_active_at' | 'engagement_score' | 'foundation_score' | 'plan' | 'created_at'
 
 function clientStatus(c: Client): 'healthy' | 'drifting' | 'at_risk' {
+  if (c.status === 'paused' || c.status === 'churned' || c.status === 'suspended') {
+    return 'at_risk'
+  }
+
   const now = Date.now()
-  const lastActive = c.last_active_at ? new Date(c.last_active_at).getTime() : 0
-  const hoursInactive = (now - lastActive) / (1000 * 60 * 60)
-  const score = c.engagement_score ?? 0
-  if (hoursInactive <= 24 && score >= 50) return 'healthy'
-  if (hoursInactive > 48 || score < 30) return 'at_risk'
-  return 'drifting'
+  const lastActiveMs = c.last_active_at ? new Date(c.last_active_at).getTime() : null
+  const hoursInactive = lastActiveMs != null ? (now - lastActiveMs) / (1000 * 60 * 60) : null
+  const score = c.engagement_score
+
+  // Pre-subscription / onboarding — not paid churn risk
+  if (!c.plan || c.status === 'onboarding') {
+    return 'drifting'
+  }
+
+  // Never logged in but subscribed — drifting for first week, then at risk
+  if (hoursInactive == null) {
+    const daysSinceJoin = (now - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)
+    return daysSinceJoin > 7 ? 'at_risk' : 'drifting'
+  }
+
+  if (hoursInactive <= 24) {
+    if (score == null || score >= 50) return 'healthy'
+    if (score >= 30) return 'drifting'
+    return 'at_risk'
+  }
+
+  if (hoursInactive <= 48) {
+    if (score != null && score < 30) return 'at_risk'
+    return 'drifting'
+  }
+
+  return 'at_risk'
 }
 
 function relativeTime(iso: string | null): string {
@@ -63,14 +89,25 @@ const STATUS_DOT: Record<string, string> = {
   at_risk:  'bg-red-400',
 }
 
+const ACCOUNT_STATUS: Record<string, string> = {
+  active:     'bg-emerald-50 text-emerald-700',
+  onboarding: 'bg-gray-100 text-gray-600',
+  paused:     'bg-amber-50 text-amber-700',
+  churned:    'bg-red-50 text-red-600',
+  suspended:  'bg-red-50 text-red-600',
+}
+
 function ScoreBar({ value, color }: { value: number | null; color: string }) {
-  const pct = Math.max(0, Math.min(100, value ?? 0))
+  if (value == null) {
+    return <span className="text-xs text-gray-300">—</span>
+  }
+  const pct = Math.max(0, Math.min(100, value))
   return (
     <div className="flex items-center gap-2">
       <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs text-gray-500 tabular-nums w-7">{value ?? 0}</span>
+      <span className="text-xs text-gray-500 tabular-nums w-7">{value}</span>
     </div>
   )
 }
@@ -79,6 +116,7 @@ export default function ClientHealthView() {
   const router = useRouter()
   const [tab, setTab] = useState<'all' | 'at_risk'>('all')
   const [clients, setClients] = useState<Client[]>([])
+  const [hiddenDuplicates, setHiddenDuplicates] = useState<{ email: string; count: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [sortKey, setSortKey] = useState<SortKey>('last_active_at')
   const [sortAsc, setSortAsc] = useState(false)
@@ -105,7 +143,6 @@ export default function ClientHealthView() {
       sort: sortKey,
       order: sortAsc ? 'asc' : 'desc',
     })
-    if (tab === 'at_risk') params.set('filter', 'at_risk')
     if (searchVal.trim()) params.set('search', searchVal.trim())
     if (planFilter !== 'all') params.set('plan', planFilter)
     if (statusFilter !== 'all') params.set('status', statusFilter)
@@ -115,11 +152,13 @@ export default function ClientHealthView() {
     if (!res.ok) {
       setError(`${res.status}: ${json.error ?? 'Unknown error'}`)
       setClients([])
+      setHiddenDuplicates([])
     } else {
       setClients(json.clients ?? [])
+      setHiddenDuplicates(json.duplicates ?? [])
     }
     setLoading(false)
-  }, [tab, sortKey, sortAsc, planFilter, statusFilter, search])
+  }, [sortKey, sortAsc, planFilter, statusFilter, search])
 
   useEffect(() => { load() }, [load])
 
@@ -178,17 +217,14 @@ export default function ClientHealthView() {
   }
 
   const allWithStatus = clients.map(c => ({ ...c, _status: clientStatus(c) }))
+  const visibleClients = tab === 'at_risk'
+    ? allWithStatus.filter(c => c._status === 'at_risk')
+    : allWithStatus
   const atRiskCount  = allWithStatus.filter(c => c._status === 'at_risk').length
   const driftingCount = allWithStatus.filter(c => c._status === 'drifting').length
   const healthyCount = allWithStatus.filter(c => c._status === 'healthy').length
 
-  // Detect duplicate emails
-  const emailCounts = new Map<string, number>()
-  clients.forEach(c => {
-    if (c.email) emailCounts.set(c.email, (emailCounts.get(c.email) ?? 0) + 1)
-  })
-  const duplicateEmails = new Set([...emailCounts.entries()].filter(([, n]) => n > 1).map(([e]) => e))
-  const duplicateCount = duplicateEmails.size
+  const duplicateCount = hiddenDuplicates.length
 
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <ChevronUp size={10} className="text-gray-300" />
@@ -200,7 +236,7 @@ export default function ClientHealthView() {
   function ColHeader({ label, k }: { label: string; k: SortKey }) {
     return (
       <th
-        className="text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest cursor-pointer hover:text-gray-600 select-none"
+        className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest cursor-pointer hover:text-gray-600 select-none whitespace-nowrap"
         onClick={() => toggleSort(k)}
       >
         <span className="flex items-center gap-1">{label} <SortIcon k={k} /></span>
@@ -209,11 +245,13 @@ export default function ClientHealthView() {
   }
 
   return (
-    <div className="px-8 py-8 max-w-7xl">
+    <div className="px-6 py-8 w-full max-w-none">
       <div className="mb-6">
         <p className="text-[10px] font-semibold tracking-widest uppercase text-[#64748B] mb-2">Admin</p>
         <h1 className="text-2xl font-bold text-gray-900">Client Health</h1>
-        <p className="text-gray-500 text-sm mt-1">{clients.length} clients</p>
+        <p className="text-gray-500 text-sm mt-1">
+          {visibleClients.length} shown · {clients.length} canonical profile{clients.length !== 1 ? 's' : ''}
+        </p>
       </div>
 
       {/* Duplicate banner */}
@@ -221,7 +259,8 @@ export default function ClientHealthView() {
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
           <p className="text-sm text-yellow-800">
-            {duplicateCount} duplicate email{duplicateCount > 1 ? 's' : ''} detected — review affected rows below
+            {duplicateCount} duplicate email{duplicateCount > 1 ? 's' : ''} collapsed — showing the active subscription profile per email. Hidden copies:{' '}
+            {hiddenDuplicates.map(d => `${d.email} (${d.count - 1})`).join(', ')}
           </p>
         </div>
       )}
@@ -286,7 +325,7 @@ export default function ClientHealthView() {
               <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">At risk</p>
             </div>
             <p className="text-2xl font-semibold text-red-500">{atRiskCount}</p>
-            <p className="text-xs text-gray-400 mt-1">inactive 48hrs+ or score &lt; 30</p>
+            <p className="text-xs text-gray-400 mt-1">paid + inactive 48hrs+</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -307,7 +346,7 @@ export default function ClientHealthView() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <div className="w-5 h-5 border-2 border-gray-200 border-t-[#3B82F6] rounded-full animate-spin" />
@@ -316,36 +355,37 @@ export default function ClientHealthView() {
           <div className="text-center py-16">
             <p className="text-sm text-red-500 font-mono">{error}</p>
           </div>
-        ) : !allWithStatus.length ? (
+        ) : !visibleClients.length ? (
           <div className="text-center py-16">
             <Users size={24} className="text-gray-200 mx-auto mb-3" />
-            <p className="text-sm text-gray-400">No clients</p>
+            <p className="text-sm text-gray-400">
+              {tab === 'at_risk' ? 'No at-risk clients right now' : 'No clients'}
+            </p>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="w-full min-w-[1180px]">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Client</th>
-                <th className="text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Company</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest min-w-[220px]">Client</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest min-w-[160px]">Company</th>
                 <ColHeader label="Plan" k="plan" />
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">Account</th>
                 <ColHeader label="Last active" k="last_active_at" />
                 <ColHeader label="Engagement" k="engagement_score" />
                 <ColHeader label="Foundation" k="foundation_score" />
-                <th className="text-left px-6 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Status</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest whitespace-nowrap">Health</th>
                 <ColHeader label="Joined" k="created_at" />
-                <th className="px-6 py-3 w-12" />
+                <th className="px-4 py-3 w-12" />
               </tr>
             </thead>
             <tbody>
-              {allWithStatus.map(client => (
+              {visibleClients.map(client => (
                 <tr
                   key={client.id}
                   onClick={() => router.push(`/admin/clients/${client.id}`)}
-                  className={`border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer ${
-                    duplicateEmails.has(client.email ?? '') ? 'bg-yellow-50/30' : ''
-                  }`}
+                  className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       {client.avatar_url ? (
                         <img src={client.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
@@ -360,7 +400,7 @@ export default function ClientHealthView() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <div>
                       {client.company_name && (
                         <p className="text-sm text-gray-700">{client.company_name}</p>
@@ -373,15 +413,20 @@ export default function ClientHealthView() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     {client.plan ? (
                       <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${PLAN_COLORS[client.plan] ?? 'bg-gray-100 text-gray-600'}`}>
                         {PLAN_LABELS[client.plan] ?? client.plan}
                       </span>
                     ) : '—'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{relativeTime(client.last_active_at)}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${ACCOUNT_STATUS[client.status ?? ''] ?? 'bg-gray-50 text-gray-500'}`}>
+                      {client.status ?? 'unknown'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-500 whitespace-nowrap">{relativeTime(client.last_active_at)}</td>
+                  <td className="px-4 py-4">
                     <ScoreBar
                       value={client.engagement_score}
                       color={
@@ -390,7 +435,7 @@ export default function ClientHealthView() {
                       }
                     />
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <ScoreBar
                       value={client.foundation_score}
                       color={
@@ -399,16 +444,16 @@ export default function ClientHealthView() {
                       }
                     />
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-1.5">
                       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT[client._status]}`} />
                       <span className="text-xs text-gray-500 capitalize">{client._status.replace('_', ' ')}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-400">
+                  <td className="px-4 py-4 text-sm text-gray-400 whitespace-nowrap">
                     {new Date(client.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </td>
-                  <td className="px-6 py-4 relative" onClick={e => e.stopPropagation()}>
+                  <td className="px-4 py-4 relative" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={() => setMenuOpen(menuOpen === client.id ? null : client.id)}
                       className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"

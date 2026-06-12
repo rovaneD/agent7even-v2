@@ -2,6 +2,66 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
+type ClientRow = {
+  id: string
+  full_name: string | null
+  email: string | null
+  avatar_url: string | null
+  company_name: string | null
+  website_url: string | null
+  instagram_handle: string | null
+  plan: string | null
+  status: string | null
+  role: string | null
+  stripe_customer_id: string | null
+  last_active_at: string | null
+  engagement_score: number | null
+  foundation_score: number | null
+  created_at: string
+}
+
+function profilePriority(p: ClientRow): number {
+  let score = 0
+  if (p.status === 'active') score += 40
+  if (p.plan) score += 30
+  if (p.stripe_customer_id) score += 20
+  if (p.foundation_score && p.foundation_score > 0) score += 5
+  score += new Date(p.created_at).getTime() / 1e15
+  return score
+}
+
+function dedupeClientsByEmail(clients: ClientRow[]): {
+  clients: ClientRow[]
+  duplicates: { email: string; count: number }[]
+} {
+  const byEmail = new Map<string, ClientRow[]>()
+  const noEmail: ClientRow[] = []
+
+  for (const client of clients) {
+    const email = client.email?.trim().toLowerCase()
+    if (!email) {
+      noEmail.push(client)
+      continue
+    }
+    const group = byEmail.get(email) ?? []
+    group.push(client)
+    byEmail.set(email, group)
+  }
+
+  const duplicates: { email: string; count: number }[] = []
+  const picked: ClientRow[] = [...noEmail]
+
+  for (const [email, group] of byEmail) {
+    if (group.length > 1) {
+      duplicates.push({ email, count: group.length })
+      group.sort((a, b) => profilePriority(b) - profilePriority(a))
+    }
+    picked.push(group[0])
+  }
+
+  return { clients: picked, duplicates }
+}
+
 async function getAdminProfile(userId: string) {
   const supabase = createServiceClient()
   const { data } = await supabase
@@ -23,7 +83,6 @@ export async function GET(req: Request) {
 
   const supabase = createServiceClient()
   const { searchParams } = new URL(req.url)
-  const filter = searchParams.get('filter')
   const sort = searchParams.get('sort') ?? 'last_active_at'
   const order = searchParams.get('order') === 'asc'
   const search = searchParams.get('search')
@@ -35,17 +94,13 @@ export async function GET(req: Request) {
     .select(`
       id, full_name, email, avatar_url,
       company_name, website_url, instagram_handle,
-      plan, status, role,
+      plan, status, role, stripe_customer_id,
       last_active_at, engagement_score, foundation_score,
       created_at
     `)
     .eq('role', 'client')
+    .neq('status', 'churned')
     .order(sort as any, { ascending: order })
-
-  if (filter === 'at_risk') {
-    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-    query = query.or(`last_active_at.lt.${fortyEightHoursAgo},engagement_score.lt.30`)
-  }
 
   if (search) {
     query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`)
@@ -62,7 +117,10 @@ export async function GET(req: Request) {
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ clients: data ?? [] })
+  const rows = (data ?? []) as ClientRow[]
+  const { clients, duplicates } = dedupeClientsByEmail(rows)
+
+  return NextResponse.json({ clients, duplicates })
 }
 
 export async function POST(req: Request) {
