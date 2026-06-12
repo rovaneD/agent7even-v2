@@ -624,7 +624,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
         reach:       _n(a.reach       ?? 0),
         erPct:       _n(a.engagementRate ?? 0),
         engagements: readEngagementCount(p),
-        url:         readBestPostUrl(p, activePlatform !== 'all' ? activePlatform : _s(p.platform ?? '')),
+        url:         readBestPostUrl(p, activePlatform !== 'all' ? activePlatform : undefined),
       }
     })
     mappedPosts.sort((a, b) => (b.engagements ?? 0) - (a.engagements ?? 0))

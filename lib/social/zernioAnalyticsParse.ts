@@ -79,27 +79,6 @@ export function postDedupeKey(post: Record<string, unknown>): string {
   return `${date}::${String(content).slice(0, 80)}`
 }
 
-const EXPLICIT_POST_URL_KEYS = [
-  'platformPostUrl',
-  'platform_post_url',
-  'permalink',
-  'permalinkUrl',
-  'permalink_url',
-  'postUrl',
-  'post_url',
-] as const
-
-const FALLBACK_POST_URL_KEYS = [
-  'externalUrl',
-  'external_url',
-  'instagramUrl',
-  'instagram_url',
-  'linkUrl',
-  'link_url',
-  'url',
-  'link',
-] as const
-
 const SHORTCODE_KEYS = [
   'shortCode',
   'shortcode',
@@ -160,6 +139,29 @@ function shortcodeFromPostUrl(url: string): string {
   return match?.[1] ?? ''
 }
 
+/** Normalize Instagram permalinks to a stable public URL (matches Zernio dashboard /reels/ paths). */
+export function canonicalizeInstagramPostUrl(url: string, mediaType?: string): string {
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+  const shortcode = shortcodeFromPostUrl(trimmed)
+  if (!shortcode) return trimmed
+
+  const type = (mediaType ?? '').toLowerCase()
+  const isReelPath = /instagram\.com\/(?:reel|reels|tv)\//i.test(trimmed)
+  const isReel = type.includes('reel') || type.includes('video') || isReelPath
+  const path = isReel ? 'reels' : 'p'
+  return `https://www.instagram.com/${path}/${shortcode}/`
+}
+
+function canonicalizePostUrl(url: string, platform: string, mediaType?: string): string {
+  if (!url) return ''
+  const pl = platform.toLowerCase()
+  if (pl === 'instagram' || url.includes('instagram.com')) {
+    return canonicalizeInstagramPostUrl(url, mediaType)
+  }
+  return url.trim()
+}
+
 function buildPostUrlFromShortcode(source: Record<string, unknown>, platform: string): string {
   const pl = platform.toLowerCase()
   const shortcode = readStringField(source, SHORTCODE_KEYS)
@@ -167,28 +169,26 @@ function buildPostUrlFromShortcode(source: Record<string, unknown>, platform: st
 
   if (pl === 'instagram') {
     const mediaType = String(source.mediaType ?? source.type ?? source.postType ?? '').toLowerCase()
-    const path = mediaType.includes('reel') ? 'reel' : 'p'
-    return `https://www.instagram.com/${path}/${shortcode}/`
+    return canonicalizeInstagramPostUrl(`https://www.instagram.com/p/${shortcode}/`, mediaType)
   }
   return ''
 }
 
-function readUrlFromSource(source: Record<string, unknown>, platform?: string): string {
-  const pl = platform ?? String(source.platform ?? '')
+function buildPostUrlFromPlatformPostId(platformPostId: string, platform: string, mediaType?: string): string {
+  if (!isLikelyInstagramShortcode(platformPostId)) return ''
+  if (platform.toLowerCase() !== 'instagram') return ''
+  return canonicalizeInstagramPostUrl(`https://www.instagram.com/p/${platformPostId}/`, mediaType)
+}
 
-  const explicit = readStringField(source, EXPLICIT_POST_URL_KEYS)
-  if (explicit && looksLikePostUrl(explicit, pl)) return explicit
-
-  const built = buildPostUrlFromShortcode(source, pl)
-  if (built) return built
-
-  for (const key of FALLBACK_POST_URL_KEYS) {
-    const value = source[key]
-    if (typeof value === 'string' && value.trim() && looksLikePostUrl(value.trim(), pl)) {
-      return value.trim()
-    }
-  }
-  return ''
+function collectPlatformEntries(obj: Record<string, unknown>, analytics: Record<string, unknown>): Record<string, unknown>[] {
+  return [
+    ...asArray(obj.platforms),
+    ...asArray(obj.platformAnalytics),
+    ...asArray(obj.platform_analytics),
+    ...asArray(analytics.platforms),
+    ...asArray(analytics.platformAnalytics),
+    ...asArray(analytics.platform_analytics),
+  ] as Record<string, unknown>[]
 }
 
 function readPlatformPostId(source: Record<string, unknown>): string {
@@ -222,30 +222,23 @@ export function readBestPostUrl(entry: unknown, activePlatform?: string): string
     : {}
 
   const postPlatform = String(obj.platform ?? analytics.platform ?? '').toLowerCase()
+  const mediaType = String(obj.mediaType ?? obj.type ?? obj.postType ?? '').toLowerCase()
   const platformFilter = activePlatform && activePlatform !== 'all'
     ? activePlatform.toLowerCase()
     : ''
 
   const readPlatformPostUrl = (source: Record<string, unknown>, pl: string): string => {
     const url = readStringField(source, ['platformPostUrl', 'platform_post_url'])
-    return url && looksLikePostUrl(url, pl || postPlatform) ? url : ''
+    if (!url || !looksLikePostUrl(url, pl || postPlatform)) return ''
+    return canonicalizePostUrl(url, pl || postPlatform, mediaType)
   }
 
-  // Zernio authoritative field — top-level on the post row.
-  const topUrl = readPlatformPostUrl(obj, platformFilter || postPlatform)
-    || readPlatformPostUrl(analytics, platformFilter || postPlatform)
-  if (topUrl) return topUrl
+  const platformEntries = collectPlatformEntries(obj, analytics)
+  const postPlatformPostId = readPlatformPostId(obj)
+    || readPlatformPostId(analytics)
+    || platformEntries.map(readPlatformPostId).find(Boolean)
+    || ''
 
-  const platformEntries = [
-    ...asArray(obj.platforms),
-    ...asArray(obj.platformAnalytics),
-    ...asArray(obj.platform_analytics),
-    ...asArray(analytics.platforms),
-    ...asArray(analytics.platformAnalytics),
-    ...asArray(analytics.platform_analytics),
-  ] as Record<string, unknown>[]
-
-  const postPlatformPostId = readPlatformPostId(obj) || readPlatformPostId(analytics)
   const scopedEntries = platformFilter
     ? platformEntries.filter((p) => String(p.platform ?? '').toLowerCase() === platformFilter)
     : platformEntries
@@ -255,27 +248,42 @@ export function readBestPostUrl(entry: unknown, activePlatform?: string): string
     postPlatformPostId,
   )
 
+  // Prefer platform-scoped platformPostUrl — top-level can be stale vs platforms[].
   for (const entryRow of candidateEntries) {
     const pl = String(entryRow.platform ?? platformFilter ?? postPlatform ?? '')
     const url = readPlatformPostUrl(entryRow, pl)
     if (url) return url
   }
 
-  // Legacy explicit permalink fields only — never build URLs from platformPostId
-  // (Instagram platformPostId is numeric media ID, not a shortcode).
-  const fallbacks = [analytics, obj]
-    .filter((v): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v))
-
-  for (const source of fallbacks) {
-    for (const key of ['permalink', 'permalinkUrl', 'permalink_url'] as const) {
-      const value = source[key]
-      if (typeof value === 'string' && value.trim() && looksLikePostUrl(value.trim(), platformFilter || postPlatform)) {
-        return value.trim()
-      }
+  const topUrl = readPlatformPostUrl(obj, platformFilter || postPlatform)
+    || readPlatformPostUrl(analytics, platformFilter || postPlatform)
+  if (topUrl) {
+    const platformShortcode = candidateEntries
+      .map((row) => shortcodeFromPostUrl(readPlatformPostUrl(row, String(row.platform ?? postPlatform))))
+      .find(Boolean)
+    const topShortcode = shortcodeFromPostUrl(topUrl)
+    if (!platformShortcode || !topShortcode || platformShortcode === topShortcode) {
+      return topUrl
     }
   }
 
-  return ''
+  for (const entryRow of candidateEntries) {
+    const pl = String(entryRow.platform ?? platformFilter ?? postPlatform ?? '')
+    const built = buildPostUrlFromShortcode(entryRow, pl)
+      || buildPostUrlFromPlatformPostId(readPlatformPostId(entryRow), pl, mediaType)
+    if (built) return built
+  }
+
+  if (postPlatformPostId) {
+    const built = buildPostUrlFromPlatformPostId(
+      postPlatformPostId,
+      platformFilter || postPlatform,
+      mediaType,
+    )
+    if (built) return built
+  }
+
+  return topUrl
 }
 
 /** Filter posts when UI platform filter is active */
