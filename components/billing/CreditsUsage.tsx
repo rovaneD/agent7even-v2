@@ -40,7 +40,7 @@ function Bar({ pct, color }: { pct: number; color: string }) {
     <div className="w-full bg-[#E2E8F0] rounded-full h-1.5 overflow-hidden">
       <div
         className="h-1.5 rounded-full transition-all duration-500"
-        style={{ width: `${Math.min(100, Math.max(1, pct))}%`, background: color }}
+        style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background: color }}
       />
     </div>
   )

@@ -51,7 +51,7 @@ export default async function BillingPage() {
     creditBalance = balRow?.[0]?.balance ?? 0
 
     // ── Credits usage data ──────────────────────────────────────────────────
-    // Find the most recent allocation entry to anchor "this month"
+    // Most recent allocation sets the monthly credit pool size
     const { data: allocRows } = await supabase
       .from('credit_ledger')
       .select('credits, created_at')
@@ -64,10 +64,10 @@ export default async function BillingPage() {
     const monthlyAllocation = lastAlloc?.credits
       ?? (profile.plan ? (PLAN_CREDITS[profile.plan] ?? 0) : 0)
 
-    // Use start of current month as fallback if no allocation entry yet
+    // Usage always counts from calendar month start — not allocation timestamp
+    // (mid-month backfills/activations must not hide earlier usage this month)
     const now = new Date()
-    const periodStart = lastAlloc?.created_at
-      ?? new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
     // Reset date = 1st of next month
     const nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1)
