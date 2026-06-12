@@ -4,12 +4,7 @@
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-
-const PLAN_CREDITS: Record<string, number> = {
-  starter:  100,
-  growth:   350,
-  proagent: 1000,
-}
+import { PLAN_CREDITS, allocatePlanCredits } from '@/lib/credits'
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization')
@@ -31,28 +26,10 @@ export async function GET(req: Request) {
   let allocated = 0
 
   for (const profile of profiles) {
-    const credits = PLAN_CREDITS[profile.plan]
-    if (!credits) continue
+    if (!PLAN_CREDITS[profile.plan]) continue
 
-    // Upsert balance (reset to allocation — doesn't roll over)
-    await supabase
-      .from('credit_balances')
-      .upsert({
-        user_id:    profile.id,
-        balance:    credits,
-        updated_at: new Date().toISOString(),
-      })
-
-    // Log allocation to ledger
-    await supabase.from('credit_ledger').insert({
-      user_id:     profile.id,
-      type:        'allocation',
-      credits:     credits,
-      balance_after: credits,
-      description: `Monthly allocation — ${profile.plan} plan`,
-    })
-
-    allocated++
+    const granted = await allocatePlanCredits(profile.id, profile.plan)
+    if (granted != null) allocated++
   }
 
   return NextResponse.json({ allocated })

@@ -5,6 +5,7 @@ import BillingClient from './BillingClient'
 import { getStripeClient } from '@/lib/stripe'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import type { CreditsUsageData, BreakdownItem, CreditActivityItem } from '@/components/billing/CreditsUsage'
+import { PLAN_CREDITS } from '@/lib/credits'
 
 export default async function BillingPage() {
   const { userId } = await auth()
@@ -40,10 +41,6 @@ export default async function BillingPage() {
   let creditBalance = 0
   let creditsUsage: CreditsUsageData | null = null
 
-  const PLAN_ALLOCATION: Record<string, number> = {
-    starter: 100, growth: 350, proagent: 1000,
-  }
-
   if (profile?.id) {
     const { data: balRow } = await supabase
       .from('credit_balances')
@@ -65,7 +62,7 @@ export default async function BillingPage() {
 
     const lastAlloc = allocRows?.[0]
     const monthlyAllocation = lastAlloc?.credits
-      ?? (profile.plan ? (PLAN_ALLOCATION[profile.plan] ?? 0) : 0)
+      ?? (profile.plan ? (PLAN_CREDITS[profile.plan] ?? 0) : 0)
 
     // Use start of current month as fallback if no allocation entry yet
     const now = new Date()
@@ -95,7 +92,17 @@ export default async function BillingPage() {
       .gte('created_at', periodStart)
 
     const debits = debitRows ?? []
-    const monthlyUsed = debits.reduce((s, r) => s + Math.abs(r.credits ?? 0), 0)
+    const grossDebits = debits.reduce((s, r) => s + Math.abs(r.credits ?? 0), 0)
+
+    const { data: refundRows } = await supabase
+      .from('credit_ledger')
+      .select('credits')
+      .eq('user_id', profile.id)
+      .eq('type', 'refund')
+      .gte('created_at', periodStart)
+
+    const refundTotal = (refundRows ?? []).reduce((s, r) => s + (r.credits ?? 0), 0)
+    const monthlyUsed = Math.max(0, grossDebits - refundTotal)
 
     // Categorise debits
     function categorise(desc: string | null): string {
@@ -125,9 +132,9 @@ export default async function BillingPage() {
       .sort((a, b) => b[1] - a[1])
       .map(([label, credits]) => ({ label, credits, color: COLORS[label] ?? '#9BA1AE' }))
 
-    const monthlyRemainingRaw = Math.max(0, monthlyAllocation - monthlyUsed)
-    const monthlyRemaining = Math.min(monthlyRemainingRaw, creditBalance)
-    const topupBalance = Math.max(0, creditBalance - monthlyRemaining)
+    const monthlyRemaining = Math.max(0, monthlyAllocation - monthlyUsed)
+    const planSpendable = Math.min(monthlyRemaining, creditBalance)
+    const topupBalance = Math.max(0, creditBalance - planSpendable)
 
     const { data: activityRows } = await supabase
       .from('credit_ledger')
@@ -148,6 +155,7 @@ export default async function BillingPage() {
       monthlyAllocation,
       monthlyUsed,
       monthlyRemaining,
+      planSpendable,
       topupBalance:   Math.max(0, topupBalance),
       totalAvailable: creditBalance,
       resetDate,

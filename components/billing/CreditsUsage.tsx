@@ -21,6 +21,7 @@ export interface CreditsUsageData {
   monthlyAllocation: number
   monthlyUsed: number
   monthlyRemaining: number
+  planSpendable: number
   topupBalance: number
   totalAvailable: number
   resetDate: string
@@ -52,6 +53,7 @@ export default function CreditsUsage({ data }: Props) {
     monthlyAllocation,
     monthlyUsed,
     monthlyRemaining,
+    planSpendable,
     topupBalance,
     totalAvailable,
     resetDate,
@@ -63,6 +65,7 @@ export default function CreditsUsage({ data }: Props) {
   const monthlyPct = monthlyAllocation > 0
     ? Math.round((monthlyUsedCapped / monthlyAllocation) * 100)
     : 0
+  const balanceBelowPlanRemaining = totalAvailable < monthlyRemaining
 
   return (
     <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
@@ -90,17 +93,22 @@ export default function CreditsUsage({ data }: Props) {
                 resets {resetDate}
               </span>
               <span className="text-sm font-medium text-[#2D3748]">
-                {monthlyRemaining > 0
-                  ? `${monthlyRemaining.toLocaleString()} / ${monthlyAllocation.toLocaleString()}`
-                  : `0 / ${monthlyAllocation.toLocaleString()}`}
+                {monthlyUsedCapped.toLocaleString()} / {monthlyAllocation.toLocaleString()} used
               </span>
             </div>
           </div>
           <Bar pct={monthlyPct} color="#3B82F6" />
           <div className="flex justify-between mt-1">
-            <span className="text-[11px] text-[#64748B]">{monthlyUsedCapped.toLocaleString()} used</span>
+            <span className="text-[11px] text-[#64748B]">
+              {monthlyRemaining.toLocaleString()} remaining on plan
+            </span>
             <span className="text-[11px] text-[#64748B]">{monthlyPct}%</span>
           </div>
+          {balanceBelowPlanRemaining && (
+            <p className="text-[11px] text-[#64748B] mt-1.5">
+              {planSpendable.toLocaleString()} credits spendable now · full refresh {resetDate}
+            </p>
+          )}
         </div>
 
         {/* Top-up balance */}

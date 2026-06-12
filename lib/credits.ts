@@ -1,7 +1,56 @@
 import { createServiceClient } from '@/lib/supabase/server'
 
+export const PLAN_CREDITS: Record<string, number> = {
+  starter:  100,
+  growth:   350,
+  proagent: 1000,
+}
+
 export interface CreditMutationResult {
   balance: number
+}
+
+/** Reset balance to plan allocation and write a ledger row. */
+export async function allocatePlanCredits(
+  profileId: string,
+  plan: string,
+  opts?: { skipIfAllocated?: boolean; description?: string }
+): Promise<number | null> {
+  const credits = PLAN_CREDITS[plan]
+  if (!credits) return null
+
+  const supabase = createServiceClient()
+
+  if (opts?.skipIfAllocated) {
+    const { count } = await supabase
+      .from('credit_ledger')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', profileId)
+      .eq('type', 'allocation')
+
+    if ((count ?? 0) > 0) return null
+  }
+
+  const now = new Date().toISOString()
+  const description = opts?.description ?? `Monthly allocation — ${plan} plan`
+
+  await supabase
+    .from('credit_balances')
+    .upsert({
+      user_id:    profileId,
+      balance:    credits,
+      updated_at: now,
+    })
+
+  await supabase.from('credit_ledger').insert({
+    user_id:       profileId,
+    type:          'allocation',
+    credits,
+    balance_after: credits,
+    description,
+  })
+
+  return credits
 }
 
 export async function deductCredits(

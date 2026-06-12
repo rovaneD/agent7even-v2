@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/server'
+import { allocatePlanCredits, PLAN_CREDITS } from '@/lib/credits'
 import { createNotification } from '@/lib/createNotification'
 import { getStripeClient } from '@/lib/stripe'
 import * as publisher from '@/lib/social/publisher'
@@ -133,10 +134,17 @@ export async function POST(req: Request) {
         .single()
 
       if (newProfile) {
+        const creditsGranted = await allocatePlanCredits(newProfile.id, plan, {
+          skipIfAllocated: true,
+          description: `Plan activation — ${plan} plan`,
+        })
+
         await createNotification({
           userId: newProfile.id,
           title: 'Welcome to Agent7even!',
-          body: `Your ${plan} plan is now active. You have full access to your dashboard.`,
+          body: creditsGranted != null
+            ? `Your ${plan} plan is active with ${PLAN_CREDITS[plan]} credits ready to use.`
+            : `Your ${plan} plan is now active. You have full access to your dashboard.`,
           type: 'plan_activated',
           link: '/dashboard',
           sendEmail: false,
