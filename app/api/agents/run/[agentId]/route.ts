@@ -9,6 +9,7 @@ import {
   buildSystemPrompt,
   chargeAgentRun,
 } from '@/lib/agents/runner'
+import { isSinglePostRun, isWeeklyContentRun, resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
 import { CREDIT_COST, type RunTier } from '@/lib/agents/cost'
 import { buildAgentFlowPrompt, buildAgentUserMessage } from '@/lib/agents/flows'
@@ -99,7 +100,7 @@ export async function POST(
       })}`
     }
 
-    if (hasImage || agentId === 'post_caption') {
+    if (hasImage || isSinglePostRun(agentId, taskInput)) {
       system += `\n\nOUTPUT OVERRIDE: Return a single social caption only. Ignore any multi-day plan or multi-post output contract.`
     }
 
@@ -135,20 +136,28 @@ export async function POST(
     }
 
     const outputContent: Record<string, unknown> = { raw: text.trim() }
+    if (agentId === 'content_posting') {
+      outputContent.contentFlow = resolveContentPostingFlow(taskInput)
+    }
     if (hasImage && media.media_storage_path) {
       outputContent.media_storage_path = media.media_storage_path
       outputContent.media_mime = media.media_mime
       outputContent.image_caption_mode = true
     }
 
+    const dateLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const outputTitle = hasImage || isSinglePostRun(agentId, taskInput)
+      ? `Post caption — ${dateLabel}`
+      : isWeeklyContentRun(agentId, taskInput)
+        ? `Weekly content plan — ${dateLabel}`
+        : `${agent.name} — ${dateLabel}`
+
     await saveAgentOutput({
       taskId,
       userId,
       agent: agentId,
       outputType: agent.outputType,
-      title: hasImage || agentId === 'post_caption'
-        ? `Post caption — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-        : `${agent.name} — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      title: outputTitle,
       content: outputContent,
     })
 

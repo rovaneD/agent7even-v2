@@ -1,7 +1,9 @@
 import { buildImageContextAgentConstraints } from '@/lib/posts/imageContextCapabilities'
+import { isCommandCenterAgent } from '@/lib/agents/contentPosting'
 
 export type AgentId =
   | 'competitor_watcher'
+  | 'content_posting'
   | 'weekly_content'
   | 'post_caption'
   | 'campaign_builder'
@@ -37,6 +39,18 @@ export interface AgentDefinition {
 }
 
 export const AGENTS: Record<AgentId, AgentDefinition> = {
+  content_posting: {
+    id: 'content_posting',
+    name: 'Content Posting',
+    description: 'Single post with your image, or plan a week of content',
+    icon: 'ti-layout-media-right',
+    autonomyLevel: 'approval_required',
+    outputType: 'content_posting',
+    model: 'anthropic/claude-haiku-4-5',
+    defaultConstraints: `Never make specific income or results claims without disclaimer. Never use urgency tactics like "limited time" unless explicitly provided by the client. Never post content that hasn't been approved if autonomy is set to approval_required. Always stay within the brand voice defined in Brand Kit. ${buildImageContextAgentConstraints()}`,
+    foundationSections: ['business', 'voice', 'memory'],
+    warnIfThinSections: ['voice'],
+  },
   post_caption: {
     id: 'post_caption',
     name: 'Post Caption',
@@ -171,8 +185,12 @@ export const APPROVAL_REQUIRED_AGENTS = Object.values(AGENTS)
   .filter(a => a.autonomyLevel === 'approval_required')
   .map(a => a.id)
 
+/** Agents shown in Command Center (legacy content agents hidden). */
+export const COMMAND_CENTER_AGENTS = Object.values(AGENTS).filter(a => isCommandCenterAgent(a.id))
+
 export const AGENT_COLORS: Record<AgentId, { bg: string; fg: string }> = {
   competitor_watcher:     { bg: '#C5F9CD', fg: '#15803D' },
+  content_posting:        { bg: '#DBEAFE', fg: '#1D4ED8' },
   weekly_content:         { bg: '#C5EFF9', fg: '#0369A1' },
   post_caption:           { bg: '#DBEAFE', fg: '#1D4ED8' },
   campaign_builder:       { bg: '#F7C5F9', fg: '#7E22CE' },

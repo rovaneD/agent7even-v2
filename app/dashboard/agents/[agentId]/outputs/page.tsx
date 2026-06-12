@@ -4,6 +4,7 @@ import { buildAgentOutputsMayaContext } from '@/lib/maya/summaries/phase3Context
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
 import AgentOutputDetail from './AgentOutputDetail'
 
@@ -85,11 +86,15 @@ export default async function AgentOutputsPage({
 
   if (!profile) redirect('/foundation')
 
+  const outputAgentIds = rawAgentId === 'content_posting'
+    ? contentPostingStatsAgentIds()
+    : [rawAgentId]
+
   const { data: outputs } = await supabase
     .from('agent_outputs')
     .select('id, task_id, agent, output_type, title, content, status, created_at')
     .eq('user_id', profile.id)
-    .eq('agent', rawAgentId)
+    .in('agent', outputAgentIds)
     .order('created_at', { ascending: false })
     .limit(100)
 

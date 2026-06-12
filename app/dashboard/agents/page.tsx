@@ -1,7 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
-import { AGENTS } from '@/lib/agents/registry'
+import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
+import { COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
 import AgentCommandCenter from './AgentCommandCenter'
 
 export default async function AgentsPage() {
@@ -70,15 +71,18 @@ export default async function AgentsPage() {
       .limit(50),
   ])
 
-  // Build scorecard stats per agent
-  const scorecard = Object.values(AGENTS).map(agent => {
-    const tasks = (recentTasks ?? []).filter(t => t.agent === agent.id)
-    const outputs = (allOutputs ?? []).filter(o => o.agent === agent.id)
+  // Build scorecard stats per Command Center agent (legacy content agents roll into Content Posting)
+  const scorecard = COMMAND_CENTER_AGENTS.map(agent => {
+    const agentIds = agent.id === 'content_posting'
+      ? contentPostingStatsAgentIds()
+      : [agent.id]
+    const tasks = (recentTasks ?? []).filter(t => agentIds.includes(t.agent))
+    const outputs = (allOutputs ?? []).filter(o => agentIds.includes(o.agent))
     const approved = outputs.filter(o => o.status === 'approved').length
     const approvalRequired = outputs.filter(o => o.status !== 'approved' || o.status === 'pending_approval').length + approved
 
     const lastTask = tasks[0]
-    const schedule = (schedules ?? []).find(s => s.agent === agent.id)
+    const schedule = (schedules ?? []).find(s => agentIds.includes(s.agent))
 
     return {
       agentId: agent.id,

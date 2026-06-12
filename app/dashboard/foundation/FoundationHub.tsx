@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { AGENTS, AGENT_COLORS } from '@/lib/agents/registry'
 import type { FoundationSectionKey } from '@/lib/agents/registry'
+import { isCommandCenterAgent } from '@/lib/agents/contentPosting'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,7 @@ export interface Props {
 // Icon map for registry agents (lucide icons, keyed by agent id)
 const AGENT_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   competitor_watcher:     Eye,
+  content_posting:        Image,
   weekly_content:         Pencil,
   post_caption:           Image,
   campaign_builder:       Rocket,
@@ -106,7 +108,7 @@ const AGENT_ICONS: Record<string, React.ComponentType<{ size?: number; className
 
 function agentsForSection(sectionKey: FoundationSectionKey): AgentTag[] {
   return Object.values(AGENTS)
-    .filter(a => a.foundationSections.includes(sectionKey))
+    .filter(a => a.foundationSections.includes(sectionKey) && isCommandCenterAgent(a.id))
     .map(a => ({
       id:          a.id,
       name:        a.name,

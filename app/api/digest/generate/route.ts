@@ -139,8 +139,9 @@ Return only the sentence, nothing else.`,
 function formatAgentName(agentId: string): string {
   const names: Record<string, string> = {
     competitor_watcher:     'Competitor Watcher',
-    weekly_content:         'Weekly Content',
-    post_caption:           'Post Caption',
+  content_posting:        'Content Posting',
+  weekly_content:         'Weekly Content',
+  post_caption:           'Post Caption',
     campaign_builder:       'Campaign Builder',
     performance_digest:     'Performance Digest',
     trend_spotter:          'Trend Spotter',

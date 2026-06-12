@@ -27,6 +27,7 @@ interface Props {
 
 const AGENT_NAMES: Record<string, string> = {
   competitor_watcher:     'Competitor Watcher',
+  content_posting:        'Content Posting',
   weekly_content:         'Weekly Content',
   post_caption:           'Post Caption',
   content_writer:         'Weekly Content',

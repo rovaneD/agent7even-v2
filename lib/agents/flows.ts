@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { AGENTS, type AgentId } from './registry'
 
 type AgentInput = Record<string, unknown>
@@ -203,8 +204,22 @@ export const AGENT_FLOWS: Record<AgentId, AgentFlow> = {
     role: 'Single-post caption writer. The user attaches the exact image they plan to publish; write one caption that fits that image in brand voice.',
     requires: ['platform', 'attached post image', 'brand voice from Foundation', 'post goal or CTA if provided'],
     outputContract: 'Return ONLY one social caption — no headings, no quotes, no markdown, no weekly plan, no alternate versions unless explicitly asked.',
-    contextBuilder: userId => recentOutputsContext(userId, ['post_caption', 'weekly_content'], 3),
+    contextBuilder: userId => recentOutputsContext(userId, ['post_caption', 'content_posting', 'weekly_content'], 3),
     defaultUserMessage: input => inputText(input, 'instructions') || 'Write one social caption for the attached post image using the setup details, platform limits, and Foundation context.',
+  },
+  content_posting: {
+    role: 'Content posting operator. Single post: caption for an attached image. Weekly: plan a week of posts and emails.',
+    requires: ['contentFlow: single | weekly', 'brand voice from Foundation', 'flow-specific setup fields'],
+    outputContract: 'Single post: one caption only. Weekly: 7-day content plan with platform, concept, copy, CTA, and approval notes.',
+    contextBuilder: async (userId, input) => {
+      const effectiveId = resolveContentPostingFlow(input) === 'weekly' ? 'weekly_content' : 'post_caption'
+      const builder = AGENT_FLOWS[effectiveId].contextBuilder
+      return builder ? builder(userId, input) : ''
+    },
+    defaultUserMessage: input => {
+      const effectiveId = resolveContentPostingFlow(input) === 'weekly' ? 'weekly_content' : 'post_caption'
+      return AGENT_FLOWS[effectiveId].defaultUserMessage(input)
+    },
   },
   campaign_builder: {
     role: '30-day campaign strategist. Build an executable campaign, not a vague strategy document.',
@@ -257,12 +272,21 @@ export const AGENT_FLOWS: Record<AgentId, AgentFlow> = {
   },
 }
 
+function effectiveContentFlowAgentId(agentId: AgentId, input: AgentInput): AgentId {
+  if (agentId !== 'content_posting') return agentId
+  return resolveContentPostingFlow(input) === 'weekly' ? 'weekly_content' : 'post_caption'
+}
+
 export async function buildAgentFlowPrompt(userId: string, agentId: AgentId, input: AgentInput): Promise<string> {
-  const flow = AGENT_FLOWS[agentId]
+  const effectiveId = effectiveContentFlowAgentId(agentId, input)
+  const flow = AGENT_FLOWS[effectiveId]
   const extraContext = flow.contextBuilder ? await flow.contextBuilder(userId, input) : ''
   const agent = AGENTS[agentId]
+  const flowLabel = agentId === 'content_posting'
+    ? (resolveContentPostingFlow(input) === 'weekly' ? 'Weekly content' : 'Single post')
+    : null
 
-  return `AGENT-SPECIFIC FLOW — ${agent.name}
+  return `AGENT-SPECIFIC FLOW — ${agent.name}${flowLabel ? ` (${flowLabel})` : ''}
 
 Role:
 ${flow.role}
@@ -283,5 +307,8 @@ ${extraContext ? `Additional agent-specific context:\n${extraContext}` : ''}`
 }
 
 export function buildAgentUserMessage(agentId: AgentId, input: AgentInput): string {
+  if (agentId === 'content_posting') {
+    return AGENT_FLOWS.content_posting.defaultUserMessage(input)
+  }
   return AGENT_FLOWS[agentId].defaultUserMessage(input)
 }

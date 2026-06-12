@@ -6,7 +6,13 @@ import { buildAgentCommandCenterMayaContext } from '@/lib/maya/summaries/agentsC
 import PostImageAttach from '@/components/agents/PostImageAttach'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { AGENTS, AgentId, AgentDefinition, AGENT_COLORS } from '@/lib/agents/registry'
+import { AGENTS, AgentId, AgentDefinition, AGENT_COLORS, COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
+import {
+  CONTENT_POSTING_FLOW_LABELS,
+  type ContentPostingFlow,
+  contentPostingStatsAgentIds,
+  isLegacyContentAgent,
+} from '@/lib/agents/contentPosting'
 import OrchestrationProgress from '@/components/agents/OrchestrationProgress'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -90,6 +96,10 @@ const AGENT_GUIDED_CONFIG: Record<AgentId, AgentGuidedConfig> = {
       { key: 'channels', label: 'Sources to prioritize', type: 'textarea', placeholder: 'Websites, pricing pages, Instagram, email, ads, reviews...', columns: 2 },
       { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Claims, competitor callouts, tactics, or sensitive areas to avoid.', columns: 1 },
     ],
+  },
+  content_posting: {
+    intro: 'Choose Single post or Weekly content, then complete the setup for that flow.',
+    fields: [],
   },
   weekly_content: {
     intro: 'Define the week so the agent produces usable posts and emails, not a generic content brainstorm.',
@@ -199,6 +209,63 @@ const AGENT_GUIDED_CONFIG: Record<AgentId, AgentGuidedConfig> = {
   },
 }
 
+const CONTENT_POSTING_FLOW_CONFIG: Record<ContentPostingFlow, AgentGuidedConfig> = {
+  single: {
+    intro: 'Attach the image you plan to post. Maya reads it and writes one caption to match what is in the frame — then you approve and publish.',
+    fields: [
+      { key: 'platform', label: 'Platform', type: 'select', options: ['Instagram', 'LinkedIn', 'Facebook', 'X'], columns: 3 },
+      { key: 'postGoal', label: 'Post goal', type: 'select', options: ['Awareness', 'Engagement', 'Traffic', 'Leads', 'Sales', 'Community'], columns: 3 },
+      { key: 'audience', label: 'Audience', placeholder: 'Who should this post speak to?', columns: 3 },
+      { key: 'offer', label: 'Offer / CTA', placeholder: 'Link, product, booking page, or action you want...', columns: 2 },
+      { key: 'mustInclude', label: 'Must include', type: 'textarea', placeholder: 'Hashtags, link, promo code, event date...', columns: 2 },
+      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Topics, phrases, or claims to avoid.', columns: 2 },
+    ],
+  },
+  weekly: {
+    intro: 'Define the week so the agent produces usable posts and emails, not a generic content brainstorm.',
+    fields: [
+      { key: 'weekGoal', label: 'Week goal', placeholder: 'Lead generation, nurture, launch support, retention...', columns: 3 },
+      { key: 'contentMix', label: 'Content mix', type: 'select', options: ['Balanced', 'Education-heavy', 'Sales/promo', 'Community/engagement', 'Launch support'], columns: 3 },
+      { key: 'platforms', label: 'Platforms', placeholder: 'Instagram, LinkedIn, email, blog, Facebook...', columns: 3 },
+      { key: 'audience', label: 'Audience', placeholder: 'Who should this week speak to?', columns: 2 },
+      { key: 'offer', label: 'Offer / product', placeholder: 'What should the content move people toward?', columns: 2 },
+      { key: 'mustInclude', label: 'Must include', type: 'textarea', placeholder: 'Proof, events, links, product details, campaign notes...', columns: 2 },
+      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Topics, phrases, claims, or angles to avoid.', columns: 2 },
+    ],
+  },
+}
+
+const INITIAL_CONTENT_POSTING_FORMS = Object.fromEntries(
+  Object.entries(CONTENT_POSTING_FLOW_CONFIG).map(([flow, config]) => [
+    flow,
+    Object.fromEntries(config.fields.map(field => [field.key, field.options?.[0] ?? ''])),
+  ])
+) as Record<ContentPostingFlow, Record<string, string>>
+
+function buildContentPostingInstructions(
+  flow: ContentPostingFlow,
+  form: Record<string, string>,
+  extraInstructions: string,
+): string {
+  const config = CONTENT_POSTING_FLOW_CONFIG[flow]
+  const details = config.fields
+    .map(field => `${field.label}: ${form[field.key]?.trim() || 'Use best assumption from Foundation/Brand context'}`)
+    .join('\n')
+
+  return `Run Content Posting (${CONTENT_POSTING_FLOW_LABELS[flow]}) using these setup details.
+
+${details}
+
+Additional instructions: ${extraInstructions.trim() || 'None'}
+
+Return a complete, ready-to-review output that follows this flow's output contract. Do not ask setup questions. If anything is missing, state your assumption and continue.`
+}
+
+function agentDisplayName(agentId: string): string {
+  if (isLegacyContentAgent(agentId)) return AGENTS.content_posting.name
+  return AGENTS[agentId as AgentId]?.name ?? agentId
+}
+
 const INITIAL_AGENT_FORMS = Object.fromEntries(
   Object.entries(AGENT_GUIDED_CONFIG).map(([agentId, config]) => [
     agentId,
@@ -281,6 +348,8 @@ export default function AgentCommandCenter({
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [agentForms, setAgentForms] = useState<Record<AgentId, Record<string, string>>>(INITIAL_AGENT_FORMS)
+  const [contentPostingFlow, setContentPostingFlow] = useState<ContentPostingFlow>('single')
+  const [contentPostingForms, setContentPostingForms] = useState(INITIAL_CONTENT_POSTING_FORMS)
   const [postImageMedia, setPostImageMedia] = useState<{
     storagePath: string
     mime: string
@@ -309,22 +378,28 @@ export default function AgentCommandCenter({
   const [savingConstraints, setSavingConstraints] = useState(false)
   const [constraintsSaved, setConstraintsSaved] = useState(false)
 
-  const agentList = useMemo(() => {
-    const all = Object.values(AGENTS)
-    const postCaption = all.find(a => a.id === 'post_caption')
-    const rest = all.filter(a => a.id !== 'post_caption')
-    return postCaption ? [postCaption, ...rest] : all
-  }, [])
+  const agentList = useMemo(() => COMMAND_CENTER_AGENTS, [])
 
-  function startPostCaptionFlow() {
-    setSelectedAgent('post_caption')
+  function startSinglePostFlow() {
+    setSelectedAgent('content_posting')
+    setContentPostingFlow('single')
     setPostImageRequiredError(null)
     setTimeout(() => {
       document.getElementById('run-agent')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
   }
-  const selectedAgentConfig = selectedAgent ? AGENT_GUIDED_CONFIG[selectedAgent] : null
-  const selectedAgentForm = selectedAgent ? agentForms[selectedAgent] : {}
+
+  const selectedAgentConfig = selectedAgent === 'content_posting'
+    ? CONTENT_POSTING_FLOW_CONFIG[contentPostingFlow]
+    : selectedAgent
+      ? AGENT_GUIDED_CONFIG[selectedAgent]
+      : null
+  const selectedAgentForm = selectedAgent === 'content_posting'
+    ? contentPostingForms[contentPostingFlow]
+    : selectedAgent
+      ? agentForms[selectedAgent]
+      : {}
+  const isSinglePostSelected = selectedAgent === 'content_posting' && contentPostingFlow === 'single'
 
   const CONSTRAINT_TEMPLATES = [
     { label: 'No discounting', text: 'Never offer discounts, promotions, or reduced pricing without explicit client approval.' },
@@ -348,13 +423,13 @@ export default function AgentCommandCenter({
   useMayaContext(mayaContext)
 
   useEffect(() => {
-    if (selectedAgent !== 'post_caption' && postImageMedia) {
+    if (!isSinglePostSelected && postImageMedia) {
       setPostImageMedia(null)
     }
-    if (selectedAgent !== 'post_caption') {
+    if (!isSinglePostSelected) {
       setPostImageRequiredError(null)
     }
-  }, [selectedAgent, postImageMedia])
+  }, [isSinglePostSelected, postImageMedia])
 
   // Fetch active + recent orchestrations on mount
   useEffect(() => {
@@ -476,19 +551,26 @@ export default function AgentCommandCenter({
     setPostImageRequiredError(null)
     setSubmitting(true)
     try {
-      const form = agentForms[selectedAgent] ?? {}
-      const instructions = buildGuidedInstructions(selectedAgent, form, taskInstructions)
-      const input: Record<string, unknown> = { instructions, ...form }
+      let input: Record<string, unknown>
+      if (selectedAgent === 'content_posting') {
+        const form = contentPostingForms[contentPostingFlow]
+        const instructions = buildContentPostingInstructions(contentPostingFlow, form, taskInstructions)
+        input = { instructions, contentFlow: contentPostingFlow, ...form }
 
-      if (selectedAgent === 'post_caption') {
-        if (!postImageMedia) {
-          setPostImageRequiredError('Attach the post image before running Post Caption.')
-          return
+        if (contentPostingFlow === 'single') {
+          if (!postImageMedia) {
+            setPostImageRequiredError('Attach the post image before running Single post.')
+            return
+          }
+          input.media_storage_path = postImageMedia.storagePath
+          input.media_mime = postImageMedia.mime
+          input.image_caption_mode = true
+          input.platforms = form.platform ?? 'Instagram'
         }
-        input.media_storage_path = postImageMedia.storagePath
-        input.media_mime = postImageMedia.mime
-        input.image_caption_mode = true
-        input.platforms = form.platform ?? 'Instagram'
+      } else {
+        const form = agentForms[selectedAgent] ?? {}
+        const instructions = buildGuidedInstructions(selectedAgent, form, taskInstructions)
+        input = { instructions, ...form }
       }
 
       await fetch('/api/agents/tasks/create', {
@@ -520,6 +602,16 @@ export default function AgentCommandCenter({
     }))
   }
 
+  function updateContentPostingForm(flow: ContentPostingFlow, key: string, value: string) {
+    setContentPostingForms(prev => ({
+      ...prev,
+      [flow]: {
+        ...prev[flow],
+        [key]: value,
+      },
+    }))
+  }
+
   const runningTasks = activeTasks.filter(t => t.status === 'running')
   const queuedTasks = activeTasks.filter(t => t.status === 'pending')
   const completedToday = recentTasks
@@ -527,7 +619,15 @@ export default function AgentCommandCenter({
     .slice(0, 5)
   const scorecardWithLiveCounts = scorecard.map(entry => ({
     ...entry,
-    totalOutputs: Math.max(entry.totalOutputs, recentOutputs.filter(output => output.agent === entry.agentId).length),
+    totalOutputs: Math.max(
+      entry.totalOutputs,
+      recentOutputs.filter(output => {
+        if (entry.agentId === 'content_posting') {
+          return contentPostingStatsAgentIds().includes(output.agent as AgentId)
+        }
+        return output.agent === entry.agentId
+      }).length,
+    ),
   }))
   const latestOutputs = recentOutputs.slice(0, 5)
 
@@ -549,7 +649,7 @@ export default function AgentCommandCenter({
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={startPostCaptionFlow}
+                onClick={startSinglePostFlow}
                 className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-[#2563EB]"
               >
                 Post with your image
@@ -636,7 +736,7 @@ export default function AgentCommandCenter({
                       ? 'bg-brand-primary/10 text-brand-primary'
                       : 'bg-surface-2 text-text-sec'
                   }`}>
-                    {agent.id === 'post_caption' ? '1 image' : agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
+                    {agent.id === 'content_posting' ? 'Single · Weekly' : agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
                   </span>
                 </div>
                 <div>
@@ -662,6 +762,25 @@ export default function AgentCommandCenter({
                   </p>
                 </div>
 
+                {selectedAgent === 'content_posting' && (
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {(['single', 'weekly'] as const).map(flow => (
+                      <button
+                        key={flow}
+                        type="button"
+                        onClick={() => setContentPostingFlow(flow)}
+                        className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                          contentPostingFlow === flow
+                            ? 'border border-brand-primary bg-brand-primary/10 text-brand-primary'
+                            : 'border border-border bg-surface-2 text-text-sec hover:border-gray-200 hover:text-text-primary'
+                        }`}
+                      >
+                        {CONTENT_POSTING_FLOW_LABELS[flow]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-6">
                   {selectedAgentConfig.fields.map(field => {
                     const type = field.type ?? 'text'
@@ -677,7 +796,13 @@ export default function AgentCommandCenter({
                         {type === 'select' ? (
                           <select
                             value={selectedAgentForm[field.key] ?? ''}
-                            onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
+                            onChange={e => {
+                              if (selectedAgent === 'content_posting') {
+                                updateContentPostingForm(contentPostingFlow, field.key, e.target.value)
+                              } else {
+                                updateAgentForm(selectedAgent, field.key, e.target.value)
+                              }
+                            }}
                             className={controlClass}
                           >
                             {(field.options ?? []).map(option => <option key={option}>{option}</option>)}
@@ -685,7 +810,13 @@ export default function AgentCommandCenter({
                         ) : type === 'textarea' ? (
                           <textarea
                             value={selectedAgentForm[field.key] ?? ''}
-                            onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
+                            onChange={e => {
+                              if (selectedAgent === 'content_posting') {
+                                updateContentPostingForm(contentPostingFlow, field.key, e.target.value)
+                              } else {
+                                updateAgentForm(selectedAgent, field.key, e.target.value)
+                              }
+                            }}
                             rows={field.columns === 1 ? 4 : 3}
                             placeholder={field.placeholder}
                             className={`${controlClass} resize-y leading-6`}
@@ -693,7 +824,13 @@ export default function AgentCommandCenter({
                         ) : (
                           <input
                             value={selectedAgentForm[field.key] ?? ''}
-                            onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
+                            onChange={e => {
+                              if (selectedAgent === 'content_posting') {
+                                updateContentPostingForm(contentPostingFlow, field.key, e.target.value)
+                              } else {
+                                updateAgentForm(selectedAgent, field.key, e.target.value)
+                              }
+                            }}
                             placeholder={field.placeholder}
                             className={controlClass}
                           />
@@ -716,7 +853,7 @@ export default function AgentCommandCenter({
                   />
                 </label>
 
-                {selectedAgent === 'post_caption' && (
+                {isSinglePostSelected && (
                   <div className="mt-4">
                     <PostImageAttach
                       disabled={submitting}
@@ -752,7 +889,7 @@ export default function AgentCommandCenter({
               </div>
               <button
                 onClick={handleCreateTask}
-                disabled={submitting || submitted || (selectedAgent === 'post_caption' && !postImageMedia)}
+                disabled={submitting || submitted || (isSinglePostSelected && !postImageMedia)}
                 className={`ml-auto min-w-[180px] rounded-xl px-5 py-3 text-sm font-semibold text-text-inverse transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   submitted ? 'bg-status-success' : 'bg-brand-primary hover:bg-[#2563EB]'
                 }`}
@@ -845,7 +982,7 @@ export default function AgentCommandCenter({
                 {pendingApprovals.length} output{pendingApprovals.length !== 1 ? 's' : ''} waiting for your review
               </p>
               <p className="mt-1 truncate text-xs text-text-sec">
-                {[...new Set(pendingApprovals.map(t => AGENTS[t.agent as AgentId]?.name ?? t.agent))].slice(0, 3).join(', ')}
+                {[...new Set(pendingApprovals.map(t => agentDisplayName(t.agent)))].slice(0, 3).join(', ')}
                 {pendingApprovals.length > 3 ? ` +${pendingApprovals.length - 3} more` : ''}
               </p>
             </div>
@@ -894,7 +1031,7 @@ export default function AgentCommandCenter({
                         <div className="h-2 w-2 flex-shrink-0 rounded-full bg-status-success" style={{ animation: 'dotPulse 1.5s ease-in-out infinite' }} />
                         <i className={`ti ${def?.icon ?? 'ti-robot'} text-text-sec`} style={{ fontSize: 14 }} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-text-primary">{def?.name}</p>
+                          <p className="truncate text-sm font-medium text-text-primary">{agentDisplayName(t.agent)}</p>
                         </div>
                         <span className="text-xs text-text-muted">{relativeTime(t.started_at)}</span>
                       </div>
@@ -913,7 +1050,7 @@ export default function AgentCommandCenter({
                         <div className="h-2 w-2 flex-shrink-0 rounded-full bg-border" />
                         <i className={`ti ${def?.icon ?? 'ti-robot'} text-text-muted`} style={{ fontSize: 14 }} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm text-text-sec">{def?.name}</p>
+                          <p className="truncate text-sm text-text-sec">{agentDisplayName(t.agent)}</p>
                         </div>
                         <span className="text-xs text-text-muted">Waiting</span>
                       </div>
@@ -932,7 +1069,7 @@ export default function AgentCommandCenter({
                         <i className="ti ti-check text-status-success" style={{ fontSize: 13 }} />
                         <i className={`ti ${def?.icon ?? 'ti-robot'} text-text-muted`} style={{ fontSize: 14 }} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm text-text-sec">{def?.name}</p>
+                          <p className="truncate text-sm text-text-sec">{agentDisplayName(t.agent)}</p>
                         </div>
                         <span className="text-xs text-text-muted">{relativeTime(t.completed_at)}</span>
                       </div>
@@ -1042,6 +1179,9 @@ export default function AgentCommandCenter({
           <div className="grid gap-2">
             {latestOutputs.map(output => {
               const agent = AGENTS[output.agent as AgentId]
+              const displayName = isLegacyContentAgent(output.agent)
+                ? AGENTS.content_posting.name
+                : (agent?.name ?? output.agent)
               return (
                 <Link
                   key={output.id}
@@ -1053,7 +1193,7 @@ export default function AgentCommandCenter({
                       {getOutputDescription(output)}
                     </p>
                     <p className="mt-1 text-xs text-text-sec">
-                      {agent?.name ?? output.agent} · {relativeTime(output.created_at)} · {output.status.replace(/_/g, ' ')}
+                      {displayName} · {relativeTime(output.created_at)} · {output.status.replace(/_/g, ' ')}
                     </p>
                   </div>
                   <span className="whitespace-nowrap text-sm font-semibold text-brand-primary">Open</span>
