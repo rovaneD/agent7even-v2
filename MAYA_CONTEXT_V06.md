@@ -1,6 +1,8 @@
 # MAYA_CONTEXT_V06 — Image-Context Captions, Analytics Honesty, Post Media Roadmap
 *Versioned snapshot: June 10, 2026 (evening)*
 
+**Superseded by `MAYA_CONTEXT_V07.md` (June 12, 2026).** Keep for history only.
+
 This document supersedes `MAYA_CONTEXT_V05.md`. Everything in V05 still
 applies unless this file explicitly changes it.
 

@@ -1,6 +1,8 @@
 # CONTEXTV15 — Image-Context Captions, Zernio Analytics Honesty, Post Media Roadmap
 *Snapshot: June 10, 2026 (evening session)*
 
+**Superseded by `CONTEXTV16.md` (June 12, 2026).** Keep for history only.
+
 This document supersedes `CONTEXTV14.md`. Everything in V14 still applies
 unless this file explicitly changes it.
 

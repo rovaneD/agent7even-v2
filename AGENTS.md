@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: June 12, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: June 13, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -25,7 +25,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV15.md > MAYA_CONTEXT_V06.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV16.md > MAYA_CONTEXT_V07.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -63,13 +63,14 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV15.md` — latest technical handoff (image-context captions, Zernio analytics, post-media roadmap).
-- `MAYA_CONTEXT_V06.md` — current versioned Maya product context and visual rules.
-- `SESSION_2026-06-10.md` — June 10 session log and open backlog.
+- `CONTEXTV16.md` — latest technical handoff (Content Posting, billing/admin, Zernio analytics).
+- `MAYA_CONTEXT_V07.md` — current versioned Maya product context and visual rules.
+- `SESSION_2026-06-12.md` — June 12 session log (merge to main, Zernio/cache notes).
 - `post_media_expansion_handoff.md` — scoped roadmap for crop, carousel, and video (planning; after v1 ships).
 - `AUDIT_FIXES_2026-06-02.md` — audit fix ledger plus follow-on testing fixes.
 - `12_post_assets_bucket.sql` — run in Supabase before image-context caption uploads in prod.
-- `13_post_caption_agent_skill.sql` — run in Supabase to seed Post Caption agent skill.
+- `14_content_posting_agent_skill.sql` — run in Supabase to seed Content Posting agent skill.
+- `16_prevent_duplicate_client_emails.sql` — run in Supabase to block duplicate client emails.
 
 ## Current visual-system rules
 - Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.
@@ -83,7 +84,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 **How this v2 project works:**
 - `agent7even-v2.vercel.app` is served by the Vercel project `agent7even-v2`
 - GitHub branch pushes create Vercel deployments for this experimental project
-- `design-system/color-tokens` is the active visual-system validation branch
+- **`main`** is the active integration branch (merged June 12, 2026)
 - Production app deployment rules belong to `rovaneD/agent7even-app`, not this repo
 
 **Never do this:**
