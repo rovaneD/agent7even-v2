@@ -25,6 +25,19 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 
 ## What Changed Since CONTEXTV14
 
+### June 12 branch note — image-context verification
+
+Branch `feature/image-context-v1-verify` was created from `main` after
+confirming `git remote -v` points to `rovaneD/agent7even-v2`. Current `main`
+already includes `f1d9c90` (`Add image-context caption loop so Maya reads
+uploaded post visuals`), so the earlier "implemented locally, uncommitted" note
+is stale relative to git history.
+
+Small reliability fix on this branch: `publishApprovedImageCaption` now refunds
+the 1-credit social publish charge if Zernio `createPost` fails after the credit
+deduction. Local checks: `npx tsc --noEmit` passes; `npm run build` passes when
+run with permissions that allow Turbopack to bind its local worker port.
+
 ### Zernio posting analytics — SHIPPED (commits on main)
 
 1. **Mock leakage removed in live mode** (`69639f3`).

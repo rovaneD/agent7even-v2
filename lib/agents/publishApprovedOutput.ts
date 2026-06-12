@@ -3,7 +3,7 @@ import {
   downloadPostAsset,
   readPostMediaRef,
 } from '@/lib/postAssets'
-import { deductCredits } from '@/lib/credits'
+import { deductCredits, refundCredits } from '@/lib/credits'
 import { createServiceClient } from '@/lib/supabase/server'
 import { primaryPlatformFromInput } from '@/lib/agents/visionCaption'
 
@@ -117,6 +117,14 @@ export async function publishApprovedImageCaption(opts: {
   } catch (err) {
     const detail = err instanceof Error ? err.message : 'create_failed'
     console.error('[publishApprovedImageCaption]', detail)
+    refundCredits(
+      opts.profileId,
+      PUBLISH_CREDIT_COST,
+      'Refund - image caption post publish failed',
+      opts.taskId,
+    ).catch(refundErr => {
+      console.error('[publishApprovedImageCaption] refund failed:', refundErr)
+    })
     return { scheduled: false, detail }
   }
 }
