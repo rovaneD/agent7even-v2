@@ -350,6 +350,9 @@ function getOutputText(output: AgentOutput): string {
 
 function friendlyRunError(error: string | null | undefined): string {
   if (!error) return 'Agent run failed before producing output.'
+  if (error.includes('Authentication Required') || error.includes('run-route error 401')) {
+    return 'Agent run could not start on this deployment. Try again after the latest deploy finishes.'
+  }
   if (error.includes('Unknown agent: content-posting')) {
     return 'Content Posting handler was not reachable on this deployment. Wait for the latest deploy, then try again.'
   }
