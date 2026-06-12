@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { clientHealthStatus } from '@/lib/clientHealth'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildAdminClientDetailMayaContext } from '@/lib/maya/summaries/adminContext'
 import Link from 'next/link'
@@ -26,6 +27,7 @@ type ClientProfile = {
   role: string | null
   last_active_at: string | null
   engagement_score: number | null
+  engagement_updated_at: string | null
   foundation_score: number | null
   foundation_complete: boolean | null
   foundation_answers: Record<string, unknown> | null
@@ -78,11 +80,7 @@ function formatDate(iso: string): string {
 }
 
 function derivedStatus(profile: ClientProfile): 'healthy' | 'drifting' | 'at_risk' {
-  const hoursInactive = (Date.now() - new Date(profile.last_active_at ?? 0).getTime()) / 3600000
-  const score = profile.engagement_score ?? 0
-  if (hoursInactive <= 24 && score >= 50) return 'healthy'
-  if (hoursInactive > 48 || score < 30) return 'at_risk'
-  return 'drifting'
+  return clientHealthStatus(profile)
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────

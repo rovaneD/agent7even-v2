@@ -8,6 +8,11 @@ import {
   Users, AlertTriangle, TrendingUp, Activity,
   ChevronUp, ChevronDown, MoreHorizontal, Eye, Bell, Mail, Zap, Ban,
 } from 'lucide-react'
+import {
+  clientHealthStatus,
+  CLIENT_HEALTH_DOT,
+  engagementScoreKnown,
+} from '@/lib/clientHealth'
 
 type Client = {
   id: string
@@ -21,46 +26,12 @@ type Client = {
   stripe_customer_id: string | null
   last_active_at: string | null
   engagement_score: number | null
+  engagement_updated_at: string | null
   foundation_score: number | null
   created_at: string
 }
 
 type SortKey = 'last_active_at' | 'engagement_score' | 'foundation_score' | 'plan' | 'created_at'
-
-function clientStatus(c: Client): 'healthy' | 'drifting' | 'at_risk' {
-  if (c.status === 'paused' || c.status === 'churned' || c.status === 'suspended') {
-    return 'at_risk'
-  }
-
-  const now = Date.now()
-  const lastActiveMs = c.last_active_at ? new Date(c.last_active_at).getTime() : null
-  const hoursInactive = lastActiveMs != null ? (now - lastActiveMs) / (1000 * 60 * 60) : null
-  const score = c.engagement_score
-
-  // Pre-subscription / onboarding — not paid churn risk
-  if (!c.plan || c.status === 'onboarding') {
-    return 'drifting'
-  }
-
-  // Never logged in but subscribed — drifting for first week, then at risk
-  if (hoursInactive == null) {
-    const daysSinceJoin = (now - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)
-    return daysSinceJoin > 7 ? 'at_risk' : 'drifting'
-  }
-
-  if (hoursInactive <= 24) {
-    if (score == null || score >= 50) return 'healthy'
-    if (score >= 30) return 'drifting'
-    return 'at_risk'
-  }
-
-  if (hoursInactive <= 48) {
-    if (score != null && score < 30) return 'at_risk'
-    return 'drifting'
-  }
-
-  return 'at_risk'
-}
 
 function relativeTime(iso: string | null): string {
   if (!iso) return 'Never'
@@ -83,11 +54,7 @@ const PLAN_COLORS: Record<string, string> = {
   proagent: 'bg-[#2D3748]/10 text-[#2D3748]',
 }
 
-const STATUS_DOT: Record<string, string> = {
-  healthy:  'bg-green-400',
-  drifting: 'bg-yellow-400',
-  at_risk:  'bg-red-400',
-}
+const STATUS_DOT = CLIENT_HEALTH_DOT
 
 const ACCOUNT_STATUS: Record<string, string> = {
   active:     'bg-emerald-50 text-emerald-700',
@@ -216,7 +183,7 @@ export default function ClientHealthView() {
     else { setSortKey(key); setSortAsc(false) }
   }
 
-  const allWithStatus = clients.map(c => ({ ...c, _status: clientStatus(c) }))
+  const allWithStatus = clients.map(c => ({ ...c, _status: clientHealthStatus(c) }))
   const visibleClients = tab === 'at_risk'
     ? allWithStatus.filter(c => c._status === 'at_risk')
     : allWithStatus
@@ -325,7 +292,7 @@ export default function ClientHealthView() {
               <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">At risk</p>
             </div>
             <p className="text-2xl font-semibold text-red-500">{atRiskCount}</p>
-            <p className="text-xs text-gray-400 mt-1">paid + inactive 48hrs+</p>
+            <p className="text-xs text-gray-400 mt-1">paid plan + inactive 48hrs+</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -333,7 +300,7 @@ export default function ClientHealthView() {
               <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Drifting</p>
             </div>
             <p className="text-2xl font-semibold text-yellow-500">{driftingCount}</p>
-            <p className="text-xs text-gray-400 mt-1">low engagement, still active</p>
+            <p className="text-xs text-gray-400 mt-1">onboarding or inactive 24–48h</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -341,7 +308,7 @@ export default function ClientHealthView() {
               <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Healthy</p>
             </div>
             <p className="text-2xl font-semibold text-green-500">{healthyCount}</p>
-            <p className="text-xs text-gray-400 mt-1">active and engaged</p>
+            <p className="text-xs text-gray-400 mt-1">used the app in the last 24h</p>
           </div>
         </div>
       )}
@@ -428,7 +395,7 @@ export default function ClientHealthView() {
                   <td className="px-4 py-4 text-sm text-gray-500 whitespace-nowrap">{relativeTime(client.last_active_at)}</td>
                   <td className="px-4 py-4">
                     <ScoreBar
-                      value={client.engagement_score}
+                      value={engagementScoreKnown(client) ? client.engagement_score : null}
                       color={
                         (client.engagement_score ?? 0) >= 50 ? 'bg-green-400' :
                         (client.engagement_score ?? 0) >= 30 ? 'bg-yellow-400' : 'bg-red-400'

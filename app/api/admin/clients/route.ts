@@ -16,6 +16,7 @@ type ClientRow = {
   stripe_customer_id: string | null
   last_active_at: string | null
   engagement_score: number | null
+  engagement_updated_at: string | null
   foundation_score: number | null
   created_at: string
 }
@@ -95,7 +96,7 @@ export async function GET(req: Request) {
       id, full_name, email, avatar_url,
       company_name, website_url, instagram_handle,
       plan, status, role, stripe_customer_id,
-      last_active_at, engagement_score, foundation_score,
+      last_active_at, engagement_score, engagement_updated_at, foundation_score,
       created_at
     `)
     .eq('role', 'client')
