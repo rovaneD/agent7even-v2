@@ -131,6 +131,8 @@ export default function PostsClient({
   const [activeProfileId, setActiveProfileId] = useState(zernioProfileId ?? '')
 
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [editingPostId, setEditingPostId] = useState<string | null>(null)
+  const [loadingEdit, setLoadingEdit] = useState(false)
   const [connectOpen, setConnectOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
@@ -297,7 +299,7 @@ export default function PostsClient({
     )
   }
 
-  const openCreate = () => {
+  const resetDrawerForm = useCallback(() => {
     setContent('')
     setMediaItems(prev => {
       prev.forEach(m => { if (m.previewUrl) URL.revokeObjectURL(m.previewUrl) })
@@ -313,8 +315,59 @@ export default function PostsClient({
     setCustomCaptionOpen({})
     setSelectedQueueId('')
     setCreateError('')
+    setEditingPostId(null)
+  }, [accounts])
+
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false)
+    resetDrawerForm()
+  }, [resetDrawerForm])
+
+  const openCreate = () => {
+    resetDrawerForm()
     setDrawerOpen(true)
   }
+
+  const openEdit = useCallback(async (postId: string) => {
+    setLoadingEdit(true)
+    setCreateError('')
+    try {
+      const res = await fetch(`/api/posts/${postId}`)
+      const json = await res.json()
+      if (!res.ok || !json.post) {
+        setError('Could not load this post for editing')
+        return
+      }
+      const post = json.post as ZernioPostRow
+      setEditingPostId(post.id)
+      setContent(post.content ?? '')
+      setMediaItems((post.media ?? []).map((m, idx) => ({
+        localId: `existing-${idx}-${post.id}`,
+        url: m.url,
+        type: m.type === 'video' ? 'video' as const : 'image' as const,
+        title: m.url.split('/').pop() ?? 'media',
+        previewUrl: m.type !== 'video' ? (m.thumbnailUrl ?? m.url) : undefined,
+      })))
+      const accountIds = post.platforms.map(p => p.accountId).filter(Boolean)
+      setSelectedAccountIds(accountIds.length > 0 ? accountIds : (accounts.length === 1 ? [accounts[0].id] : []))
+      setTimezone(post.timezone || 'America/Los_Angeles')
+      if (post.status === 'draft') {
+        setPublishMode('draft')
+        setScheduledLocal('')
+      } else if (post.scheduledFor) {
+        setPublishMode('schedule')
+        setScheduledLocal(new Date(post.scheduledFor).toISOString().slice(0, 16))
+      } else {
+        setPublishMode('draft')
+        setScheduledLocal('')
+      }
+      setDrawerOpen(true)
+    } catch {
+      setError('Could not load this post for editing')
+    } finally {
+      setLoadingEdit(false)
+    }
+  }, [accounts])
 
   const setAccountPostType = (accountId: string, postType: PostType) => {
     setPostTypeByAccount(prev => ({ ...prev, [accountId]: postType }))
@@ -367,8 +420,17 @@ export default function PostsClient({
     }
   }
 
-  const handleCreate = async () => {
-    if (!activeProfileId) return
+  // Deep-link from approval success: /dashboard/posts?edit={postId}
+  useEffect(() => {
+    const editId = searchParams.get('edit')
+    if (!editId || !isLive) return
+    openEdit(editId).finally(() => {
+      router.replace('/dashboard/posts')
+    })
+  }, [searchParams, isLive, openEdit, router])
+
+  const handleSubmit = async () => {
+    if (!activeProfileId && !editingPostId) return
     if (mediaItems.some(m => m.uploading)) {
       setCreateError('Wait for media uploads to finish')
       return
@@ -394,6 +456,38 @@ export default function PostsClient({
         scheduledFor = new Date(scheduledLocal).toISOString()
       }
 
+      const mediaPayload = readyMedia.map(m => ({ url: m.url, type: m.type, title: m.title }))
+
+      if (editingPostId) {
+        const res = await fetch(`/api/posts/${editingPostId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content,
+            platforms: platformPayload,
+            scheduledFor,
+            timezone,
+            mediaItems: mediaPayload,
+            publishNow: publishMode === 'now',
+            isDraft: publishMode === 'draft',
+          }),
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          const msg = Array.isArray(json.messages) ? json.messages[0] : json.message ?? json.detail ?? json.error
+          setCreateError(msg ?? 'Could not update post')
+          return
+        }
+        closeDrawer()
+        setToast(
+          publishMode === 'now' ? 'Post published'
+            : publishMode === 'draft' ? 'Draft updated'
+              : 'Post updated',
+        )
+        fetchPosts()
+        return
+      }
+
       const res = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -405,7 +499,7 @@ export default function PostsClient({
           scheduledFor,
           timezone,
           queueId: publishMode === 'queue' && selectedQueueId ? selectedQueueId : undefined,
-          mediaItems: readyMedia.map(m => ({ url: m.url, type: m.type, title: m.title })),
+          mediaItems: mediaPayload,
           requestId: crypto.randomUUID(),
         }),
       })
@@ -415,7 +509,7 @@ export default function PostsClient({
         setCreateError(msg ?? 'Could not create post')
         return
       }
-      setDrawerOpen(false)
+      closeDrawer()
       setToast(
         publishMode === 'now' ? 'Post published'
           : publishMode === 'draft' ? 'Draft saved'
@@ -565,13 +659,13 @@ export default function PostsClient({
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {posts.map(post => (
-                <PostCard key={post.id} post={post} onDelete={handleDelete} />
+                <PostCard key={post.id} post={post} onDelete={handleDelete} onEdit={openEdit} />
               ))}
             </div>
           ) : (
             <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden divide-y divide-gray-50">
               {posts.map(post => (
-                <PostListRow key={post.id} post={post} onDelete={handleDelete} />
+                <PostListRow key={post.id} post={post} onDelete={handleDelete} onEdit={openEdit} />
               ))}
             </div>
           )}
@@ -581,6 +675,7 @@ export default function PostsClient({
       {/* Create drawer */}
       {drawerOpen && (
         <CreatePostDrawer
+          isEditing={!!editingPostId}
           content={content}
           onContentChange={setContent}
           captionLimit={captionLimit}
@@ -610,10 +705,10 @@ export default function PostsClient({
           selectedQueueId={selectedQueueId}
           onQueueChange={setSelectedQueueId}
           validationHints={validationHints}
-          creating={creating}
+          creating={creating || loadingEdit}
           error={createError}
-          onClose={() => setDrawerOpen(false)}
-          onSubmit={handleCreate}
+          onClose={closeDrawer}
+          onSubmit={handleSubmit}
         />
       )}
 
@@ -710,9 +805,15 @@ function PostMediaPreview({
   )
 }
 
-function PostCard({ post, onDelete }: { post: ZernioPostRow; onDelete: (id: string) => void }) {
+function PostCard({
+  post, onDelete, onEdit,
+}: {
+  post: ZernioPostRow
+  onDelete: (id: string) => void
+  onEdit: (id: string) => void
+}) {
   const url = post.platforms.find(p => p.platformPostUrl)?.platformPostUrl
-  const canDelete = ['draft', 'scheduled', 'failed'].includes(post.status)
+  const canModify = ['draft', 'scheduled', 'failed'].includes(post.status)
   const showPublishedTime = post.status === 'published' || post.status === 'publishing'
 
   return (
@@ -729,7 +830,12 @@ function PostCard({ post, onDelete }: { post: ZernioPostRow; onDelete: (id: stri
                 <ExternalLink size={14} />
               </a>
             )}
-            {canDelete && (
+            {canModify && (
+              <button type="button" onClick={() => onEdit(post.id)} className="p-1.5 text-text-soft hover:text-blue-600" aria-label="Edit post">
+                <Pencil size={14} />
+              </button>
+            )}
+            {canModify && (
               <button type="button" onClick={() => onDelete(post.id)} className="p-1.5 text-text-soft hover:text-red-600" aria-label="Delete post">
                 <Trash2 size={14} />
               </button>
@@ -757,9 +863,15 @@ function PostCard({ post, onDelete }: { post: ZernioPostRow; onDelete: (id: stri
   )
 }
 
-function PostListRow({ post, onDelete }: { post: ZernioPostRow; onDelete: (id: string) => void }) {
+function PostListRow({
+  post, onDelete, onEdit,
+}: {
+  post: ZernioPostRow
+  onDelete: (id: string) => void
+  onEdit: (id: string) => void
+}) {
   const url = post.platforms.find(p => p.platformPostUrl)?.platformPostUrl
-  const canDelete = ['draft', 'scheduled', 'failed'].includes(post.status)
+  const canModify = ['draft', 'scheduled', 'failed'].includes(post.status)
   const showPublishedTime = post.status === 'published' || post.status === 'publishing'
 
   return (
@@ -778,8 +890,13 @@ function PostListRow({ post, onDelete }: { post: ZernioPostRow; onDelete: (id: s
             <ExternalLink size={14} />
           </a>
         )}
-        {canDelete && (
-          <button type="button" onClick={() => onDelete(post.id)} className="p-1.5 text-text-soft hover:text-red-600">
+        {canModify && (
+          <button type="button" onClick={() => onEdit(post.id)} className="p-1.5 text-text-soft hover:text-blue-600" aria-label="Edit post">
+            <Pencil size={14} />
+          </button>
+        )}
+        {canModify && (
+          <button type="button" onClick={() => onDelete(post.id)} className="p-1.5 text-text-soft hover:text-red-600" aria-label="Delete post">
             <Trash2 size={14} />
           </button>
         )}
@@ -789,6 +906,7 @@ function PostListRow({ post, onDelete }: { post: ZernioPostRow; onDelete: (id: s
 }
 
 function CreatePostDrawer({
+  isEditing,
   content, onContentChange, captionLimit, mediaItems, onMediaSelect, onMediaRemove,
   accounts, selectedAccountIds, onToggleAccount,
   postTypeByAccount, onPostTypeChange,
@@ -799,6 +917,7 @@ function CreatePostDrawer({
   queues, selectedQueueId, onQueueChange,
   validationHints, creating, error, onClose, onSubmit,
 }: {
+  isEditing?: boolean
   content: string
   onContentChange: (v: string) => void
   captionLimit: number | null
@@ -844,8 +963,10 @@ function CreatePostDrawer({
       <aside className="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white shadow-2xl flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-[16px] font-semibold text-text">Create Post</h2>
-            <p className="text-[12px] text-text-soft">Create &amp; publish content</p>
+            <h2 className="text-[16px] font-semibold text-text">{isEditing ? 'Edit Post' : 'Create Post'}</h2>
+            <p className="text-[12px] text-text-soft">
+              {isEditing ? 'Update caption, media, or schedule' : 'Create & publish content'}
+            </p>
           </div>
           <button type="button" onClick={onClose} className="p-2 text-text-soft hover:text-text"><X size={18} /></button>
         </div>
@@ -1113,7 +1234,15 @@ function CreatePostDrawer({
             className="flex-1 bg-[#3B82F6] text-white text-[13px] font-semibold py-2.5 rounded-xl hover:bg-[#2563EB] disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
             {creating && <Loader2 size={14} className="animate-spin" />}
-            {publishMode === 'now' ? 'Publish now' : publishMode === 'draft' ? 'Save draft' : publishMode === 'queue' ? 'Add to queue' : 'Schedule post'}
+            {isEditing
+              ? (publishMode === 'now' ? 'Publish now'
+                : publishMode === 'draft' ? 'Save draft'
+                  : publishMode === 'queue' ? 'Add to queue'
+                    : 'Save changes')
+              : (publishMode === 'now' ? 'Publish now'
+                : publishMode === 'draft' ? 'Save draft'
+                  : publishMode === 'queue' ? 'Add to queue'
+                    : 'Schedule post')}
           </button>
         </div>
       </aside>

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
 import { publishApprovedImageCaption } from '@/lib/agents/publishApprovedOutput'
-import { readPostMediaRef } from '@/lib/postAssets'
+import { shouldPublishApprovedPost } from '@/lib/agents/contentPosting'
 
 export async function POST(
   req: Request,
@@ -59,7 +59,7 @@ export async function POST(
   if (taskRes.error) return NextResponse.json({ error: taskRes.error.message }, { status: 500 })
 
   const [{ data: task }, { data: output }] = await Promise.all([
-    supabase.from('agent_tasks').select('input').eq('id', taskId).eq('user_id', profile.id).single(),
+    supabase.from('agent_tasks').select('agent, input').eq('id', taskId).eq('user_id', profile.id).single(),
     supabase.from('agent_outputs').select('content').eq('id', outputId).eq('user_id', profile.id).single(),
   ])
 
@@ -67,7 +67,14 @@ export async function POST(
   const caption = typeof outputContent.raw === 'string' ? outputContent.raw : ''
 
   let publish: Awaited<ReturnType<typeof publishApprovedImageCaption>> | null = null
-  if (readPostMediaRef(outputContent).media_storage_path && caption.trim()) {
+  if (
+    shouldPublishApprovedPost({
+      agentId: (task?.agent as string) ?? '',
+      taskInput: (task?.input ?? {}) as Record<string, unknown>,
+      outputContent,
+      caption,
+    })
+  ) {
     publish = await publishApprovedImageCaption({
       profileId: profile.id,
       taskInput: (task?.input ?? {}) as Record<string, unknown>,

@@ -14,6 +14,7 @@ import {
   isLegacyContentAgent,
 } from '@/lib/agents/contentPosting'
 import OrchestrationProgress from '@/components/agents/OrchestrationProgress'
+import AgentIcon from '@/components/agents/AgentIcon'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -736,7 +737,7 @@ export default function AgentCommandCenter({
                       : { backgroundColor: AGENT_COLORS[agent.id as AgentId]?.bg ?? '#F3F4F6', color: AGENT_COLORS[agent.id as AgentId]?.fg ?? '#6B7280' }
                     }
                   >
-                    <i className={`ti ${agent.icon}`} style={{ fontSize: 20 }} />
+                    <AgentIcon agentId={agent.id} size={20} />
                   </span>
                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
                     agent.autonomyLevel === 'autonomous'
@@ -1035,11 +1036,10 @@ export default function AgentCommandCenter({
                 <div className="mb-5">
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Running now</p>
                   {runningTasks.map(t => {
-                    const def = AGENTS[t.agent as AgentId]
                     return (
                       <div key={t.id} className="flex items-center gap-3 border-b border-border py-2 last:border-0">
                         <div className="h-2 w-2 flex-shrink-0 rounded-full bg-status-success" style={{ animation: 'dotPulse 1.5s ease-in-out infinite' }} />
-                        <i className={`ti ${def?.icon ?? 'ti-robot'} text-text-sec`} style={{ fontSize: 14 }} />
+                        <AgentIcon agentId={t.agent} size={14} className="text-text-sec" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-text-primary">{agentDisplayName(t.agent)}</p>
                         </div>
@@ -1054,11 +1054,10 @@ export default function AgentCommandCenter({
                 <div className="mb-5">
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Queued</p>
                   {queuedTasks.map(t => {
-                    const def = AGENTS[t.agent as AgentId]
                     return (
                       <div key={t.id} className="flex items-center gap-3 border-b border-border py-2 last:border-0">
                         <div className="h-2 w-2 flex-shrink-0 rounded-full bg-border" />
-                        <i className={`ti ${def?.icon ?? 'ti-robot'} text-text-muted`} style={{ fontSize: 14 }} />
+                        <AgentIcon agentId={t.agent} size={14} className="text-text-muted" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-text-sec">{agentDisplayName(t.agent)}</p>
                         </div>
@@ -1073,11 +1072,10 @@ export default function AgentCommandCenter({
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Completed today</p>
                   {completedToday.map(t => {
-                    const def = AGENTS[t.agent as AgentId]
                     return (
                       <div key={t.id} className="flex items-center gap-3 border-b border-border py-2 last:border-0">
                         <i className="ti ti-check text-status-success" style={{ fontSize: 13 }} />
-                        <i className={`ti ${def?.icon ?? 'ti-robot'} text-text-muted`} style={{ fontSize: 14 }} />
+                        <AgentIcon agentId={t.agent} size={14} className="text-text-muted" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-text-sec">{agentDisplayName(t.agent)}</p>
                         </div>

@@ -58,6 +58,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ po
       publishNow: body.publishNow === true,
       isDraft: body.isDraft === true,
       queuedFromProfile: typeof body.queuedFromProfile === 'string' ? body.queuedFromProfile : undefined,
+      mediaItems: Array.isArray(body.mediaItems)
+        ? body.mediaItems as Array<{ url: string; type: string; title?: string }>
+        : undefined,
     })
     const post = parseSinglePost(raw)
     return NextResponse.json({ post, raw })

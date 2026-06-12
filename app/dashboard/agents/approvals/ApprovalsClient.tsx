@@ -5,8 +5,14 @@ import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildApprovalsMayaContext } from '@/lib/maya/summaries/agentsContext'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, CheckCircle2, RotateCcw, ArrowLeft, Filter, SortDesc } from 'lucide-react'
+import { ChevronDown, ChevronUp, CheckCircle2, RotateCcw, ArrowLeft, Filter, SortDesc, Image as ImageIcon, CalendarDays, FileText } from 'lucide-react'
 import { AGENTS, AgentId } from '@/lib/agents/registry'
+import AgentIcon from '@/components/agents/AgentIcon'
+import {
+  approvalQueueKind,
+  type ApprovalQueueKind,
+  isLegacyContentAgent,
+} from '@/lib/agents/contentPosting'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -75,6 +81,23 @@ function relativeTime(iso: string | null): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function agentDisplayName(agentId: string): string {
+  if (isLegacyContentAgent(agentId)) return AGENTS.content_posting.name
+  return AGENTS[agentId as AgentId]?.name ?? agentId
+}
+
+const QUEUE_KIND_LABELS: Record<ApprovalQueueKind, string> = {
+  post: 'Post to review',
+  plan: 'Weekly plan',
+  other: 'Other',
+}
+
+const QUEUE_KIND_STYLES: Record<ApprovalQueueKind, { bg: string; color: string }> = {
+  post: { bg: '#EFF6FF', color: '#1D4ED8' },
+  plan: { bg: '#F0FDF4', color: '#15803D' },
+  other: { bg: '#F8FAFC', color: '#64748B' },
+}
+
 // ── ApprovalItem ───────────────────────────────────────────────────────────
 
 function ApprovalItem({
@@ -98,10 +121,11 @@ function ApprovalItem({
   onReject: (taskId: string, outputId: string, note: string, reason: string, rerun: boolean) => Promise<void>
   onMarkReviewed: () => void
 }) {
-  const agentDef  = AGENTS[task.agent as AgentId]
   const output    = task.agent_outputs?.[0]
   const raw       = output?.content?.raw ?? ''
   const mediaPreviewUrl = output?.mediaPreviewUrl ?? null
+  const queueKind = approvalQueueKind(task)
+  const kindStyle = QUEUE_KIND_STYLES[queueKind]
 
   const [approving,   setApproving]   = useState(false)
   const [rejecting,   setRejecting]   = useState(false)
@@ -163,9 +187,15 @@ function ApprovalItem({
 
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Agent + meta */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <i className={`ti ${agentDef?.icon ?? 'ti-robot'}`} style={{ fontSize: 14, color: '#888' }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#2D3748' }}>{agentDef?.name ?? task.agent}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+            <AgentIcon agentId={task.agent} size={14} className="text-[#888]" />
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#2D3748' }}>{agentDisplayName(task.agent)}</span>
+            <span style={{
+              fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '2px 8px',
+              background: kindStyle.bg, color: kindStyle.color,
+            }}>
+              {QUEUE_KIND_LABELS[queueKind]}
+            </span>
             <span style={{ fontSize: 11, color: '#bbb' }}>{relativeTime(task.completed_at)}</span>
           </div>
 
@@ -369,10 +399,12 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
   const [checkedIds,     setCheckedIds]     = useState<Set<string>>(new Set())
   const [hasReviewedOne, setHasReviewedOne] = useState(!!autoExpandId)
   const [agentFilter,    setAgentFilter]    = useState<string>('all')
+  const [queueKindFilter, setQueueKindFilter] = useState<'all' | ApprovalQueueKind>('all')
   const [sortOrder,      setSortOrder]      = useState<'newest' | 'oldest'>('newest')
   const [bulkAction,     setBulkAction]     = useState<'approve' | 'reject' | null>(null)
   const [bulkNote,       setBulkNote]       = useState('')
   const [bulkLoading,    setBulkLoading]    = useState(false)
+  const [approveNotice,  setApproveNotice]  = useState<{ message: string; postsLink?: string } | null>(null)
 
   // Scroll to auto-expanded task
   useEffect(() => {
@@ -389,9 +421,16 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
   // Derived: unique agents in queue
   const agentsInQueue = [...new Set(tasks.map(t => t.agent))]
 
+  const queueCounts = useMemo(() => ({
+    post: tasks.filter(t => approvalQueueKind(t) === 'post').length,
+    plan: tasks.filter(t => approvalQueueKind(t) === 'plan').length,
+    other: tasks.filter(t => approvalQueueKind(t) === 'other').length,
+  }), [tasks])
+
   // Filtered + sorted
   const visible = tasks
     .filter(t => agentFilter === 'all' || t.agent === agentFilter)
+    .filter(t => queueKindFilter === 'all' || approvalQueueKind(t) === queueKindFilter)
     .sort((a, b) => {
       const da = new Date(a.created_at).getTime()
       const db = new Date(b.created_at).getTime()
@@ -434,14 +473,25 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
   }, [])
 
   async function handleApprove(taskId: string, outputId: string, edited?: string) {
+    const task = tasks.find(t => t.id === taskId)
+    const kind = task ? approvalQueueKind(task) : 'other'
     const body: Record<string, unknown> = { outputId }
     if (edited !== undefined) body.editedContent = edited
-    await fetch(`/api/agents/tasks/${taskId}/approve`, {
+    const res = await fetch(`/api/agents/tasks/${taskId}/approve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
+    const data = await res.json().catch(() => ({}))
     removeTask(taskId)
+    if (data.publish?.scheduled && data.publish?.postId) {
+      setApproveNotice({
+        message: 'Post draft saved on Posts — schedule or publish when ready.',
+        postsLink: `/dashboard/posts?edit=${data.publish.postId}`,
+      })
+    } else if (kind === 'plan') {
+      setApproveNotice({ message: 'Weekly plan approved and saved to your output archive.' })
+    }
   }
 
   async function handleReject(taskId: string, outputId: string, note: string, reason: string, rerun: boolean) {
@@ -508,9 +558,32 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
           )}
         </div>
         <p style={{ fontSize: 13.5, color: '#888', marginTop: 4 }}>
-          Review agent outputs before they go anywhere. Expand an item to enable bulk selection.
+          Review agent outputs before they go anywhere. Posts with images can become Zernio drafts after you approve.
         </p>
       </div>
+
+      {approveNotice && (
+        <div style={{
+          background: '#EFF6FF', border: '0.5px solid #BFDBFE', borderRadius: 10,
+          padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        }}>
+          <p style={{ fontSize: 13, color: '#1D4ED8', margin: 0 }}>{approveNotice.message}</p>
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            {approveNotice.postsLink && (
+              <Link href={approveNotice.postsLink} style={{ fontSize: 12, fontWeight: 600, color: '#1D4ED8', textDecoration: 'none' }}>
+                Open in Posts →
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => setApproveNotice(null)}
+              style={{ fontSize: 12, color: '#64748B', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Empty state */}
       {tasks.length === 0 && (
@@ -529,6 +602,36 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
 
       {tasks.length > 0 && (
         <>
+          {/* Queue kind tabs */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            {([
+              { id: 'all' as const, label: 'All', count: tasks.length, icon: null },
+              { id: 'post' as const, label: 'Posts to review', count: queueCounts.post, icon: ImageIcon },
+              { id: 'plan' as const, label: 'Weekly plans', count: queueCounts.plan, icon: CalendarDays },
+              { id: 'other' as const, label: 'Other', count: queueCounts.other, icon: FileText },
+            ]).map(tab => {
+              const active = queueKindFilter === tab.id
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setQueueKindFilter(tab.id)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                    border: active ? '0.5px solid #3B82F6' : '0.5px solid #E2E8F0',
+                    background: active ? '#EFF6FF' : '#fff',
+                    color: active ? '#1D4ED8' : '#64748B',
+                  }}
+                >
+                  {Icon && <Icon size={13} />}
+                  {tab.label} ({tab.count})
+                </button>
+              )
+            })}
+          </div>
+
           {/* Controls bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
 
