@@ -1,3 +1,5 @@
+import { buildImageContextAgentConstraints } from '@/lib/posts/imageContextCapabilities'
+
 export type AgentId =
   | 'competitor_watcher'
   | 'weekly_content'
@@ -55,7 +57,7 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     autonomyLevel: 'approval_required',
     outputType: 'content',
     model: 'anthropic/claude-haiku-4-5',
-    defaultConstraints: `Never make specific income or results claims without disclaimer. Never use urgency tactics like "limited time" unless explicitly provided by the client. Never post content that hasn't been approved if autonomy is set to approval_required. Always stay within the brand voice defined in Brand Kit.`,
+    defaultConstraints: `Never make specific income or results claims without disclaimer. Never use urgency tactics like "limited time" unless explicitly provided by the client. Never post content that hasn't been approved if autonomy is set to approval_required. Always stay within the brand voice defined in Brand Kit. ${buildImageContextAgentConstraints()}`,
     foundationSections: ['business', 'voice', 'memory'],
     warnIfThinSections: ['voice'],
   },

@@ -3,6 +3,7 @@
 import { Fragment, useState, useEffect, useMemo } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildAgentCommandCenterMayaContext } from '@/lib/maya/summaries/agentsContext'
+import PostImageAttach from '@/components/agents/PostImageAttach'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { AGENTS, AgentId, AgentDefinition, AGENT_COLORS } from '@/lib/agents/registry'
@@ -269,6 +270,12 @@ export default function AgentCommandCenter({
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [agentForms, setAgentForms] = useState<Record<AgentId, Record<string, string>>>(INITIAL_AGENT_FORMS)
+  const [postImageMedia, setPostImageMedia] = useState<{
+    storagePath: string
+    mime: string
+    previewUrl: string
+    filename?: string
+  } | null>(null)
 
   // Orchestration state
   const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
@@ -314,6 +321,12 @@ export default function AgentCommandCenter({
     [companyName, activeTasks.length, pendingApprovals.length, scorecard],
   )
   useMayaContext(mayaContext)
+
+  useEffect(() => {
+    if (selectedAgent !== 'weekly_content' && postImageMedia) {
+      setPostImageMedia(null)
+    }
+  }, [selectedAgent, postImageMedia])
 
   // Fetch active + recent orchestrations on mount
   useEffect(() => {
@@ -436,18 +449,26 @@ export default function AgentCommandCenter({
     try {
       const form = agentForms[selectedAgent] ?? {}
       const instructions = buildGuidedInstructions(selectedAgent, form, taskInstructions)
+      const input: Record<string, unknown> = { instructions, ...form }
+
+      if (selectedAgent === 'weekly_content' && postImageMedia) {
+        input.media_storage_path = postImageMedia.storagePath
+        input.media_mime = postImageMedia.mime
+        input.image_caption_mode = true
+      }
 
       await fetch('/api/agents/tasks/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           agent: selectedAgent,
-          input: { instructions, ...form },
+          input,
           priority: taskPriority,
         }),
       })
       setSubmitted(true)
       setTaskInstructions('')
+      setPostImageMedia(null)
       setSelectedAgent(null)
       setTimeout(() => setSubmitted(false), 3000)
     } finally {
@@ -653,6 +674,20 @@ export default function AgentCommandCenter({
                     className="w-full resize-y rounded-xl border border-border bg-surface px-3 py-2.5 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-brand-primary"
                   />
                 </label>
+
+                {selectedAgent === 'weekly_content' && (
+                  <div className="mt-4">
+                    <PostImageAttach
+                      disabled={submitting}
+                      attached={postImageMedia ? {
+                        previewUrl: postImageMedia.previewUrl,
+                        filename: postImageMedia.filename,
+                      } : null}
+                      onAttached={media => setPostImageMedia(media)}
+                      onClear={() => setPostImageMedia(null)}
+                    />
+                  </div>
+                )}
               </div>
             )}
             <div className="flex flex-wrap items-center gap-3">

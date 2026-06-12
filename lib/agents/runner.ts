@@ -459,9 +459,10 @@ export async function chargeAgentRun(opts: {
   outputTokens: number
   model:        string
   creditsAlreadyDeducted?: boolean
+  tier?:        RunTier
 }): Promise<{ costUsd: number; creditsDeducted: number }> {
   const supabase = createServiceClient()
-  const tier = classifyRunTier(1)        // single agent run = light
+  const tier = opts.tier ?? classifyRunTier(1)
   const creditsNeeded = CREDIT_COST[tier]
 
   if (!opts.creditsAlreadyDeducted) {

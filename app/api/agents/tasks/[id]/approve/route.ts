@@ -2,6 +2,8 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
+import { publishApprovedImageCaption } from '@/lib/agents/publishApprovedOutput'
+import { readPostMediaRef } from '@/lib/postAssets'
 
 export async function POST(
   req: Request,
@@ -29,7 +31,6 @@ export async function POST(
 
   const outputUpdate: Record<string, unknown> = { status: 'approved', approved_at: now }
   if (typeof editedContent === 'string') {
-    // Fetch existing content to preserve parsed fields, only replace raw
     const { data: existing } = await supabase
       .from('agent_outputs')
       .select('content')
@@ -57,6 +58,25 @@ export async function POST(
   if (outputRes.error) return NextResponse.json({ error: outputRes.error.message }, { status: 500 })
   if (taskRes.error) return NextResponse.json({ error: taskRes.error.message }, { status: 500 })
 
-  logActivity(profile.id, 'agent_approved', { taskId }).catch(() => {})
-  return NextResponse.json({ success: true })
+  const [{ data: task }, { data: output }] = await Promise.all([
+    supabase.from('agent_tasks').select('input').eq('id', taskId).eq('user_id', profile.id).single(),
+    supabase.from('agent_outputs').select('content').eq('id', outputId).eq('user_id', profile.id).single(),
+  ])
+
+  const outputContent = (outputUpdate.content ?? output?.content ?? {}) as Record<string, unknown>
+  const caption = typeof outputContent.raw === 'string' ? outputContent.raw : ''
+
+  let publish: Awaited<ReturnType<typeof publishApprovedImageCaption>> | null = null
+  if (readPostMediaRef(outputContent).media_storage_path && caption.trim()) {
+    publish = await publishApprovedImageCaption({
+      profileId: profile.id,
+      taskInput: (task?.input ?? {}) as Record<string, unknown>,
+      outputContent,
+      caption,
+      taskId,
+    })
+  }
+
+  logActivity(profile.id, 'agent_approved', { taskId, publishScheduled: publish?.scheduled ?? false }).catch(() => {})
+  return NextResponse.json({ success: true, publish })
 }

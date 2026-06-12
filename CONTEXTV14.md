@@ -1,6 +1,9 @@
 # CONTEXTV14 - Loop Integrity Closed, Hub Live in Prod, Maya Context Architecture
 *Snapshot: June 10, 2026*
 
+**Superseded by `CONTEXTV15.md` (June 10 evening)** — image-context captions,
+Zernio analytics honesty pass, and post-media expansion handoff.
+
 This document supersedes `CONTEXTV13.md`. Everything in V13 still applies
 unless this file explicitly changes it.
 
@@ -211,12 +214,13 @@ Highlights:
 ## Current docs to read first
 
 - `SESSION_2026-06-10.md` — session log + backlog
-- `MAYA_CONTEXT_V05.md` — product/Maya rules
-- `CONTEXTV14.md` (this file)
+- `MAYA_CONTEXT_V06.md` — product/Maya rules (**current**)
+- `CONTEXTV15.md` — technical state (**current**)
+- `post_media_expansion_handoff.md` — crop / carousel / video roadmap (after v1)
 - `AUDIT_FIXES_2026-06-02.md` — audit fix ledger
 
-Historical: `CONTEXTV13.md`, `MAYA_CONTEXT_V04.md` (superseded, may exist
-locally untracked).
+Historical: `CONTEXTV14.md`, `MAYA_CONTEXT_V05.md`, `CONTEXTV13.md`,
+`MAYA_CONTEXT_V04.md` (superseded).
 
 ---
 

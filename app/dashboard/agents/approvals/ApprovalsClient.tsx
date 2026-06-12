@@ -16,9 +16,16 @@ interface AgentOutput {
   agent: string
   output_type: string
   title: string | null
-  content: { raw?: string; parsed?: Record<string, string> }
+  content: {
+    raw?: string
+    parsed?: Record<string, string>
+    media_storage_path?: string
+    media_mime?: string
+    image_caption_mode?: boolean
+  }
   status: string
   created_at: string
+  mediaPreviewUrl?: string | null
 }
 
 interface ApprovalTask {
@@ -94,6 +101,7 @@ function ApprovalItem({
   const agentDef  = AGENTS[task.agent as AgentId]
   const output    = task.agent_outputs?.[0]
   const raw       = output?.content?.raw ?? ''
+  const mediaPreviewUrl = output?.mediaPreviewUrl ?? null
 
   const [approving,   setApproving]   = useState(false)
   const [rejecting,   setRejecting]   = useState(false)
@@ -166,6 +174,23 @@ function ApprovalItem({
             <p style={{ fontSize: 14, fontWeight: 500, color: '#2D3748', marginBottom: 6 }}>{output.title}</p>
           )}
 
+          {mediaPreviewUrl && (
+            <div style={{ marginBottom: 10 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={mediaPreviewUrl}
+                alt="Post preview"
+                style={{
+                  width: 120,
+                  height: 120,
+                  objectFit: 'cover',
+                  borderRadius: 12,
+                  border: '0.5px solid #f0f0f0',
+                }}
+              />
+            </div>
+          )}
+
           {/* Collapsed preview */}
           {!isExpanded && raw && (
             <p style={{ fontSize: 13, color: '#666', lineHeight: 1.55, marginBottom: 10 }}>
@@ -176,6 +201,22 @@ function ApprovalItem({
           {/* Expanded: full content or editor */}
           {isExpanded && (
             <div style={{ marginBottom: 12 }}>
+              {mediaPreviewUrl && (
+                <div style={{ marginBottom: 12 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={mediaPreviewUrl}
+                    alt="Post preview"
+                    style={{
+                      maxWidth: 220,
+                      maxHeight: 220,
+                      objectFit: 'cover',
+                      borderRadius: 12,
+                      border: '0.5px solid #f0f0f0',
+                    }}
+                  />
+                </div>
+              )}
               {isEditing ? (
                 <textarea
                   value={editVal}

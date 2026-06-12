@@ -10,8 +10,16 @@ import {
   chargeAgentRun,
 } from '@/lib/agents/runner'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
-import { CREDIT_COST } from '@/lib/agents/cost'
+import { CREDIT_COST, type RunTier } from '@/lib/agents/cost'
 import { buildAgentFlowPrompt, buildAgentUserMessage } from '@/lib/agents/flows'
+import {
+  buildImageCaptionSystemAddon,
+  buildVisionUserMessage,
+  platformCharLimit,
+  primaryPlatformFromInput,
+  VISION_CAPTION_MODEL,
+} from '@/lib/agents/visionCaption'
+import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 
 export const maxDuration = 120
 
@@ -27,7 +35,6 @@ export async function POST(
   const { agentId: rawAgentId } = await params
   const { taskId, input } = await req.json()
 
-  // URL uses hyphens; registry uses underscores
   const agentId = rawAgentId.replace(/-/g, '_') as AgentId
   const agent = AGENTS[agentId]
 
@@ -39,8 +46,10 @@ export async function POST(
   if (!taskId) return NextResponse.json({ error: 'taskId required' }, { status: 400 })
 
   const userId = input.userId as string
+  const taskInput = (input ?? {}) as Record<string, unknown>
+  const media = readPostMediaRef(taskInput)
+  const hasImage = Boolean(media.media_storage_path && media.media_mime)
 
-  // Verify task belongs to the claimed userId — prevents forged body identity
   const supabase = createServiceClient()
   const { data: taskRow } = await supabase
     .from('agent_tasks')
@@ -52,8 +61,15 @@ export async function POST(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('company_name')
+    .eq('id', userId)
+    .single()
+
   await updateTaskStatus(taskId, 'running')
-  const creditsNeeded = CREDIT_COST.light
+  const tier: RunTier = hasImage ? 'standard' : 'light'
+  const creditsNeeded = CREDIT_COST[tier]
   let creditsReserved = false
 
   try {
@@ -62,40 +78,88 @@ export async function POST(
 
     const [baseSystem, flowSystem] = await Promise.all([
       buildSystemPrompt(userId, agentId),
-      buildAgentFlowPrompt(userId, agentId, input ?? {}),
+      buildAgentFlowPrompt(userId, agentId, taskInput),
     ])
 
     let system = [baseSystem, flowSystem].filter(Boolean).join('\n\n---\n\n')
 
-    if (input.rejection_feedback) {
-      system += `\n\nIMPORTANT — Previous version was rejected with this feedback: "${input.rejection_feedback}". Address this directly before anything else.`
+    if (taskInput.rejection_feedback) {
+      system += `\n\nIMPORTANT — Previous version was rejected with this feedback: "${taskInput.rejection_feedback}". Address this directly before anything else.`
     }
 
-    const userMessage = buildAgentUserMessage(agentId, input ?? {})
+    const userMessage = buildAgentUserMessage(agentId, taskInput)
+    const modelId = hasImage ? VISION_CAPTION_MODEL : agent.model
 
-    const { text, usage } = await generateText({
-      model:            openrouter(agent.model),
-      system,
-      messages:         [{ role: 'user', content: userMessage }],
-      maxOutputTokens:  2000,
-    })
+    if (hasImage) {
+      const platform = primaryPlatformFromInput(taskInput)
+      system += `\n\n${buildImageCaptionSystemAddon({
+        companyName: (profile?.company_name as string | null) ?? 'your business',
+        platform,
+        charLimit: platformCharLimit(platform),
+      })}`
+    }
+
+    if (hasImage) {
+      system += `\n\nOUTPUT OVERRIDE: IMAGE-CONTEXT CAPTION MODE is active. Ignore any multi-day plan or multi-post output contract. Return a single social caption only.`
+    }
+
+    let text: string
+    let usage: { inputTokens?: number; outputTokens?: number }
+
+    if (hasImage && media.media_storage_path) {
+      const signedUrl = await createPostAssetSignedUrl(media.media_storage_path, 3600)
+      if (!signedUrl) throw new Error('image_url_failed')
+
+      const visionContent = buildVisionUserMessage({
+        textInstruction: userMessage,
+        imageUrl: signedUrl,
+      })
+
+      const result = await generateText({
+        model: openrouter(modelId),
+        system,
+        messages: [{ role: 'user', content: visionContent }],
+        maxOutputTokens: 800,
+      })
+      text = result.text
+      usage = result.usage
+    } else {
+      const result = await generateText({
+        model: openrouter(modelId),
+        system,
+        messages: [{ role: 'user', content: userMessage }],
+        maxOutputTokens: 2000,
+      })
+      text = result.text
+      usage = result.usage
+    }
+
+    const outputContent: Record<string, unknown> = { raw: text.trim() }
+    if (hasImage && media.media_storage_path) {
+      outputContent.media_storage_path = media.media_storage_path
+      outputContent.media_mime = media.media_mime
+      outputContent.image_caption_mode = true
+    }
 
     await saveAgentOutput({
       taskId,
       userId,
-      agent:      agentId,
+      agent: agentId,
       outputType: agent.outputType,
-      title:      `${agent.name} — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-      content:    { raw: text },
+      title: hasImage
+        ? `Image caption — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+        : `${agent.name} — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      content: outputContent,
     })
 
     await chargeAgentRun({
       taskId,
       userId,
-      inputTokens:  usage.inputTokens  ?? 0,
+      inputTokens: usage.inputTokens ?? 0,
       outputTokens: usage.outputTokens ?? 0,
-      model:        agent.model,
+      model: modelId,
       creditsAlreadyDeducted: true,
+      tier,
     })
 
     await updateTaskStatus(taskId, 'completed')

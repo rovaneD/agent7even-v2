@@ -1,6 +1,9 @@
 # MAYA_CONTEXT_V05 - Hub Live in Prod, Page Context Architecture, Ingest Fixed
 *Versioned snapshot: June 10, 2026*
 
+**Superseded by `MAYA_CONTEXT_V06.md` (June 10 evening)** — image-context
+caption product rules and post-media roadmap.
+
 This document supersedes `MAYA_CONTEXT_V04.md`. Everything in V04 still
 applies unless this file explicitly changes it.
 
@@ -156,11 +159,12 @@ Reconcile before marketing and product diverge further.
 Read first:
 
 - `SESSION_2026-06-10.md` — backlog and verification status
-- `CONTEXTV14.md` — technical state
-- `MAYA_CONTEXT_V05.md` (this file)
+- `CONTEXTV15.md` — technical state
+- `MAYA_CONTEXT_V06.md` — product/Maya rules
+- `post_media_expansion_handoff.md` — post-media v2 scope (planning)
 - `AUDIT_FIXES_2026-06-02.md`
 
-Superseded: `MAYA_CONTEXT_V04.md`, `CONTEXTV13.md`.
+Superseded: `MAYA_CONTEXT_V05.md`, `CONTEXTV14.md`.
 
 ---
 

@@ -1,5 +1,6 @@
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
 import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
+import { buildImageContextAgentConstraints } from '@/lib/posts/imageContextCapabilities'
 
 type AgentScorecard = {
   name: string
@@ -29,7 +30,7 @@ export function buildAgentCommandCenterMayaContext(input: {
       `Pending approvals: ${input.pendingApprovalCount}`,
       `Agents: ${agentLines}`,
     ],
-    affordance: `${MAYA_VOICE_RULE} User can run agents, approve/reject outputs, and manage agent constraints.`,
+    affordance: `${MAYA_VOICE_RULE} User can run agents, approve/reject outputs, and manage agent constraints. ${buildImageContextAgentConstraints()}`,
   }
 }
 

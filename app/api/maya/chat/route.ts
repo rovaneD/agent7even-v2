@@ -9,6 +9,7 @@ import { createTask, updateTaskStatus } from '@/lib/agents/runner'
 import { calculateCost, CREDIT_COST } from '@/lib/agents/cost'
 import { loadFoundationContext } from '@/lib/agents/loadFoundationContext'
 import { deductCredits, refundCredits } from '@/lib/credits'
+import { buildImageContextCapabilityPrompt } from '@/lib/posts/imageContextCapabilities'
 
 const CHAT_CREDITS = CREDIT_COST.light  // 2 credits per turn
 const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
@@ -222,6 +223,9 @@ Foundation is a 5-step setup that collects deep business context — description
 
 THE APPROVAL QUEUE:
 Some agents (like Campaign Builder and Brand Voice Guardian) require approval before their output is saved. These outputs appear in Agents → Approvals. You can expand each item, edit it, approve it, or reject it with a reason (rejection feeds back to Maya as training signal).
+
+IMAGE-CONTEXT CAPTIONS (Weekly Content):
+${buildImageContextCapabilityPrompt()}
 
 YOUR ROLE IN HELP MODE:
 You are a helpful guide for the Maya platform. Answer questions about how to use any feature. Be specific, direct, and practical. Walk users through exact steps. Do not talk about pricing unless asked. Do not speculate about features that don't exist. If someone asks how to do something, give them the literal steps — not vague suggestions.

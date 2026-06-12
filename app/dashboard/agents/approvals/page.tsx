@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 import ApprovalsClient from './ApprovalsClient'
 
 export default async function ApprovalsPage() {
@@ -29,11 +30,25 @@ export default async function ApprovalsPage() {
     .is('rejected_at', null)
     .order('created_at', { ascending: false })
 
+  const enrichedTasks = await Promise.all((tasks ?? []).map(async task => {
+    const outputs = await Promise.all((task.agent_outputs ?? []).map(async (output: {
+      content?: Record<string, unknown>
+    }) => {
+      const content = (output.content ?? {}) as Record<string, unknown>
+      const media = readPostMediaRef(content)
+      const mediaPreviewUrl = media.media_storage_path
+        ? await createPostAssetSignedUrl(media.media_storage_path)
+        : null
+      return { ...output, mediaPreviewUrl }
+    }))
+    return { ...task, agent_outputs: outputs }
+  }))
+
   return (
     <Suspense>
       <ApprovalsClient
         profileId={profile.id}
-        initialTasks={tasks ?? []}
+        initialTasks={enrichedTasks}
       />
     </Suspense>
   )
