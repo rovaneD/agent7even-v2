@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
-import { filterPostsByPlatform, parseAnalyticsEnvelope, postDedupeKey } from '@/lib/social/zernioAnalyticsParse'
+import { filterPostsByPlatform, parseAnalyticsEnvelope, pickBestAnalyticsPost, postDedupeKey } from '@/lib/social/zernioAnalyticsParse'
 
 /** Pull a list array from Zernio payloads that may nest under data/result. */
 function extractZernioList(raw: unknown, keys: string[]): any[] {
@@ -501,6 +501,13 @@ export async function GET(req: NextRequest) {
   console.log('[zernio/social] followerStats:', JSON.stringify(finalFollowerStats).slice(0, 800))
   console.log('[zernio/social] allAccounts:', JSON.stringify(resolvedAccounts).slice(0, 800))
 
+  const primaryProfileId = (profile.zernio_profile_id as string | null) ?? zernioProfileIds[0] ?? ''
+  const bestPost = pickBestAnalyticsPost(uniquePosts, {
+    platform,
+    primaryProfileId: primaryProfileId || undefined,
+  })
+  console.log('[zernio/social] bestPost:', JSON.stringify(bestPost))
+
   return NextResponse.json({
     posts: finalRawPostData,
     daily: finalDailyData,
@@ -509,6 +516,7 @@ export async function GET(req: NextRequest) {
     bestTimes: finalBestTimes,
     postingFrequency: finalPostingFrequency,
     contentDecay: finalContentDecay,
+    bestPost,
   }, {
     headers: { 'Cache-Control': 'no-store' },
   })

@@ -629,18 +629,31 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
     })
     mappedPosts.sort((a, b) => (b.engagements ?? 0) - (a.engagements ?? 0))
     result.topPosts = mappedPosts.slice(0, 10) as PostingAnalytics['topPosts']
-    const bestPost = mappedPosts[0] ?? null
-    if (bestPost) {
-      result.stats = {
-        ...result.stats,
-        bestPost: {
-          ...result.stats.bestPost,
-          caption: bestPost.caption || result.stats.bestPost.caption,
-          platform: bestPost.platform || result.stats.bestPost.platform,
-          engagements: bestPost.engagements ?? result.stats.bestPost.engagements,
-          url: bestPost.url || undefined,
-        } as PostingAnalytics['stats']['bestPost'],
-      }
+  }
+
+  // Server-resolved best post (authoritative — caption + URL from the same Zernio row).
+  const serverBestPost = _o(r.bestPost)
+  if (_s(serverBestPost.caption) || _n(serverBestPost.engagements) > 0 || _s(serverBestPost.url)) {
+    result.stats = {
+      ...result.stats,
+      bestPost: {
+        caption: _s(serverBestPost.caption),
+        platform: _s(serverBestPost.platform),
+        engagements: _n(serverBestPost.engagements),
+        url: _s(serverBestPost.url) || undefined,
+        accountUsername: _s(serverBestPost.accountUsername) || undefined,
+      } as PostingAnalytics['stats']['bestPost'],
+    }
+  } else if (result.topPosts.length) {
+    const bestPost = result.topPosts[0] as typeof result.topPosts[number] & { url?: string; engagements?: number }
+    result.stats = {
+      ...result.stats,
+      bestPost: {
+        caption: bestPost.caption || result.stats.bestPost.caption,
+        platform: bestPost.platform || result.stats.bestPost.platform,
+        engagements: bestPost.engagements ?? result.stats.bestPost.engagements,
+        url: bestPost.url || undefined,
+      } as PostingAnalytics['stats']['bestPost'],
     }
   }
 
@@ -1548,7 +1561,7 @@ function StatCards({ isMock }: { isMock: boolean }) {
 
           {c.isBestPost ? (
             (() => {
-              const bestPost = s.bestPost as typeof s.bestPost & { url?: string }
+              const bestPost = s.bestPost as typeof s.bestPost & { url?: string; accountUsername?: string }
               const hasBestPost = Boolean(
                 bestPost.platform?.trim()
                 || bestPost.caption?.trim()
@@ -1575,11 +1588,15 @@ function StatCards({ isMock }: { isMock: boolean }) {
                   {bestPost.caption?.trim() ? (
                     <p className="text-[11px] text-text-soft truncate">{bestPost.caption}</p>
                   ) : null}
+                  {bestPost.accountUsername?.trim() ? (
+                    <p className="text-[10px] text-text-soft truncate">@{bestPost.accountUsername.replace(/^@/, '')}</p>
+                  ) : null}
                   {bestPost.url ? (
                     <a
                       href={bestPost.url}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
+                      title={bestPost.url}
                       className="text-[11px] text-[#3B82F6] font-medium mt-1 inline-flex items-center gap-0.5 hover:underline"
                     >
                       View <ExternalLink size={10} />
@@ -3316,7 +3333,7 @@ export default function AnalyticsClient({
     try {
       const q = new URLSearchParams({ dateRange })
       if (platformFilter !== 'all') q.set('platform', platformFilter)
-      const res  = await fetch(`/api/analytics/zernio/social?${q}`)
+      const res  = await fetch(`/api/analytics/zernio/social?${q}`, { cache: 'no-store' })
       const json = await res.json()
       if (!res.ok || json.error) {
         const detail = typeof json.detail === 'string' ? json.detail : ''

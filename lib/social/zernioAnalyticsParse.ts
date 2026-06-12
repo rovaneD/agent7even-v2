@@ -230,7 +230,8 @@ export function readBestPostUrl(entry: unknown, activePlatform?: string): string
   const readPlatformPostUrl = (source: Record<string, unknown>, pl: string): string => {
     const url = readStringField(source, ['platformPostUrl', 'platform_post_url'])
     if (!url || !looksLikePostUrl(url, pl || postPlatform)) return ''
-    return canonicalizePostUrl(url, pl || postPlatform, mediaType)
+    // Keep Zernio's exact permalink — do not rewrite paths client-side.
+    return url.trim()
   }
 
   const platformEntries = collectPlatformEntries(obj, analytics)
@@ -284,6 +285,118 @@ export function readBestPostUrl(entry: unknown, activePlatform?: string): string
   }
 
   return topUrl
+}
+
+export type AnalyticsBestPost = {
+  caption: string
+  platform: string
+  engagements: number
+  url: string
+  accountUsername?: string
+  profileId?: string
+  zernioPostId?: string
+}
+
+export function readEngagementCount(entry: unknown): number {
+  if (!entry || typeof entry !== 'object') return 0
+  const obj = entry as Record<string, unknown>
+  const analytics = (obj.analytics && typeof obj.analytics === 'object' && !Array.isArray(obj.analytics))
+    ? obj.analytics as Record<string, unknown>
+    : {}
+  const candidates = [
+    analytics.engagements,
+    analytics.engagementCount,
+    analytics.totalEngagements,
+    analytics.engagement_total,
+    analytics.interactions,
+    obj.engagements,
+    obj.engagementCount,
+    obj.totalEngagements,
+  ]
+  for (const value of candidates) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value
+    if (typeof value === 'string' && value.trim()) {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) return parsed
+    }
+  }
+  return (
+    Number(analytics.likes ?? 0) +
+    Number(analytics.comments ?? 0) +
+    Number(analytics.shares ?? 0) +
+    Number(analytics.saves ?? 0) +
+    Number(analytics.clicks ?? 0)
+  )
+}
+
+function readPostCaption(entry: Record<string, unknown>): string {
+  return String(entry.content ?? entry.caption ?? entry.text ?? entry.description ?? '').trim()
+}
+
+function readPostPlatform(entry: Record<string, unknown>): string {
+  const analytics = (entry.analytics && typeof entry.analytics === 'object' && !Array.isArray(entry.analytics))
+    ? entry.analytics as Record<string, unknown>
+    : {}
+  return String(entry.platform ?? analytics.platform ?? '').toLowerCase()
+}
+
+function readPostProfileId(entry: Record<string, unknown>): string {
+  const raw = entry.profileId
+  if (typeof raw === 'string') return raw
+  if (raw && typeof raw === 'object') {
+    return String((raw as Record<string, unknown>)._id ?? (raw as Record<string, unknown>).id ?? '')
+  }
+  return ''
+}
+
+function readPostAccountUsername(entry: Record<string, unknown>): string {
+  for (const row of collectPlatformEntries(entry, {})) {
+    const username = String(row.accountUsername ?? row.username ?? row.platformUsername ?? '').trim()
+    if (username) return username
+  }
+  return ''
+}
+
+/** Pick highest-engagement post; prefer primary Zernio profile when set. */
+export function pickBestAnalyticsPost(
+  posts: unknown[],
+  opts?: { platform?: string; primaryProfileId?: string },
+): AnalyticsBestPost | null {
+  let candidates = posts.filter((p): p is Record<string, unknown> => !!p && typeof p === 'object') as Record<string, unknown>[]
+  if (opts?.platform) {
+    candidates = filterPostsByPlatform(candidates, opts.platform) as Record<string, unknown>[]
+  }
+  if (opts?.primaryProfileId) {
+    const scoped = candidates.filter(p => readPostProfileId(p) === opts.primaryProfileId)
+    if (scoped.length) candidates = scoped
+  }
+  if (!candidates.length) return null
+
+  const ranked = candidates
+    .map((post) => ({
+      caption: readPostCaption(post),
+      platform: readPostPlatform(post),
+      engagements: readEngagementCount(post),
+      url: readBestPostUrl(post, opts?.platform),
+      accountUsername: readPostAccountUsername(post),
+      profileId: readPostProfileId(post),
+      zernioPostId: String(post._id ?? post.id ?? ''),
+    }))
+    .sort((a, b) => b.engagements - a.engagements)
+
+  const best = ranked[0]
+  if (!best) return null
+  if (!best.caption && !best.engagements && !best.url) return null
+
+  return {
+    caption: best.caption,
+    platform: best.platform,
+    engagements: best.engagements,
+    url: best.url,
+    ...(best.accountUsername ? { accountUsername: best.accountUsername } : {}),
+    ...(best.profileId ? { profileId: best.profileId } : {}),
+    ...(best.zernioPostId ? { zernioPostId: best.zernioPostId } : {}),
+  }
 }
 
 /** Filter posts when UI platform filter is active */
