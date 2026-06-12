@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
 import { publishApprovedImageCaption } from '@/lib/agents/publishApprovedOutput'
-import { shouldPublishApprovedPost } from '@/lib/agents/contentPosting'
+import { shouldPublishApprovedPost, singlePostPublishBlockReason } from '@/lib/agents/contentPosting'
 
 export async function POST(
   req: Request,
@@ -66,18 +66,19 @@ export async function POST(
   const outputContent = (outputUpdate.content ?? output?.content ?? {}) as Record<string, unknown>
   const caption = typeof outputContent.raw === 'string' ? outputContent.raw : ''
 
+  const publishOpts = {
+    agentId: (task?.agent as string) ?? '',
+    taskInput: (task?.input ?? {}) as Record<string, unknown>,
+    outputContent,
+    caption,
+  }
+
   let publish: Awaited<ReturnType<typeof publishApprovedImageCaption>> | null = null
-  if (
-    shouldPublishApprovedPost({
-      agentId: (task?.agent as string) ?? '',
-      taskInput: (task?.input ?? {}) as Record<string, unknown>,
-      outputContent,
-      caption,
-    })
-  ) {
+  const publishBlocked = singlePostPublishBlockReason(publishOpts)
+  if (shouldPublishApprovedPost(publishOpts)) {
     publish = await publishApprovedImageCaption({
       profileId: profile.id,
-      taskInput: (task?.input ?? {}) as Record<string, unknown>,
+      taskInput: publishOpts.taskInput,
       outputContent,
       caption,
       taskId,
@@ -85,5 +86,5 @@ export async function POST(
   }
 
   logActivity(profile.id, 'agent_approved', { taskId, publishScheduled: publish?.scheduled ?? false }).catch(() => {})
-  return NextResponse.json({ success: true, publish })
+  return NextResponse.json({ success: true, publish, publishBlocked })
 }

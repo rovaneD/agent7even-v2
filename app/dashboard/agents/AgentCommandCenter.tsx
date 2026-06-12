@@ -1,10 +1,11 @@
 'use client'
 
-import { Fragment, useState, useEffect, useMemo } from 'react'
+import { Fragment, useState, useEffect, useMemo, type ReactNode } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildAgentCommandCenterMayaContext } from '@/lib/maya/summaries/agentsContext'
 import PostImageAttach from '@/components/agents/PostImageAttach'
 import Link from 'next/link'
+import { Loader2, CheckCircle2, AlertCircle, ArrowRight, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { AGENTS, AgentId, AgentDefinition, AGENT_COLORS, COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
 import {
@@ -29,6 +30,7 @@ interface AgentTask {
   approved_at: string | null
   rejected_at: string | null
   rejection_note: string | null
+  error?: string | null
   created_at: string
   started_at: string | null
   completed_at: string | null
@@ -52,6 +54,8 @@ interface ScorecardEntry {
   name: string
   icon: string
   lastRunAt: string | null
+  lastRunStatus: string | null
+  lastRunError: string | null
   totalOutputs: number
   approvalRate: number | null
   isScheduled: boolean
@@ -66,6 +70,19 @@ interface Props {
   recentTasks: AgentTask[]
   recentOutputs: AgentOutput[]
   scorecard: ScorecardEntry[]
+}
+
+type RunTrackerPhase = 'generating' | 'done' | 'error'
+
+interface RunTracker {
+  taskId: string
+  agent: string
+  contentFlow?: ContentPostingFlow
+  phase: RunTrackerPhase
+  message: string
+  detail?: string
+  primaryHref?: string
+  primaryLabel?: string
 }
 
 type GuidedFieldType = 'text' | 'textarea' | 'select'
@@ -331,7 +348,201 @@ function getOutputText(output: AgentOutput): string {
   return JSON.stringify(content, null, 2)
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────
+function friendlyRunError(error: string | null | undefined): string {
+  if (!error) return 'Agent run failed before producing output.'
+  if (error.includes('Unknown agent: content-posting')) {
+    return 'Content Posting handler was not reachable on this deployment. Wait for the latest deploy, then try again.'
+  }
+  if (error.includes('INSUFFICIENT_CREDITS')) return 'Not enough credits to finish this run.'
+  const match = error.match(/run-route error \d+: (.+)/)
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[1]) as { error?: string }
+      if (parsed.error) return parsed.error
+    } catch {
+      /* use raw error below */
+    }
+  }
+  return error.length > 180 ? `${error.slice(0, 180)}…` : error
+}
+
+function runTrackerGeneratingMessage(agent: string, contentFlow?: ContentPostingFlow): string {
+  if (agent === 'content_posting' && contentFlow === 'single') {
+    return 'Generating your post caption from your image…'
+  }
+  if (agent === 'content_posting' && contentFlow === 'weekly') {
+    return 'Building your weekly content plan…'
+  }
+  return `Running ${agentDisplayName(agent)}…`
+}
+
+function runTrackerDoneState(
+  taskId: string,
+  agent: string,
+  contentFlow?: ContentPostingFlow,
+  requiresApproval?: boolean,
+): Pick<RunTracker, 'message' | 'detail' | 'primaryHref' | 'primaryLabel'> {
+  if (agent === 'content_posting' && contentFlow === 'single') {
+    return {
+      message: 'Done — your caption is ready.',
+      detail: 'Review and approve it, then finish scheduling on Posts.',
+      primaryHref: `/dashboard/agents/approvals?task=${taskId}`,
+      primaryLabel: 'Review caption',
+    }
+  }
+  if (requiresApproval) {
+    return {
+      message: 'Done — output ready for review.',
+      detail: 'Open Approvals to approve or edit before it goes anywhere.',
+      primaryHref: `/dashboard/agents/approvals?task=${taskId}`,
+      primaryLabel: 'Review in Approvals',
+    }
+  }
+  return {
+    message: 'Done — run completed.',
+    detail: 'Open the output archive to read the full result.',
+    primaryHref: `/dashboard/agents/${agent}/outputs`,
+    primaryLabel: 'View output',
+  }
+}
+
+function AgentRunStatusBanner({
+  tracker,
+  onDismiss,
+}: {
+  tracker: RunTracker
+  onDismiss: () => void
+}) {
+  const isGenerating = tracker.phase === 'generating'
+  const isDone = tracker.phase === 'done'
+  const isError = tracker.phase === 'error'
+
+  return (
+    <div
+      className={`sticky top-0 z-30 mb-6 overflow-hidden rounded-2xl border shadow-sm ${
+        isGenerating
+          ? 'border-blue-100 bg-blue-50'
+          : isDone
+            ? 'border-emerald-100 bg-emerald-50'
+            : 'border-red-100 bg-red-50'
+      }`}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex items-start gap-4 px-5 py-4">
+        <div className={`mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
+          isGenerating
+            ? 'bg-white text-brand-primary'
+            : isDone
+              ? 'bg-white text-emerald-600'
+              : 'bg-white text-red-600'
+        }`}>
+          {isGenerating && <Loader2 size={20} className="animate-spin" />}
+          {isDone && <CheckCircle2 size={20} />}
+          {isError && <AlertCircle size={20} />}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className={`text-sm font-semibold ${
+            isGenerating ? 'text-blue-900' : isDone ? 'text-emerald-900' : 'text-red-900'
+          }`}>
+            {tracker.message}
+          </p>
+          {tracker.detail && (
+            <p className={`mt-1 text-[13px] leading-relaxed ${
+              isGenerating ? 'text-blue-800/80' : isDone ? 'text-emerald-800/80' : 'text-red-800/80'
+            }`}>
+              {tracker.detail}
+            </p>
+          )}
+          {isGenerating && (
+            <p className="mt-2 text-[12px] text-blue-700/70">
+              Usually 15–45 seconds. Stay on this page — we&apos;ll show a link when it&apos;s ready.
+            </p>
+          )}
+          {isDone && tracker.primaryHref && tracker.primaryLabel && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Link
+                href={tracker.primaryHref}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#3B82F6] px-4 py-2.5 text-[13px] font-semibold text-white no-underline transition-colors hover:bg-[#2563EB]"
+              >
+                {tracker.primaryLabel}
+                <ArrowRight size={14} />
+              </Link>
+              {tracker.contentFlow === 'single' && (
+                <Link
+                  href="/dashboard/posts"
+                  className="text-[13px] font-medium text-emerald-800 no-underline hover:underline"
+                >
+                  Posts (after you approve)
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+
+        {!isGenerating && (
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="flex-shrink-0 rounded-lg p-1.5 text-text-soft hover:bg-black/5 hover:text-text-primary"
+            aria-label="Dismiss"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AgentSetupShell({
+  agentName,
+  onClose,
+  children,
+}: {
+  agentName: string
+  onClose: () => void
+  children: ReactNode
+}) {
+  return (
+    <>
+      {/* Mobile: slide-up drawer */}
+      <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true" aria-label={`${agentName} setup`}>
+        <button
+          type="button"
+          className="absolute inset-0 bg-black/35"
+          aria-label="Close setup"
+          onClick={onClose}
+        />
+        <div className="relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Run agent</p>
+              <h3 className="text-[16px] font-semibold text-text-primary">{agentName}</h3>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-2 text-text-soft hover:bg-gray-50 hover:text-text-primary"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 pb-8">
+            {children}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop: inline panel */}
+      <div id="agent-setup-panel" className="hidden scroll-mt-24 border-t border-border pt-5 md:block">
+        {children}
+      </div>
+    </>
+  )
+}
 
 export default function AgentCommandCenter({
   profileId, companyName, activeTasks: initActiveTasks,
@@ -339,8 +550,9 @@ export default function AgentCommandCenter({
 }: Props) {
   const [activeTasks, setActiveTasks] = useState(initActiveTasks)
   const [pendingApprovals, setPendingApprovals] = useState(initPendingApprovals)
-  const [recentTasks] = useState(initRecent)
+  const [recentTasks, setRecentTasks] = useState(initRecent)
   const [recentOutputs, setRecentOutputs] = useState(initRecentOutputs)
+  const [runTracker, setRunTracker] = useState<RunTracker | null>(null)
 
   // New task form state
   const [selectedAgent, setSelectedAgent] = useState<AgentId | null>(null)
@@ -390,6 +602,31 @@ export default function AgentCommandCenter({
       document.getElementById('run-agent')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
   }
+
+  function handleAgentCardClick(agentId: AgentId) {
+    setSelectedAgent(prev => {
+      const next = prev === agentId ? null : agentId
+      if (next && typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) {
+        requestAnimationFrame(() => {
+          document.getElementById('agent-setup-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        })
+      }
+      return next
+    })
+  }
+
+  function closeAgentSetup() {
+    setSelectedAgent(null)
+  }
+
+  useEffect(() => {
+    if (!selectedAgent) return
+    const isMobile = window.matchMedia('(max-width: 767px)').matches
+    if (!isMobile) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [selectedAgent])
 
   const selectedAgentConfig = selectedAgent === 'content_posting'
     ? CONTENT_POSTING_FLOW_CONFIG[contentPostingFlow]
@@ -548,6 +785,79 @@ export default function AgentCommandCenter({
     }
   }
 
+  async function pollTaskRun(
+    taskId: string,
+    agent: string,
+    contentFlow?: ContentPostingFlow,
+  ) {
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const res = await fetch(`/api/agents/tasks/${taskId}`)
+      if (!res.ok) continue
+
+      const data = await res.json().catch(() => ({}))
+      const task = data.task as AgentTask | undefined
+      if (!task) continue
+
+      if (task.status === 'pending' || task.status === 'running') {
+        setRunTracker(prev => prev?.taskId === taskId ? {
+          ...prev,
+          phase: 'generating',
+          message: runTrackerGeneratingMessage(agent, contentFlow),
+          detail: undefined,
+        } : prev)
+        continue
+      }
+
+      setRecentTasks(prev => [task, ...prev.filter(t => t.id !== task.id)].slice(0, 30))
+
+      if (task.status === 'completed') {
+        const outputs = (data.outputs ?? []) as AgentOutput[]
+        if (outputs.length > 0) {
+          setRecentOutputs(prev => {
+            const merged = [...outputs, ...prev.filter(o => !outputs.some(n => n.id === o.id))]
+            return merged.slice(0, 50)
+          })
+        }
+        if (task.requires_approval && !task.approved_at && !task.rejected_at) {
+          setPendingApprovals(prev => {
+            const enriched = { ...task, agent_outputs: outputs }
+            return prev.some(t => t.id === task.id) ? prev : [enriched, ...prev]
+          })
+        }
+        setRunTracker({
+          taskId,
+          agent,
+          contentFlow,
+          phase: 'done',
+          ...runTrackerDoneState(taskId, agent, contentFlow, task.requires_approval),
+        })
+        return
+      }
+
+      if (task.status === 'failed') {
+        setRunTracker({
+          taskId,
+          agent,
+          contentFlow,
+          phase: 'error',
+          message: 'Run failed',
+          detail: friendlyRunError(task.error),
+        })
+        return
+      }
+    }
+
+    setRunTracker({
+      taskId,
+      agent,
+      contentFlow,
+      phase: 'error',
+      message: 'Run is taking longer than expected',
+      detail: 'Refresh the page in a moment, or check Live activity for failed runs.',
+    })
+  }
+
   async function handleCreateTask() {
     if (!selectedAgent) return
     setPostImageRequiredError(null)
@@ -590,11 +900,23 @@ export default function AgentCommandCenter({
         setTaskCreateError(typeof data.error === 'string' ? data.error : 'Could not queue this agent run.')
         return
       }
+      const queuedAgent = selectedAgent
+      const queuedFlow = selectedAgent === 'content_posting' ? contentPostingFlow : undefined
       setSubmitted(true)
       setTaskInstructions('')
       setPostImageMedia(null)
       setSelectedAgent(null)
       setTimeout(() => setSubmitted(false), 3000)
+      if (typeof data.taskId === 'string' && queuedAgent) {
+        setRunTracker({
+          taskId: data.taskId,
+          agent: queuedAgent,
+          contentFlow: queuedFlow,
+          phase: 'generating',
+          message: runTrackerGeneratingMessage(queuedAgent, queuedFlow),
+        })
+        void pollTaskRun(data.taskId, queuedAgent, queuedFlow)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -624,6 +946,9 @@ export default function AgentCommandCenter({
   const queuedTasks = activeTasks.filter(t => t.status === 'pending')
   const completedToday = recentTasks
     .filter(t => t.status === 'completed' && t.completed_at && (Date.now() - new Date(t.completed_at).getTime()) < 86400000)
+    .slice(0, 5)
+  const failedToday = recentTasks
+    .filter(t => t.status === 'failed' && t.completed_at && (Date.now() - new Date(t.completed_at).getTime()) < 86400000)
     .slice(0, 5)
   const scorecardWithLiveCounts = scorecard.map(entry => ({
     ...entry,
@@ -701,6 +1026,13 @@ export default function AgentCommandCenter({
         </div>
       </section>
 
+      {runTracker && (
+        <AgentRunStatusBanner
+          tracker={runTracker}
+          onDismiss={() => setRunTracker(null)}
+        />
+      )}
+
       <div id="run-agent" className="mb-6 rounded-2xl border border-gray-100 bg-white p-6">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -713,16 +1045,21 @@ export default function AgentCommandCenter({
               Task queued
             </span>
           )}
+          {runTracker?.phase === 'generating' && (
+            <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+              <Loader2 size={12} className="animate-spin" />
+              Generating…
+            </span>
+          )}
         </div>
 
-        {/* Agent grid */}
         <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {agentList.map((agent: AgentDefinition) => {
             const isSelected = selectedAgent === agent.id
             return (
               <button
                 key={agent.id}
-                onClick={() => setSelectedAgent(isSelected ? null : agent.id as AgentId)}
+                onClick={() => handleAgentCardClick(agent.id as AgentId)}
                 className={`group flex min-h-[118px] flex-col gap-3 rounded-2xl border p-4 text-left transition-all ${
                   isSelected
                     ? 'border-brand-primary bg-brand-primary/5'
@@ -758,7 +1095,10 @@ export default function AgentCommandCenter({
 
         {/* Instructions + submit */}
         {selectedAgent && (
-          <div className="border-t border-border pt-5">
+          <AgentSetupShell
+            agentName={AGENTS[selectedAgent].name}
+            onClose={closeAgentSetup}
+          >
             {selectedAgentConfig && (
               <div className="mb-4">
                 <div className="mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
@@ -900,12 +1240,23 @@ export default function AgentCommandCenter({
               </div>
               <button
                 onClick={handleCreateTask}
-                disabled={submitting || submitted || (isSinglePostSelected && !postImageMedia)}
+                disabled={
+                  submitting
+                  || submitted
+                  || runTracker?.phase === 'generating'
+                  || (isSinglePostSelected && !postImageMedia)
+                }
                 className={`ml-auto min-w-[180px] rounded-xl px-5 py-3 text-sm font-semibold text-text-inverse transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   submitted ? 'bg-status-success' : 'bg-brand-primary hover:bg-[#2563EB]'
                 }`}
               >
-                {submitted ? 'Task queued' : submitting ? 'Queuing...' : `Run ${AGENTS[selectedAgent].name}`}
+                {runTracker?.phase === 'generating'
+                  ? 'Generating…'
+                  : submitted
+                    ? 'Task queued'
+                    : submitting
+                      ? 'Queuing...'
+                      : `Run ${AGENTS[selectedAgent].name}`}
               </button>
             </div>
 
@@ -968,11 +1319,11 @@ export default function AgentCommandCenter({
                 )}
               </div>
             </div>
-          </div>
+          </AgentSetupShell>
         )}
 
         {!selectedAgent && (
-          <div className="rounded-2xl border border-gray-100 bg-white px-4 py-8 text-center text-sm text-text-sec">
+          <div className="hidden rounded-2xl border border-gray-100 bg-white px-4 py-8 text-center text-sm text-text-sec md:block">
             Select an agent above to get started
           </div>
         )}
@@ -1068,6 +1419,27 @@ export default function AgentCommandCenter({
                 </div>
               )}
 
+              {failedToday.length > 0 && (
+                <div className="mb-5">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Failed today</p>
+                  {failedToday.map(t => (
+                    <div key={t.id} className="border-b border-border py-2 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 flex-shrink-0 rounded-full bg-red-500" />
+                        <AgentIcon agentId={t.agent} size={14} className="text-text-muted" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-text-primary">{agentDisplayName(t.agent)}</p>
+                        </div>
+                        <span className="text-xs text-text-muted">{relativeTime(t.completed_at)}</span>
+                      </div>
+                      <p className="mt-1 pl-7 text-[11px] leading-relaxed text-red-700">
+                        {friendlyRunError(t.error)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {completedToday.length > 0 && (
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Completed today</p>
@@ -1086,7 +1458,7 @@ export default function AgentCommandCenter({
                 </div>
               )}
 
-              {activeTasks.length === 0 && completedToday.length === 0 && (
+              {activeTasks.length === 0 && completedToday.length === 0 && failedToday.length === 0 && (
                 <div className="py-8 text-center">
                   <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface-2">
                     <i className="ti ti-robot text-text-muted" style={{ fontSize: 18 }} />
@@ -1148,7 +1520,7 @@ export default function AgentCommandCenter({
                       color: AGENT_COLORS[entry.agentId as AgentId]?.fg ?? '#6B7280',
                     }}
                   >
-                    <i className={`ti ${entry.icon}`} style={{ fontSize: 13 }} />
+                    <AgentIcon agentId={entry.agentId} size={14} />
                   </span>
                   <span className="whitespace-nowrap text-sm font-medium text-text-primary">{entry.name}</span>
                 </Link>
@@ -1159,7 +1531,11 @@ export default function AgentCommandCenter({
                   {entry.totalOutputs}
                 </Link>
                 <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className="border-b border-border py-2.5 no-underline">
-                  {entry.isScheduled ? (
+                  {entry.lastRunStatus === 'failed' ? (
+                    <span className="rounded-full bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700" title={entry.lastRunError ?? undefined}>
+                      Failed
+                    </span>
+                  ) : entry.isScheduled ? (
                     <span className="rounded-full bg-status-success/10 px-2 py-1 text-[11px] font-semibold text-status-success">Active</span>
                   ) : (
                     <span className="rounded-full border border-border bg-surface-2 px-2 py-1 text-[11px] font-semibold text-text-sec">Idle</span>

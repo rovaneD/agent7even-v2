@@ -48,7 +48,7 @@ export default async function AgentsPage() {
 
     supabase
       .from('agent_tasks')
-      .select('*')
+      .select('*, error')
       .eq('user_id', profile.id)
       .order('created_at', { ascending: false })
       .limit(30),
@@ -89,6 +89,8 @@ export default async function AgentsPage() {
       name: agent.name,
       icon: agent.icon,
       lastRunAt: lastTask?.completed_at ?? lastTask?.updated_at ?? lastTask?.created_at ?? null,
+      lastRunStatus: lastTask?.status ?? null,
+      lastRunError: (lastTask as { error?: string | null })?.error ?? null,
       totalOutputs: outputs.length,
       approvalRate: approvalRequired > 0 ? Math.round((approved / approvalRequired) * 100) : null,
       isScheduled: !!schedule?.is_active,

@@ -1,5 +1,15 @@
 import { createServiceClient } from '@/lib/supabase/server'
 
+/** Loopback base URL for firing run routes from the same deployment (avoids preview → prod mismatch). */
+function internalAppBaseUrl(): string {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
+  if (configured) return configured
+  return 'http://localhost:3000'
+}
+
 export async function dispatchAgentTask(opts: {
   taskId: string
   agent: string
@@ -7,7 +17,7 @@ export async function dispatchAgentTask(opts: {
   userId: string
 }) {
   const supabase = createServiceClient()
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const baseUrl = internalAppBaseUrl()
   const runUrl = `${baseUrl}/api/agents/run/${opts.agent.replace(/_/g, '-')}`
 
   try {

@@ -151,7 +151,9 @@ export async function POST(
     if (hasImage && media.media_storage_path) {
       outputContent.media_storage_path = media.media_storage_path
       outputContent.media_mime = media.media_mime
-      outputContent.image_caption_mode = true
+      if (singlePostRun) {
+        outputContent.image_caption_mode = true
+      }
     }
 
     const dateLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })

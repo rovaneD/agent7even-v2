@@ -12,6 +12,7 @@ import {
   approvalQueueKind,
   type ApprovalQueueKind,
   isLegacyContentAgent,
+  singlePostPublishBlockReason,
 } from '@/lib/agents/contentPosting'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -135,6 +136,15 @@ function ApprovalItem({
   const [activeChip,  setActiveChip]  = useState<string | null>(null)
   const [showReject,  setShowReject]  = useState(false)
 
+  const publishWarning = queueKind === 'post' && output
+    ? singlePostPublishBlockReason({
+        agentId: task.agent,
+        taskInput: task.input ?? {},
+        outputContent: (output.content ?? {}) as Record<string, unknown>,
+        caption: isEditing ? editVal : raw,
+      })
+    : null
+
   function handleExpand() {
     onToggleExpand()
     if (!isExpanded) onMarkReviewed()
@@ -226,6 +236,16 @@ function ApprovalItem({
             <p style={{ fontSize: 13, color: '#666', lineHeight: 1.55, marginBottom: 10 }}>
               {raw.length > 180 ? raw.slice(0, 180) + '…' : raw}
             </p>
+          )}
+
+          {isExpanded && publishWarning && (
+            <div style={{
+              background: '#FFFBEB', border: '0.5px solid #FDE68A', borderRadius: 8,
+              padding: '10px 12px', marginBottom: 12, fontSize: 12.5, color: '#92400E', lineHeight: 1.5,
+            }}>
+              <strong>Will not create a Posts draft:</strong> {publishWarning}
+              {queueKind === 'post' && ' Use Edit & approve to fix the caption, or Reject & re-run.'}
+            </div>
           )}
 
           {/* Expanded: full content or editor */}
@@ -491,6 +511,10 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
       })
     } else if (kind === 'plan') {
       setApproveNotice({ message: 'Weekly plan approved and saved to your output archive.' })
+    } else if (kind === 'post' && typeof data.publishBlocked === 'string') {
+      setApproveNotice({ message: `Approved and saved, but not sent to Posts: ${data.publishBlocked}` })
+    } else if (kind === 'post') {
+      setApproveNotice({ message: 'Post approved and saved to your output archive.' })
     }
   }
 

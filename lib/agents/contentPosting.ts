@@ -1,4 +1,5 @@
 import type { AgentId } from '@/lib/agents/registry'
+import { platformCharLimit, primaryPlatformFromInput } from '@/lib/agents/visionCaption'
 import { readPostMediaRef } from '@/lib/postAssetLimits'
 
 export type ContentPostingFlow = 'single' | 'weekly'
@@ -67,25 +68,62 @@ export function approvalQueueKind(task: {
   return 'other'
 }
 
-/** Only single-post approvals with image + caption mode should create a Zernio draft. */
+/** Heuristic: model returned a weekly plan instead of one caption. */
+export function looksLikeWeeklyContentPlan(text: string): boolean {
+  const t = text.trim()
+  if (!t) return false
+  if (/^#\s*7-?\s*day/i.test(t)) return true
+  if (/\*\*Week Goal:/i.test(t)) return true
+  if (/(?:^|\n)\s*(?:Day|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s*[1-7]/i.test(t) && t.length > 800) return true
+  if (t.includes('7-day') && t.includes('content plan')) return true
+  return false
+}
+
+/** Why a single-post approval cannot create a Zernio draft (null = ok to publish). */
+export function singlePostPublishBlockReason(opts: {
+  agentId: string
+  taskInput: Record<string, unknown>
+  outputContent: Record<string, unknown>
+  caption: string
+}): string | null {
+  const caption = opts.caption.trim()
+  if (!caption) return 'Caption is empty.'
+
+  const media = readPostMediaRef(opts.outputContent)
+  if (!media.media_storage_path) return 'No post image attached to this output.'
+
+  if (opts.agentId === 'weekly_content') return 'Weekly plans stay in your output archive — they are not published to Posts.'
+  if (opts.agentId === 'content_posting' && resolveContentPostingFlow(opts.taskInput) === 'weekly') {
+    return 'Weekly plans stay in your output archive — they are not published to Posts.'
+  }
+  if (opts.agentId === 'content_posting' && resolveContentPostingFlow(opts.taskInput) !== 'single') {
+    return 'Only Single post approvals with an attached image create a Posts draft.'
+  }
+  if (opts.agentId === 'content_posting' && opts.outputContent.image_caption_mode !== true) {
+    return 'This output is not marked as a single-post caption.'
+  }
+
+  if (looksLikeWeeklyContentPlan(caption)) {
+    return 'Output looks like a weekly content plan, not one social caption. Edit it or reject and re-run Single post.'
+  }
+
+  const platform = primaryPlatformFromInput(opts.taskInput)
+  const limit = platformCharLimit(platform)
+  if (caption.length > limit) {
+    return `Caption is ${caption.length.toLocaleString()} characters — over the ${platform} limit of ${limit.toLocaleString()}. Shorten it before approving.`
+  }
+
+  if (opts.agentId === 'post_caption') return null
+  if (opts.agentId === 'content_posting' && resolveContentPostingFlow(opts.taskInput) === 'single') return null
+  return 'This approval type does not publish to Posts.'
+}
+
+/** Only valid single-post approvals with image + caption should create a Zernio draft. */
 export function shouldPublishApprovedPost(opts: {
   agentId: string
   taskInput: Record<string, unknown>
   outputContent: Record<string, unknown>
   caption: string
 }): boolean {
-  const caption = opts.caption.trim()
-  if (!caption) return false
-
-  const media = readPostMediaRef(opts.outputContent)
-  if (!media.media_storage_path) return false
-
-  if (opts.agentId === 'post_caption') return true
-  if (opts.agentId === 'weekly_content') return false
-  if (opts.agentId === 'content_posting') {
-    return resolveContentPostingFlow(opts.taskInput) === 'single'
-      && opts.outputContent.image_caption_mode === true
-  }
-
-  return false
+  return singlePostPublishBlockReason(opts) === null
 }
