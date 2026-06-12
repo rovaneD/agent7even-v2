@@ -27,6 +27,51 @@ function platformMatches(value: string | undefined, filter: string | undefined):
   return (value ?? '').toLowerCase() === filter.toLowerCase()
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/** Run Zernio fetches sequentially to avoid burst 429s on secondary analytics endpoints. */
+async function fetchAccountAnalyticsBundle(opts: {
+  pId: string
+  acct: { id: string; platform: string; username: string }
+  accounts: Array<{ id: string; platform: string; username: string }>
+  rangeParams: { profileId: string; fromDate: string; toDate: string; accountId: string; platform?: string }
+  secondaryParams: { profileId: string; source: 'all'; accountId: string; platform?: string }
+  staggerMs?: number
+}) {
+  const gap = opts.staggerMs ?? 150
+  const rawPostData = await publisher.getSocialAnalytics(opts.rangeParams)
+  await sleep(gap)
+  const dailyData = await publisher.getDailyAnalytics(opts.rangeParams)
+  await sleep(gap)
+  const followerStats = await publisher.getFollowerStats({
+    profileId: opts.pId,
+    accountIds: [opts.acct.id],
+    fromDate: opts.rangeParams.fromDate,
+    toDate: opts.rangeParams.toDate,
+    granularity: 'daily',
+  })
+  await sleep(gap)
+  const bestTimesData = await publisher.getBestTimeToPost(opts.secondaryParams)
+  await sleep(gap)
+  const postingFrequencyData = await publisher.getPostingFrequency(opts.secondaryParams)
+  await sleep(gap)
+  const contentDecayData = await publisher.getContentDecay(opts.secondaryParams)
+
+  return {
+    pId: opts.pId,
+    accountId: opts.acct.id,
+    accounts: opts.accounts,
+    rawPostData,
+    dailyData,
+    followerStats,
+    bestTimesData,
+    postingFrequencyData,
+    contentDecayData,
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -57,31 +102,21 @@ export async function GET(req: NextRequest) {
   }
 
   const { fromDate, toDate } = publisher.dateRangeToWindow(dateRange)
+  const analyticsPlatform = platform?.toLowerCase()
 
   // All accounts on the API key (for profiles that share a key across connections)
   const apiKeyAccounts = await publisher.listAllAccounts()
   const profileIdSet = new Set(zernioProfileIds)
 
-  // Fan out per Zernio profile × connected account — every analytics call is accountId-pinned.
-  // Never pass platform= on secondary endpoints; scope via account selection instead.
-  type AccountFetchBundle = {
-    pId: string
-    accountId: string
-    accounts: Array<{ id: string; platform: string; username: string }>
-    rawPostData: unknown
-    dailyData: unknown
-    followerStats: unknown
-    bestTimesData: unknown
-    postingFrequencyData: unknown
-    contentDecayData: unknown
-  }
+  // Fan out per Zernio profile × connected account — stagger calls to reduce 429 bursts.
+  type AccountFetchBundle = Awaited<ReturnType<typeof fetchAccountAnalyticsBundle>>
 
   const profileBundles = await Promise.all(
     zernioProfileIds.map(async (pId) => {
       try {
         const accounts = await publisher.getProfileAccounts(pId)
-        const scopedAccounts = platform
-          ? accounts.filter(a => a.platform.toLowerCase() === platform.toLowerCase())
+        const scopedAccounts = analyticsPlatform
+          ? accounts.filter(a => a.platform.toLowerCase() === analyticsPlatform)
           : accounts
         const accountsToQuery = scopedAccounts.length > 0 ? scopedAccounts : accounts
 
@@ -89,40 +124,30 @@ export async function GET(req: NextRequest) {
           return [] as AccountFetchBundle[]
         }
 
-        return Promise.all(
-          accountsToQuery.map(async (acct) => {
-            const rangeParams = { profileId: pId, fromDate, toDate, accountId: acct.id }
-            const secondaryParams = { profileId: pId, source: 'all' as const, accountId: acct.id }
-
-            const [rawPostData, dailyData, followerStats, bestTimesData, postingFrequencyData, contentDecayData] =
-              await Promise.all([
-                publisher.getSocialAnalytics(rangeParams),
-                publisher.getDailyAnalytics(rangeParams),
-                publisher.getFollowerStats({
-                  profileId: pId,
-                  accountIds: [acct.id],
-                  fromDate,
-                  toDate,
-                  granularity: 'daily',
-                }),
-                publisher.getBestTimeToPost(secondaryParams),
-                publisher.getPostingFrequency(secondaryParams),
-                publisher.getContentDecay(secondaryParams),
-              ])
-
-            return {
-              pId,
-              accountId: acct.id,
-              accounts,
-              rawPostData,
-              dailyData,
-              followerStats,
-              bestTimesData,
-              postingFrequencyData,
-              contentDecayData,
-            }
-          }),
-        )
+        const bundles: AccountFetchBundle[] = []
+        for (const acct of accountsToQuery) {
+          const rangeParams = {
+            profileId: pId,
+            fromDate,
+            toDate,
+            accountId: acct.id,
+            ...(analyticsPlatform ? { platform: analyticsPlatform } : {}),
+          }
+          const secondaryParams = {
+            profileId: pId,
+            source: 'all' as const,
+            accountId: acct.id,
+            ...(analyticsPlatform ? { platform: analyticsPlatform } : {}),
+          }
+          bundles.push(await fetchAccountAnalyticsBundle({
+            pId,
+            acct,
+            accounts,
+            rangeParams,
+            secondaryParams,
+          }))
+        }
+        return bundles
       } catch (err) {
         console.error(`[zernio/social] Failed fetching for profile ${pId}:`, err)
         return [] as AccountFetchBundle[]

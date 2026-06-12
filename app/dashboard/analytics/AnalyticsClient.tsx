@@ -1360,9 +1360,12 @@ function FilterBar({
             isMock={isMock}
           />
 
-          {/* Profile (static in demo) */}
-          <button className="flex items-center gap-1.5 text-[12.5px] font-medium text-text-sec bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:border-gray-300 transition-colors">
-            {isMock ? 'Demo Profile' : 'Default'}
+          {/* Profile scope — aggregates all Zernio profiles on this tenant */}
+          <button
+            title="Aggregates all connected Zernio profiles and accounts for this workspace"
+            className="flex items-center gap-1.5 text-[12.5px] font-medium text-text-sec bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:border-gray-300 transition-colors cursor-default"
+          >
+            {isMock ? 'Demo Profile' : 'All connected accounts'}
             <ChevronDown size={13} className="text-gray-400 flex-shrink-0" />
           </button>
 

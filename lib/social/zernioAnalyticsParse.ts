@@ -224,7 +224,17 @@ export function readBestPostUrl(entry: unknown, activePlatform?: string): string
   const postPlatform = String(obj.platform ?? analytics.platform ?? '').toLowerCase()
   const platformFilter = activePlatform && activePlatform !== 'all'
     ? activePlatform.toLowerCase()
-    : postPlatform
+    : ''
+
+  const readPlatformPostUrl = (source: Record<string, unknown>, pl: string): string => {
+    const url = readStringField(source, ['platformPostUrl', 'platform_post_url'])
+    return url && looksLikePostUrl(url, pl || postPlatform) ? url : ''
+  }
+
+  // Zernio authoritative field — top-level on the post row.
+  const topUrl = readPlatformPostUrl(obj, platformFilter || postPlatform)
+    || readPlatformPostUrl(analytics, platformFilter || postPlatform)
+  if (topUrl) return topUrl
 
   const platformEntries = [
     ...asArray(obj.platforms),
@@ -236,7 +246,6 @@ export function readBestPostUrl(entry: unknown, activePlatform?: string): string
   ] as Record<string, unknown>[]
 
   const postPlatformPostId = readPlatformPostId(obj) || readPlatformPostId(analytics)
-
   const scopedEntries = platformFilter
     ? platformEntries.filter((p) => String(p.platform ?? '').toLowerCase() === platformFilter)
     : platformEntries
@@ -246,33 +255,24 @@ export function readBestPostUrl(entry: unknown, activePlatform?: string): string
     postPlatformPostId,
   )
 
-  // Platform analytics rows carry platformPostUrl — always prefer these over root post fields.
   for (const entryRow of candidateEntries) {
     const pl = String(entryRow.platform ?? platformFilter ?? postPlatform ?? '')
-    const url = readUrlFromSource(entryRow, pl)
+    const url = readPlatformPostUrl(entryRow, pl)
     if (url) return url
   }
 
-  // If a platform row only has platformPostId, derive shortcode from sibling URL fields on the post.
-  if (postPlatformPostId && isLikelyInstagramShortcode(postPlatformPostId)) {
-    const built = buildPostUrlFromShortcode(
-      { shortcode: postPlatformPostId, platform: postPlatform },
-      postPlatform,
-    )
-    if (built) return built
-  }
-
-  const fallbacks = [analytics, obj.post, obj.content, obj.media, obj.metadata, obj]
+  // Legacy explicit permalink fields only — never build URLs from platformPostId
+  // (Instagram platformPostId is numeric media ID, not a shortcode).
+  const fallbacks = [analytics, obj]
     .filter((v): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v))
 
   for (const source of fallbacks) {
-    const url = readUrlFromSource(source, platformFilter || postPlatform)
-    if (!url) continue
-    if (postPlatformPostId && isLikelyInstagramShortcode(postPlatformPostId)) {
-      const urlShortcode = shortcodeFromPostUrl(url)
-      if (urlShortcode && urlShortcode !== postPlatformPostId) continue
+    for (const key of ['permalink', 'permalinkUrl', 'permalink_url'] as const) {
+      const value = source[key]
+      if (typeof value === 'string' && value.trim() && looksLikePostUrl(value.trim(), platformFilter || postPlatform)) {
+        return value.trim()
+      }
     }
-    return url
   }
 
   return ''
