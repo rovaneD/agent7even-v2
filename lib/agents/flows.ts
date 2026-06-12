@@ -199,6 +199,13 @@ export const AGENT_FLOWS: Record<AgentId, AgentFlow> = {
     contextBuilder: contentPlanningContext,
     defaultUserMessage: input => inputText(input, 'instructions') || 'Create this week’s content plan from the current brand, Foundation, campaigns, and recent agent work.',
   },
+  post_caption: {
+    role: 'Single-post caption writer. The user attaches the exact image they plan to publish; write one caption that fits that image in brand voice.',
+    requires: ['platform', 'attached post image', 'brand voice from Foundation', 'post goal or CTA if provided'],
+    outputContract: 'Return ONLY one social caption — no headings, no quotes, no markdown, no weekly plan, no alternate versions unless explicitly asked.',
+    contextBuilder: userId => recentOutputsContext(userId, ['post_caption', 'weekly_content'], 3),
+    defaultUserMessage: input => inputText(input, 'instructions') || 'Write one social caption for the attached post image using the setup details, platform limits, and Foundation context.',
+  },
   campaign_builder: {
     role: '30-day campaign strategist. Build an executable campaign, not a vague strategy document.',
     requires: ['goal', 'audience', 'offer/product', 'budget or budget assumption', 'channels'],

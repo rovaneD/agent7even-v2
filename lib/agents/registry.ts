@@ -3,6 +3,7 @@ import { buildImageContextAgentConstraints } from '@/lib/posts/imageContextCapab
 export type AgentId =
   | 'competitor_watcher'
   | 'weekly_content'
+  | 'post_caption'
   | 'campaign_builder'
   | 'performance_digest'
   | 'trend_spotter'
@@ -36,6 +37,18 @@ export interface AgentDefinition {
 }
 
 export const AGENTS: Record<AgentId, AgentDefinition> = {
+  post_caption: {
+    id: 'post_caption',
+    name: 'Post Caption',
+    description: 'Attach one image — Maya writes the caption to match what\'s in the frame',
+    icon: 'ti-image',
+    autonomyLevel: 'approval_required',
+    outputType: 'post_caption',
+    model: 'anthropic/claude-haiku-4-5',
+    defaultConstraints: `Never make specific income or results claims without disclaimer. Never use urgency tactics like "limited time" unless explicitly provided by the client. Always stay within the brand voice defined in Brand Kit. ${buildImageContextAgentConstraints()}`,
+    foundationSections: ['business', 'voice', 'memory'],
+    warnIfThinSections: ['voice'],
+  },
   competitor_watcher: {
     id: 'competitor_watcher',
     name: 'Competitor Watcher',
@@ -52,12 +65,12 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
   weekly_content: {
     id: 'weekly_content',
     name: 'Weekly Content',
-    description: 'Drafts your social posts and emails so you don\'t have to',
+    description: 'Plans a week of posts and emails — copy only, no image upload',
     icon: 'ti-pencil',
     autonomyLevel: 'approval_required',
     outputType: 'content',
     model: 'anthropic/claude-haiku-4-5',
-    defaultConstraints: `Never make specific income or results claims without disclaimer. Never use urgency tactics like "limited time" unless explicitly provided by the client. Never post content that hasn't been approved if autonomy is set to approval_required. Always stay within the brand voice defined in Brand Kit. ${buildImageContextAgentConstraints()}`,
+    defaultConstraints: `Never make specific income or results claims without disclaimer. Never use urgency tactics like "limited time" unless explicitly provided by the client. Never post content that hasn't been approved if autonomy is set to approval_required. Always stay within the brand voice defined in Brand Kit.`,
     foundationSections: ['business', 'voice', 'memory'],
     warnIfThinSections: ['voice'],
   },
@@ -161,6 +174,7 @@ export const APPROVAL_REQUIRED_AGENTS = Object.values(AGENTS)
 export const AGENT_COLORS: Record<AgentId, { bg: string; fg: string }> = {
   competitor_watcher:     { bg: '#C5F9CD', fg: '#15803D' },
   weekly_content:         { bg: '#C5EFF9', fg: '#0369A1' },
+  post_caption:           { bg: '#DBEAFE', fg: '#1D4ED8' },
   campaign_builder:       { bg: '#F7C5F9', fg: '#7E22CE' },
   performance_digest:     { bg: '#C5F9EC', fg: '#0F766E' },
   trend_spotter:          { bg: '#FFE3AD', fg: '#92400E' },

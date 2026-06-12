@@ -99,8 +99,8 @@ export async function POST(
       })}`
     }
 
-    if (hasImage) {
-      system += `\n\nOUTPUT OVERRIDE: IMAGE-CONTEXT CAPTION MODE is active. Ignore any multi-day plan or multi-post output contract. Return a single social caption only.`
+    if (hasImage || agentId === 'post_caption') {
+      system += `\n\nOUTPUT OVERRIDE: Return a single social caption only. Ignore any multi-day plan or multi-post output contract.`
     }
 
     let text: string
@@ -146,8 +146,8 @@ export async function POST(
       userId,
       agent: agentId,
       outputType: agent.outputType,
-      title: hasImage
-        ? `Image caption — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      title: hasImage || agentId === 'post_caption'
+        ? `Post caption — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
         : `${agent.name} — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
       content: outputContent,
     })

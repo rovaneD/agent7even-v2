@@ -20,6 +20,7 @@ import { AGENTS, type AgentId, type AgentDefinition } from '@/lib/agents/registr
 const AGENT_COLORS: Record<AgentId, { bg: string; fg: string }> = {
   competitor_watcher:     { bg: '#C5F9CD', fg: '#15803D' },
   weekly_content:         { bg: '#C5EFF9', fg: '#0369A1' },
+  post_caption:           { bg: '#DBEAFE', fg: '#1D4ED8' },
   campaign_builder:       { bg: '#F7C5F9', fg: '#7E22CE' },
   performance_digest:     { bg: '#C5F9EC', fg: '#0F766E' },
   trend_spotter:          { bg: '#FFE3AD', fg: '#92400E' },

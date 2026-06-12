@@ -72,8 +72,10 @@ prod-canonical when `NEXT_PUBLIC_FOUNDATION_V2=true`.
 
 **Weekly Content** now has two modes:
 
-1. **Text plan** — legacy 7-day content plan when no image attached
-2. **Image-context caption** — single caption when post image attached (vision)
+1. **Text plan** — 7-day content plan when no image (unchanged)
+2. **Post Caption** — separate agent for one image + one caption (vision)
+
+Use **Agents → Post Caption** for single posts. Do not use Weekly Content for that flow.
 
 ---
 
@@ -91,9 +93,10 @@ Unchanged from V05:
 
 Additions to V05:
 
-- On Agents Command Center / Approvals: understand image-context drafts (caption
+- On Agents Command Center / Approvals: understand Post Caption drafts (caption
   + attached visual). Do not offer to create or edit the image.
-- In help mode: explain attach flow on Weekly Content; state v1 limits clearly.
+- In help mode: explain Post Caption attach flow; state v1 limits clearly.
+- Weekly Content is for multi-day plans — redirect single-image caption requests to Post Caption.
 - Do not claim Maya "saw" a video unless Phase C2 ships.
 
 ---

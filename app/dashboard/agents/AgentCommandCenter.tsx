@@ -103,6 +103,17 @@ const AGENT_GUIDED_CONFIG: Record<AgentId, AgentGuidedConfig> = {
       { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Topics, phrases, claims, or angles to avoid.', columns: 2 },
     ],
   },
+  post_caption: {
+    intro: 'Attach the image you plan to post. Maya reads it and writes one caption to match what is in the frame — then you approve and publish.',
+    fields: [
+      { key: 'platform', label: 'Platform', type: 'select', options: ['Instagram', 'LinkedIn', 'Facebook', 'X'], columns: 3 },
+      { key: 'postGoal', label: 'Post goal', type: 'select', options: ['Awareness', 'Engagement', 'Traffic', 'Leads', 'Sales', 'Community'], columns: 3 },
+      { key: 'audience', label: 'Audience', placeholder: 'Who should this post speak to?', columns: 3 },
+      { key: 'offer', label: 'Offer / CTA', placeholder: 'Link, product, booking page, or action you want...', columns: 2 },
+      { key: 'mustInclude', label: 'Must include', type: 'textarea', placeholder: 'Hashtags, link, promo code, event date...', columns: 2 },
+      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Topics, phrases, or claims to avoid.', columns: 2 },
+    ],
+  },
   campaign_builder: {
     intro: 'Give the campaign enough operating constraints to return a real plan with actions, timing, and metrics.',
     fields: [
@@ -276,6 +287,7 @@ export default function AgentCommandCenter({
     previewUrl: string
     filename?: string
   } | null>(null)
+  const [postImageRequiredError, setPostImageRequiredError] = useState<string | null>(null)
 
   // Orchestration state
   const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
@@ -297,7 +309,20 @@ export default function AgentCommandCenter({
   const [savingConstraints, setSavingConstraints] = useState(false)
   const [constraintsSaved, setConstraintsSaved] = useState(false)
 
-  const agentList = Object.values(AGENTS)
+  const agentList = useMemo(() => {
+    const all = Object.values(AGENTS)
+    const postCaption = all.find(a => a.id === 'post_caption')
+    const rest = all.filter(a => a.id !== 'post_caption')
+    return postCaption ? [postCaption, ...rest] : all
+  }, [])
+
+  function startPostCaptionFlow() {
+    setSelectedAgent('post_caption')
+    setPostImageRequiredError(null)
+    setTimeout(() => {
+      document.getElementById('run-agent')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
   const selectedAgentConfig = selectedAgent ? AGENT_GUIDED_CONFIG[selectedAgent] : null
   const selectedAgentForm = selectedAgent ? agentForms[selectedAgent] : {}
 
@@ -323,8 +348,11 @@ export default function AgentCommandCenter({
   useMayaContext(mayaContext)
 
   useEffect(() => {
-    if (selectedAgent !== 'weekly_content' && postImageMedia) {
+    if (selectedAgent !== 'post_caption' && postImageMedia) {
       setPostImageMedia(null)
+    }
+    if (selectedAgent !== 'post_caption') {
+      setPostImageRequiredError(null)
     }
   }, [selectedAgent, postImageMedia])
 
@@ -445,16 +473,22 @@ export default function AgentCommandCenter({
 
   async function handleCreateTask() {
     if (!selectedAgent) return
+    setPostImageRequiredError(null)
     setSubmitting(true)
     try {
       const form = agentForms[selectedAgent] ?? {}
       const instructions = buildGuidedInstructions(selectedAgent, form, taskInstructions)
       const input: Record<string, unknown> = { instructions, ...form }
 
-      if (selectedAgent === 'weekly_content' && postImageMedia) {
+      if (selectedAgent === 'post_caption') {
+        if (!postImageMedia) {
+          setPostImageRequiredError('Attach the post image before running Post Caption.')
+          return
+        }
         input.media_storage_path = postImageMedia.storagePath
         input.media_mime = postImageMedia.mime
         input.image_caption_mode = true
+        input.platforms = form.platform ?? 'Instagram'
       }
 
       await fetch('/api/agents/tasks/create', {
@@ -513,7 +547,14 @@ export default function AgentCommandCenter({
               Run focused marketing agents, review approval-required work, and open saved outputs from one workspace.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <a href="#run-agent" className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-[#2563EB]">
+              <button
+                type="button"
+                onClick={startPostCaptionFlow}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-[#2563EB]"
+              >
+                Post with your image
+              </button>
+              <a href="#run-agent" className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:border-gray-200 hover:bg-surface-2">
                 Run an agent
               </a>
               <Link href="/dashboard/agents/approvals" className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:border-gray-200 hover:bg-surface-2">
@@ -595,7 +636,7 @@ export default function AgentCommandCenter({
                       ? 'bg-brand-primary/10 text-brand-primary'
                       : 'bg-surface-2 text-text-sec'
                   }`}>
-                    {agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
+                    {agent.id === 'post_caption' ? '1 image' : agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
                   </span>
                 </div>
                 <div>
@@ -675,7 +716,7 @@ export default function AgentCommandCenter({
                   />
                 </label>
 
-                {selectedAgent === 'weekly_content' && (
+                {selectedAgent === 'post_caption' && (
                   <div className="mt-4">
                     <PostImageAttach
                       disabled={submitting}
@@ -683,9 +724,15 @@ export default function AgentCommandCenter({
                         previewUrl: postImageMedia.previewUrl,
                         filename: postImageMedia.filename,
                       } : null}
-                      onAttached={media => setPostImageMedia(media)}
+                      onAttached={media => {
+                        setPostImageRequiredError(null)
+                        setPostImageMedia(media)
+                      }}
                       onClear={() => setPostImageMedia(null)}
                     />
+                    {postImageRequiredError && (
+                      <p className="mt-2 text-sm text-red-600">{postImageRequiredError}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -705,7 +752,7 @@ export default function AgentCommandCenter({
               </div>
               <button
                 onClick={handleCreateTask}
-                disabled={submitting || submitted}
+                disabled={submitting || submitted || (selectedAgent === 'post_caption' && !postImageMedia)}
                 className={`ml-auto min-w-[180px] rounded-xl px-5 py-3 text-sm font-semibold text-text-inverse transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   submitted ? 'bg-status-success' : 'bg-brand-primary hover:bg-[#2563EB]'
                 }`}

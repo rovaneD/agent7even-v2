@@ -27,7 +27,9 @@ export function platformCharLimit(platform: string): number {
 }
 
 export function primaryPlatformFromInput(input: Record<string, unknown>): string {
-  const raw = typeof input.platforms === 'string' ? input.platforms : ''
+  const fromPlatforms = typeof input.platforms === 'string' ? input.platforms : ''
+  const fromPlatform = typeof input.platform === 'string' ? input.platform : ''
+  const raw = fromPlatforms || fromPlatform
   const first = raw.split(/[,/|]/)[0]?.trim()
   return first || 'Instagram'
 }

@@ -111,17 +111,17 @@ Storage: private Supabase bucket `post-assets`. SQL bootstrap:
 | Publish on approve | `lib/agents/publishApprovedOutput.ts` |
 | Approve route | `app/api/agents/tasks/[id]/approve/route.ts` |
 | UI attach | `components/agents/PostImageAttach.tsx` |
-| Weekly Content form | `app/dashboard/agents/AgentCommandCenter.tsx` |
+| Post Caption form | `app/dashboard/agents/AgentCommandCenter.tsx` (image required) |
+| Weekly Content form | same file — no image attach |
 | Approval preview | `approvals/page.tsx`, `ApprovalsClient.tsx` |
 | Maya help + agents canvas | `app/api/maya/chat/route.ts`, `lib/maya/summaries/agentsContext.ts` |
-| Agent constraints | `lib/agents/registry.ts` (`weekly_content`) |
+| Agent constraints | `lib/agents/registry.ts` (`post_caption`) |
 
 #### Agent note
 
-Caption agent is **`weekly_content`** (not a separate `content_writer` id).
-When `media_storage_path` present: Sonnet + **Standard tier (8 credits)**;
-text-only stays Haiku + Light tier. Output contract overridden to **single
-caption** (not 7-day plan).
+Single-post image captions use **`post_caption`** (Post Caption agent). **`weekly_content`**
+remains the 7-day plan agent — do not attach post images there. Vision runs on
+`post_caption` when `media_storage_path` is present: Sonnet + **Standard tier (8 credits)**.
 
 #### Publish gate
 

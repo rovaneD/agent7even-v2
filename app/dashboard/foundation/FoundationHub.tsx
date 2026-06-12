@@ -27,7 +27,7 @@ import {
   Upload, Sparkles, RefreshCw, Plus, Pencil, RotateCcw,
   Eye, Rocket, BarChart2, TrendingUp, Mail, Megaphone, Search, ShieldCheck,
   Loader2, CloudUpload, Link2, FileText, Brain, Info,
-  CheckSquare, Square, X, AlertCircle, Trash2, ChevronDown,
+  CheckSquare, Square, X, AlertCircle, Trash2, ChevronDown, Image,
 } from 'lucide-react'
 import { AGENTS, AGENT_COLORS } from '@/lib/agents/registry'
 import type { FoundationSectionKey } from '@/lib/agents/registry'
@@ -94,6 +94,7 @@ export interface Props {
 const AGENT_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   competitor_watcher:     Eye,
   weekly_content:         Pencil,
+  post_caption:           Image,
   campaign_builder:       Rocket,
   performance_digest:     BarChart2,
   trend_spotter:          TrendingUp,

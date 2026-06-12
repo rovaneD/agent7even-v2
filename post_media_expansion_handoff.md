@@ -43,7 +43,7 @@ Do not trust this document over live files. Reconcile against:
 | Upload | `POST /api/posts/attach-image` | Base64, single file |
 | Vision caption | `app/api/agents/run/[agentId]/route.ts` | Sonnet + Standard tier when image attached |
 | Vision prompts | `lib/agents/visionCaption.ts` | Single image URL in AI SDK message |
-| UI attach | `components/agents/PostImageAttach.tsx` | Weekly Content form in `AgentCommandCenter.tsx` |
+| UI attach | `components/agents/PostImageAttach.tsx` — **Post Caption only** (one image, v1) | Weekly Content form in `AgentCommandCenter.tsx` |
 | Approval preview | `app/dashboard/agents/approvals/page.tsx`, `ApprovalsClient.tsx` | One signed URL thumbnail |
 | Publish | `lib/agents/publishApprovedOutput.ts` | One download → one presign → one `mediaItem` |
 | Publisher interface | `lib/social/publisher.ts` | `presignMedia`, `uploadToPresignedUrl`, `createPost({ mediaItems })` — **already supports arrays + video type** |

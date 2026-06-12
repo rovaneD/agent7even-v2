@@ -69,6 +69,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - `post_media_expansion_handoff.md` — scoped roadmap for crop, carousel, and video (planning; after v1 ships).
 - `AUDIT_FIXES_2026-06-02.md` — audit fix ledger plus follow-on testing fixes.
 - `12_post_assets_bucket.sql` — run in Supabase before image-context caption uploads in prod.
+- `13_post_caption_agent_skill.sql` — run in Supabase to seed Post Caption agent skill.
 
 ## Current visual-system rules
 - Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.
