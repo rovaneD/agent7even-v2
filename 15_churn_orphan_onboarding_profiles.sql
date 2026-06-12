@@ -9,6 +9,6 @@ SET
   updated_at = now()
 WHERE role = 'client'
   AND status = 'onboarding'
-  AND plan = NULL
+  AND plan IS NULL
   AND stripe_customer_id IS NULL
   AND stripe_subscription_id IS NULL;
