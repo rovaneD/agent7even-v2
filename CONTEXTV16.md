@@ -85,7 +85,7 @@ Identity edits = Intelligence tab section editor only.
 | **Revenue** | `lib/stripeRevenue.ts` — SaaS subscription charges only (filters legacy $7,500 packages / test noise). |
 | **Client health** | `lib/clientHealth.ts` — activity-first status; dedupe by email; table layout fix. |
 | **Clerk webhook** | Blocks duplicate active client profiles per email (`app/api/webhooks/clerk/route.ts`). |
-| **SQL** | `16_prevent_duplicate_client_emails.sql` — unique index on active client emails (run in Supabase). |
+| **SQL** | `16_prevent_duplicate_client_emails.sql` — unique index on active client emails (applied in Supabase, June 12). |
 
 ### Zernio posting analytics
 
@@ -154,11 +154,11 @@ Support bundle (local, not in git): `zernio-analytics-support-bundle-2026-06-10.
 | File | Purpose | Status |
 |------|---------|--------|
 | `11_foundation_answers_snapshot.sql` | Single-slot undo columns on `profiles` | **Applied** — prod undo verified (reversible swap, June 11) |
-| `12_post_assets_bucket.sql` | Private `post-assets` bucket | Required for image attach |
+| `12_post_assets_bucket.sql` | Private `post-assets` bucket | **Applied** (June 12) |
 | `13_post_caption_agent_skill.sql` | Legacy Post Caption skill | Superseded by 14 for new runs |
-| `14_content_posting_agent_skill.sql` | Content Posting skill | **Run if not applied** |
+| `14_content_posting_agent_skill.sql` | Content Posting skill | **Applied** (June 12) |
 | `15_churn_orphan_onboarding_profiles.sql` | Optional orphan cleanup | Optional |
-| `16_prevent_duplicate_client_emails.sql` | Unique active client email | **Run if not applied** |
+| `16_prevent_duplicate_client_emails.sql` | Unique active client email | **Applied** (June 12) |
 
 ---
 
@@ -181,10 +181,9 @@ Support bundle (local, not in git): `zernio-analytics-support-bundle-2026-06-10.
 1. **Zernio Q4 DPA** — real client social accounts gated until data-handling/DPA cleared; FREE tier / test accounts only.
 2. **Zernio native publish → analytics** — confirm sync before trusting best-post for composer publishes.
 3. **Engagement cron** — `GET /api/cron/calculate-engagement` with `CRON_SECRET` (never ran in v2).
-4. **SQL 14 + 16** — confirm applied in Supabase prod DB.
-5. **Post media Phases A–C** — gated on `post_media_expansion_handoff.md` after v1 stable.
-6. **Marketing copy** — image-context “to match it” on `~/agent7even/` after prod smoke.
-7. **Port to agent7even-app** — separate repo; live Stripe, crons, full QA.
+4. **Post media Phases A–C** — gated on `post_media_expansion_handoff.md` after v1 stable.
+5. **Marketing copy** — image-context “to match it” on `~/agent7even/` after prod smoke.
+6. **Port to agent7even-app** — separate repo; live Stripe, crons, full QA.
 
 ---
 

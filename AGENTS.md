@@ -71,9 +71,9 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - `post_media_expansion_handoff.md` — scoped roadmap for crop, carousel, and video (planning; after v1 ships).
 - `AUDIT_FIXES_2026-06-02.md` — audit fix ledger plus follow-on testing fixes.
 - `11_foundation_answers_snapshot.sql` — applied in prod (Foundation undo verified June 11).
-- `12_post_assets_bucket.sql` — run in Supabase before image-context caption uploads in prod.
-- `14_content_posting_agent_skill.sql` — run in Supabase to seed Content Posting agent skill.
-- `16_prevent_duplicate_client_emails.sql` — run in Supabase to block duplicate client emails.
+- `12_post_assets_bucket.sql` — applied in prod (post-assets bucket).
+- `14_content_posting_agent_skill.sql` — applied in prod (Content Posting agent skill).
+- `16_prevent_duplicate_client_emails.sql` — applied in prod (duplicate client email guard).
 
 ## Current visual-system rules
 - Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.
