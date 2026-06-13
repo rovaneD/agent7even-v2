@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
+import EmailSequenceOutputView, { AgentOutputCopyButton } from '@/components/agents/EmailSequenceOutputView'
 
 type AgentOutputDetailProps = {
   agentName: string
@@ -147,7 +148,8 @@ function GenericOutputView({ agentName, content }: { agentName: string; content:
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+        <AgentOutputCopyButton text={content} label="Copy all" />
         <button
           type="button"
           onClick={() => {
@@ -390,6 +392,7 @@ export default function AgentOutputDetail({
 
   const asksForInput = useMemo(() => looksLikeInputRequest(content), [content])
   const useCampaignView = agentName === 'Campaign Builder'
+  const useEmailSequenceView = agentName === 'Email Sequence Builder'
   const isPending = status === 'pending_approval'
   const badge = statusStyles(status)
 
@@ -454,6 +457,9 @@ export default function AgentOutputDetail({
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {!isEditing && (
+            <AgentOutputCopyButton text={draftContent || content} label="Copy" compact />
+          )}
           {isPending && (
             <button
               type="button"
@@ -502,6 +508,8 @@ export default function AgentOutputDetail({
           </div>
         ) : useCampaignView ? (
           <CampaignOutputView content={draftContent || 'No content saved for this output.'} />
+        ) : useEmailSequenceView ? (
+          <EmailSequenceOutputView content={draftContent || 'No content saved for this output.'} />
         ) : (
           <GenericOutputView agentName={agentName} content={draftContent || 'No content saved for this output.'} />
         )}

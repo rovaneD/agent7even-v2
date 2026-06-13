@@ -175,7 +175,7 @@ const AGENT_GUIDED_CONFIG: Record<AgentId, AgentGuidedConfig> = {
     ],
   },
   email_sequence_builder: {
-    intro: 'Build the sequence from the workflow details so the output is ready to review and edit.',
+    intro: 'Build draft copy for each email — you paste subject, preview, and body into your email tool (Mailchimp, Klaviyo, etc.) one email at a time.',
     fields: [
       { key: 'sequenceType', label: 'Sequence type', type: 'select', options: ['Welcome', 'Lead nurture', 'Prospect response', 'Demo follow-up', 'Abandoned checkout', 'Re-engagement', 'Launch/promo'], columns: 3 },
       { key: 'emailCount', label: 'Email count', type: 'select', options: ['3', '4', '5', '6', '7'], columns: 3 },

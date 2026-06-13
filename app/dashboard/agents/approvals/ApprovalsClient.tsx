@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, CheckCircle2, RotateCcw, ArrowLeft, Filter, SortDesc, Image as ImageIcon, CalendarDays, FileText } from 'lucide-react'
 import { AGENTS, AgentId } from '@/lib/agents/registry'
 import AgentIcon from '@/components/agents/AgentIcon'
+import EmailSequenceOutputView from '@/components/agents/EmailSequenceOutputView'
 import {
   approvalQueueKind,
   type ApprovalQueueKind,
@@ -278,6 +279,8 @@ function ApprovalItem({
                     fontFamily: 'inherit', boxSizing: 'border-box', color: '#2D3748',
                   }}
                 />
+              ) : task.agent === 'email_sequence_builder' ? (
+                <EmailSequenceOutputView content={raw} showGuide={false} />
               ) : (
                 <div style={{ background: '#fafafa', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#333', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                   {raw || <span style={{ color: '#ccc', fontStyle: 'italic' }}>No content</span>}

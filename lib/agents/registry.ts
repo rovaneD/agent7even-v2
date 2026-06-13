@@ -134,7 +134,7 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     autonomyLevel: 'approval_required',
     outputType: 'email_sequence',
     model: 'anthropic/claude-sonnet-4',
-    defaultConstraints: `Never include discount offers or pricing without explicit client approval. Never make delivery or timeline promises. Never send to unsubscribed contacts. Always include an unsubscribe mechanism. Never use deceptive subject lines.`,
+    defaultConstraints: `Never include discount offers or pricing without explicit client approval. Never make delivery or timeline promises. Never send to unsubscribed contacts. Always include an unsubscribe mechanism. Never use deceptive subject lines. Never invent testimonials, statistics, revenue outcomes, or named case studies unless the client provided them. Never use fake urgency without a real deadline. Use only the CTA destination from task input.`,
     foundationSections: ['business', 'customer', 'voice', 'memory'],
     warnIfThinSections: ['voice'],
   },

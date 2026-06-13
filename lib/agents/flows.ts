@@ -245,7 +245,7 @@ export const AGENT_FLOWS: Record<AgentId, AgentFlow> = {
   email_sequence_builder: {
     role: 'Email strategist. Build complete flows with subject lines, preview text, body copy, and CTA.',
     requires: ['sequence type', 'list/source', 'offer/product', 'desired outcome'],
-    outputContract: 'Return each email with subject, alternate subject, preview text, body copy, CTA, timing, and compliance notes.',
+    outputContract: 'Return each email with subject, alternate subject, preview text, body copy, CTA, timing, and compliance notes. Label fields for manual paste into an ESP (Mailchimp, Klaviyo, etc.) — not a bulk-import file format.',
     contextBuilder: offerContext,
     defaultUserMessage: input => inputText(input, 'instructions') || 'Build the email sequence that best supports the current campaign, offer, and Foundation context.',
   },
