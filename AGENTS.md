@@ -15,11 +15,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: June 13, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: June 12, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
-- `~/agent7even-app/` — client portal SaaS app (app.agent7even.com) — **this project** — deploys from `main` branch
+- `~/agent7even-app/` — **production** client portal SaaS (app.agent7even.com) — separate repo; deploys from `main`
+- **This folder** — experimental v2 (`rovaneD/agent7even-v2`, agent7even-v2.vercel.app) — port to production when ready; never edit `agent7even-app` from here
 
 ## Ground rules
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
@@ -63,11 +64,13 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV16.md` — latest technical handoff (Content Posting, billing/admin, Zernio analytics).
+- `CONTEXTV16.md` — latest technical handoff (Foundation safety, Content Posting, Zernio analytics).
+- `SESSION_2026-06-11.md` — Foundation contamination fix, undo, reference-layer roadmap.
 - `MAYA_CONTEXT_V07.md` — current versioned Maya product context and visual rules.
 - `SESSION_2026-06-12.md` — June 12 session log (merge to main, Zernio/cache notes).
 - `post_media_expansion_handoff.md` — scoped roadmap for crop, carousel, and video (planning; after v1 ships).
 - `AUDIT_FIXES_2026-06-02.md` — audit fix ledger plus follow-on testing fixes.
+- `11_foundation_answers_snapshot.sql` — applied in prod (Foundation undo verified June 11).
 - `12_post_assets_bucket.sql` — run in Supabase before image-context caption uploads in prod.
 - `14_content_posting_agent_skill.sql` — run in Supabase to seed Content Posting agent skill.
 - `16_prevent_duplicate_client_emails.sql` — run in Supabase to block duplicate client emails.

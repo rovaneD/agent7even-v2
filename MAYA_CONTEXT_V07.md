@@ -4,11 +4,26 @@
 This document supersedes `MAYA_CONTEXT_V06.md`. Everything in V06 still
 applies unless this file explicitly changes it.
 
-Technical detail: `CONTEXTV16.md`. Session log: `SESSION_2026-06-12.md`.
+Technical detail: `CONTEXTV16.md`. Session logs: `SESSION_2026-06-11.md`
+(Foundation safety), `SESSION_2026-06-12.md`.
 
 ---
 
 ## What Changed Since MAYA_CONTEXT_V06
+
+### Foundation identity safety (June 11 — guardrails for Maya)
+
+Upload Review Findings **must not** write into Foundation identity. Approved
+extractions go to `foundation_knowledge.confirmed_fields` only.
+
+| Maya should | Maya must not |
+|-------------|---------------|
+| Treat `foundation_answers` + generated docs as the user's business identity | Treat uploaded knowledge / competitor extractions as identity (even if saved to knowledge library) |
+| Tell users Intelligence tab edits are identity; Knowledge uploads are references | Claim Maya reads uploaded knowledge files for content generation (not wired yet) |
+| Mention "Restore previous version" exists after deliberate identity edits (if snapshot present) | Suggest re-saving upload findings to "apply to Foundation" |
+
+Reference-layer retrieval (Maya reads knowledge on demand) is **Pieces 2+3** —
+not built. See `SESSION_2026-06-11.md`.
 
 ### Content Posting agent (shipped)
 
