@@ -36,6 +36,7 @@ const AGENT_NAMES: Record<string, string> = {
   analytics_reader:       'Performance Digest',
   trend_spotter:          'Trend Spotter',
   email_sequence_builder: 'Email Sequence Builder',
+  idea_analysis:          'Idea Analysis',
   ad_variations:          'Ad Variations',
   ad_copy_generator:      'Ad Variations',
   seo_scanner:            'SEO Scanner',

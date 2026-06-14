@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { agentOutputContentText } from '@/lib/agents/agentOutputText'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
     : { data: [] }
 
   const outputByTask = Object.fromEntries(
-    (allOutputs ?? []).map(o => [o.task_id, o.content as string])
+    (allOutputs ?? []).map(o => [o.task_id, agentOutputContentText(o.content)])
   )
 
   // Active campaigns → today's actions
@@ -146,6 +147,7 @@ function formatAgentName(agentId: string): string {
     performance_digest:     'Performance Digest',
     trend_spotter:          'Trend Spotter',
     email_sequence_builder: 'Email Sequence Builder',
+    idea_analysis:          'Idea Analysis',
     ad_variations:          'Ad Variations',
     seo_scanner:            'SEO Scanner',
     brand_voice_guardian:   'Brand Voice Guardian',

@@ -7,11 +7,12 @@ import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 export default async function ServicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string }>
+  searchParams: Promise<{ order?: string; viralHooks?: string }>
 }) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
-  const { order: initialOrderId } = await searchParams
+  const { order: initialOrderId, viralHooks } = await searchParams
+  const openViralHooksPrefill = viralHooks === 'prefill'
 
   const supabase = createServiceClient()
 
@@ -87,6 +88,7 @@ export default async function ServicesPage({
       profile={profile}
       orders={ordersWithTickets}
       initialOrderId={initialOrderId ?? null}
+      openViralHooksPrefill={openViralHooksPrefill}
     />
   )
 }

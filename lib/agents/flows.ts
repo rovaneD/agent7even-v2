@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
+import { agentOutputContentText } from '@/lib/agents/agentOutputText'
 import { AGENTS, type AgentId } from './registry'
 
 type AgentInput = Record<string, unknown>
@@ -32,12 +33,7 @@ function stringify(value: unknown): string {
 }
 
 function outputText(output: AgentOutputRow): string {
-  const content = output.content as { raw?: unknown; parsed?: unknown } | string | null
-  if (!content) return ''
-  if (typeof content === 'string') return content
-  if (typeof content.raw === 'string') return content.raw
-  if (content.parsed) return stringify(content.parsed)
-  return stringify(content)
+  return agentOutputContentText(output.content)
 }
 
 async function recentOutputsContext(userId: string, agents: string[], limit = 5): Promise<string> {
@@ -185,6 +181,25 @@ ${campaigns}
 ${prior}`
 }
 
+async function ideaAnalysisContext(_userId: string, input: AgentInput): Promise<string> {
+  const sourceUrl = inputText(input, 'sourceUrl') || inputText(input, 'pastedUrl')
+  const topic = inputText(input, 'topic') || inputText(input, 'userTopic')
+  const platform = inputText(input, 'platform')
+  const contentNotes = inputText(input, 'contentNotes') || inputText(input, 'contentDescription')
+
+  const parts: string[] = []
+  if (sourceUrl) parts.push(`## Source URL\n${sourceUrl}`)
+  if (topic) parts.push(`## User topic\n${topic}`)
+  if (platform) parts.push(`## Platform / format\n${platform}`)
+  if (contentNotes) parts.push(`## Content to analyze\n${contentNotes}`)
+
+  if (!parts.length) {
+    return 'No URL or topic was provided in task input. Derive the best analysis from Foundation positioning alone and set source_ref to user_topic:<label>.'
+  }
+
+  return parts.join('\n\n')
+}
+
 export const AGENT_FLOWS: Record<AgentId, AgentFlow> = {
   competitor_watcher: {
     role: 'Competitive intelligence watcher. Use Foundation competitors first. Do not ask for competitor names when Foundation provides them.',
@@ -269,6 +284,13 @@ export const AGENT_FLOWS: Record<AgentId, AgentFlow> = {
     outputContract: 'Return Tone check, Vocabulary check, Message check, Audience check, Flags with suggested replacements, and approval recommendation.',
     contextBuilder: brandReviewContext,
     defaultUserMessage: input => inputText(input, 'instructions') || 'Review the supplied or latest creative content against the Brand Kit and Foundation voice.',
+  },
+  idea_analysis: {
+    role: 'Content strategist. Decompose one content idea into a Foundation-grounded analysis object for Viral Hooks.',
+    requires: ['source URL or user topic', 'Foundation ideal customer and positioning', 'strict JSON output only'],
+    outputContract: 'Return ONLY valid JSON with keys: topic, idea_seed, unique_angle, belief_to_challenge, contrarian_reality, supporting_evidence (exactly 3 strings), source_ref. No markdown fences or prose outside JSON.',
+    contextBuilder: ideaAnalysisContext,
+    defaultUserMessage: input => inputText(input, 'instructions') || 'Analyze the supplied content or topic and return a Foundation-grounded idea_analysis JSON object.',
   },
 }
 

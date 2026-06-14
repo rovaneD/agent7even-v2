@@ -11,7 +11,8 @@ import {
   Sparkles, Target, Layers, FileText, Download, Trash2
 } from 'lucide-react'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
-import { displayServiceBrief, extractViralHooksGeneratedOutput, VIRAL_HOOKS_FRAMEWORK } from '@/lib/services/viralHooks'
+import ViralHooksOutputView from '@/components/agents/ViralHooksOutputView'
+import { displayServiceBrief, extractViralHooksGeneratedOutput, formatViralHooksBrief, readViralHooksPrefill, clearViralHooksPrefill, VIRAL_HOOKS_FRAMEWORK, type ViralHooksFormValues } from '@/lib/services/viralHooks'
 import { buildTextPdf } from '@/lib/pdf/textPdf'
 
 const SERVICES = [
@@ -178,31 +179,42 @@ function downloadGeneratedPdf(title: string, subtitle: string, body: string) {
 interface RequestModalProps {
   service: typeof SERVICES[0]
   error?: string
+  initialValues?: ViralHooksFormValues | null
   onClose: () => void
   onSubmit: (brief: string) => Promise<void>
 }
 
-function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: RequestModalProps) {
-  const [topic, setTopic] = useState('')
-  const [audience, setAudience] = useState('')
-  const [goal, setGoal] = useState('Drive interest')
-  const [format, setFormat] = useState('Instagram Reel')
-  const [tone, setTone] = useState('Direct and useful')
-  const [notes, setNotes] = useState('')
+function ViralHooksGeneratorModal({ service, error, initialValues, onClose, onSubmit }: RequestModalProps) {
+  const [topic, setTopic] = useState(initialValues?.topic ?? '')
+  const [audience, setAudience] = useState(initialValues?.audience ?? '')
+  const [goal, setGoal] = useState(initialValues?.goal ?? 'Drive interest')
+  const [format, setFormat] = useState(initialValues?.format ?? 'Instagram Reel')
+  const [tone, setTone] = useState(initialValues?.tone ?? 'Direct and useful')
+  const [notes, setNotes] = useState(initialValues?.notes ?? '')
   const [loading, setLoading] = useState(false)
   const Icon = service.icon
+
+  useEffect(() => {
+    if (!initialValues) return
+    setTopic(initialValues.topic)
+    setAudience(initialValues.audience)
+    setGoal(initialValues.goal)
+    setFormat(initialValues.format)
+    setTone(initialValues.tone)
+    setNotes(initialValues.notes)
+  }, [initialValues])
 
   const handleSubmit = async () => {
     if (!topic.trim()) return
     setLoading(true)
-    await onSubmit([
-      `Topic or offer: ${topic.trim()}`,
-      audience.trim() ? `Target audience: ${audience.trim()}` : '',
-      `Primary goal: ${goal}`,
-      `Best format: ${format}`,
-      `Tone: ${tone}`,
-      notes.trim() ? `Extra context: ${notes.trim()}` : '',
-    ].filter(Boolean).join('\n'))
+    await onSubmit(formatViralHooksBrief({
+      topic,
+      audience,
+      goal,
+      format,
+      tone,
+      notes,
+    }))
     setLoading(false)
   }
 
@@ -226,7 +238,11 @@ function ViralHooksGeneratorModal({ service, error, onClose, onSubmit }: Request
             <div>
               <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-status-success">Free self-serve tool</p>
               <h2 className="text-xl font-semibold text-text">Generate Viral Hooks</h2>
-              <p className="mt-1 text-sm text-text-sec">Maya will create hooks now. No admin handoff needed.</p>
+              <p className="mt-1 text-sm text-text-sec">
+                {initialValues
+                  ? 'Fields are pre-filled from your Idea Analysis — review, then Generate.'
+                  : 'Maya will create hooks now. No admin handoff needed.'}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="text-text-soft transition-colors hover:text-text">
@@ -452,15 +468,18 @@ export default function ServicesClient({
   profile,
   orders,
   initialOrderId,
+  openViralHooksPrefill = false,
 }: {
   profile: Profile | null
   orders: Order[]
   initialOrderId?: string | null
+  openViralHooksPrefill?: boolean
 }) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'browse' | 'orders'>('browse')
+  const [activeTab, setActiveTab] = useState<'browse' | 'orders'>(initialOrderId ? 'orders' : 'browse')
   const [localOrders, setLocalOrders] = useState<Order[]>(orders)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(initialOrderId ?? null)
+  const [viralHooksPrefill, setViralHooksPrefill] = useState<ViralHooksFormValues | null>(null)
 
   const mayaContext = useMemo(
     () =>
@@ -474,6 +493,20 @@ export default function ServicesClient({
   useMayaContext(mayaContext)
   const [requestingService, setRequestingService] = useState<typeof SERVICES[0] | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!openViralHooksPrefill) return
+    const prefill = readViralHooksPrefill()
+    if (!prefill) return
+    clearViralHooksPrefill()
+    const viralService = SERVICES.find(service => service.id === 'viral_hooks')
+    if (!viralService) return
+    setViralHooksPrefill(prefill)
+    setRequestingService(viralService)
+    setActiveTab('browse')
+    router.replace('/dashboard/services')
+  }, [openViralHooksPrefill, router])
+
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [replyBody, setReplyBody] = useState('')
@@ -514,6 +547,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           }
           : null
         setRequestingService(null)
+        setViralHooksPrefill(null)
         if (nextOrder) setLocalOrders(prev => [nextOrder, ...prev])
         if (nextOrder) setSelectedOrderId(nextOrder.id)
         setSuccessMsg(requestingService.id === 'viral_hooks'
@@ -795,7 +829,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
                       </div>
                     </div>
                     <div className="p-5">
-                      <p className="whitespace-pre-wrap text-sm leading-7 text-text-sec">{displayServiceBrief(message.body)}</p>
+                      <ViralHooksOutputView content={message.body} />
                     </div>
                   </div>
                 ))
@@ -1055,7 +1089,11 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           <ViralHooksGeneratorModal
             service={requestingService}
             error={errorMsg}
-            onClose={() => setRequestingService(null)}
+            initialValues={viralHooksPrefill}
+            onClose={() => {
+              setRequestingService(null)
+              setViralHooksPrefill(null)
+            }}
             onSubmit={handleRequest}
           />
         ) : (

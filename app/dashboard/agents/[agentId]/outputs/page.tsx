@@ -6,6 +6,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
+import { readIdeaAnalysisFromContent } from '@/lib/agents/ideaAnalysis'
 import AgentOutputDetail from './AgentOutputDetail'
 
 type AgentOutput = {
@@ -46,7 +47,11 @@ function getOutputText(output: AgentOutput): string {
   return JSON.stringify(content, null, 2)
 }
 
-function getOutputDescription(output: AgentOutput): string {
+function getOutputDescription(output: AgentOutput, agentId: string): string {
+  if (agentId === 'idea_analysis') {
+    const analysis = readIdeaAnalysisFromContent(output.content)
+    if (analysis?.topic) return analysis.topic
+  }
   const raw = getOutputText(output)
   const firstHeading = raw
     .split('\n')
@@ -78,7 +83,7 @@ export default async function AgentOutputsPage({
 
   const { data: profileRows } = await supabase
     .from('profiles')
-    .select('id, company_name')
+    .select('id, company_name, ideal_customer')
     .eq('clerk_user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -108,7 +113,7 @@ export default async function AgentOutputsPage({
     agentName: agent.name,
     companyName: profile.company_name ?? 'Your business',
     outputCount: outputRows.length,
-    selectedTitle: selectedOutput ? getOutputDescription(selectedOutput) : null,
+    selectedTitle: selectedOutput ? getOutputDescription(selectedOutput, rawAgentId) : null,
     selectedStatus: selectedOutput?.status ?? null,
     autonomyLevel: agent.autonomyLevel,
   })
@@ -153,7 +158,7 @@ export default async function AgentOutputsPage({
                     style={{ display: 'block', padding: '13px 16px', borderBottom: '1px solid #F1F5F9', background: selected ? '#EFF6FF' : '#fff', textDecoration: 'none' }}
                   >
                     <p style={{ fontSize: 13, fontWeight: 600, color: '#2D3748', margin: '0 0 4px', lineHeight: 1.35 }}>
-                      {getOutputDescription(output)}
+                      {getOutputDescription(output, rawAgentId)}
                     </p>
                     <p style={{ fontSize: 11.5, color: '#64748B', margin: 0 }}>
                       {relativeTime(output.created_at)} · {output.status.replace(/_/g, ' ')}
@@ -166,12 +171,17 @@ export default async function AgentOutputsPage({
 
           <AgentOutputDetail
             agentName={agent.name}
+            agentId={rawAgentId}
             taskId={selectedOutput.task_id}
             outputId={selectedOutput.id}
-            title={getOutputDescription(selectedOutput)}
+            title={getOutputDescription(selectedOutput, rawAgentId)}
             subtitle={`${selectedOutput.title || agent.name} · ${relativeTime(selectedOutput.created_at)}`}
             status={selectedOutput.status}
             content={getOutputText(selectedOutput)}
+            outputContent={selectedOutput.content}
+            viralHooksHints={{
+              audience: profile.ideal_customer ?? undefined,
+            }}
           />
         </div>
       ) : (

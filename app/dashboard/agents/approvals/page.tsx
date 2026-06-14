@@ -13,7 +13,7 @@ export default async function ApprovalsPage() {
 
   const { data: profileRows } = await supabase
     .from('profiles')
-    .select('id, company_name')
+    .select('id, company_name, ideal_customer')
     .eq('clerk_user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -49,6 +49,9 @@ export default async function ApprovalsPage() {
       <ApprovalsClient
         profileId={profile.id}
         initialTasks={enrichedTasks}
+        viralHooksHints={{
+          audience: profile.ideal_customer ?? undefined,
+        }}
       />
     </Suspense>
   )

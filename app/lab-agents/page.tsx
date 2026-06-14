@@ -26,6 +26,7 @@ const AGENT_COLORS: Record<AgentId, { bg: string; fg: string }> = {
   performance_digest:     { bg: '#C5F9EC', fg: '#0F766E' },
   trend_spotter:          { bg: '#FFE3AD', fg: '#92400E' },
   email_sequence_builder: { bg: '#EAE1F9', fg: '#6D28D9' },
+  idea_analysis:          { bg: '#FEF3C7', fg: '#B45309' },
   ad_variations:          { bg: '#E6F4AD', fg: '#3F6212' },
   seo_scanner:            { bg: '#AFDAF7', fg: '#075985' },
   brand_voice_guardian:   { bg: '#E2F7F2', fg: '#065F46' },

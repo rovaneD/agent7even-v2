@@ -179,11 +179,12 @@ Support bundle (local, not in git): `zernio-analytics-support-bundle-2026-06-10.
 ## Open backlog
 
 1. **Zernio Q4 DPA** — real client social accounts gated until data-handling/DPA cleared; FREE tier / test accounts only.
-2. **Zernio native publish → analytics** — confirm sync before trusting best-post for composer publishes.
-3. **Engagement cron** — `GET /api/cron/calculate-engagement` with `CRON_SECRET` (never ran in v2).
-4. **Post media Phases A–C** — gated on `post_media_expansion_handoff.md` after v1 stable.
-5. **Marketing copy** — image-context “to match it” on `~/agent7even/` after prod smoke.
-6. **Port to agent7even-app** — separate repo; live Stripe, crons, full QA.
+2. **Competitor post-level metrics (CONDITIONAL GO)** — EnsembleData spike confirmed IG views + ~50 units/tenant/weekly refresh; **production blocked** until ToS clears derived-insight redistribution + public-scraped risk accepted. Stage 1 refresh jobs must **stagger tenants across the week** (daily unit ceiling — see `backlog_gate_competitor_reach.md`). Stage 2 ships independently. Refs: `ensembledata_verification_findings.md`, `backlog_gate_competitor_reach.md`.
+3. **Zernio native publish → analytics** — confirm sync before trusting best-post for composer publishes.
+4. **Engagement cron** — `GET /api/cron/calculate-engagement` with `CRON_SECRET` (never ran in v2).
+5. **Post media Phases A–C** — gated on `post_media_expansion_handoff.md` after v1 stable.
+6. **Marketing copy** — image-context “to match it” on `~/agent7even/` after prod smoke.
+7. **Port to agent7even-app** — separate repo; live Stripe, crons, full QA.
 
 ---
 
@@ -196,6 +197,8 @@ Support bundle (local, not in git): `zernio-analytics-support-bundle-2026-06-10.
 | June 12 merge log | `SESSION_2026-06-12.md` |
 | Maya product rules | `MAYA_CONTEXT_V07.md` |
 | Post media roadmap | `post_media_expansion_handoff.md` |
+| Outlier intelligence (Stage 1/3) | `outlier_intelligence_handoff.md`, `ensembledata_verification_findings.md`, `backlog_gate_competitor_reach.md` |
+| Idea Analysis → Viral Hooks (active) | `stage2_idea_analysis_plan.md` |
 | Audit ledger | `AUDIT_FIXES_2026-06-02.md` |
 
 Superseded: `CONTEXTV15.md`, `MAYA_CONTEXT_V06.md`.

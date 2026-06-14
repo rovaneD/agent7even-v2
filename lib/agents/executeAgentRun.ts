@@ -19,6 +19,7 @@ import {
   primaryPlatformFromInput,
   VISION_CAPTION_MODEL,
 } from '@/lib/agents/visionCaption'
+import { parseAndValidateIdeaAnalysis } from '@/lib/agents/ideaAnalysis'
 import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 
 export type ExecuteAgentRunResult =
@@ -132,17 +133,28 @@ export async function executeAgentRun(opts: {
       text = result.text
       usage = result.usage
     } else {
+      const maxTokens = agentId === 'idea_analysis' ? 2500 : 2000
       const result = await generateText({
         model: openrouter(modelId),
         system,
         messages: [{ role: 'user', content: userMessage }],
-        maxOutputTokens: 2000,
+        maxOutputTokens: maxTokens,
       })
       text = result.text
       usage = result.usage
     }
 
-    const outputContent: Record<string, unknown> = { raw: text.trim() }
+    const trimmedText = text.trim()
+    const outputContent: Record<string, unknown> = { raw: trimmedText }
+
+    if (agentId === 'idea_analysis') {
+      const validation = parseAndValidateIdeaAnalysis(trimmedText)
+      if (!validation.ok) {
+        throw new Error(`idea_analysis_invalid: ${validation.error}`)
+      }
+      outputContent.parsed = validation.data
+      outputContent.raw = JSON.stringify(validation.data, null, 2)
+    }
     if (agentId === 'content_posting') {
       outputContent.contentFlow = resolveContentPostingFlow(taskInput)
     }

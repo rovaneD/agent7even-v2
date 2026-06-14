@@ -225,6 +225,16 @@ const AGENT_GUIDED_CONFIG: Record<AgentId, AgentGuidedConfig> = {
       { key: 'contentToReview', label: 'Content to review', type: 'textarea', placeholder: 'Paste the draft, caption, email, ad, or page copy here.', columns: 1 },
     ],
   },
+  idea_analysis: {
+    intro: 'Paste a post URL or describe your topic. Maya returns a Foundation-grounded analysis you can turn into Viral Hooks — no re-typing.',
+    fields: [
+      { key: 'sourceType', label: 'Source', type: 'select', options: ['Pasted URL', 'My own topic'], columns: 3 },
+      { key: 'platform', label: 'Platform / format', type: 'select', options: ['Instagram Reel', 'TikTok', 'YouTube Short', 'Carousel', 'LinkedIn post', 'Email hook'], columns: 3 },
+      { key: 'sourceUrl', label: 'Post URL', placeholder: 'https://instagram.com/reel/... or any public post link', columns: 3 },
+      { key: 'topic', label: 'Your topic', placeholder: 'The idea you want to adapt — offer, pain point, or angle', columns: 2 },
+      { key: 'contentNotes', label: 'What stood out', type: 'textarea', placeholder: 'Hook, caption snippet, offer, or why this idea is worth adapting (especially if the URL is paywalled).', columns: 2 },
+    ],
+  },
 }
 
 const CONTENT_POSTING_FLOW_CONFIG: Record<ContentPostingFlow, AgentGuidedConfig> = {

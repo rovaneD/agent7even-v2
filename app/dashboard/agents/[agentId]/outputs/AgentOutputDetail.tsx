@@ -4,15 +4,21 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import EmailSequenceOutputView, { AgentOutputCopyButton } from '@/components/agents/EmailSequenceOutputView'
+import IdeaAnalysisOutputView from '@/components/agents/IdeaAnalysisOutputView'
+import { readIdeaAnalysisFromContent } from '@/lib/agents/ideaAnalysis'
+import type { ViralHooksDraftHints } from '@/lib/services/viralHooks'
 
 type AgentOutputDetailProps = {
   agentName: string
+  agentId?: string
   taskId: string
   outputId: string
   title: string
   subtitle: string
   status: string
   content: string
+  outputContent?: { raw?: string; parsed?: unknown } | string | null
+  viralHooksHints?: ViralHooksDraftHints
 }
 
 function statusStyles(status: string) {
@@ -375,12 +381,15 @@ function CampaignOutputView({ content }: { content: string }) {
 
 export default function AgentOutputDetail({
   agentName,
+  agentId,
   taskId,
   outputId,
   title,
   subtitle,
   status: initialStatus,
   content,
+  outputContent,
+  viralHooksHints,
 }: AgentOutputDetailProps) {
   const [status, setStatus] = useState(initialStatus)
   const [showRevision, setShowRevision] = useState(false)
@@ -393,6 +402,9 @@ export default function AgentOutputDetail({
   const asksForInput = useMemo(() => looksLikeInputRequest(content), [content])
   const useCampaignView = agentName === 'Campaign Builder'
   const useEmailSequenceView = agentName === 'Email Sequence Builder'
+  const ideaAnalysis = agentId === 'idea_analysis'
+    ? readIdeaAnalysisFromContent(outputContent ?? content)
+    : null
   const isPending = status === 'pending_approval'
   const badge = statusStyles(status)
 
@@ -510,6 +522,8 @@ export default function AgentOutputDetail({
           <CampaignOutputView content={draftContent || 'No content saved for this output.'} />
         ) : useEmailSequenceView ? (
           <EmailSequenceOutputView content={draftContent || 'No content saved for this output.'} />
+        ) : ideaAnalysis ? (
+          <IdeaAnalysisOutputView analysis={ideaAnalysis} hints={viralHooksHints} />
         ) : (
           <GenericOutputView agentName={agentName} content={draftContent || 'No content saved for this output.'} />
         )}

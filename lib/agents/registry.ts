@@ -10,6 +10,7 @@ export type AgentId =
   | 'performance_digest'
   | 'trend_spotter'
   | 'email_sequence_builder'
+  | 'idea_analysis'
   | 'ad_variations'
   | 'seo_scanner'
   | 'brand_voice_guardian'
@@ -138,6 +139,18 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     foundationSections: ['business', 'customer', 'voice', 'memory'],
     warnIfThinSections: ['voice'],
   },
+  idea_analysis: {
+    id: 'idea_analysis',
+    name: 'Idea Analysis',
+    description: 'Breaks one content idea into angles grounded in your Foundation',
+    icon: 'ti-bulb',
+    autonomyLevel: 'approval_required',
+    outputType: 'idea_analysis',
+    model: 'anthropic/claude-sonnet-4',
+    defaultConstraints: `Return ONLY valid JSON matching the idea_analysis schema — no markdown, no prose outside JSON. Never fabricate view counts, engagement metrics, or competitor post stats. belief_to_challenge must reflect a belief held by this SMB's actual customers from Foundation — not generic creator advice. Never invent testimonials, guaranteed results, or unverifiable numbers unless the client provided them.`,
+    foundationSections: ['business', 'customer', 'position', 'voice'],
+    warnIfThinSections: ['customer', 'position'],
+  },
   ad_variations: {
     id: 'ad_variations',
     name: 'Ad Variations',
@@ -197,6 +210,7 @@ export const AGENT_COLORS: Record<AgentId, { bg: string; fg: string }> = {
   performance_digest:     { bg: '#C5F9EC', fg: '#0F766E' },
   trend_spotter:          { bg: '#FFE3AD', fg: '#92400E' },
   email_sequence_builder: { bg: '#EAE1F9', fg: '#6D28D9' },
+  idea_analysis:          { bg: '#FEF3C7', fg: '#B45309' },
   ad_variations:          { bg: '#E6F4AD', fg: '#3F6212' },
   seo_scanner:            { bg: '#AFDAF7', fg: '#075985' },
   brand_voice_guardian:   { bg: '#E2F7F2', fg: '#065F46' },

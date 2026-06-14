@@ -9,6 +9,9 @@ import { ChevronDown, ChevronUp, CheckCircle2, RotateCcw, ArrowLeft, Filter, Sor
 import { AGENTS, AgentId } from '@/lib/agents/registry'
 import AgentIcon from '@/components/agents/AgentIcon'
 import EmailSequenceOutputView from '@/components/agents/EmailSequenceOutputView'
+import IdeaAnalysisOutputView from '@/components/agents/IdeaAnalysisOutputView'
+import { readIdeaAnalysisFromContent } from '@/lib/agents/ideaAnalysis'
+import type { ViralHooksDraftHints } from '@/lib/services/viralHooks'
 import {
   approvalQueueKind,
   type ApprovalQueueKind,
@@ -54,6 +57,7 @@ interface ApprovalTask {
 interface Props {
   profileId: string
   initialTasks: ApprovalTask[]
+  viralHooksHints?: ViralHooksDraftHints
 }
 
 // ── Quick rejection reasons ────────────────────────────────────────────────
@@ -107,6 +111,7 @@ function ApprovalItem({
   isExpanded,
   isChecked,
   hasReviewedOne,
+  viralHooksHints,
   onToggleExpand,
   onToggleCheck,
   onApprove,
@@ -117,6 +122,7 @@ function ApprovalItem({
   isExpanded: boolean
   isChecked: boolean
   hasReviewedOne: boolean
+  viralHooksHints?: ViralHooksDraftHints
   onToggleExpand: () => void
   onToggleCheck: () => void
   onApprove: (taskId: string, outputId: string, edited?: string) => Promise<void>
@@ -124,7 +130,10 @@ function ApprovalItem({
   onMarkReviewed: () => void
 }) {
   const output    = task.agent_outputs?.[0]
-  const raw       = output?.content?.raw ?? ''
+  const ideaAnalysis = task.agent === 'idea_analysis'
+    ? readIdeaAnalysisFromContent(output?.content)
+    : null
+  const raw       = ideaAnalysis ? '' : (output?.content?.raw ?? '')
   const mediaPreviewUrl = output?.mediaPreviewUrl ?? null
   const queueKind = approvalQueueKind(task)
   const kindStyle = QUEUE_KIND_STYLES[queueKind]
@@ -232,10 +241,9 @@ function ApprovalItem({
             </div>
           )}
 
-          {/* Collapsed preview */}
-          {!isExpanded && raw && (
+          {!isExpanded && (ideaAnalysis?.topic || raw) && (
             <p style={{ fontSize: 13, color: '#666', lineHeight: 1.55, marginBottom: 10 }}>
-              {raw.length > 180 ? raw.slice(0, 180) + '…' : raw}
+              {ideaAnalysis?.topic ?? (raw.length > 180 ? raw.slice(0, 180) + '…' : raw)}
             </p>
           )}
 
@@ -281,6 +289,15 @@ function ApprovalItem({
                 />
               ) : task.agent === 'email_sequence_builder' ? (
                 <EmailSequenceOutputView content={raw} showGuide={false} />
+              ) : ideaAnalysis ? (
+                <IdeaAnalysisOutputView
+                  analysis={ideaAnalysis}
+                  hints={{
+                    ...viralHooksHints,
+                    platform: typeof task.input?.platform === 'string' ? task.input.platform : viralHooksHints?.platform,
+                  }}
+                  compact
+                />
               ) : (
                 <div style={{ background: '#fafafa', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#333', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
                   {raw || <span style={{ color: '#ccc', fontStyle: 'italic' }}>No content</span>}
@@ -384,12 +401,14 @@ function ApprovalItem({
                 >
                   {approving ? 'Approving…' : 'Approve'}
                 </button>
-                <button
-                  onClick={() => { setIsEditing(true); setEditVal(raw); onToggleExpand() }}
-                  style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#2D3748', border: '0.5px solid #ddd', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  Edit &amp; approve
-                </button>
+                {task.agent !== 'idea_analysis' && (
+                  <button
+                    onClick={() => { setIsEditing(true); setEditVal(raw); onToggleExpand() }}
+                    style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#2D3748', border: '0.5px solid #ddd', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Edit &amp; approve
+                  </button>
+                )}
                 <button
                   onClick={() => doReject(false)}
                   style={{ padding: '6px 14px', borderRadius: 7, background: 'transparent', color: '#64748B', border: '0.5px solid #CBD5E1', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -413,7 +432,7 @@ function ApprovalItem({
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
-export default function ApprovalsClient({ profileId, initialTasks }: Props) {
+export default function ApprovalsClient({ profileId, initialTasks, viralHooksHints }: Props) {
   const searchParams = useSearchParams()
   const autoExpandId = searchParams.get('task')
 
@@ -776,6 +795,7 @@ export default function ApprovalsClient({ profileId, initialTasks }: Props) {
                     isExpanded={expanded.has(task.id)}
                     isChecked={checkedIds.has(task.id)}
                     hasReviewedOne={hasReviewedOne}
+                    viralHooksHints={viralHooksHints}
                     onToggleExpand={() => toggleExpand(task.id)}
                     onToggleCheck={() => toggleCheck(task.id)}
                     onApprove={handleApprove}
