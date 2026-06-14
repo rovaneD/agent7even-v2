@@ -1,8 +1,10 @@
 # Zernio Inbox — Phase B Plan (Messages & Reply UI)
 
+**Status: SHIPPED — June 14, 2026** (`59b5bc0` on `main`). Phase A (live inbox
+analytics) shipped in the same commit. B4 Maya draft-reply still open.
+
 *Phase A (live inbox analytics on the Analytics tab) ships first. This doc is the
-build plan for Phase B — a white-label inbox workspace inside Agent7even. Do NOT
-start Phase B until Phase A is verified on a connected test account.*
+build plan for Phase B — a white-label inbox workspace inside Agent7even.*
 
 **Goal:** Let users read and reply to DMs and post comments from Agent7even —
 without sending them to Zernio's dashboard — with optional Maya draft-reply assist.
@@ -12,7 +14,7 @@ without sending them to Zernio's dashboard — with optional Maya draft-reply as
 ## READ BEFORE WRITING CODE
 
 1. `git remote -v` → confirm `rovaneD/agent7even-v2`.
-2. Source of truth: `MAYA_CONTEXT_V07.md` + `CONTEXTV16.md`.
+2. Source of truth: `MAYA_CONTEXT_V08.md` + `CONTEXTV17.md`.
 3. Read the real files, not this plan's summary:
    - `lib/social/publisher.ts` — single Zernio access point; extend here only.
    - `lib/social/zernioInboxParse.ts` — Phase A mapper (volume + comments + conversations → UI shape).
@@ -28,14 +30,12 @@ without sending them to Zernio's dashboard — with optional Maya draft-reply as
 
 ## What Phase A delivers (prerequisite)
 
-| Layer | Status after Phase A |
+| Layer | Status |
 |---|---|
-| `GET /api/analytics/zernio/inbox` | Live — volume + comments + conversation analytics merged |
-| Analytics → Inbox tab | Real counts (comments, DMs, response rate, platform table, trend) |
+| `GET /api/analytics/zernio/inbox` | **Live** — volume + comments + conversation analytics merged |
+| Analytics → Inbox tab | **Live** counts (comments, DMs, response rate, platform table, trend) |
 | Maya context | Live inbox metrics when `dataState === 'live'` |
-| Reply UI | **Not built** — footer still says "coming soon" |
-
-Phase B replaces the "coming soon" footer with a link into the full inbox workspace.
+| Reply UI | Links to `/dashboard/inbox` (Phase B workspace) |
 
 ---
 
@@ -46,9 +46,9 @@ Phase B replaces the "coming soon" footer with a link into the full inbox worksp
 | `GET /analytics/inbox/volume` | Aggregate received/sent/read + timeseries | A ✓ |
 | `GET /analytics/inbox/conversations` | Per-conversation stats (unread derivation) | A ✓ |
 | `GET /inbox/comments` | Posts with comment threads (list) | A ✓ (count) · B (UI) |
-| `GET /inbox/conversations` | DM conversation list | B |
-| `GET /inbox/conversations/{id}/messages` | Thread messages | B |
-| `POST /inbox/conversations/{id}/messages` | Send DM reply | B |
+| `GET /inbox/conversations` | DM conversation list | B ✓ |
+| `GET /inbox/conversations/{id}/messages` | Thread messages | B ✓ |
+| `POST /inbox/conversations/{id}/messages` | Send DM reply | B ✓ |
 
 **Shape note:** Volume analytics uses `received` / `sent` / `read`, not a native
 comments-vs-DMs split. Phase A composes UI metrics from volume + comments list +
@@ -176,16 +176,17 @@ if Zernio exposes per-message status on fetch.
 
 ## Acceptance checks (Phase B)
 
-- [ ] `/dashboard/inbox` loads conversation list for a connected test account.
-- [ ] Selecting a conversation loads thread messages without full page reload.
-- [ ] User can send a DM reply; message appears in thread after send.
-- [ ] Comments tab lists post comments from connected accounts.
-- [ ] All Zernio calls go through `lib/social/publisher.ts` — no scattered fetch.
-- [ ] Tenancy: every route derives `profileId` from Clerk → Supabase, never request body.
-- [ ] Analytics Inbox tab shows live metrics (Phase A) and links to inbox workspace.
-- [ ] Maya context describes inbox workspace affordances without naming Zernio.
-- [ ] `npx tsc --noEmit` + `npm run build` pass.
-- [ ] Manual test on `@rovanedurso` test account only until DPA gate clears.
+- [x] `/dashboard/inbox` loads conversation list for a connected test account.
+- [x] Selecting a conversation loads thread messages without full page reload.
+- [x] User can send a DM reply; message appears in thread after send.
+- [x] Comments tab lists post comments from connected accounts.
+- [x] All Zernio calls go through `lib/social/publisher.ts` — no scattered fetch.
+- [x] Tenancy: every route derives `profileId` from Clerk → Supabase, never request body.
+- [x] Analytics Inbox tab shows live metrics (Phase A) and links to inbox workspace.
+- [x] Maya context describes inbox workspace affordances without naming Zernio.
+- [x] `npx tsc --noEmit` + `npm run build` pass.
+- [x] Manual test on `@rovanedurso` test account only until DPA gate clears.
+- [ ] B4.1 — Maya draft-reply in composer (optional follow-on).
 
 ---
 
@@ -210,10 +211,10 @@ if Zernio exposes per-message status on fetch.
 
 ## Docs to update when Phase B ships
 
-- `CONTEXTV16.md` (or successor): new routes, `/dashboard/inbox`, Maya inbox affordances.
-- `MAYA_CONTEXT_V07.md` (or successor): Inbox workspace section — what users can do in-app.
-- `analytics_v2_spec.md`: Mark Phase 5 inbox analytics done; add Phase B workspace note.
+- [x] `CONTEXTV17.md` — new routes, `/dashboard/inbox`, Maya inbox affordances.
+- [x] `MAYA_CONTEXT_V08.md` — Inbox workspace section.
+- [x] `analytics_v2_spec.md` — Phase 5 inbox analytics done; workspace note added.
 
 ---
 
-*Plan filed: June 10, 2026 — Phase A ships in the same branch/session; Phase B is next build.*
+*Plan filed: June 10, 2026 — Phase A + B shipped June 14, 2026 (`59b5bc0`).*

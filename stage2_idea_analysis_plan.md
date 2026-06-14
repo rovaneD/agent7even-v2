@@ -1,5 +1,8 @@
 # Stage 2 — Idea Analysis → Viral Hooks: Implementation Plan
 
+**Status: SHIPPED — June 14, 2026** (`caf79c3` on `main`). Run
+`18_idea_analysis_skill.sql` in Supabase if not already applied.
+
 *The only unblocked, active build from the outlier-intelligence work. Stage 1
 (outlier scoring) and Stage 3 (feed) are PARKED behind a data-source gate — see
 `outlier_intelligence_handoff.md` Reality State. This plan does not touch them.*
@@ -13,7 +16,7 @@ analysis) into a structured `idea_analysis` object, then let the user fire
 ## READ BEFORE WRITING CODE
 
 1. `git remote -v` → confirm `rovaneD/agent7even-v2`.
-2. Source of truth: `MAYA_CONTEXT_V07.md` + `CONTEXTV16.md`. (`MAYA_CONTEXT.md`
+2. Source of truth: `MAYA_CONTEXT_V08.md` + `CONTEXTV17.md`. (`MAYA_CONTEXT.md`
    is legacy.)
 3. Read the real files, not this plan's summary of them:
    - `lib/services/viralHooks.ts` — `VIRAL_HOOKS_FRAMEWORK`,
@@ -138,18 +141,18 @@ fails acceptance. The fields auto-populate; the user never re-types them.
 
 ## Acceptance checks (Stage 2)
 
-- [ ] Phase 0 digest bug fixed; `digest/generate` handles object `content`.
-- [ ] `idea_analysis` skill lives in `agent_skills`, emits validated JSON.
-- [ ] `belief_to_challenge` references a Foundation-derived customer belief,
+- [x] Phase 0 digest bug fixed; `digest/generate` handles object `content`.
+- [x] `idea_analysis` skill lives in `agent_skills`, emits validated JSON.
+- [x] `belief_to_challenge` references a Foundation-derived customer belief,
       not a generic one.
-- [ ] `buildViralHooksBrief()` is the single mapper feeding both wires.
-- [ ] Wire 1 (one-click) POSTs a complete brief; no modal, no re-type.
-- [ ] Wire 2 (pre-filled modal) populates all 6 fields from the analysis.
-- [ ] "Draft my version" terminates in a generated Viral Hooks order →
+- [x] `buildViralHooksBrief()` is the single mapper feeding both wires.
+- [x] Wire 1 (one-click) POSTs a complete brief; no modal, no re-type.
+- [x] Wire 2 (pre-filled modal) populates all 6 fields from the analysis.
+- [x] "Draft my version" terminates in a generated Viral Hooks order →
       Deliverables (existing path), never a dead-end card.
-- [ ] All runs go through `lib/agents/runner.ts`. No direct SDK imports.
-- [ ] Tenant scope (`account_id`) derived from `auth()`, never request body.
-- [ ] No `competitor_channel_baselines`, no `/dashboard/feed`, no outlier
+- [x] All runs go through `lib/agents/runner.ts`. No direct SDK imports.
+- [x] Tenant scope (`account_id`) derived from `auth()`, never request body.
+- [x] No `competitor_channel_baselines`, no `/dashboard/feed`, no outlier
       scoring touched — those are parked.
 
 ---

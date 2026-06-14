@@ -757,8 +757,10 @@ Phase 4 — Ads tab (Zernio Ads API)
 Build GET /api/analytics/zernio/ads. Populate the Ads tab. Test with a
 connected ad account.
 
-Phase 5 — Inbox tab (Zernio Inbox API)
+Phase 5 — Inbox tab (Zernio Inbox API) — **DONE June 14, 2026**
 Build GET /api/analytics/zernio/inbox. Populate the Inbox tab.
+**Follow-on (shipped same release):** `/dashboard/inbox` workspace — see
+`zernio_inbox_phase_b_plan.md` and `CONTEXTV17.md`.
 
 Phase 6 — Maya's briefing + generate-briefing route
 Add the briefing card. Build POST /api/analytics/generate-briefing.
@@ -802,8 +804,14 @@ Phase 4:
 - [ ] Ads tab shows spend, reach, CTR, active campaigns
 
 Phase 5:
-- [ ] GET /api/analytics/zernio/inbox returns real data
-- [ ] Inbox tab shows comments, DMs, response rate
+- [x] GET /api/analytics/zernio/inbox returns real data
+- [x] Inbox tab shows comments, DMs, response rate
+
+Phase 5b (inbox workspace — shipped June 14, 2026):
+- [x] GET /api/inbox/conversations, messages, comments proxy routes
+- [x] `/dashboard/inbox` — DM read/reply + post comments list
+- [x] Sidebar Inbox nav; Analytics tab links to workspace
+- [ ] Maya draft-reply in composer (B4.1 — optional)
 
 Phase 6:
 - [ ] analytics_briefings table migrated with RLS
@@ -821,11 +829,10 @@ Phase 7:
 
 ## Update these docs when built
 
-- CONTEXTV12.md (or successor): new routes, new tables, Zernio as analytics
-  layer, lib/social/publisher.ts analytics extensions, queue items as DONE.
-- MAYA_CONTEXT_V03.md (or successor): Analytics section fully rewritten —
-  Zernio handles social + ads analytics, GA handles website, Maya generates
-  briefings from the combined picture.
+- CONTEXTV17.md (successor to V12+): new routes, Zernio inbox analytics + workspace,
+  Stage 2 Idea Analysis, lib/social/publisher.ts inbox extensions — **updated June 14, 2026**.
+- MAYA_CONTEXT_V08.md (successor): Analytics inbox live data, `/dashboard/inbox`
+  affordances, Idea Analysis → Viral Hooks — **updated June 14, 2026**.
 - competitive_intelligence.md: Update Zernio entry to reflect analytics
   capabilities confirmed and in use.
 - AGENTS.md: update Last reviewed date.

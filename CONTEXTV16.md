@@ -1,5 +1,5 @@
 # CONTEXTV16 — Content Posting, Billing/Admin Fixes, Zernio Analytics Parity
-*Snapshot: June 12, 2026*
+*Snapshot: June 12, 2026 — superseded by `CONTEXTV17.md` (June 14, 2026)*
 
 This document supersedes `CONTEXTV15.md`. Everything in V15 still applies
 unless this file explicitly changes it.
@@ -199,6 +199,7 @@ Support bundle (local, not in git): `zernio-analytics-support-bundle-2026-06-10.
 | Post media roadmap | `post_media_expansion_handoff.md` |
 | Outlier intelligence (Stage 1/3) | `outlier_intelligence_handoff.md`, `ensembledata_verification_findings.md`, `backlog_gate_competitor_reach.md` |
 | Idea Analysis → Viral Hooks (active) | `stage2_idea_analysis_plan.md` |
+| Zernio inbox (Phase A + B) | `zernio_inbox_phase_b_plan.md`, `CONTEXTV17.md` |
 | Audit ledger | `AUDIT_FIXES_2026-06-02.md` |
 
 Superseded: `CONTEXTV15.md`, `MAYA_CONTEXT_V06.md`.

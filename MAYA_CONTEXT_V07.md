@@ -1,5 +1,5 @@
 # MAYA_CONTEXT_V07 — Content Posting, Analytics Honesty, Single-Account Zernio
-*Versioned snapshot: June 12, 2026*
+*Versioned snapshot: June 12, 2026 — superseded by `MAYA_CONTEXT_V08.md` (June 14, 2026)*
 
 This document supersedes `MAYA_CONTEXT_V06.md`. Everything in V06 still
 applies unless this file explicitly changes it.
