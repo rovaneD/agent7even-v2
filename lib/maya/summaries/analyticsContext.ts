@@ -1,4 +1,5 @@
 import { MOCK_ANALYTICS_INBOX, MOCK_GA_DATA, MOCK_POSTING_ANALYTICS } from '@/lib/analytics/mockData'
+import type { AnalyticsInboxData } from '@/lib/social/zernioInboxParse'
 import type { AnalyticsDataState } from '@/app/dashboard/analytics/page'
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
 
@@ -49,6 +50,7 @@ export interface AnalyticsMayaInput {
   gaPending: boolean
   connectedPlatforms: string[]
   postingData: PostingSnapshot
+  inboxData: AnalyticsInboxData
 }
 
 function fmtNum(n: number): string {
@@ -135,11 +137,15 @@ function summarizePosting(data: PostingSnapshot, dateRange: string): string[] {
   return lines
 }
 
-function summarizeInbox(): string[] {
-  const inbox = MOCK_ANALYTICS_INBOX
+function summarizeInbox(inbox: AnalyticsInboxData, dateRange: string): string[] {
   return [
-    `Inbox: ${inbox.totalComments} comments, ${inbox.totalDMs} DMs, ${inbox.responseRate}% response rate`,
+    `Inbox (${dateRange}): ${inbox.totalComments} comments, ${inbox.totalDMs} DMs, ${inbox.responseRate}% response rate`,
   ]
+}
+
+/** Inbox metrics are sample/demo until Zernio live fetch (dataState === 'live'). */
+function isInboxMock(input: AnalyticsMayaInput): boolean {
+  return input.dataState !== 'live'
 }
 
 /** Posting metrics are sample/demo until Zernio live fetch (dataState === 'live'). */
@@ -204,7 +210,7 @@ const TAB_AFFORDANCE: Record<PostingTab, string> = {
   posting:
     `${VOICE_RULE} User is on Posting analytics (connected social accounts). Platform, source, and date filters are the interactive controls. Charts and stat cards are read-only — interpret metrics in chat; do not tell the user to click charts.`,
   inbox:
-    `${VOICE_RULE} User is on Inbox analytics. Only the date range filter is interactive. Inbox numbers are sample/demo until live inbox data is available. Do not tell the user to click anything.`,
+    `${VOICE_RULE} User is on Inbox analytics. Only the date range filter is interactive. Charts and stat cards are read-only — interpret metrics in chat; do not tell the user to click charts. Reply management is not available in-app yet.`,
   ga:
     `${VOICE_RULE} User is on the Google analytics tab inside Agent7even — not analytics.google.com. UI RULES: (1) KPI cards, traffic charts, Traffic channels, Top pages, Countries, and Devices are read-only displays — nothing is clickable and there is no drill-down. (2) The ONLY interactive control on this tab is the date range dropdown (e.g. Last 30 days). (3) Answer by interpreting the ON-SCREEN SUMMARY below — quote numbers directly in your reply. (4) NEVER say click, tap, drill down, open, check the chart, look at the section, or filter. (5) METRIC RULE: Traffic channels are SESSION counts, not new-user counts. This dashboard does not show new users by channel. If asked where new users come from, give the new-users KPI total and describe session mix separately — never attribute channel session numbers to new users. (6) GA "Organic Social" = website sessions Google attributes to social referrals — NOT social post stats from the Posting analytics tab. If contrasting low Organic Social with Instagram, explain: connected for posting in Agent7even vs website click-through tracked in Google Analytics are separate — never name internal vendors. (7) Do not send them to analytics.google.com.`,
 }
@@ -220,6 +226,7 @@ function buildAnalyticsActiveViewState(input: AnalyticsMayaInput): string {
     gaPending,
     postingData,
     connectedPlatforms,
+    inboxData,
   } = input
 
   if (activeTab === 'posting') {
@@ -235,8 +242,14 @@ function buildAnalyticsActiveViewState(input: AnalyticsMayaInput): string {
   }
 
   if (activeTab === 'inbox') {
-    const inbox = MOCK_ANALYTICS_INBOX
-    return `SAMPLE / MOCK — ${inbox.totalComments} comments, ${inbox.totalDMs} DMs, ${inbox.responseRate}% response rate (${dateRange})`
+    if (isInboxMock(input)) {
+      const inbox = MOCK_ANALYTICS_INBOX
+      return `SAMPLE / MOCK — ${inbox.totalComments} comments, ${inbox.totalDMs} DMs, ${inbox.responseRate}% response rate (${dateRange})`
+    }
+    if (!connectedPlatforms.length) {
+      return 'No social accounts connected for inbox analytics yet'
+    }
+    return `${inboxData.totalComments} comments, ${inboxData.totalDMs} DMs, ${inboxData.responseRate}% response rate (${dateRange})`
   }
 
   if (activeTab === 'ga') {
@@ -275,6 +288,7 @@ export function buildAnalyticsMayaContext(input: AnalyticsMayaInput): MayaPageCo
     gaPending,
     connectedPlatforms,
     postingData,
+    inboxData,
   } = input
 
   const dataSource =
@@ -320,8 +334,14 @@ export function buildAnalyticsMayaContext(input: AnalyticsMayaInput): MayaPageCo
     }
     metrics.push(gaStatusLine(input))
   } else if (activeTab === 'inbox') {
-    metrics.push('INBOX DATA: SAMPLE / MOCK — inbox tab uses demo data until live inbox is available.')
-    metrics.push(...summarizeInbox())
+    if (isInboxMock(input)) {
+      metrics.push('INBOX DATA: SAMPLE / MOCK — demo inbox metrics until social accounts are connected.')
+      metrics.push(...summarizeInbox(MOCK_ANALYTICS_INBOX, dateRange))
+    } else if (connectedPlatforms.length) {
+      metrics.push(...summarizeInbox(inboxData, dateRange))
+    } else {
+      metrics.push('Inbox: no social accounts connected yet')
+    }
     metrics.push(postingThinLine(input))
     metrics.push(gaStatusLine(input))
   } else if (activeTab === 'ga') {

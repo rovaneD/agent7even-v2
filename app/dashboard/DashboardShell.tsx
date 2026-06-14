@@ -28,6 +28,7 @@ import {
   PenLine,
   Plus,
   HelpCircle,
+  MessageCircle,
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
@@ -91,6 +92,7 @@ const NAV = [
       { href: '/dashboard/foundation',   label: 'Foundation',       icon: Layers    },
       { href: '/dashboard/brand-kit',    label: 'Brand Kit',        icon: BookOpen  },
       { href: '/dashboard/analytics',    label: 'Analytics',        icon: BarChart2 },
+      { href: '/dashboard/inbox',        label: 'Inbox',            icon: MessageCircle },
       { href: '/dashboard/deliverables', label: 'Deliverables',     icon: FileText  },
     ],
   },
@@ -133,6 +135,9 @@ const PAGE_ACTIONS: Record<string, { label: string; action: string }[]> = {
   analytics:   [
     { label: 'Export report', action: 'export' },
     { label: 'Refresh data',  action: 'refresh' },
+  ],
+  inbox:       [
+    { label: 'Refresh inbox', action: 'refresh' },
   ],
 }
 
@@ -359,6 +364,7 @@ export default function DashboardShell({
     : pathname.startsWith('/dashboard/agents') ? 'agents'
     : pathname.startsWith('/dashboard/campaigns') ? 'campaigns'
     : pathname.startsWith('/dashboard/analytics') ? 'analytics'
+    : pathname.startsWith('/dashboard/inbox') ? 'inbox'
     : pathname.startsWith('/dashboard/foundation') ? 'foundation'
     : pathname === '/dashboard' ? 'dashboard'
     : ''

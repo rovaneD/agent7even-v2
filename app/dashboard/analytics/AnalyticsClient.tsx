@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext } from 'react'
+import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -18,6 +19,7 @@ import {
   MOCK_ANALYTICS_INBOX, MOCK_POSTING_ANALYTICS, MOCK_GA_DATA,
 } from '@/lib/analytics/mockData'
 import { parseAnalyticsEnvelope, readBestPostUrl } from '@/lib/social/zernioAnalyticsParse'
+import { emptyAnalyticsInbox, type AnalyticsInboxData } from '@/lib/social/zernioInboxParse'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildAnalyticsMayaContext } from '@/lib/maya/summaries/analyticsContext'
 
@@ -65,6 +67,10 @@ function emptyLivePostingAnalytics(): PostingAnalytics {
 
 function initialPostingData(dataState: AnalyticsDataState): PostingAnalytics {
   return dataState === 'mock' ? MOCK_POSTING_ANALYTICS : emptyLivePostingAnalytics()
+}
+
+function initialInboxData(dataState: AnalyticsDataState): AnalyticsInboxData {
+  return dataState === 'mock' ? MOCK_ANALYTICS_INBOX : emptyAnalyticsInbox()
 }
 
 const PostingDataContext = createContext<PostingAnalytics>(MOCK_POSTING_ANALYTICS)
@@ -2260,11 +2266,56 @@ function EngagementAccumulationChart({ isMock }: { isMock: boolean }) {
 
 // ── Inbox Analytics Tab ────────────────────────────────────────────────────────
 
-function InboxAnalyticsContent({ isMock }: { isMock: boolean }) {
-  const inbox = MOCK_ANALYTICS_INBOX
+function InboxAnalyticsContent({
+  isMock,
+  dataState,
+  fetchError,
+  loading,
+  inbox,
+  onConnect,
+}: {
+  isMock: boolean
+  dataState: AnalyticsDataState
+  fetchError: string
+  loading: boolean
+  inbox: AnalyticsInboxData
+  onConnect: () => void
+}) {
+  if (dataState === 'empty') {
+    return (
+      <div className="rounded-2xl border border-gray-100 bg-white px-6 py-14 text-center">
+        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
+          <Plus size={20} className="text-[#3B82F6]" />
+        </div>
+        <p className="text-[15px] font-semibold text-text mb-2">Connect a social account</p>
+        <p className="text-[13px] text-text-sec max-w-md mx-auto mb-5">
+          Inbox analytics will populate from your connected accounts. Connect Instagram, Facebook, or other platforms to get started.
+        </p>
+        <button
+          type="button"
+          onClick={onConnect}
+          className="inline-flex items-center gap-1.5 bg-[#3B82F6] text-white text-[13px] font-semibold px-4 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors"
+        >
+          <Plus size={14} /> Connect accounts
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
+      {fetchError && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+          <p className="text-xs font-medium text-red-600">{fetchError}</p>
+        </div>
+      )}
+
+      {loading && !fetchError && (
+        <div className="rounded-xl border border-gray-100 bg-white px-4 py-3">
+          <p className="text-xs text-text-sec">Loading inbox analytics…</p>
+        </div>
+      )}
+
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
@@ -2340,10 +2391,18 @@ function InboxAnalyticsContent({ isMock }: { isMock: boolean }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-100 bg-white p-5">
+      <div className="rounded-2xl border border-gray-100 bg-white p-5 flex items-center justify-between gap-3">
         <p className="text-[12px] text-text-sec">
-          Manage and reply to comments and DMs directly in Maya — coming soon.
+          Manage and reply to comments and DMs from your connected accounts.
         </p>
+        {!isMock && (
+          <Link
+            href="/dashboard/inbox"
+            className="text-[12px] font-semibold text-[#3B82F6] hover:underline whitespace-nowrap"
+          >
+            Open inbox →
+          </Link>
+        )}
       </div>
 
       {isMock && <UpgradeCard />}
@@ -3234,6 +3293,9 @@ export default function AnalyticsClient({
   const [postingData, setPostingData]       = useState<PostingAnalytics>(() => initialPostingData(dataState))
   const [postingFetchError, setPostingFetchError] = useState('')
   const [postingLoading, setPostingLoading] = useState(false)
+  const [inboxData, setInboxData]           = useState<AnalyticsInboxData>(() => initialInboxData(dataState))
+  const [inboxFetchError, setInboxFetchError] = useState('')
+  const [inboxLoading, setInboxLoading]     = useState(false)
 
   const isMock = dataState === 'mock'
 
@@ -3250,6 +3312,7 @@ export default function AnalyticsClient({
       gaPending,
       connectedPlatforms,
       postingData,
+      inboxData,
     }),
     [
       companyName,
@@ -3263,6 +3326,7 @@ export default function AnalyticsClient({
       gaPending,
       connectedPlatforms,
       postingData,
+      inboxData,
     ],
   )
   useMayaContext(mayaContext)
@@ -3357,6 +3421,35 @@ export default function AnalyticsClient({
 
   useEffect(() => { fetchZernioData() }, [fetchZernioData])
 
+  const fetchInboxData = useCallback(async () => {
+    if (dataState !== 'live') return
+    setInboxLoading(true)
+    setInboxFetchError('')
+    try {
+      const q = new URLSearchParams({ dateRange })
+      const res  = await fetch(`/api/analytics/zernio/inbox?${q}`, { cache: 'no-store' })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        const detail = typeof json.detail === 'string' ? json.detail : ''
+        setInboxFetchError(
+          detail
+            ? `Couldn't load inbox analytics — ${detail}`
+            : "Couldn't load inbox analytics. Try again or reconnect your accounts.",
+        )
+        setInboxData(emptyAnalyticsInbox())
+        return
+      }
+      setInboxData(json.inbox ?? emptyAnalyticsInbox())
+    } catch {
+      setInboxFetchError("Couldn't load inbox analytics. Check your connection and try again.")
+      setInboxData(emptyAnalyticsInbox())
+    } finally {
+      setInboxLoading(false)
+    }
+  }, [dataState, dateRange])
+
+  useEffect(() => { fetchInboxData() }, [fetchInboxData])
+
   const handleGAConnect = () => oauthConnected ? setShowPropertySelector(true) : setShowGAModal(true)
 
   const handleGADisconnect = async () => {
@@ -3432,7 +3525,7 @@ export default function AnalyticsClient({
         </div>
 
         {/* Tabs */}
-        <div className="flex items-end gap-0 border-b border-gray-200 mt-4 overflow-x-auto">
+        <div className="flex items-end gap-0 border-b border-gray-200 mt-4 overflow-x-auto overflow-y-hidden">
           {TABS.map(t => (
             <button
               key={t.id}
@@ -3484,7 +3577,16 @@ export default function AnalyticsClient({
               onConnect={() => setConnectPanelOpen(true)}
             />
           )}
-          {activeTab === 'inbox'   && <InboxAnalyticsContent   isMock={isMock} />}
+          {activeTab === 'inbox'   && (
+            <InboxAnalyticsContent
+              isMock={isMock}
+              dataState={dataState}
+              fetchError={inboxFetchError}
+              loading={inboxLoading}
+              inbox={inboxData}
+              onConnect={() => setConnectPanelOpen(true)}
+            />
+          )}
           {activeTab === 'ga'      && (
             <GoogleAnalyticsContent
               isMock={isMock}

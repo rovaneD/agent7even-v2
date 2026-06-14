@@ -411,7 +411,7 @@ export interface InboxSummaryParams {
   toDate: string
 }
 
-/** Fetch inbox summary (comments, DMs, response rate) from Zernio. Returns null on failure. */
+/** Fetch inbox volume analytics from Zernio. Returns null on failure. */
 export async function getInboxSummary(params: InboxSummaryParams): Promise<unknown> {
   try {
     const q = new URLSearchParams({
@@ -422,6 +422,106 @@ export async function getInboxSummary(params: InboxSummaryParams): Promise<unkno
     return await zCall(`/analytics/inbox/volume?${q}`)
   } catch (err) {
     console.error('[publisher] getInboxSummary failed:', err)
+    return null
+  }
+}
+
+export interface InboxCommentsParams {
+  profileId: string
+  page?: number
+  limit?: number
+}
+
+/** List post comments from Zernio inbox. Returns null on failure. */
+export async function listInboxComments(params: InboxCommentsParams): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({ profileId: params.profileId })
+    if (params.page) q.set('page', String(params.page))
+    if (params.limit) q.set('limit', String(params.limit))
+    return await zCall(`/inbox/comments?${q}`)
+  } catch (err) {
+    console.error('[publisher] listInboxComments failed:', err)
+    return null
+  }
+}
+
+/** Per-conversation inbox analytics from Zernio. Returns null on failure. */
+export async function getInboxConversationAnalytics(params: InboxSummaryParams): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({
+      profileId: params.profileId,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+    })
+    return await zCall(`/analytics/inbox/conversations?${q}`)
+  } catch (err) {
+    console.error('[publisher] getInboxConversationAnalytics failed:', err)
+    return null
+  }
+}
+
+export interface InboxConversationsParams {
+  profileId: string
+  limit?: number
+  cursor?: string
+}
+
+/** List DM conversations from Zernio inbox. Returns null on failure. */
+export async function listInboxConversations(params: InboxConversationsParams): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({ profileId: params.profileId })
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.cursor) q.set('cursor', params.cursor)
+    return await zCall(`/inbox/conversations?${q}`)
+  } catch (err) {
+    console.error('[publisher] listInboxConversations failed:', err)
+    return null
+  }
+}
+
+export interface InboxThreadParams {
+  profileId: string
+  conversationId: string
+  accountId: string
+}
+
+/** Fetch messages in a DM thread. Returns null on failure. */
+export async function getInboxThread(params: InboxThreadParams): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({
+      profileId: params.profileId,
+      accountId: params.accountId,
+    })
+    return await zCall(`/inbox/conversations/${encodeURIComponent(params.conversationId)}/messages?${q}`)
+  } catch (err) {
+    console.error('[publisher] getInboxThread failed:', err)
+    return null
+  }
+}
+
+export interface SendInboxReplyParams {
+  profileId: string
+  conversationId: string
+  accountId: string
+  message: string
+}
+
+/** Send a DM reply in an existing conversation. Returns null on failure. */
+export async function sendInboxReply(params: SendInboxReplyParams): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({ profileId: params.profileId })
+    return await zCall(
+      `/inbox/conversations/${encodeURIComponent(params.conversationId)}/messages?${q}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          accountId: params.accountId,
+          message: params.message,
+        }),
+      },
+    )
+  } catch (err) {
+    console.error('[publisher] sendInboxReply failed:', err)
     return null
   }
 }
