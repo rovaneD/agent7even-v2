@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
-  ExternalLink, Hash, MessageCircle, Plus, RefreshCw, Send, User,
+  ArrowLeft, ExternalLink, Hash, MessageCircle, Plus, RefreshCw, Send, User,
 } from 'lucide-react'
 import type { InboxDataState } from './page'
 import { useMayaContext } from '@/hooks/useMayaContext'
@@ -77,8 +77,12 @@ export default function InboxClient({
   const [threadError, setThreadError] = useState('')
   const [sendError, setSendError] = useState('')
 
+  const detailPaneRef = useRef<HTMLDivElement>(null)
+  const messagesScrollRef = useRef<HTMLDivElement>(null)
+
   const isMock = dataState === 'mock'
   const isLive = dataState === 'live'
+  const showMobileThread = activeTab === 'dms' && Boolean(selected)
 
   const fetchConversations = useCallback(async () => {
     if (!isLive) return
@@ -153,9 +157,30 @@ export default function InboxClient({
   }, [activeTab, fetchConversations, fetchComments])
 
   useEffect(() => {
-    if (selected && activeTab === 'dms') fetchThread(selected)
-    else setMessages([])
+    if (selected && activeTab === 'dms') {
+      setMessages([])
+      fetchThread(selected)
+    } else {
+      setMessages([])
+    }
   }, [selected, activeTab, fetchThread])
+
+  useEffect(() => {
+    if (!selected || activeTab !== 'dms') return
+    detailPaneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [selected?.id, activeTab])
+
+  useEffect(() => {
+    const el = messagesScrollRef.current
+    if (!el) return
+    if (loadingThread) {
+      el.scrollTo({ top: 0 })
+      return
+    }
+    if (messages.length > 0) {
+      el.scrollTop = el.scrollHeight
+    }
+  }, [loadingThread, messages, selected?.id])
 
   const handleSend = async () => {
     if (!selected || !reply.trim() || sending) return
@@ -262,8 +287,10 @@ export default function InboxClient({
           )}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:min-h-[560px]">
-            {/* List pane */}
-            <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col min-h-[320px] lg:min-h-0">
+            {/* List pane — hidden on mobile when a thread is open */}
+            <div className={`rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col min-h-[320px] lg:min-h-0 ${
+              showMobileThread ? 'hidden lg:flex' : 'flex'
+            }`}>
               <div className="px-4 py-3 border-b border-gray-50">
                 <p className="text-[12px] font-semibold text-text">
                   {activeTab === 'dms' ? 'Conversations' : 'Posts with comments'}
@@ -346,8 +373,13 @@ export default function InboxClient({
               </div>
             </div>
 
-            {/* Detail pane */}
-            <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col min-h-[320px]">
+            {/* Detail pane — full width on mobile when a thread is open */}
+            <div
+              ref={detailPaneRef}
+              className={`rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col min-h-[320px] lg:min-h-[560px] ${
+                showMobileThread ? 'min-h-[calc(100dvh-12rem)]' : ''
+              } ${!showMobileThread && activeTab === 'dms' ? 'hidden lg:flex' : 'flex'}`}
+            >
               {activeTab === 'comments' ? (
                 <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
                   <MessageCircle size={28} className="text-gray-300 mb-3" />
@@ -371,13 +403,23 @@ export default function InboxClient({
               ) : (
                 <>
                   <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[14px] font-semibold text-text">{selected.participantName}</p>
-                      {selected.participantUsername && (
-                        <p className="text-[11px] text-text-soft">@{selected.participantUsername}</p>
-                      )}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => setSelected(null)}
+                        className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-text-sec hover:bg-gray-50 flex-shrink-0"
+                        aria-label="Back to conversations"
+                      >
+                        <ArrowLeft size={16} />
+                      </button>
+                      <div className="min-w-0">
+                        <p className="text-[14px] font-semibold text-text truncate">{selected.participantName}</p>
+                        {selected.participantUsername && (
+                          <p className="text-[11px] text-text-soft truncate">@{selected.participantUsername}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <PlatformBadge platform={selected.platform} />
                       {selected.externalUrl && (
                         <a
@@ -392,8 +434,15 @@ export default function InboxClient({
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-gray-50/40">
-                    {loadingThread && <p className="text-xs text-text-sec">Loading messages…</p>}
+                  <div
+                    ref={messagesScrollRef}
+                    className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-gray-50/40"
+                  >
+                    {loadingThread && (
+                      <div className="sticky top-0 z-10 -mx-5 px-5 py-2 bg-gray-50/95 backdrop-blur-sm border-b border-gray-100">
+                        <p className="text-xs font-medium text-text-sec">Loading messages…</p>
+                      </div>
+                    )}
                     {threadError && <p className="text-xs text-red-600">{threadError}</p>}
                     {!loadingThread && messages.map(msg => (
                       <div
