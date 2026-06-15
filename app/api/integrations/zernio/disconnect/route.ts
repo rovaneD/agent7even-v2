@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
+import {
+  collectZernioProfileIds,
+  disconnectAllZernioProfiles,
+  ZERNIO_TEARDOWN_COLUMNS,
+} from '@/lib/social/zernioProfileIds'
 
 export async function DELETE(req: Request) {
   const { userId } = await auth()
@@ -13,41 +18,42 @@ export async function DELETE(req: Request) {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, zernio_profile_id, zernio_connected_platforms')
+    .select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
     .eq('clerk_user_id', userId)
     .single()
 
-  if (!profile?.zernio_profile_id) {
+  const zernioProfileIds = profile ? collectZernioProfileIds(profile) : []
+  if (zernioProfileIds.length === 0) {
     return NextResponse.json({ error: 'No Zernio profile found' }, { status: 404 })
   }
 
-  const zernioProfileId = profile.zernio_profile_id as string
+  const primaryProfileId = (profile!.zernio_profile_id as string | null) ?? zernioProfileIds[0]
 
   if (platform) {
-    // Disconnect a single platform
-    const disconnected = await publisher.disconnectAccount(zernioProfileId, platform)
+    const disconnected = await publisher.disconnectAccount(primaryProfileId, platform)
     if (!disconnected) {
       return NextResponse.json({ error: 'Failed to disconnect platform from Zernio' }, { status: 502 })
     }
 
-    const existing = (profile.zernio_connected_platforms as string[] | null) ?? []
-    const remaining = await publisher.getConnectedPlatforms(zernioProfileId)
+    const existing = (profile!.zernio_connected_platforms as string[] | null) ?? []
+    const remaining = await publisher.getConnectedPlatforms(primaryProfileId)
     const nextPlatforms = remaining.length > 0 ? remaining : existing.filter((p) => p !== platform)
     await supabase
       .from('profiles')
       .update({ zernio_connected_platforms: nextPlatforms })
-      .eq('id', profile.id)
+      .eq('id', profile!.id)
     return NextResponse.json({ success: true, platform, remaining: nextPlatforms })
-  } else {
-    // Disconnect all — called from Stripe webhook or explicit full disconnect
-    const disconnectedAll = await publisher.disconnectAllAccounts(zernioProfileId)
-    if (!disconnectedAll) {
-      return NextResponse.json({ error: 'Failed to disconnect Zernio profile' }, { status: 502 })
-    }
-    await supabase
-      .from('profiles')
-      .update({ zernio_connected_platforms: [], zernio_profile_id: null })
-      .eq('id', profile.id)
-    return NextResponse.json({ success: true, disconnectedAll: true })
   }
+
+  const teardownResults = await disconnectAllZernioProfiles(zernioProfileIds)
+  await supabase
+    .from('profiles')
+    .update(ZERNIO_TEARDOWN_COLUMNS)
+    .eq('id', profile!.id)
+
+  return NextResponse.json({
+    success: true,
+    disconnectedAll: true,
+    profiles: teardownResults,
+  })
 }

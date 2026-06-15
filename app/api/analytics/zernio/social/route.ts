@@ -104,10 +104,6 @@ export async function GET(req: NextRequest) {
   const { fromDate, toDate } = publisher.dateRangeToWindow(dateRange)
   const analyticsPlatform = platform?.toLowerCase()
 
-  // All accounts on the API key (for profiles that share a key across connections)
-  const apiKeyAccounts = await publisher.listAllAccounts()
-  const profileIdSet = new Set(zernioProfileIds)
-
   // Fan out per Zernio profile × connected account — stagger calls to reduce 429 bursts.
   type AccountFetchBundle = Awaited<ReturnType<typeof fetchAccountAnalyticsBundle>>
 
@@ -222,16 +218,11 @@ export async function GET(req: NextRequest) {
     pagination: { page: 1, limit: 100, total: uniquePosts.length, pages: 1 }
   }
 
-  // 2. Merge accounts — profile-scoped + API-key list for this tenant's profiles
+  // 2. Merge accounts from profile-scoped getProfileAccounts only (no master-key-wide list)
   const mergedAccounts: Array<{ id: string; platform: string; username: string }> = []
   for (const r of activeResults) {
     if (Array.isArray(r.accounts)) {
       mergedAccounts.push(...r.accounts)
-    }
-  }
-  for (const a of apiKeyAccounts) {
-    if (!a.profileId || profileIdSet.has(a.profileId)) {
-      mergedAccounts.push({ id: a.id, platform: a.platform, username: a.username })
     }
   }
   const seenProfileAccs = new Set<string>()

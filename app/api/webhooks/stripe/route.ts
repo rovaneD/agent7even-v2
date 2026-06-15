@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { allocatePlanCredits, PLAN_CREDITS } from '@/lib/credits'
 import { createNotification } from '@/lib/createNotification'
 import { getStripeClient } from '@/lib/stripe'
-import * as publisher from '@/lib/social/publisher'
+import { collectZernioProfileIds, disconnectAllZernioProfiles } from '@/lib/social/zernioProfileIds'
 
 function getPlanFromPriceId(priceId: string): string | null {
   const map: Record<string, string> = {
@@ -194,17 +194,22 @@ export async function POST(req: Request) {
 
     // Look up the profile to find and disconnect any Zernio accounts before clearing plan
     const profileQuery = clerkUserId
-      ? supabase.from('profiles').select('id, zernio_profile_id, zernio_connected_platforms').eq('clerk_user_id', clerkUserId).single()
-      : supabase.from('profiles').select('id, zernio_profile_id, zernio_connected_platforms').eq('stripe_subscription_id', subscription.id).single()
+      ? supabase.from('profiles').select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms').eq('clerk_user_id', clerkUserId).single()
+      : supabase.from('profiles').select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms').eq('stripe_subscription_id', subscription.id).single()
 
     const { data: cancelledProfile } = await profileQuery
 
-    if (cancelledProfile?.zernio_profile_id) {
-      const disconnected = await publisher.disconnectAllAccounts(cancelledProfile.zernio_profile_id as string)
-      if (disconnected) {
-        console.log(`[stripe/webhook] Disconnected Zernio profile ${cancelledProfile.zernio_profile_id} on subscription cancellation`)
-      } else {
-        console.warn(`[stripe/webhook] Failed to disconnect Zernio profile ${cancelledProfile.zernio_profile_id} on subscription cancellation`)
+    if (cancelledProfile) {
+      const zernioProfileIds = collectZernioProfileIds(cancelledProfile)
+      if (zernioProfileIds.length > 0) {
+        const teardownResults = await disconnectAllZernioProfiles(zernioProfileIds)
+        for (const { id, ok } of teardownResults) {
+          if (ok) {
+            console.log(`[stripe/webhook] Disconnected Zernio profile ${id} on subscription cancellation`)
+          } else {
+            console.warn(`[stripe/webhook] Failed to disconnect Zernio profile ${id} on subscription cancellation`)
+          }
+        }
       }
     }
 
@@ -213,7 +218,7 @@ export async function POST(req: Request) {
         .from('profiles')
         .update({
           plan: null, status: 'churned', stripe_subscription_id: null,
-          zernio_connected_platforms: [], zernio_profile_id: null,
+          zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
           updated_at: new Date().toISOString(),
         })
         .eq('clerk_user_id', clerkUserId)
@@ -222,7 +227,7 @@ export async function POST(req: Request) {
         .from('profiles')
         .update({
           plan: null, status: 'churned', stripe_subscription_id: null,
-          zernio_connected_platforms: [], zernio_profile_id: null,
+          zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
           updated_at: new Date().toISOString(),
         })
         .eq('stripe_subscription_id', subscription.id)

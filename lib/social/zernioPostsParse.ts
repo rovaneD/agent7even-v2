@@ -172,3 +172,35 @@ export function parseSinglePost(raw: unknown): ZernioPostRow | null {
   const post = envelope.post ?? envelope.data ?? raw
   return mapZernioPost(post)
 }
+
+/** Read profileId from a Zernio GET /posts/{id} (or list item) payload for tenant ownership checks. */
+export function readZernioPostProfileId(raw: unknown): string | null {
+  const envelope = asObject(raw)
+  const post = asObject(envelope.post ?? envelope.data ?? raw)
+
+  const readField = (field: unknown): string | null => {
+    if (typeof field === 'string' && field.trim()) return field.trim()
+    if (field && typeof field === 'object') {
+      const nested = asString((field as Record<string, unknown>)._id ?? (field as Record<string, unknown>).id)
+      return nested || null
+    }
+    return null
+  }
+
+  const topLevel = readField(post.profileId ?? post.profile_id)
+  if (topLevel) return topLevel
+
+  for (const entry of asArray(post.platforms)) {
+    const row = asObject(entry)
+    const account = row.accountId ?? row.account_id
+    if (account && typeof account === 'object') {
+      const fromAccount = readField((account as Record<string, unknown>).profileId
+        ?? (account as Record<string, unknown>).profile_id)
+      if (fromAccount) return fromAccount
+    }
+    const fromPlatform = readField(row.profileId ?? row.profile_id)
+    if (fromPlatform) return fromPlatform
+  }
+
+  return null
+}
