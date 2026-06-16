@@ -83,7 +83,6 @@ export default function Lab5Page() {
       <header className="hero">
         <div className="wrap hero-grid">
           <div className="hero-copy">
-            <span className="pill"><span className="live-dot"></span>AI marketing platform for small business</span>
             <h1 className="t-display">Meet <em>Maya</em>, the<br />marketing team that<br />never clocks out.</h1>
             <p className="t-lead">Campaigns planned, copy drafted, content posted — in your voice, approved by you. She runs the marketing while you run the business.</p>
             <p className="hero-tag">No agency. No busywork. No missed momentum.</p>
