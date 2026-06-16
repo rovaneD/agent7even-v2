@@ -4,6 +4,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import AnalyticsClient from './AnalyticsClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import * as publisher from '@/lib/social/publisher'
+import { collectZernioProfileIds } from '@/lib/social/zernioProfileIds'
+import type { ZernioConnectedAccountInfo } from '@/lib/social/publisher'
 
 export type AnalyticsDataState = 'mock' | 'live' | 'empty'
 
@@ -35,6 +37,7 @@ export default async function AnalyticsPage() {
       instagram_handle,
       meta_ad_account_id,
       zernio_profile_id,
+      zernio_profile_ids,
       zernio_connected_platforms
     `)
     .eq('clerk_user_id', userId)
@@ -45,16 +48,20 @@ export default async function AnalyticsPage() {
     if (!hasPermission(teamPerms, 'analytics')) redirect('/dashboard')
   }
 
-  let zernioProfileId = (profile?.zernio_profile_id as string | null) ?? null
+  const zernioProfileIds = profile ? collectZernioProfileIds(profile) : []
+  const zernioProfileId = zernioProfileIds[0] ?? null
   let zernioConnectedPlatforms = (profile?.zernio_connected_platforms as string[] | null) ?? []
-  if (zernioProfileId) {
+  let zernioConnectedAccounts: ZernioConnectedAccountInfo[] = []
+
+  if (zernioProfileIds.length > 0) {
     try {
-      const connectedPlatforms = await publisher.getConnectedPlatforms(zernioProfileId)
+      const connectedPlatforms = await publisher.getConnectedPlatforms(zernioProfileIds[0])
       if (connectedPlatforms.length > 0) {
         zernioConnectedPlatforms = connectedPlatforms
       }
+      zernioConnectedAccounts = await publisher.getTenantConnectedAccounts(zernioProfileIds)
     } catch (err) {
-      console.error('[analytics/page] connected platform fetch failed:', err)
+      console.error('[analytics/page] connected account fetch failed:', err)
     }
   }
 
@@ -73,6 +80,7 @@ export default async function AnalyticsPage() {
       gaOAuthConnected={profile?.ga_connected ?? false}
       gaOAuthEmail={profile?.ga_oauth_email ?? null}
       zernioConnectedPlatforms={zernioConnectedPlatforms}
+      zernioConnectedAccounts={zernioConnectedAccounts}
     />
   )
 }

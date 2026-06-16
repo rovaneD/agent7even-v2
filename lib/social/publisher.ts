@@ -165,8 +165,10 @@ export async function getConnectUrl(
   profileId: string,
   platform: string,
   redirectUri: string,
+  opts?: { headless?: boolean },
 ): Promise<string> {
   const q = new URLSearchParams({ profileId, redirect_url: redirectUri })
+  if (opts?.headless) q.set('headless', 'true')
   const data = await zCall<{ authUrl?: string; auth_url?: string }>(
     `/connect/${encodeURIComponent(platform)}?${q}`,
   )
@@ -174,6 +176,65 @@ export async function getConnectUrl(
   if (!url) throw new Error('[publisher] Zernio getConnectUrl returned no authUrl')
   return url
 }
+
+export type ZernioFacebookPage = {
+  id: string
+  name: string
+  username?: string
+  category?: string
+}
+
+/** Headless Facebook connect — list pages after Meta OAuth. */
+export async function listFacebookPages(
+  profileId: string,
+  tempToken: string,
+): Promise<ZernioFacebookPage[]> {
+  const q = new URLSearchParams({ profileId, tempToken })
+  const data = await zCall<{ pages?: Array<Record<string, unknown>> }>(
+    `/connect/facebook/select-page?${q}`,
+  )
+  const pages = Array.isArray(data.pages) ? data.pages : []
+  return pages
+    .map((p) => ({
+      id: String(p.id ?? p._id ?? ''),
+      name: String(p.name ?? p.title ?? ''),
+      username: p.username ? String(p.username) : undefined,
+      category: p.category ? String(p.category) : undefined,
+    }))
+    .filter((p) => p.id)
+}
+
+/** Headless Facebook connect — bind a page and finish the connection. */
+export async function selectFacebookPage(opts: {
+  profileId: string
+  pageId: string
+  tempToken: string
+  userProfile: Record<string, unknown>
+  redirectUri: string
+}): Promise<{ redirectUrl?: string; accountId?: string; username?: string }> {
+  const data = await zCall<{
+    redirect_url?: string
+    redirectUrl?: string
+    account?: { accountId?: string; username?: string; platformUsername?: string }
+  }>('/connect/facebook/select-page', {
+    method: 'POST',
+    body: JSON.stringify({
+      profileId: opts.profileId,
+      pageId: opts.pageId,
+      tempToken: opts.tempToken,
+      userProfile: opts.userProfile,
+      redirect_url: opts.redirectUri,
+    }),
+  })
+  return {
+    redirectUrl: data.redirect_url ?? data.redirectUrl,
+    accountId: data.account?.accountId,
+    username: data.account?.username ?? data.account?.platformUsername,
+  }
+}
+
+/** Platforms that use Meta OAuth and should stay on our domain after auth (headless). */
+export const ZERNIO_HEADLESS_PLATFORMS = new Set(['facebook', 'instagram', 'threads'])
 
 /** Disconnect a single platform from a Zernio profile. Returns false on failure. */
 export async function disconnectAccount(profileId: string, platform: string): Promise<boolean> {
@@ -257,7 +318,47 @@ type ZernioAccountRow = {
   platform?: string
   platformUsername?: string
   username?: string
+  displayName?: string
+  followersCount?: number
   profileId?: string
+  metadata?: {
+    connectedAt?: string
+    profileData?: {
+      username?: string
+      displayName?: string
+      followersCount?: number
+    }
+  }
+}
+
+export type ZernioConnectedAccountInfo = {
+  id: string
+  platform: string
+  username: string
+  displayName: string
+  followersCount: number
+  connectedAt: string | null
+  profileId?: string
+}
+
+function parseConnectedAccountRow(row: ZernioAccountRow): ZernioConnectedAccountInfo | null {
+  const id = String(row._id ?? row.id ?? '')
+  if (!id) return null
+  const platform = String(row.platform ?? '').toLowerCase()
+  const profileData = row.metadata?.profileData
+  const username = String(
+    row.platformUsername ?? row.username ?? profileData?.username ?? '',
+  ).replace(/^@/, '')
+  const displayName = String(row.displayName ?? profileData?.displayName ?? '')
+  const followersCount = Number(row.followersCount ?? profileData?.followersCount ?? 0) || 0
+  const connectedAt = row.metadata?.connectedAt ?? null
+  const profileIdRaw = row.profileId
+  const profileId = typeof profileIdRaw === 'string'
+    ? profileIdRaw
+    : profileIdRaw && typeof profileIdRaw === 'object'
+      ? String((profileIdRaw as { _id?: string; id?: string })._id ?? (profileIdRaw as { id?: string }).id ?? '')
+      : undefined
+  return { id, platform, username, displayName, followersCount, connectedAt, profileId: profileId || undefined }
 }
 
 function mapAccountRows(arr: ZernioAccountRow[]): Array<{ id: string; platform: string; username: string; profileId?: string }> {
@@ -288,15 +389,42 @@ export async function getProfileAccounts(
   profileId: string,
 ): Promise<Array<{ id: string; platform: string; username: string }>> {
   try {
-    const data = await zCall<{ accounts?: ZernioAccountRow[]; results?: ZernioAccountRow[] }>(
-      `/accounts?profileId=${encodeURIComponent(profileId)}`,
-    )
-    const arr = Array.isArray(data.accounts) ? data.accounts : Array.isArray(data.results) ? data.results : []
-    return mapAccountRows(arr).map(({ id, platform, username }) => ({ id, platform, username }))
+    const accounts = await getProfileConnectedAccounts(profileId)
+    return accounts.map(({ id, platform, username }) => ({ id, platform, username }))
   } catch (err) {
     console.error('[publisher] getProfileAccounts failed:', err)
     return []
   }
+}
+
+/** Connected accounts with usernames and reconnect timestamps for UI labels. */
+export async function getProfileConnectedAccounts(profileId: string): Promise<ZernioConnectedAccountInfo[]> {
+  try {
+    const data = await zCall<{ accounts?: ZernioAccountRow[]; results?: ZernioAccountRow[] }>(
+      `/accounts?profileId=${encodeURIComponent(profileId)}`,
+    )
+    const arr = Array.isArray(data.accounts) ? data.accounts : Array.isArray(data.results) ? data.results : []
+    return arr
+      .map(parseConnectedAccountRow)
+      .filter((a): a is ZernioConnectedAccountInfo => a !== null)
+  } catch (err) {
+    console.error('[publisher] getProfileConnectedAccounts failed:', err)
+    return []
+  }
+}
+
+/** Deduped connected accounts across all tenant Zernio profiles. */
+export async function getTenantConnectedAccounts(profileIds: string[]): Promise<ZernioConnectedAccountInfo[]> {
+  const seen = new Set<string>()
+  const out: ZernioConnectedAccountInfo[] = []
+  for (const profileId of profileIds) {
+    for (const account of await getProfileConnectedAccounts(profileId)) {
+      if (seen.has(account.id)) continue
+      seen.add(account.id)
+      out.push(account)
+    }
+  }
+  return out
 }
 
 /** Daily time series — for Posts over time / Likes over time charts. */

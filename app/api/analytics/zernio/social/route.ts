@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
+import { collectZernioProfileIds } from '@/lib/social/zernioProfileIds'
 import { filterPostsByPlatform, parseAnalyticsEnvelope, pickBestAnalyticsPost, postDedupeKey } from '@/lib/social/zernioAnalyticsParse'
 
 /** Pull a list array from Zernio payloads that may nest under data/result. */
@@ -29,6 +30,21 @@ function platformMatches(value: string | undefined, filter: string | undefined):
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+const RECENT_RECONNECT_MS = 72 * 60 * 60 * 1000
+
+function detectAnalyticsSyncPending(opts: {
+  connectedAccounts: Array<{ connectedAt: string | null }>
+  postCount: number
+  totalReach: number
+}): boolean {
+  const recentlyReconnected = opts.connectedAccounts.some((acct) => {
+    if (!acct.connectedAt) return false
+    const ts = new Date(acct.connectedAt).getTime()
+    return Number.isFinite(ts) && Date.now() - ts < RECENT_RECONNECT_MS
+  })
+  return recentlyReconnected && opts.postCount > 0 && opts.totalReach === 0
 }
 
 /** Run Zernio fetches sequentially to avoid burst 429s on secondary analytics endpoints. */
@@ -92,10 +108,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Support multiple profiles (fan out and merge)
-  const zernioProfileIds = (profile.zernio_profile_ids as string[] | null) ?? []
-  if (profile.zernio_profile_id && !zernioProfileIds.includes(profile.zernio_profile_id)) {
-    zernioProfileIds.push(profile.zernio_profile_id)
-  }
+  const zernioProfileIds = collectZernioProfileIds(profile)
 
   if (zernioProfileIds.length === 0) {
     return NextResponse.json({ error: 'not_connected' }, { status: 404 })
@@ -499,15 +512,32 @@ export async function GET(req: NextRequest) {
   })
   console.log('[zernio/social] bestPost:', JSON.stringify(bestPost))
 
+  const dailyPostCount = mergedDailyData.reduce(
+    (sum, row) => sum + (typeof row.postCount === 'number' ? row.postCount : 0),
+    0,
+  )
+  const dailyReachTotal = mergedDailyData.reduce(
+    (sum, row) => sum + (typeof row.metrics?.reach === 'number' ? row.metrics.reach : 0),
+    0,
+  )
+  const connectedAccounts = await publisher.getTenantConnectedAccounts(zernioProfileIds)
+  const analyticsSyncPending = detectAnalyticsSyncPending({
+    connectedAccounts,
+    postCount: Math.max(uniquePosts.length, dailyPostCount),
+    totalReach: dailyReachTotal,
+  })
+
   return NextResponse.json({
     posts: finalRawPostData,
     daily: finalDailyData,
     followerStats: finalFollowerStats,
     allAccounts: resolvedAccounts,
+    connectedAccounts,
     bestTimes: finalBestTimes,
     postingFrequency: finalPostingFrequency,
     contentDecay: finalContentDecay,
     bestPost,
+    analyticsSyncPending,
   }, {
     headers: { 'Cache-Control': 'no-store' },
   })

@@ -97,12 +97,15 @@ export async function POST(req: Request) {
 
   // Create CSRF nonce — provider is scoped per platform so two simultaneous connects don't collide
   const nonce = await createOAuthState(userId, `zernio:${platform}`)
-  const callbackUrl = `${callbackBase}/api/integrations/zernio/callback?state=${nonce}&returnTo=${encodeURIComponent(returnTo)}`
+  // a7_nonce avoids colliding with Meta/Zernio OAuth `state` on headless callbacks.
+  const callbackUrl = `${callbackBase}/api/integrations/zernio/callback?a7_nonce=${nonce}&returnTo=${encodeURIComponent(returnTo)}`
   console.log('[zernio/connect] callbackUrl:', callbackUrl)
+
+  const useHeadless = publisher.ZERNIO_HEADLESS_PLATFORMS.has(platform.toLowerCase())
 
   let authUrl: string
   try {
-    authUrl = await publisher.getConnectUrl(zernioProfileId, platform, callbackUrl)
+    authUrl = await publisher.getConnectUrl(zernioProfileId, platform, callbackUrl, { headless: useHeadless })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[zernio/connect] getConnectUrl failed:', msg)

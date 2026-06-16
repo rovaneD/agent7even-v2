@@ -89,9 +89,10 @@ export default function SecurityPage() {
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-3">6. Data Deletion</h2>
             <p>
-              You can request deletion of your account and all associated data at any time. Disconnecting
-              an integration removes its stored credentials immediately, and cancelled accounts are
-              purged after a 30-day grace period.
+              You can request deletion of your account and all associated data at any time using our{' '}
+              <Link href="/data-deletion" className="text-[#64748B] hover:underline">User Data Deletion</Link>
+              {' '}page. Disconnecting an integration removes its stored credentials immediately, and
+              cancelled accounts are purged after a 30-day grace period.
             </p>
           </section>
 
@@ -116,6 +117,7 @@ export default function SecurityPage() {
         <div className="max-w-3xl mx-auto px-6 py-6 flex items-center justify-between text-xs text-gray-400">
           <span>© {new Date().getFullYear()} Agent7even. All rights reserved.</span>
           <div className="flex gap-4">
+            <Link href="/data-deletion" className="hover:text-gray-600 transition-colors">Data Deletion</Link>
             <Link href="/privacy" className="hover:text-gray-600 transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-gray-600 transition-colors">Terms of Service</Link>
           </div>

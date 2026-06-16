@@ -5,26 +5,36 @@ export const metadata = {
   description: 'Terms and conditions for using the Agent7even platform.',
 }
 
-const LAST_UPDATED = 'June 9, 2026'
+const LAST_UPDATED = 'June 15, 2026'
 const CONTACT_EMAIL = 'support@agent7even.ai'
-const APP_URL = 'https://www.agent7even.ai'
+const MARKETING_URL = 'https://www.agent7even.ai'
+const APP_URL = 'https://app.agent7even.com'
+
+function LegalLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} className="text-[#64748B] no-underline hover:underline">
+      {children}
+    </a>
+  )
+}
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
       <header className="border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="/" className="flex items-center">
             <img src="/agent7even_logo.svg" alt="Agent7even" className="h-[34px] w-auto" />
           </Link>
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+          <a
+            href={MARKETING_URL}
+            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
             ← Back to agent7even.ai
-          </Link>
+          </a>
         </div>
       </header>
 
-      {/* Content */}
       <main className="max-w-3xl mx-auto px-6 py-14">
         <div className="mb-10">
           <p className="text-xs font-semibold tracking-widest uppercase text-[#64748B] mb-2">Legal</p>
@@ -37,8 +47,8 @@ export default function TermsPage() {
           <section>
             <p>
               These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of the Agent7even
-              client platform at{' '}
-              <a href={APP_URL} className="text-[#64748B] no-underline hover:underline">{APP_URL}</a>.
+              client dashboard at <LegalLink href={APP_URL}>{APP_URL}</LegalLink> and related services
+              described at <LegalLink href={MARKETING_URL}>{MARKETING_URL}</LegalLink>.
               By creating an account or using the platform, you agree to these Terms.
             </p>
           </section>
@@ -46,9 +56,10 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-3">1. The Service</h2>
             <p>
-              Agent7even provides a client dashboard for businesses receiving marketing services. The platform
-              includes tools for tracking service orders, viewing analytics, using AI-powered content tools,
-              and communicating with the Agent7even team.
+              Agent7even is a subscription SaaS platform for small businesses. The dashboard includes tools
+              for analytics, AI-powered content, social publishing, inbox management, billing, and related
+              marketing workflows. You must connect your own third-party accounts (such as Google Analytics
+              or social profiles) to use many features.
             </p>
           </section>
 
@@ -65,11 +76,11 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-3">3. Subscriptions and Billing</h2>
             <ul className="space-y-2 list-disc pl-5">
-              <li>Paid plans are billed monthly or as agreed at the time of purchase.</li>
+              <li>Paid plans are billed monthly or annually as shown at checkout.</li>
               <li>Payments are processed by Stripe. By subscribing, you authorize recurring charges.</li>
               <li>You may cancel your subscription at any time via the Billing tab. Access continues until the end of the current billing period.</li>
               <li>Refunds are handled on a case-by-case basis. Contact us at{' '}
-                <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#64748B] no-underline hover:underline">{CONTACT_EMAIL}</a>{' '}
+                <LegalLink href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</LegalLink>{' '}
                 within 7 days of a charge if you believe an error occurred.
               </li>
             </ul>
@@ -77,11 +88,20 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-bold text-gray-900 mb-3">4. Third-Party Integrations</h2>
-            <p>
+            <p className="mb-3">
               The platform allows you to connect third-party accounts such as Google Analytics, Instagram,
-              and Meta Ads. By connecting these accounts, you authorize Agent7even to access the data
-              necessary to display your performance metrics. You may disconnect integrations at any time.
-              Agent7even is not responsible for the availability or accuracy of third-party data.
+              Facebook, and other social networks. By connecting an account, you authorize Agent7even to
+              access the data and perform the actions needed to provide the features you use, including:
+            </p>
+            <ul className="space-y-2 list-disc pl-5 mb-3">
+              <li>Reading analytics and performance metrics</li>
+              <li>Scheduling and publishing content you approve</li>
+              <li>Managing comments and messages in the inbox, where permitted by the platform</li>
+            </ul>
+            <p>
+              You may disconnect integrations at any time from your dashboard. Agent7even is not responsible
+              for the availability, accuracy, or policy changes of third-party platforms. You remain responsible
+              for content published through your connected accounts and for complying with each platform&rsquo;s terms.
             </p>
           </section>
 
@@ -102,6 +122,7 @@ export default function TermsPage() {
               <li>Attempt to access other users&rsquo; data.</li>
               <li>Reverse engineer, scrape, or systematically extract data from the platform.</li>
               <li>Use AI tools to generate spam, misleading content, or content that violates applicable laws.</li>
+              <li>Publish content through connected social accounts that violates platform rules or applicable law.</li>
               <li>Interfere with the platform&rsquo;s operation or security.</li>
             </ul>
           </section>
@@ -150,19 +171,22 @@ export default function TermsPage() {
             </p>
             <div className="mt-4 bg-gray-50 rounded-2xl p-5 space-y-1">
               <p className="font-semibold text-gray-900">Agent7even</p>
-              <p><a href={`mailto:${CONTACT_EMAIL}`} className="text-[#64748B] no-underline hover:underline">{CONTACT_EMAIL}</a></p>
-              <p><a href="/" className="text-[#64748B] no-underline hover:underline">agent7even.ai</a></p>
+              <p><LegalLink href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</LegalLink></p>
+              <p>Website: <LegalLink href={MARKETING_URL}>www.agent7even.ai</LegalLink></p>
+              <p>Dashboard: <LegalLink href={APP_URL}>app.agent7even.com</LegalLink></p>
             </div>
           </section>
 
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-gray-100 mt-16">
         <div className="max-w-3xl mx-auto px-6 py-6 flex items-center justify-between text-xs text-gray-400">
           <span>© {new Date().getFullYear()} Agent7even. All rights reserved.</span>
-          <Link href="/privacy" className="hover:text-gray-600 transition-colors">Privacy Policy</Link>
+          <div className="flex gap-4">
+            <Link href="/data-deletion" className="hover:text-gray-600 transition-colors">Data Deletion</Link>
+            <Link href="/privacy" className="hover:text-gray-600 transition-colors">Privacy Policy</Link>
+          </div>
         </div>
       </footer>
     </div>

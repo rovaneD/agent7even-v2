@@ -20,6 +20,7 @@ import {
 } from '@/lib/analytics/mockData'
 import { parseAnalyticsEnvelope, readBestPostUrl } from '@/lib/social/zernioAnalyticsParse'
 import { emptyAnalyticsInbox, type AnalyticsInboxData } from '@/lib/social/zernioInboxParse'
+import type { ZernioConnectedAccountInfo } from '@/lib/social/publisher'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildAnalyticsMayaContext } from '@/lib/maya/summaries/analyticsContext'
 
@@ -965,6 +966,15 @@ interface Props {
   gaOAuthConnected: boolean
   gaOAuthEmail: string | null
   zernioConnectedPlatforms: string[]
+  zernioConnectedAccounts: ZernioConnectedAccountInfo[]
+}
+
+function formatConnectedAccountLabel(account: ZernioConnectedAccountInfo | undefined): string {
+  if (!account) return 'Connected'
+  const handle = account.username.replace(/^@/, '')
+  if (handle) return `Connected · @${handle}`
+  if (account.displayName.trim()) return `Connected · ${account.displayName.trim()}`
+  return 'Connected'
 }
 
 interface GaData {
@@ -2779,12 +2789,14 @@ function PostingAnalyticsContent({
   dataState,
   fetchError,
   loading,
+  syncPending,
   onConnect,
 }: {
   isMock: boolean
   dataState: AnalyticsDataState
   fetchError: string
   loading: boolean
+  syncPending: boolean
   onConnect: () => void
 }) {
   if (dataState === 'empty') {
@@ -2813,6 +2825,18 @@ function PostingAnalyticsContent({
       {fetchError && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
           <p className="text-xs font-medium text-red-600">{fetchError}</p>
+        </div>
+      )}
+
+      {!isMock && syncPending && !fetchError && (
+        <div className="flex items-start gap-3 rounded-xl border border-pink-100 bg-pink-50 px-4 py-3">
+          <Info size={16} className="text-[#F5349B] flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-medium text-pink-950">Metrics still syncing</p>
+            <p className="text-[11px] text-pink-900/80 mt-0.5 leading-relaxed">
+              Your account is connected, but post reach and engagement can take up to 24 hours to backfill after a reconnect. Follower count may update first.
+            </p>
+          </div>
         </div>
       )}
 
@@ -2850,13 +2874,15 @@ function PostingAnalyticsContent({
 // ── Connect Panel ─────────────────────────────────────────────────────────────
 
 function ConnectPanel({
-  open, onClose, dataState, connectedPlatforms, onDisconnect,
+  open, onClose, dataState, connectedPlatforms, connectedAccounts, onAccountsChange, onDisconnect,
   gaPropertyId, gaOAuthEmail, onGAConnect, onGADisconnect,
 }: {
   open: boolean
   onClose: () => void
   dataState: AnalyticsDataState
   connectedPlatforms: string[]
+  connectedAccounts: ZernioConnectedAccountInfo[]
+  onAccountsChange: (accounts: ZernioConnectedAccountInfo[]) => void
   onDisconnect: (platform: string) => void
   gaPropertyId: string | null
   gaOAuthEmail: string | null
@@ -2868,6 +2894,24 @@ function ConnectPanel({
   const [connectError, setConnectError] = useState('')
   const [xCostModal, setXCostModal] = useState(false)
   const [pendingXConnect, setPendingXConnect] = useState(false)
+  const [accountsLoading, setAccountsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open || dataState !== 'live') return
+    let cancelled = false
+    setAccountsLoading(true)
+    fetch('/api/integrations/zernio/accounts', { cache: 'no-store' })
+      .then(res => res.json())
+      .then((json: { accounts?: ZernioConnectedAccountInfo[] }) => {
+        if (cancelled || !Array.isArray(json.accounts)) return
+        onAccountsChange(json.accounts)
+      })
+      .catch(() => { /* fail soft */ })
+      .finally(() => {
+        if (!cancelled) setAccountsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [open, dataState, onAccountsChange])
 
   const handleConnect = async (platform: string) => {
     if (platform === 'x' && !pendingXConnect) {
@@ -2910,6 +2954,7 @@ function ConnectPanel({
         body: JSON.stringify({ platform }),
       })
       onDisconnect(platform)
+      onAccountsChange(connectedAccounts.filter(a => a.platform !== platform))
     } finally {
       setDisconnecting(null)
     }
@@ -3027,10 +3072,21 @@ function ConnectPanel({
             </div>
 
             <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft mb-3">Social accounts</p>
+            <div className="mb-3 rounded-lg border border-pink-100 bg-pink-50 px-3 py-2.5">
+              <p className="text-[11px] text-pink-950 leading-relaxed">
+                Instagram and Facebook use Meta&apos;s authorization screen. It may show{' '}
+                <span className="font-medium">&quot;Social Media Connector&quot;</span> — that&apos;s our publishing partner verifying access, not a separate login. Click{' '}
+                <span className="font-medium">Allow</span>; don&apos;t click the app name link.
+              </p>
+            </div>
+            {accountsLoading && (
+              <p className="text-[11px] text-text-soft mb-2">Refreshing connected accounts…</p>
+            )}
             <div className="space-y-0.5">
               {ALL_PLATFORMS.map(id => {
                 const meta = PLATFORM_META[id]
                 const isConnected = connectedPlatforms.includes(id)
+                const account = connectedAccounts.find(a => a.platform === id)
                 const isConnecting = connecting === id
                 const isDisconnecting = disconnecting === id
                 return (
@@ -3040,7 +3096,7 @@ function ConnectPanel({
                       <div>
                         <span className="text-[13px] font-medium text-text">{meta?.label ?? id}</span>
                         {isConnected && (
-                          <p className="text-[11px] text-[#10B981]">Connected</p>
+                          <p className="text-[11px] text-[#10B981]">{formatConnectedAccountLabel(account)}</p>
                         )}
                       </div>
                     </div>
@@ -3261,6 +3317,7 @@ export default function AnalyticsClient({
   gaOAuthConnected,
   gaOAuthEmail,
   zernioConnectedPlatforms,
+  zernioConnectedAccounts,
 }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -3289,10 +3346,12 @@ export default function AnalyticsClient({
   const [gaData, setGaData]                 = useState<GaData | null>(null)
   const [gaPending, setGaPending]           = useState(false)
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(zernioConnectedPlatforms)
+  const [connectedAccounts, setConnectedAccounts] = useState<ZernioConnectedAccountInfo[]>(zernioConnectedAccounts)
   const [zernioToast, setZernioToast]       = useState('')
   const [postingData, setPostingData]       = useState<PostingAnalytics>(() => initialPostingData(dataState))
   const [postingFetchError, setPostingFetchError] = useState('')
   const [postingLoading, setPostingLoading] = useState(false)
+  const [analyticsSyncPending, setAnalyticsSyncPending] = useState(false)
   const [inboxData, setInboxData]           = useState<AnalyticsInboxData>(() => initialInboxData(dataState))
   const [inboxFetchError, setInboxFetchError] = useState('')
   const [inboxLoading, setInboxLoading]     = useState(false)
@@ -3354,10 +3413,25 @@ export default function AnalyticsClient({
     const connected = searchParams.get('zernio_connected')
     const zernioErr = searchParams.get('zernio_error')
     const username = searchParams.get('zernio_username')
+    const accountId = searchParams.get('zernio_account_id')
     if (connected) {
       const label = connected.charAt(0).toUpperCase() + connected.slice(1)
-      setZernioToast(`${label} connected${username ? ` as ${username}` : ''}`)
+      const handle = username?.replace(/^@/, '') ?? ''
+      setZernioToast(`${label} connected${handle ? ` as @${handle}` : ''}`)
       setConnectedPlatforms(prev => prev.includes(connected) ? prev : [...prev, connected])
+      if (handle) {
+        setConnectedAccounts(prev => {
+          const rest = prev.filter(a => a.platform !== connected)
+          return [...rest, {
+            id: accountId ?? '',
+            platform: connected,
+            username: handle,
+            displayName: '',
+            followersCount: 0,
+            connectedAt: new Date().toISOString(),
+          }]
+        })
+      }
       router.replace('/dashboard/analytics')
     } else if (zernioErr) {
       const msgs: Record<string, string> = {
@@ -3366,6 +3440,7 @@ export default function AnalyticsClient({
         save_failed:        'Failed to save connection. Please try again.',
         profile_not_found:  'Profile not found. Please try again.',
         profile_mismatch:   'Zernio profile mismatch. Please reconnect.',
+        no_pages:           'No Facebook Pages found on this account. Connect a Page in Meta Business Suite first.',
       }
       setOauthError(msgs[zernioErr] ?? 'Something went wrong connecting your account.')
       router.replace('/dashboard/analytics')
@@ -3407,13 +3482,16 @@ export default function AnalyticsClient({
             : "Couldn't load analytics. Try again or reconnect your accounts.",
         )
         setPostingData(emptyLivePostingAnalytics())
+        setAnalyticsSyncPending(false)
         return
       }
       const mapped = mapZernioResponse(json, dateRange, platformFilter)
       setPostingData(mapped ?? emptyLivePostingAnalytics())
+      setAnalyticsSyncPending(Boolean(json.analyticsSyncPending))
     } catch {
       setPostingFetchError("Couldn't load analytics. Check your connection and try again.")
       setPostingData(emptyLivePostingAnalytics())
+      setAnalyticsSyncPending(false)
     } finally {
       setPostingLoading(false)
     }
@@ -3490,6 +3568,8 @@ export default function AnalyticsClient({
         onClose={() => setConnectPanelOpen(false)}
         dataState={dataState}
         connectedPlatforms={connectedPlatforms}
+        connectedAccounts={connectedAccounts}
+        onAccountsChange={setConnectedAccounts}
         onDisconnect={(p) => setConnectedPlatforms(prev => prev.filter(x => x !== p))}
         gaPropertyId={gaId}
         gaOAuthEmail={gaOAuthEmail}
@@ -3574,6 +3654,7 @@ export default function AnalyticsClient({
               dataState={dataState}
               fetchError={postingFetchError}
               loading={postingLoading}
+              syncPending={analyticsSyncPending}
               onConnect={() => setConnectPanelOpen(true)}
             />
           )}
