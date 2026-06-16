@@ -17,6 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("h-full antialiased", "font-sans")}>
       <head>
+        <meta name="facebook-domain-verification" content="ks9g2iw6wruvyk4rk0u42889264o64" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
         <Script async src="https://www.googletagmanager.com/gtag/js?id=G-8913QV8Z1M" strategy="afterInteractive" />
         <Script id="gtag-init" strategy="afterInteractive">{`
