@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
 import { createServiceClient } from '@/lib/supabase/server'
+import {
+  assertCheckoutPrice,
+  formatStripeCheckoutError,
+  resolveStripeCustomer,
+} from '@/lib/stripe/billing'
 import { getStripeClient } from '@/lib/stripe'
 
 const PRICE_IDS: Record<string, { monthly: string; annual: string }> = {
@@ -39,6 +44,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Plan pricing is not configured' }, { status: 500 })
     }
 
+    await assertCheckoutPrice(stripe, priceId, plan)
+
     const supabase = createServiceClient()
 
     let { data: profileRows } = await supabase
@@ -71,28 +78,21 @@ export async function POST(req: Request) {
       profile.full_name ??
       ([user?.firstName, user?.lastName].filter(Boolean).join(' ') || null)
 
-    let customerId = profile.stripe_customer_id ?? undefined
-
-    if (!customerId) {
-      if (!email) {
-        return NextResponse.json(
-          { error: 'No email on file for checkout. Add an email to your account and try again.' },
-          { status: 400 },
-        )
-      }
-
-      const customer = await stripe.customers.create({
-        email,
-        name: fullName ?? undefined,
-        metadata: { clerk_user_id: userId },
-      })
-      customerId = customer.id
-
-      await supabase
-        .from('profiles')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', profile.id)
+    if (!email) {
+      return NextResponse.json(
+        { error: 'No email on file for checkout. Add an email to your account and try again.' },
+        { status: 400 },
+      )
     }
+
+    const customerId = await resolveStripeCustomer(stripe, {
+      profileId: profile.id,
+      storedCustomerId: profile.stripe_customer_id,
+      email,
+      fullName,
+      clerkUserId: userId,
+      supabase,
+    })
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.agent7even.ai'
 
@@ -115,8 +115,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ url: session.url })
   } catch (err) {
     console.error('[stripe/checkout]', err)
-    const message =
-      err instanceof Error && err.message ? err.message : 'Could not start checkout. Please try again.'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: formatStripeCheckoutError(err) }, { status: 500 })
   }
 }

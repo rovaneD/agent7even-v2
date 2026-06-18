@@ -122,6 +122,26 @@ function validateEnv() {
           'Switch to Clerk Production (pk_live_) before onboarding real customers.',
       )
     }
+    if (stripeKey.startsWith('sk_live_')) {
+      const testOnlyPricePrefixes = ['price_1TaGc5', 'price_1TaGdn', 'price_1TaGfi', 'price_1TZk']
+      const subscriptionPriceVars = [
+        'STRIPE_STARTER_MONTHLY_PRICE_ID',
+        'STRIPE_STARTER_ANNUAL_PRICE_ID',
+        'STRIPE_GROWTH_MONTHLY_PRICE_ID',
+        'STRIPE_GROWTH_ANNUAL_PRICE_ID',
+        'STRIPE_PROAGENT_MONTHLY_PRICE_ID',
+        'STRIPE_PROAGENT_ANNUAL_PRICE_ID',
+      ]
+      for (const varName of subscriptionPriceVars) {
+        const priceId = process.env[varName] ?? ''
+        if (testOnlyPricePrefixes.some((prefix) => priceId.startsWith(prefix))) {
+          console.warn(
+            `[env] ${varName} looks like a Stripe TEST price (${priceId.slice(0, 14)}…) ` +
+              'but STRIPE_SECRET_KEY is sk_live_. Checkout will fail until live price IDs are set on Vercel Production.',
+          )
+        }
+      }
+    }
   }
 
   if (appUrl.includes('app.agent7even.com') && stripeKey.startsWith('sk_test_')) {
