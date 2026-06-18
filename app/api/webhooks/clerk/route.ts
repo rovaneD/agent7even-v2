@@ -68,6 +68,7 @@ export async function POST(req: Request) {
         await supabase
           .from('profiles')
           .update({
+            clerk_user_id: id,
             full_name: fullName || undefined,
             avatar_url: image_url ?? '',
             updated_at: new Date().toISOString(),

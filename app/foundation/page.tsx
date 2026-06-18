@@ -1,6 +1,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
 import FoundationFlow from './FoundationFlow'
 
 export default async function FoundationPage({
@@ -17,30 +18,20 @@ export default async function FoundationPage({
     Promise.resolve(createServiceClient()),
   ])
 
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? ''
-  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+  const { profile } = await ensureProfileForClerkUser(supabase, userId, user)
 
-  // Ensure profile row exists — safe to call even if row already exists
-  const { error: upsertError } = await supabase
-    .from('profiles')
-    .upsert({
-      clerk_user_id: userId,
-      email,
-      full_name: fullName,
-      avatar_url: user?.imageUrl ?? '',
-      role: 'client',
-      status: 'onboarding',
-    }, { onConflict: 'clerk_user_id', ignoreDuplicates: true })
-
-  if (upsertError) console.error('[foundation] profile upsert error:', upsertError.message)
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, company_name, business_type, foundation_complete, foundation_step')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) redirect('/sign-in')
+  if (!profile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#111111] px-6">
+        <div className="max-w-md text-center">
+          <p className="text-lg font-semibold text-[#f5f4f0]">Setting up your account…</p>
+          <p className="mt-2 text-sm text-white/50">
+            This usually takes a few seconds. Refresh the page if it does not continue.
+          </p>
+        </div>
+      </div>
+    )
+  }
   if (profile.foundation_complete) redirect('/dashboard/foundation')
   if ((profile.foundation_step ?? 0) >= 5) redirect('/dashboard/foundation')
 
