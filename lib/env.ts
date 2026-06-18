@@ -1,4 +1,5 @@
 // Env validation. Import from instrumentation.ts so this runs at server startup.
+import { getStripeSecretKey } from '@/lib/stripe'
 // Production fails fast. Preview/development warn so branch deploys can boot with
 // feature-specific env gaps while the missing feature remains unavailable.
 // Usage: import { env } from '@/lib/env' — typed accessor, throws if var is missing.
@@ -105,9 +106,24 @@ function validateEnv() {
     }
   }
 
-  const stripeKey = process.env.STRIPE_SECRET_KEY ?? ''
+  const rawStripeKey = process.env.STRIPE_SECRET_KEY ?? ''
+  const stripeKey = getStripeSecretKey() ?? ''
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? ''
+
+  if (rawStripeKey && rawStripeKey !== stripeKey) {
+    console.warn(
+      '[env] STRIPE_SECRET_KEY contains extra whitespace, quotes, or newlines. ' +
+        'Sanitized at runtime — re-save the key in Vercel without wrapping quotes or trailing newlines.',
+    )
+  }
+
+  if (/[\r\n]/.test(rawStripeKey)) {
+    console.warn(
+      '[env] STRIPE_SECRET_KEY contains newline characters. ' +
+        'This causes Stripe Authorization header failures (ERR_INVALID_CHAR) until fixed in Vercel.',
+    )
+  }
 
   if (isProductionRuntime && appUrl.includes('agent7even.ai')) {
     if (stripeKey.startsWith('sk_test_')) {

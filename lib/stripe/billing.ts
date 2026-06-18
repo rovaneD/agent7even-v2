@@ -71,6 +71,20 @@ export async function assertCheckoutPrice(stripe: Stripe, priceId: string, plan:
 }
 
 export function formatStripeCheckoutError(err: unknown): string {
+  if (err instanceof Stripe.errors.StripeConnectionError) {
+    const detail = (err as { detail?: unknown }).detail
+    const detailMessage =
+      detail instanceof Error
+        ? detail.message
+        : typeof detail === 'string'
+          ? detail
+          : ''
+
+    if (detailMessage.includes('Invalid character in header content')) {
+      return 'Billing is misconfigured: STRIPE_SECRET_KEY contains invalid characters (often a trailing newline or quotes). Re-save the key in Vercel Production and redeploy.'
+    }
+  }
+
   if (err instanceof Stripe.errors.StripeInvalidRequestError) {
     const msg = err.message.toLowerCase()
     if (msg.includes('test mode') && msg.includes('live mode')) {

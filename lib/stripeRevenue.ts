@@ -19,8 +19,10 @@ export const PLATFORM_CHARGE_AMOUNTS_CENTS = new Set([
   4_000,   // Credit top-up large
 ])
 
+import { getStripeSecretKey } from '@/lib/stripe'
+
 export function isStripeTestMode(): boolean {
-  return (process.env.STRIPE_SECRET_KEY ?? '').startsWith('sk_test_')
+  return (getStripeSecretKey() ?? '').startsWith('sk_test_')
 }
 
 export function stripeCustomerId(charge: Stripe.Charge): string | null {

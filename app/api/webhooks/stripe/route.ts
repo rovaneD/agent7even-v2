@@ -3,7 +3,7 @@ import type Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { allocatePlanCredits, PLAN_CREDITS } from '@/lib/credits'
 import { createNotification } from '@/lib/createNotification'
-import { getStripeClient } from '@/lib/stripe'
+import { getStripeClient, sanitizeSecretEnvValue } from '@/lib/stripe'
 import { collectZernioProfileIds, disconnectAllZernioProfiles } from '@/lib/social/zernioProfileIds'
 
 function getPlanFromPriceId(priceId: string): string | null {
@@ -22,7 +22,9 @@ export async function POST(req: Request) {
   const body = await req.text()
   const sig = req.headers.get('stripe-signature')
 
-  if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
+  const webhookSecret = sanitizeSecretEnvValue(process.env.STRIPE_WEBHOOK_SECRET)
+
+  if (!sig || !webhookSecret) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
   }
 
@@ -32,7 +34,7 @@ export async function POST(req: Request) {
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
   } catch (err) {
     console.error('Stripe webhook verification failed:', err)
     return NextResponse.json({ error: 'Webhook verification failed' }, { status: 400 })
