@@ -5,45 +5,32 @@ const baseVariables = {
   colorInputText: '#0E0E11',
   colorText: '#0E0E11',
   colorTextSecondary: '#6C7079',
-  colorDanger: '#EE533B',
-  borderRadius: '12px',
+  borderRadius: '0.75rem',
   fontFamily: '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  fontSize: '0.9375rem',
+  fontSize: '0.9rem',
 }
 
 const baseElements = {
-  rootBox: 'w-full',
-  cardBox: 'w-full shadow-none',
-  card: 'shadow-[var(--l5-shadow-card)] border border-[#E8E8EB] rounded-[18px] bg-white w-full',
-  headerTitle: 'text-[22px] font-medium tracking-[-0.02em] text-[#0E0E11]',
-  headerSubtitle: 'text-[15px] text-[#6C7079]',
-  logoBox: 'justify-center mb-2',
+  card: 'shadow-xl rounded-2xl bg-white w-full',
+  headerTitle: 'text-xl font-semibold text-[#0E0E11]',
+  headerSubtitle: 'text-sm text-[#6C7079]',
+  logoBox: 'justify-center',
   logoImage: 'h-9 w-auto',
   socialButtonsBlockButton:
     'border border-[#E8E8EB] bg-white text-[#0E0E11] hover:bg-[#F9F9FA] font-medium',
-  socialButtonsBlockButtonText: 'font-medium',
-  dividerLine: 'bg-[#E8E8EB]',
-  dividerText: 'text-[#9AA0AA]',
-  formFieldLabel: 'text-[#3A3D44] font-medium',
-  formFieldInput:
-    'border-[#E8E8EB] focus:border-[#3286FE] focus:ring-2 focus:ring-[#3286FE]/20 rounded-xl',
+  formFieldLabel: 'text-[#0E0E11] font-semibold text-sm',
+  formFieldInput: 'border-[#E8E8EB] rounded-xl',
   formButtonPrimary:
-    '!bg-[#0E0E11] hover:!bg-black !text-white font-medium rounded-[10px] shadow-none',
-  footerActionLink: '!text-[#3286FE] hover:!text-[#1F6FEB] font-medium',
+    '!bg-[#2D3748] hover:!bg-[#1a2535] !text-white font-semibold rounded-xl shadow-none',
+  footerActionLink: '!text-[#3286FE] hover:!text-[#1F6FEB] font-semibold',
   identityPreviewEditButton: '!text-[#3286FE]',
-  footer: 'bg-transparent',
-  footerActionText: 'text-[#6C7079]',
-  formFieldAction: '!text-[#3286FE]',
-  alertText: 'text-[#3A3D44]',
+  footer: 'bg-[#FAFAFA] rounded-b-2xl border-t border-[#F1F1F3]',
+  footerActionText: 'text-[#6C7079] text-sm',
 }
 
 export const signInAppearance = {
   variables: baseVariables,
-  elements: {
-    ...baseElements,
-    headerTitle: 'Welcome back',
-    headerSubtitle: 'Sign in to your Agent7even account',
-  },
+  elements: baseElements,
   layout: {
     logoImageUrl: '/agent7even_logo.svg',
     socialButtonsPlacement: 'top',
@@ -52,11 +39,7 @@ export const signInAppearance = {
 
 export const signUpAppearance = {
   variables: baseVariables,
-  elements: {
-    ...baseElements,
-    headerTitle: 'Create your account',
-    headerSubtitle: 'Start your 3-day free trial on Starter',
-  },
+  elements: baseElements,
   layout: {
     logoImageUrl: '/agent7even_logo.svg',
     socialButtonsPlacement: 'top',

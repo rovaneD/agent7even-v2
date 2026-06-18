@@ -1,94 +1,107 @@
-import '@/app/lab5/styles.css'
-import MarketingNav from '@/app/lab5/MarketingNav'
+import './auth.css'
+import { AUTH_HIGHLIGHTS, AUTH_VARIANTS, type AuthHighlight } from '@/lib/auth/authContent'
 import type { ReactNode } from 'react'
 
-type Highlight = { label: string; desc: string }
+type Variant = keyof typeof AUTH_VARIANTS
 
 type Props = {
-  eyebrow: string
-  title: ReactNode
-  lead: string
-  note?: string
-  highlights: Highlight[]
+  variant: Variant
   children: ReactNode
   legalText: ReactNode
+  highlights?: AuthHighlight[]
+}
+
+function AuthHeadline() {
+  return (
+    <h1 className="text-[2rem] font-semibold leading-[1.12] tracking-tight text-[#0E0E11] sm:text-4xl lg:text-[2.75rem] xl:text-[3.25rem]">
+      <span className="text-[#F5349B]">AI-powered</span> marketing
+      <br />
+      for small business.
+    </h1>
+  )
+}
+
+function HighlightList({ items }: { items: AuthHighlight[] }) {
+  return (
+    <div className="space-y-5 sm:space-y-6">
+      {items.map(({ icon: Icon, label, desc, iconClass, bgClass }) => (
+        <div key={label} className="flex items-start gap-4">
+          <div
+            className={`mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11 ${bgClass}`}
+          >
+            <Icon size={18} className={iconClass} />
+          </div>
+          <div>
+            <p className="mb-1 text-[15px] font-semibold text-[#0E0E11] sm:text-base">{label}</p>
+            <p className="text-[14px] leading-relaxed text-[#6C7079] sm:text-[15px] sm:leading-7">
+              {desc}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function BrandPanel({
+  eyebrow,
+  highlights,
+}: {
+  eyebrow: string
+  highlights: AuthHighlight[]
+}) {
+  return (
+    <div className="auth-brand-panel flex w-full flex-col lg:min-h-screen lg:w-1/2 lg:border-r lg:border-[#E8E8EB]">
+      <div className="flex flex-1 flex-col justify-between px-6 py-10 sm:px-10 sm:py-12 lg:px-16 lg:py-16 xl:px-24 xl:py-20">
+        <a href="/" className="inline-block">
+          <img
+            src="/agent7even_logo.svg"
+            alt="Agent7even"
+            className="h-[38px] w-auto sm:h-[42px]"
+          />
+        </a>
+
+        <div className="my-10 w-full max-w-xl lg:my-0 lg:max-w-[34rem] xl:max-w-[36rem]">
+          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#9AA0AA] sm:mb-5 sm:text-xs">
+            {eyebrow}
+          </p>
+          <AuthHeadline />
+          <div className="mt-8 sm:mt-10 lg:mt-12">
+            <HighlightList items={highlights} />
+          </div>
+        </div>
+
+        <p className="hidden text-xs text-[#9AA0AA] lg:block">
+          © {new Date().getFullYear()} Agent7even. All rights reserved.
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export default function AuthMarketingShell({
-  eyebrow,
-  title,
-  lead,
-  note,
-  highlights,
+  variant,
   children,
   legalText,
+  highlights = AUTH_HIGHLIGHTS,
 }: Props) {
+  const { eyebrow } = AUTH_VARIANTS[variant]
+
   return (
-    <div className="lab5 min-h-screen flex flex-col bg-[var(--l5-bg)]">
-      <MarketingNav />
+    <div className="auth-page flex min-h-screen flex-col bg-white lg:flex-row">
+      <BrandPanel eyebrow={eyebrow} highlights={highlights} />
 
-      <main className="flex-1">
-        <div className="wrap py-10 md:py-14 lg:py-16">
-          <div className="mx-auto grid max-w-[1040px] items-start gap-10 lg:grid-cols-[1fr_420px] lg:gap-16">
-            <div className="hidden lg:block pt-4">
-              <span className="eyebrow">{eyebrow}</span>
-              <h1 className="t-h2 mt-4">{title}</h1>
-              <p className="t-lead mt-5 max-w-md">{lead}</p>
-              {note ? (
-                <p className="hero-note mt-4">{note}</p>
-              ) : null}
+      <div className="auth-form-panel flex min-h-screen w-full flex-col items-center justify-center border-t border-[#E8E8EB] px-6 py-12 lg:w-1/2 lg:border-t-0">
+        <div className="w-full max-w-[420px] min-h-[320px]">{children}</div>
 
-              <ul className="mt-10 space-y-5">
-                {highlights.map((item) => (
-                  <li key={item.label} className="flex gap-4">
-                    <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-[var(--l5-brand)]" />
-                    <div>
-                      <p className="text-[15px] font-medium text-[var(--l5-ink)]">{item.label}</p>
-                      <p className="mt-1 text-[14px] leading-relaxed text-[var(--l5-muted)]">
-                        {item.desc}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        <p className="mt-5 max-w-[420px] text-center text-xs leading-relaxed text-[#9AA0AA]">
+          {legalText}
+        </p>
 
-            <div className="w-full max-w-[420px] justify-self-center lg:justify-self-end">
-              <div className="mb-6 text-center lg:hidden">
-                <img
-                  src="/agent7even_logo.svg"
-                  alt="Agent7even"
-                  className="mx-auto h-9 w-auto"
-                />
-                <h1 className="mt-5 text-[28px] font-medium tracking-[-0.02em] text-[var(--l5-ink)]">
-                  {title}
-                </h1>
-                <p className="mt-2 text-[15px] text-[var(--l5-muted)]">{lead}</p>
-              </div>
-
-              {children}
-
-              <p className="mt-5 text-center text-[12px] leading-relaxed text-[var(--l5-faint)]">
-                {legalText}
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      <footer className="border-t border-[var(--l5-line-2)] bg-white py-6">
-        <div className="wrap flex flex-col items-center justify-between gap-3 text-[12px] text-[var(--l5-faint)] sm:flex-row">
-          <p>© {new Date().getFullYear()} Agent7even. All rights reserved.</p>
-          <div className="flex gap-5">
-            <a href="/privacy" className="hover:text-[var(--l5-ink-2)] transition-colors">
-              Privacy
-            </a>
-            <a href="/terms" className="hover:text-[var(--l5-ink-2)] transition-colors">
-              Terms
-            </a>
-          </div>
-        </div>
-      </footer>
+        <p className="mt-6 text-center text-xs text-[#9AA0AA] lg:hidden">
+          © {new Date().getFullYear()} Agent7even. All rights reserved.
+        </p>
+      </div>
     </div>
   )
 }

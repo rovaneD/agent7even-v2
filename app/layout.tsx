@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import Script from 'next/script'
+import { clerkLocalization } from '@/lib/auth/clerkLocalization'
 import './globals.css'
 import { cn } from "@/lib/utils";
 
@@ -28,7 +29,7 @@ export default function RootLayout({
         `}</Script>
       </head>
       <body className="min-h-full bg-gray-50 text-gray-900">
-        <ClerkProvider>
+        <ClerkProvider localization={clerkLocalization}>
           {children}
         </ClerkProvider>
       </body>

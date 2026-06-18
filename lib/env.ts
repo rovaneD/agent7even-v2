@@ -130,6 +130,17 @@ function validateEnv() {
         'Switch to live keys before accepting real payments.',
     )
   }
+
+  if (
+    !isProductionRuntime &&
+    clerkPk.startsWith('pk_live_') &&
+    (appUrl.includes('localhost') || appUrl.includes('127.0.0.1'))
+  ) {
+    console.warn(
+      '[env] Local dev is using Clerk Production keys (pk_live_). ' +
+        'Clerk will fail on localhost — use pk_test_/sk_test_ in .env.local only.',
+    )
+  }
 }
 
 validateEnv()
