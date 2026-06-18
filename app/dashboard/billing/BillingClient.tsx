@@ -135,12 +135,21 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: targetPlan, annual: billingAnnual }),
       })
-      const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        setUpgradeError(data.error ?? 'Could not start checkout. Please try again.')
+
+      let data: { url?: string; error?: string } = {}
+      try {
+        data = await res.json()
+      } catch {
+        setUpgradeError('Unexpected server response. Please try again.')
+        return
       }
+
+      if (res.ok && data.url) {
+        window.location.href = data.url
+        return
+      }
+
+      setUpgradeError(data.error ?? 'Could not start checkout. Please try again.')
     } catch {
       setUpgradeError('Could not reach the server. Please check your connection and try again.')
     } finally {
