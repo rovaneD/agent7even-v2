@@ -1,15 +1,16 @@
 import Link from 'next/link'
 import DataDeletionRequestForm from './DataDeletionRequestForm'
+import { CANONICAL_APP_URL, CANONICAL_SITE_URL, SUPPORT_EMAIL } from '@/lib/siteUrls'
 
 export const metadata = {
   title: 'User Data Deletion — Agent7even',
   description: 'Request deletion of your Agent7even account data and connected platform data.',
 }
 
-const LAST_UPDATED = 'June 15, 2026'
-const CONTACT_EMAIL = 'support@agent7even.ai'
-const MARKETING_URL = 'https://www.agent7even.ai'
-const APP_URL = 'https://app.agent7even.com'
+const LAST_UPDATED = 'June 17, 2026'
+const CONTACT_EMAIL = SUPPORT_EMAIL
+const MARKETING_URL = CANONICAL_SITE_URL
+const APP_URL = CANONICAL_APP_URL
 
 function LegalLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (

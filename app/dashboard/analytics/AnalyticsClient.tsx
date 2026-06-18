@@ -21,6 +21,11 @@ import {
 import { parseAnalyticsEnvelope, readBestPostUrl } from '@/lib/social/zernioAnalyticsParse'
 import { emptyAnalyticsInbox, type AnalyticsInboxData } from '@/lib/social/zernioInboxParse'
 import type { ZernioConnectedAccountInfo } from '@/lib/social/publisher'
+import {
+  isMetaOAuthPlatform,
+  MetaConnectDisclosureModal,
+  SocialMetaConnectNotice,
+} from '@/components/social/MetaConnectDisclosure'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildAnalyticsMayaContext } from '@/lib/maya/summaries/analyticsContext'
 
@@ -2276,6 +2281,59 @@ function EngagementAccumulationChart({ isMock }: { isMock: boolean }) {
 
 // ── Inbox Analytics Tab ────────────────────────────────────────────────────────
 
+function InboxActivityHeatmap({
+  isMock,
+  cells,
+}: {
+  isMock: boolean
+  cells: AnalyticsInboxData['activityHeatmap']
+}) {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const hours = [0, 3, 6, 9, 12, 15, 18, 21]
+  const grid = days.map(day =>
+    hours.map(hour => cells.find(c => c.day === day && c.hour === hour)?.count ?? 0),
+  )
+  const maxVal = Math.max(...grid.flat(), 1)
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white">
+      <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+        <span className="text-[13px] font-semibold text-text">When messages land</span>
+        {isMock && <DemoChip />}
+      </div>
+      <div className="px-4 pt-3 pb-4 overflow-x-auto">
+        <div className="flex gap-1 min-w-[320px]">
+          <div className="flex flex-col gap-1 pr-1">
+            <div className="h-5" />
+            {days.map(d => (
+              <div key={d} className="h-5 flex items-center text-[10px] text-text-soft w-7">{d}</div>
+            ))}
+          </div>
+          <div className="flex-1">
+            <div className="grid mb-1" style={{ gridTemplateColumns: `repeat(${hours.length}, 1fr)` }}>
+              {hours.map(h => (
+                <div key={h} className="text-[9px] text-text-soft text-center leading-5">{h}h</div>
+              ))}
+            </div>
+            {grid.map((row, rowIdx) => (
+              <div key={days[rowIdx]} className="grid gap-1 mb-1" style={{ gridTemplateColumns: `repeat(${hours.length}, 1fr)` }}>
+                {row.map((value, colIdx) => (
+                  <div
+                    key={`${days[rowIdx]}-${hours[colIdx]}`}
+                    className="h-5 rounded-sm"
+                    style={{ background: heatmapColor(value, maxVal) }}
+                    title={`${days[rowIdx]} ${hours[colIdx]}:00 — ${value} messages`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function InboxAnalyticsContent({
   isMock,
   dataState,
@@ -2326,7 +2384,26 @@ function InboxAnalyticsContent({
         </div>
       )}
 
-      {/* Summary cards */}
+      {/* Summary cards — mirrors Zernio inbox analytics */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        {[
+          { label: 'Received', value: `${inbox.received}`, warn: false },
+          { label: 'Sent', value: `${inbox.sent}`, warn: false },
+          { label: 'Read', value: `${inbox.read}`, warn: false },
+          { label: 'Failed', value: `${inbox.failed}`, warn: inbox.failed > 0 },
+          { label: 'Conversations', value: `${inbox.conversations}`, warn: false },
+          { label: 'Median response', value: inbox.medianResponseLabel ?? '—', warn: Boolean(inbox.medianResponseLabel) },
+        ].map(({ label, value, warn }) => (
+          <div key={label} className="relative bg-white rounded-2xl border border-gray-100 p-4">
+            {isMock && <DemoDot />}
+            <p className="text-[10px] font-medium text-text-soft uppercase tracking-wide mb-1.5">{label}</p>
+            <p className={`text-[22px] font-[500] ${warn && label === 'Failed' ? 'text-red-600' : warn ? 'text-amber-700' : 'text-text'}`}>
+              {value}
+            </p>
+          </div>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
           { label: 'Total Comments', value: `${inbox.totalComments}` },
@@ -2341,6 +2418,28 @@ function InboxAnalyticsContent({
         ))}
       </div>
 
+      {inbox.messagesOverTime.length > 0 && (
+        <div className="rounded-2xl border border-gray-100 bg-white">
+          <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-text">Messages over time</span>
+            {isMock && <DemoChip />}
+          </div>
+          <div className="px-4 pt-4 pb-3">
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={inbox.messagesOverTime}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={26} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                <Line type="monotone" dataKey="received" stroke="#3B82F6" strokeWidth={2} dot={false} name="Received" />
+                <Line type="monotone" dataKey="sent" stroke="#10B981" strokeWidth={2} dot={false} name="Sent" />
+                <Line type="monotone" dataKey="read" stroke="#8B5CF6" strokeWidth={2} dot={false} name="Read" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Platform breakdown */}
       <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
@@ -2351,7 +2450,7 @@ function InboxAnalyticsContent({
         <table className="w-full min-w-[420px]">
           <thead>
             <tr className="border-b border-gray-50">
-              {['Platform', 'Comments', 'DMs', 'Unread'].map(h => (
+              {['Platform', 'Comments', 'Received', 'Sent', 'Unread'].map(h => (
                 <th key={h} className="px-5 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400">{h}</th>
               ))}
             </tr>
@@ -2366,7 +2465,8 @@ function InboxAnalyticsContent({
                   </div>
                 </td>
                 <td className="px-5 py-3 text-[12px] text-text">{p.comments}</td>
-                <td className="px-5 py-3 text-[12px] text-text">{p.dms}</td>
+                <td className="px-5 py-3 text-[12px] text-text">{p.received ?? p.dms}</td>
+                <td className="px-5 py-3 text-[12px] text-text">{p.sent ?? '—'}</td>
                 <td className="px-5 py-3">
                   {p.unread > 0
                     ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
@@ -2381,7 +2481,87 @@ function InboxAnalyticsContent({
         </div>
       </div>
 
-      {/* Engagement trend */}
+      {inbox.responseTimeBuckets.length > 0 && (
+        <div className="rounded-2xl border border-gray-100 bg-white">
+          <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-text">Response time</span>
+            {isMock && <DemoChip />}
+          </div>
+          <div className="px-4 pt-4 pb-3">
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={inbox.responseTimeBuckets} barSize={18}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={26} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                <Bar dataKey="count" fill="#3B82F6" radius={[3, 3, 0, 0]} name="Replies" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {inbox.topAccounts.length > 0 && (
+        <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-text">Top accounts by volume</span>
+            {isMock && <DemoChip />}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px]">
+              <thead>
+                <tr className="border-b border-gray-50">
+                  {['Account', 'Received', 'Sent', 'Conversations', 'Median response'].map(h => (
+                    <th key={h} className="px-5 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-400">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {inbox.topAccounts.map((row, i) => (
+                  <tr key={i} className="border-b border-gray-50 last:border-0">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        <PlatformAvatar id={row.platform} size={20} />
+                        <span className="text-[12px] font-medium text-text">{row.username}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-[12px] text-text">{row.received}</td>
+                    <td className="px-5 py-3 text-[12px] text-text">{row.sent}</td>
+                    <td className="px-5 py-3 text-[12px] text-text">{row.conversations}</td>
+                    <td className="px-5 py-3 text-[12px] text-text">{row.medianResponseLabel ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {inbox.outboundBySource.length > 0 && (
+        <div className="rounded-2xl border border-gray-100 bg-white">
+          <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-text">Outbound by source</span>
+            {isMock && <DemoChip />}
+          </div>
+          <div className="px-4 pt-4 pb-3">
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={inbox.outboundBySource} barSize={22}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="source" tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#9BA1AE' }} tickLine={false} axisLine={false} width={26} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f0f0f0' }} />
+                <Bar dataKey="count" fill="#64748B" radius={[3, 3, 0, 0]} name="Sent" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {inbox.activityHeatmap.length > 0 && (
+        <InboxActivityHeatmap isMock={isMock} cells={inbox.activityHeatmap} />
+      )}
+
+      {/* Comments + DMs trend */}
       <div className="rounded-2xl border border-gray-100 bg-white">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
           <span className="text-[13px] font-semibold text-text">Engagement trend</span>
@@ -2894,6 +3074,8 @@ function ConnectPanel({
   const [connectError, setConnectError] = useState('')
   const [xCostModal, setXCostModal] = useState(false)
   const [pendingXConnect, setPendingXConnect] = useState(false)
+  const [metaModalPlatform, setMetaModalPlatform] = useState<string | null>(null)
+  const [pendingMetaConnect, setPendingMetaConnect] = useState(false)
   const [accountsLoading, setAccountsLoading] = useState(false)
 
   useEffect(() => {
@@ -2918,7 +3100,12 @@ function ConnectPanel({
       setXCostModal(true)
       return
     }
+    if (isMetaOAuthPlatform(platform) && !pendingMetaConnect) {
+      setMetaModalPlatform(platform)
+      return
+    }
     setPendingXConnect(false)
+    setPendingMetaConnect(false)
     setConnecting(platform)
     setConnectError('')
     try {
@@ -2973,6 +3160,19 @@ function ConnectPanel({
 
   return (
     <>
+      <MetaConnectDisclosureModal
+        open={Boolean(metaModalPlatform)}
+        platform={metaModalPlatform}
+        onCancel={() => setMetaModalPlatform(null)}
+        onContinue={() => {
+          const platform = metaModalPlatform
+          setMetaModalPlatform(null)
+          if (!platform) return
+          setPendingMetaConnect(true)
+          handleConnect(platform)
+        }}
+      />
+
       {/* X/Twitter cost disclosure modal */}
       {xCostModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
@@ -3072,13 +3272,7 @@ function ConnectPanel({
             </div>
 
             <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft mb-3">Social accounts</p>
-            <div className="mb-3 rounded-lg border border-pink-100 bg-pink-50 px-3 py-2.5">
-              <p className="text-[11px] text-pink-950 leading-relaxed">
-                Instagram and Facebook use Meta&apos;s authorization screen. It may show{' '}
-                <span className="font-medium">&quot;Social Media Connector&quot;</span> — that&apos;s our publishing partner verifying access, not a separate login. Click{' '}
-                <span className="font-medium">Allow</span>; don&apos;t click the app name link.
-              </p>
-            </div>
+            <SocialMetaConnectNotice className="mb-3" />
             {accountsLoading && (
               <p className="text-[11px] text-text-soft mb-2">Refreshing connected accounts…</p>
             )}

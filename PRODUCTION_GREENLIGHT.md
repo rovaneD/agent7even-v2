@@ -19,6 +19,7 @@ This is the master checklist for taking **agent7even-v2** from experimental/stag
 | **Stripe** | **Test mode** (`sk_test_…`, test price IDs) | Likely live keys (separate instance) |
 | **Supabase** | Shared project (verify prod vs staging) | Same or separate — confirm |
 | **Meta domains** | `agent7even.ai` verified | `agent7even.com` verified (marketing repo) |
+| **Meta Tech Provider** | Agent7even app `992647829846107` verified (June 2026) | — |
 | **Legal pages** | `/privacy`, `/terms`, `/security`, `/data-deletion` on v2 | Older copies may still exist on `.com` |
 | **Marketing CTAs** | v2 root pages point to `/sign-up`, `/pricing` on `.ai` | AGENTS.md still references `.com` app URLs in some rules |
 
@@ -270,11 +271,12 @@ Optional: `NOTIFY_EMAIL`, `NEXT_PUBLIC_EXA_PREFILL_ENABLED`
 
 ## 8. Legal & compliance
 
-- [ ] **BLOCKER — Legal pages live on canonical domain**
-  - [ ] `/privacy` — `.ai` URLs, Meta/social section, data deletion link
-  - [ ] `/terms`
-  - [ ] `/security`
-  - [ ] `/data-deletion` — form + API working
+- [x] **BLOCKER — Legal pages live on canonical domain**
+  - [x] `/privacy` — `.ai` URLs, Meta/social section, data deletion link
+  - [x] `/terms`
+  - [x] `/security`
+  - [x] `/data-deletion` — form + API working
+  - [x] Canonical dashboard URL `www.agent7even.ai` (not `app.agent7even.com`) — `lib/siteUrls.ts`
 
 - [ ] **Meta Developer App (Basic settings)**
   - [ ] App domains: `agent7even.ai`
@@ -282,9 +284,44 @@ Optional: `NOTIFY_EMAIL`, `NEXT_PUBLIC_EXA_PREFILL_ENABLED`
   - [ ] Terms URL: `https://www.agent7even.ai/terms`
   - [ ] User Data Deletion URL: `https://www.agent7even.ai/data-deletion`
   - [ ] Website: `https://www.agent7even.ai`
-  - [ ] Trim App Review permissions to what you actually ship (no WhatsApp unless built)
+  - [ ] Remove use cases you do not ship (e.g. WhatsApp) — see **§8.1**
 
-- [ ] **Meta Access Verification** — submit with `.ai` URLs + screen recordings
+- [x] **Meta Tech Provider verification** — Agent7even (`992647829846107`, Business `738598814681808`) verified June 2026
+
+- [ ] **Meta Access Verification** — submit with `.ai` URLs + screen recordings (follows Tech Provider)
+
+### 8.1 Meta App Review — v1 vs ads later
+
+Two integration tracks — do not conflate them:
+
+| Track | Powers | Launch blocker? |
+|-------|--------|-----------------|
+| **Zernio** (live) | Social connect, posting, inbox, organic analytics — **paid ads later via Zernio Ads API** | DPA + tenant isolation (§9.2) |
+| **Agent7even Meta app** (`992647829846107`) | Legacy `/api/analytics/meta-connect` — **not linked from UI**; optional future direct Graph | Basic settings + Access Verification only for v1 |
+
+**v1 launch (do now)**
+
+- [ ] Finish **Basic settings** (URLs above) and submit **Access Verification** when Meta prompts
+- [ ] **Do not submit App Review for ads** — no paid-ads UI in v1; Meta rejects broad permission asks without a shipped feature
+- [ ] **Do not chase Marketing API Access Tier** (500 calls @ 85% success) unless committing to **direct** Meta Marketing API from this app
+- [ ] **Remove WhatsApp** use case from the app until WhatsApp is built
+- [ ] **Skip Instagram messaging/comment scopes** on your app for v1 — inbox runs through Zernio, not direct Graph
+- [ ] Social connect for customers stays on **Zernio** (§9.2); consent may show Zernio’s shared app (“Social Media Connector”) — disclosure UX, not a launch blocker
+
+**Ads later (when product includes paid media)**
+
+Default path (matches `analytics_v2_spec.md`):
+
+- [ ] Connect ad accounts in **Zernio**; read spend/reach/CTR via **Zernio Ads API**
+- [ ] **No App Review on your Meta app for ads** — Zernio holds platform approval on their side
+
+Only if you later bypass Zernio for **direct** Meta Marketing API:
+
+- [ ] Complete Marketing API testing (500 API calls, 85% success rate)
+- [ ] Submit focused App Review for `ads_read` / `ads_management` with screen recordings of the ads feature in Agent7even
+- [ ] Trim legacy `meta-connect` scopes to match what you ship (`app/api/analytics/meta-connect/route.ts` still requests ads scopes today — update before re-enabling that route)
+
+**Testing dashboard note:** Completed test calls for `ads_read` / `ads_management` are fine to keep as prep; they do not obligate you to submit those permissions before the feature ships.
 
 - [ ] **Google OAuth consent screen**
   - [ ] App name, logo, privacy/terms links → `.ai`
@@ -314,9 +351,10 @@ Optional: `NOTIFY_EMAIL`, `NEXT_PUBLIC_EXA_PREFILL_ENABLED`
 
 ### 9.3 Meta direct OAuth (legacy path)
 
-- [ ] `META_APP_ID` / `META_APP_SECRET` in prod env if still using `/api/analytics/meta-connect`
+- [ ] **Not required for v1 launch** — Analytics connect UI uses Zernio only; see **§8.1**
+- [ ] `META_APP_ID` / `META_APP_SECRET` in prod env only if re-enabling `/api/analytics/meta-connect`
 - [ ] Redirect: `https://www.agent7even.ai/api/analytics/meta-callback`
-- [ ] Prefer Zernio path for primary connect UX
+- [ ] If re-enabled before ads ship: remove `ads_read` / `ads_management` from OAuth scopes
 
 ### 9.4 OpenRouter / Anthropic / Exa
 
@@ -413,6 +451,7 @@ Run on **production** env with real keys, using a **fresh test email** and a **r
 | Item | Notes |
 |------|-------|
 | Zernio BYOK / Meta app rebrand | OAuth shows "Social Media Connector" on shared key |
+| Paid ads (Meta Marketing API on Agent7even app) | v1: Zernio Ads API when ready; direct Meta ads = separate App Review (§8.1) |
 | Meta Data Deletion **Callback** URL | Form page sufficient for most reviews |
 | Competitor post-level metrics | Gated — `backlog_gate_competitor_reach.md` |
 | Inbox Maya draft-reply (B4.1) | Optional enhancement |

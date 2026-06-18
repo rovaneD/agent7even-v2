@@ -107,6 +107,24 @@ function validateEnv() {
 
   const stripeKey = process.env.STRIPE_SECRET_KEY ?? ''
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? ''
+  const isProductionRuntime = process.env.VERCEL_ENV === 'production'
+
+  if (isProductionRuntime && appUrl.includes('agent7even.ai')) {
+    if (stripeKey.startsWith('sk_test_')) {
+      console.warn(
+        '[env] Production .ai deployment with STRIPE_SECRET_KEY as sk_test_. ' +
+          'Switch to live keys before accepting real payments.',
+      )
+    }
+    if (clerkPk.startsWith('pk_test_')) {
+      console.warn(
+        '[env] Production .ai deployment with NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY as pk_test_. ' +
+          'Switch to Clerk Production (pk_live_) before onboarding real customers.',
+      )
+    }
+  }
+
   if (appUrl.includes('app.agent7even.com') && stripeKey.startsWith('sk_test_')) {
     console.warn(
       '[env] Production app URL with STRIPE_SECRET_KEY as a TEST key (sk_test_). ' +

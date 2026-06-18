@@ -19,6 +19,11 @@ import {
   tightestCaptionLimit,
   validatePost,
 } from '@/lib/social/postConstraints'
+import {
+  isMetaOAuthPlatform,
+  MetaConnectDisclosureModal,
+  SocialMetaConnectNotice,
+} from '@/components/social/MetaConnectDisclosure'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -134,6 +139,8 @@ export default function PostsClient({
   const [editingPostId, setEditingPostId] = useState<string | null>(null)
   const [loadingEdit, setLoadingEdit] = useState(false)
   const [connectOpen, setConnectOpen] = useState(false)
+  const [metaModalPlatform, setMetaModalPlatform] = useState<string | null>(null)
+  const [pendingMetaConnect, setPendingMetaConnect] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
@@ -535,7 +542,7 @@ export default function PostsClient({
     }
   }
 
-  const handleConnect = async (platform: string) => {
+  const connectPlatform = async (platform: string) => {
     const res = await fetch('/api/integrations/zernio/connect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -543,6 +550,15 @@ export default function PostsClient({
     })
     const data = await res.json()
     if (data.authUrl) window.location.href = data.authUrl
+  }
+
+  const handleConnect = (platform: string) => {
+    if (isMetaOAuthPlatform(platform) && !pendingMetaConnect) {
+      setMetaModalPlatform(platform)
+      return
+    }
+    setPendingMetaConnect(false)
+    void connectPlatform(platform)
   }
 
   const platformOptions = useMemo(() => {
@@ -713,6 +729,18 @@ export default function PostsClient({
       )}
 
       {/* Connect panel */}
+      <MetaConnectDisclosureModal
+        open={Boolean(metaModalPlatform)}
+        platform={metaModalPlatform}
+        onCancel={() => setMetaModalPlatform(null)}
+        onContinue={() => {
+          const platform = metaModalPlatform
+          setMetaModalPlatform(null)
+          if (!platform) return
+          setPendingMetaConnect(true)
+          void connectPlatform(platform)
+        }}
+      />
       {connectOpen && (
         <ConnectPanel
           connectedPlatforms={zernioConnectedPlatforms}
@@ -1268,6 +1296,7 @@ function ConnectPanel({
           <button type="button" onClick={onClose}><X size={18} className="text-text-soft" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-2">
+          <SocialMetaConnectNotice className="mb-4" />
           {platforms.map(p => {
             const connected = connectedPlatforms.includes(p)
             return (

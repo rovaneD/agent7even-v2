@@ -1,14 +1,15 @@
 import Link from 'next/link'
+import { CANONICAL_APP_URL, CANONICAL_SITE_URL, SUPPORT_EMAIL } from '@/lib/siteUrls'
 
 export const metadata = {
   title: 'Privacy Policy — Agent7even',
   description: 'How Agent7even collects, uses, and protects your information.',
 }
 
-const LAST_UPDATED = 'June 15, 2026'
-const CONTACT_EMAIL = 'support@agent7even.ai'
-const MARKETING_URL = 'https://www.agent7even.ai'
-const APP_URL = 'https://app.agent7even.com'
+const LAST_UPDATED = 'June 17, 2026'
+const CONTACT_EMAIL = SUPPORT_EMAIL
+const MARKETING_URL = CANONICAL_SITE_URL
+const APP_URL = CANONICAL_APP_URL
 
 function LegalLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
@@ -265,7 +266,7 @@ export default function PrivacyPage() {
               <p className="font-semibold text-gray-900">Agent7even</p>
               <p><LegalLink href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</LegalLink></p>
               <p>Website: <LegalLink href={MARKETING_URL}>www.agent7even.ai</LegalLink></p>
-              <p>Dashboard: <LegalLink href={APP_URL}>app.agent7even.com</LegalLink></p>
+              <p>Dashboard: <LegalLink href={APP_URL}>www.agent7even.ai</LegalLink></p>
             </div>
           </section>
 

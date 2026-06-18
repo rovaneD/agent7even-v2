@@ -207,13 +207,21 @@ export const MOCK_ANALYTICS_ADS = {
   ],
 }
 
-export const MOCK_ANALYTICS_INBOX = {
+import type { AnalyticsInboxData } from '@/lib/social/zernioInboxParse'
+
+export const MOCK_ANALYTICS_INBOX: AnalyticsInboxData = {
   totalComments: 47,
-  totalDMs:      23,
-  responseRate:  68,
+  totalDMs:      37,
+  responseRate:  59,
+  received:      37,
+  sent:          22,
+  read:          10,
+  failed:        1,
+  conversations: 19,
+  medianResponseLabel: '1d 19h',
   platforms: [
-    { platform: 'instagram', comments: 31, dms: 18, unread: 4 },
-    { platform: 'facebook',  comments: 16, dms: 5,  unread: 1 },
+    { platform: 'instagram', comments: 31, dms: 24, unread: 4, sent: 19, received: 24 },
+    { platform: 'facebook',  comments: 16, dms: 13, unread: 1, sent: 3,  received: 13 },
   ],
   trend: [
     { date: 'Mon', comments: 6,  dms: 3 },
@@ -223,6 +231,48 @@ export const MOCK_ANALYTICS_INBOX = {
     { date: 'Fri', comments: 9,  dms: 4 },
     { date: 'Sat', comments: 6,  dms: 3 },
     { date: 'Sun', comments: 7,  dms: 3 },
+  ],
+  messagesOverTime: [
+    { date: 'Jun 8',  received: 2, sent: 1, read: 1 },
+    { date: 'Jun 9',  received: 3, sent: 2, read: 1 },
+    { date: 'Jun 10', received: 1, sent: 1, read: 0 },
+    { date: 'Jun 11', received: 4, sent: 3, read: 2 },
+    { date: 'Jun 12', received: 5, sent: 4, read: 2 },
+    { date: 'Jun 13', received: 12, sent: 7, read: 3 },
+    { date: 'Jun 14', received: 10, sent: 4, read: 1 },
+  ],
+  responseTimeBuckets: [
+    { label: '<5m', count: 0 },
+    { label: '5-15m', count: 0 },
+    { label: '15-60m', count: 0 },
+    { label: '1-4h', count: 0 },
+    { label: '4-8h', count: 4 },
+    { label: '>8h', count: 16 },
+  ],
+  topAccounts: [
+    {
+      platform: 'instagram',
+      username: 'maozm…',
+      received: 24,
+      sent: 19,
+      conversations: 19,
+      medianResponseLabel: '1d 19h',
+    },
+  ],
+  outboundBySource: [
+    { source: 'unknown', count: 19 },
+    { source: 'api', count: 2 },
+    { source: 'human', count: 1 },
+  ],
+  activityHeatmap: [
+    { day: 'Mon', hour: 15, count: 2 },
+    { day: 'Mon', hour: 18, count: 3 },
+    { day: 'Tue', hour: 12, count: 1 },
+    { day: 'Wed', hour: 17, count: 4 },
+    { day: 'Thu', hour: 19, count: 5 },
+    { day: 'Fri', hour: 14, count: 3 },
+    { day: 'Sat', hour: 16, count: 2 },
+    { day: 'Sun', hour: 20, count: 2 },
   ],
 }
 

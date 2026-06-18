@@ -138,9 +138,12 @@ function summarizePosting(data: PostingSnapshot, dateRange: string): string[] {
 }
 
 function summarizeInbox(inbox: AnalyticsInboxData, dateRange: string): string[] {
-  return [
-    `Inbox (${dateRange}): ${inbox.totalComments} comments, ${inbox.totalDMs} DMs, ${inbox.responseRate}% response rate`,
+  const lines = [
+    `Inbox (${dateRange}): ${inbox.received} received, ${inbox.sent} sent, ${inbox.totalComments} comments, ${inbox.responseRate}% response rate`,
   ]
+  if (inbox.conversations > 0) lines.push(`Conversations: ${inbox.conversations}`)
+  if (inbox.medianResponseLabel) lines.push(`Median first response: ${inbox.medianResponseLabel}`)
+  return lines
 }
 
 /** Inbox metrics are sample/demo until Zernio live fetch (dataState === 'live'). */
