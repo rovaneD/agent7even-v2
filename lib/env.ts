@@ -108,7 +108,6 @@ function validateEnv() {
   const stripeKey = process.env.STRIPE_SECRET_KEY ?? ''
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? ''
-  const isProductionRuntime = process.env.VERCEL_ENV === 'production'
 
   if (isProductionRuntime && appUrl.includes('agent7even.ai')) {
     if (stripeKey.startsWith('sk_test_')) {
