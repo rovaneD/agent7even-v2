@@ -3063,7 +3063,7 @@ function ConnectPanel({
   connectedPlatforms: string[]
   connectedAccounts: ZernioConnectedAccountInfo[]
   onAccountsChange: (accounts: ZernioConnectedAccountInfo[]) => void
-  onDisconnect: (platform: string) => void
+  onDisconnect: (platform: string, remaining?: string[]) => void
   gaPropertyId: string | null
   gaOAuthEmail: string | null
   onGAConnect: () => void
@@ -3132,16 +3132,34 @@ function ConnectPanel({
     }
   }
 
-  const handleDisconnect = async (platform: string) => {
+  const handleDisconnect = async (platform: string, accountId?: string) => {
     setDisconnecting(platform)
+    setConnectError('')
     try {
-      await fetch('/api/integrations/zernio/disconnect', {
+      const res = await fetch('/api/integrations/zernio/disconnect', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform }),
+        body: JSON.stringify({ platform, accountId }),
       })
-      onDisconnect(platform)
-      onAccountsChange(connectedAccounts.filter(a => a.platform !== platform))
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setConnectError(data.error ?? 'Could not disconnect. Try again.')
+        return
+      }
+      const remaining = Array.isArray(data.remaining)
+        ? (data.remaining as string[]).map(p => p.toLowerCase())
+        : undefined
+      onDisconnect(platform, remaining)
+
+      const accountsRes = await fetch('/api/integrations/zernio/accounts', { cache: 'no-store' })
+      const accountsJson = await accountsRes.json().catch(() => ({}))
+      if (accountsRes.ok && Array.isArray(accountsJson.accounts)) {
+        onAccountsChange(accountsJson.accounts)
+      } else if (remaining) {
+        onAccountsChange(connectedAccounts.filter(a => remaining.includes(a.platform.toLowerCase())))
+      } else {
+        onAccountsChange(connectedAccounts.filter(a => a.platform !== platform))
+      }
     } finally {
       setDisconnecting(null)
     }
@@ -3279,8 +3297,10 @@ function ConnectPanel({
             <div className="space-y-0.5">
               {ALL_PLATFORMS.map(id => {
                 const meta = PLATFORM_META[id]
-                const isConnected = connectedPlatforms.includes(id)
                 const account = connectedAccounts.find(a => a.platform === id)
+                const isConnected = dataState === 'live'
+                  ? Boolean(account)
+                  : connectedPlatforms.includes(id)
                 const isConnecting = connecting === id
                 const isDisconnecting = disconnecting === id
                 return (
@@ -3296,7 +3316,7 @@ function ConnectPanel({
                     </div>
                     {isConnected ? (
                       <button
-                        onClick={() => handleDisconnect(id)}
+                        onClick={() => handleDisconnect(id, account?.id)}
                         disabled={isDisconnecting}
                         className="text-[12px] font-medium text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors"
                       >
@@ -3764,7 +3784,15 @@ export default function AnalyticsClient({
         connectedPlatforms={connectedPlatforms}
         connectedAccounts={connectedAccounts}
         onAccountsChange={setConnectedAccounts}
-        onDisconnect={(p) => setConnectedPlatforms(prev => prev.filter(x => x !== p))}
+        onDisconnect={(p, remaining) => {
+          if (remaining) {
+            setConnectedPlatforms(remaining)
+            setConnectedAccounts(prev => prev.filter(a => remaining.includes(a.platform.toLowerCase())))
+          } else {
+            setConnectedPlatforms(prev => prev.filter(x => x !== p))
+            setConnectedAccounts(prev => prev.filter(a => a.platform !== p))
+          }
+        }}
         gaPropertyId={gaId}
         gaOAuthEmail={gaOAuthEmail}
         onGAConnect={() => { setConnectPanelOpen(false); handleGAConnect() }}

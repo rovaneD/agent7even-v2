@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import AnalyticsClient from './AnalyticsClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import * as publisher from '@/lib/social/publisher'
-import { collectZernioProfileIds } from '@/lib/social/zernioProfileIds'
+import { collectZernioProfileIds, syncTenantConnectedPlatforms } from '@/lib/social/zernioProfileIds'
 import type { ZernioConnectedAccountInfo } from '@/lib/social/publisher'
 
 export type AnalyticsDataState = 'mock' | 'live' | 'empty'
@@ -55,11 +55,15 @@ export default async function AnalyticsPage() {
 
   if (zernioProfileIds.length > 0) {
     try {
-      const connectedPlatforms = await publisher.getConnectedPlatforms(zernioProfileIds[0])
-      if (connectedPlatforms.length > 0) {
-        zernioConnectedPlatforms = connectedPlatforms
-      }
       zernioConnectedAccounts = await publisher.getTenantConnectedAccounts(zernioProfileIds)
+      const syncedPlatforms = await syncTenantConnectedPlatforms(zernioProfileIds)
+      if (syncedPlatforms.length > 0) {
+        zernioConnectedPlatforms = syncedPlatforms
+      } else if (zernioConnectedAccounts.length > 0) {
+        zernioConnectedPlatforms = Array.from(
+          new Set(zernioConnectedAccounts.map((a) => a.platform.toLowerCase()).filter(Boolean)),
+        )
+      }
     } catch (err) {
       console.error('[analytics/page] connected account fetch failed:', err)
     }

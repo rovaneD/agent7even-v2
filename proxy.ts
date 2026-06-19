@@ -20,6 +20,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',
   '/api/analytics/ga-callback(.*)',
   '/api/analytics/meta-callback(.*)',
+  '/api/integrations/zernio/callback(.*)',
   '/api/team/accept(.*)',
   // Internal server-to-server dispatch — authenticated via taskId UUID + userId in body
   '/api/agents/run/(.*)',

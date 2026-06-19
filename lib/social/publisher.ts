@@ -250,6 +250,17 @@ export async function disconnectAccount(profileId: string, platform: string): Pr
   }
 }
 
+/** Disconnect by Zernio account document id when platform slug disconnect is insufficient. */
+export async function disconnectAccountById(accountId: string): Promise<boolean> {
+  try {
+    await zCall(`/accounts/${encodeURIComponent(accountId)}`, { method: 'DELETE' })
+    return true
+  } catch (err) {
+    console.error('[publisher] disconnectAccountById failed:', err)
+    return false
+  }
+}
+
 /** Delete the entire Zernio profile, disconnecting all accounts. Called on subscription cancellation. */
 export async function disconnectAllAccounts(profileId: string): Promise<boolean> {
   try {

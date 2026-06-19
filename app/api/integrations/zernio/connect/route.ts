@@ -3,8 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
 import { createOAuthState } from '@/lib/oauth-state'
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
+import { oauthCallbackBase } from '@/lib/oauthCallbackBase'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -88,12 +87,7 @@ export async function POST(req: Request) {
     }
   }
 
-  // Use VERCEL_URL for callback base so preview deployments don't redirect
-  // to the main-branch deployment (which may not have this route).
-  // VERCEL_URL is set automatically by Vercel for every deployment (no https:// prefix).
-  const callbackBase = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : APP_URL
+  const callbackBase = oauthCallbackBase()
 
   // Create CSRF nonce — provider is scoped per platform so two simultaneous connects don't collide
   const nonce = await createOAuthState(userId, `zernio:${platform}`)

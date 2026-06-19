@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { consumeOAuthState } from '@/lib/oauth-state'
+import { oauthCallbackBase } from '@/lib/oauthCallbackBase'
 import * as publisher from '@/lib/social/publisher'
 
-// Use VERCEL_URL so the post-OAuth redirect returns to the same deployment
-// (preview or production) that initiated the connect flow.
-const APP_URL = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : process.env.NEXT_PUBLIC_APP_URL!
+const APP_URL = oauthCallbackBase()
 
 function safeReturnPath(returnTo: string | null): string {
   if (

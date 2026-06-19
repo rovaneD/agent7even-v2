@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import * as publisher from '@/lib/social/publisher'
 import {
   collectZernioProfileIds,
   disconnectAllZernioProfiles,
+  disconnectPlatformFromTenant,
+  syncTenantConnectedPlatforms,
   ZERNIO_TEARDOWN_COLUMNS,
 } from '@/lib/social/zernioProfileIds'
 
@@ -13,7 +14,7 @@ export async function DELETE(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const { platform } = body as { platform?: string }
+  const { platform, accountId } = body as { platform?: string; accountId?: string }
 
   const supabase = createServiceClient()
   const { data: profile } = await supabase
@@ -27,22 +28,20 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'No Zernio profile found' }, { status: 404 })
   }
 
-  const primaryProfileId = (profile!.zernio_profile_id as string | null) ?? zernioProfileIds[0]
-
   if (platform) {
-    const disconnected = await publisher.disconnectAccount(primaryProfileId, platform)
-    if (!disconnected) {
+    const { ok } = await disconnectPlatformFromTenant(zernioProfileIds, platform, accountId)
+    const remaining = await syncTenantConnectedPlatforms(zernioProfileIds)
+
+    if (!ok && remaining.some((p) => p === platform.toLowerCase())) {
       return NextResponse.json({ error: 'Failed to disconnect platform from Zernio' }, { status: 502 })
     }
 
-    const existing = (profile!.zernio_connected_platforms as string[] | null) ?? []
-    const remaining = await publisher.getConnectedPlatforms(primaryProfileId)
-    const nextPlatforms = remaining.length > 0 ? remaining : existing.filter((p) => p !== platform)
     await supabase
       .from('profiles')
-      .update({ zernio_connected_platforms: nextPlatforms })
+      .update({ zernio_connected_platforms: remaining })
       .eq('id', profile!.id)
-    return NextResponse.json({ success: true, platform, remaining: nextPlatforms })
+
+    return NextResponse.json({ success: true, platform, remaining })
   }
 
   const teardownResults = await disconnectAllZernioProfiles(zernioProfileIds)
