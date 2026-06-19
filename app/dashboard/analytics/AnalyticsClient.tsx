@@ -2645,12 +2645,13 @@ function GaDelta({ value }: { value: number | null | undefined }) {
 }
 
 function GoogleAnalyticsContent({
-  isMock, gaId, gaData, gaPending, onConnect,
+  isMock, gaId, gaData, gaPending, gaNeedsReconnect, onConnect,
 }: {
   isMock: boolean
   gaId: string | null
   gaData: GaData | null
   gaPending: boolean
+  gaNeedsReconnect: boolean
   onConnect: () => void
 }) {
   const data: GaData | null = isMock
@@ -2689,7 +2690,30 @@ function GoogleAnalyticsContent({
     )
   }
 
-  // Connected, but the service account / OAuth user can't read the property yet
+  // OAuth session expired or lost GA access — prompt reconnect instead of SA setup copy.
+  if (!isMock && gaNeedsReconnect && !data) {
+    return (
+      <div className="rounded-2xl border border-amber-100 bg-amber-50 px-6 py-5">
+        <div className="flex items-start gap-3">
+          <Info size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[13px] font-semibold text-amber-800">Connection needs refresh</p>
+            <p className="text-[12px] text-amber-700 mt-0.5">
+              Property {gaId} is still linked, but your Google sign-in needs to be renewed to load analytics again.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onConnect}
+          className="mt-4 bg-[#3B82F6] text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors"
+        >
+          Reconnect Google Analytics
+        </button>
+      </div>
+    )
+  }
+
+  // Manual property ID — waiting on service-account Viewer access from setup.
   if (!isMock && gaPending && !data) {
     return (
       <div className="rounded-2xl border border-amber-100 bg-amber-50 px-6 py-5 flex items-start gap-3">
@@ -2697,8 +2721,8 @@ function GoogleAnalyticsContent({
         <div>
           <p className="text-[13px] font-semibold text-amber-800">Access pending</p>
           <p className="text-[12px] text-amber-700 mt-0.5">
-            Property {gaId} is linked, but Google hasn&apos;t granted read access yet.
-            This usually resolves within a few minutes of granting Viewer access.
+            Property {gaId} is linked, but read access is still being set up for this account.
+            This usually resolves within a few minutes after our team completes the connection.
           </p>
         </div>
       </div>
@@ -3559,6 +3583,7 @@ export default function AnalyticsClient({
   const [oauthConnected, setOauthConnected] = useState(gaOAuthConnected)
   const [gaData, setGaData]                 = useState<GaData | null>(null)
   const [gaPending, setGaPending]           = useState(false)
+  const [gaNeedsReconnect, setGaNeedsReconnect] = useState(false)
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(zernioConnectedPlatforms)
   const [connectedAccounts, setConnectedAccounts] = useState<ZernioConnectedAccountInfo[]>(zernioConnectedAccounts)
   const [zernioToast, setZernioToast]       = useState('')
@@ -3670,8 +3695,15 @@ export default function AnalyticsClient({
       if (json.connected) {
         setGaData(json)
         setGaPending(false)
+        setGaNeedsReconnect(false)
+      } else if (json.needsReconnect) {
+        setGaData(null)
+        setGaPending(false)
+        setGaNeedsReconnect(true)
       } else if (json.pending) {
+        setGaData(null)
         setGaPending(true)
+        setGaNeedsReconnect(false)
       }
     } catch { /* fail soft */ }
   }, [dataState, gaId, dateRange])
@@ -3742,13 +3774,20 @@ export default function AnalyticsClient({
 
   useEffect(() => { fetchInboxData() }, [fetchInboxData])
 
-  const handleGAConnect = () => oauthConnected ? setShowPropertySelector(true) : setShowGAModal(true)
+  const handleGAConnect = () => {
+    if (gaNeedsReconnect) {
+      window.location.href = '/api/analytics/ga-connect'
+      return
+    }
+    oauthConnected ? setShowPropertySelector(true) : setShowGAModal(true)
+  }
 
   const handleGADisconnect = async () => {
     await fetch('/api/analytics/disconnect', { method: 'POST' })
     setGaId(null)
     setGaData(null)
     setGaPending(false)
+    setGaNeedsReconnect(false)
     setOauthConnected(false)
   }
 
@@ -3896,6 +3935,7 @@ export default function AnalyticsClient({
               gaId={gaId}
               gaData={gaData}
               gaPending={gaPending}
+              gaNeedsReconnect={gaNeedsReconnect}
               onConnect={handleGAConnect}
             />
           )}

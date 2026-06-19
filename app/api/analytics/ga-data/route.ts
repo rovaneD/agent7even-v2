@@ -246,28 +246,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'No GA property configured' }, { status: 404 })
   }
 
-  try {
-    // Prefer OAuth if available
-    if (profile?.ga_refresh_token) {
-      const accessToken = await refreshAccessToken(profile.ga_refresh_token)
-      if (accessToken) {
-        const result = await queryViaOAuth(propertyId, accessToken, range)
-        return NextResponse.json({ connected: true, via: 'oauth', ...result })
-      }
-    }
+  const hasOAuth = Boolean(profile?.ga_refresh_token)
 
-    // Fallback: service account
-    const result = await queryViaServiceAccount(propertyId, range)
-    return NextResponse.json({ connected: true, via: 'service_account', ...result })
-
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    const isPending =
+  function isPermissionError(message: string) {
+    return (
       message.includes('does not have access') ||
       message.includes('PERMISSION_DENIED') ||
       message.includes('403')
+    )
+  }
 
-    if (isPending) return NextResponse.json({ connected: false, pending: true })
+  try {
+    // OAuth-connected tenants: never fall back to the service account — a stale refresh
+    // token was previously misclassified as "access pending" when SA also lacked access.
+    if (hasOAuth) {
+      const accessToken = await refreshAccessToken(profile!.ga_refresh_token!)
+      if (!accessToken) {
+        return NextResponse.json({ connected: false, needsReconnect: true })
+      }
+
+      try {
+        const result = await queryViaOAuth(propertyId, accessToken, range)
+        return NextResponse.json({ connected: true, via: 'oauth', ...result })
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        if (isPermissionError(message)) {
+          return NextResponse.json({ connected: false, needsReconnect: true })
+        }
+        throw err
+      }
+    }
+
+    // Agency / manual property ID — service account must already have Viewer on the property.
+    const result = await queryViaServiceAccount(propertyId, range)
+    return NextResponse.json({ connected: true, via: 'service_account', ...result })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    if (isPermissionError(message)) {
+      return NextResponse.json({ connected: false, pending: true })
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
