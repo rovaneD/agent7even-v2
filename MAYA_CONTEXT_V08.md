@@ -1,5 +1,5 @@
 # MAYA_CONTEXT_V08 — Inbox Workspace, Idea Analysis, Viral Hooks UX
-*Versioned snapshot: June 14, 2026*
+*Versioned snapshot: June 14, 2026 — superseded by `MAYA_CONTEXT_V09.md` (June 18, 2026)*
 
 This document supersedes `MAYA_CONTEXT_V07.md`. Everything in V07 still
 applies unless this file explicitly changes it.

@@ -466,3 +466,24 @@ Result:
 - Foundation remains usable before checkout.
 - The next step after Foundation is explicit subscription selection.
 - No-credit states are handled as product flow, not normal chat output.
+
+## Follow-on Fixes — June 15–18, 2026
+
+Documented in `CONTEXTV18.md` and `SESSION_2026-06-18.md`.
+
+### Zernio tenancy (June 15)
+
+- `b9c416b` — Cross-tenant isolation when multiple profiles share a Zernio master key.
+
+### Stripe checkout (June 18)
+
+- `3f2793a` — Checkout for profiles without an existing plan.
+- `4a6b3f2` — Recover when Supabase holds stale test-mode Stripe customer IDs.
+- `f8da5dd` — Sanitize invalid header characters in `STRIPE_SECRET_KEY`.
+
+### Auth (June 18)
+
+- `81cbe2b` — Google OAuth profile linking stops post-sign-in redirect loop.
+- `3d6a007` / `31c44d6` — Sign-in/sign-up pages aligned to lab5 marketing design.
+
+*Audit ledger last extended: June 18, 2026*

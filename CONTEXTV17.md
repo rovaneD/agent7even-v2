@@ -1,5 +1,5 @@
 # CONTEXTV17 — Zernio Inbox, Stage 2 Idea Analysis, Viral Hooks UX
-*Snapshot: June 14, 2026*
+*Snapshot: June 14, 2026 — superseded by `CONTEXTV18.md` (June 18, 2026)*
 
 This document supersedes `CONTEXTV16.md`. Everything in V16 still applies
 unless this file explicitly changes it.
