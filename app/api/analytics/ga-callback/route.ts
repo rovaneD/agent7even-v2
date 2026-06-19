@@ -36,7 +36,19 @@ export async function GET(req: NextRequest) {
 
   const tokens = await tokenRes.json()
 
+  if (tokens.error) {
+    console.error('[ga-callback] token exchange failed:', tokens.error, tokens.error_description)
+    const gaError = tokens.error === 'invalid_client' ? 'invalid_client' : 'token_exchange_failed'
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=${gaError}`)
+  }
+
+  if (!tokens.access_token) {
+    console.error('[ga-callback] token exchange returned no access_token')
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=token_exchange_failed`)
+  }
+
   if (!tokens.refresh_token) {
+    console.error('[ga-callback] token exchange returned access_token but no refresh_token')
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=no_refresh_token`)
   }
 

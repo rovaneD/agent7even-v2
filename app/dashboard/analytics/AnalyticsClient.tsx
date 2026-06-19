@@ -1004,6 +1004,8 @@ interface GaData {
   countries?: { country: string; users: number }[]
   devices?: { device: string; users: number }[]
   events?: { name: string; count: number }[]
+  hostnames?: { hostname: string; sessions: number }[]
+  sources?: { source: string; medium: string; label: string; sessions: number }[]
 }
 
 interface GAProperty { id: string; name: string; account?: string }
@@ -2665,6 +2667,8 @@ function GoogleAnalyticsContent({
         countries: MOCK_GA_DATA.countries,
         devices: MOCK_GA_DATA.devices,
         events: MOCK_GA_DATA.events,
+        hostnames: MOCK_GA_DATA.hostnames,
+        sources: MOCK_GA_DATA.sources,
       }
     : gaData
 
@@ -2746,11 +2750,15 @@ function GoogleAnalyticsContent({
   const countries = data.countries ?? []
   const devices = data.devices ?? []
   const events = data.events ?? []
+  const hostnames = data.hostnames ?? []
+  const sources = data.sources ?? []
   const maxPageViews = Math.max(...topPages.map(p => p.views), 1)
   const totalChannelSessions = channels.reduce((sum, c) => sum + c.sessions, 0) || 1
   const maxCountryUsers = Math.max(...countries.map(c => c.users), 1)
   const totalDeviceUsers = devices.reduce((sum, dv) => sum + dv.users, 0) || 1
   const maxEventCount = Math.max(...events.map(e => e.count), 1)
+  const maxHostnameSessions = Math.max(...hostnames.map(h => h.sessions), 1)
+  const totalSourceSessions = sources.reduce((sum, s) => sum + s.sessions, 0) || 1
 
   const kpis: { label: string; value: string; delta?: number | null }[] = [
     { label: 'Sessions',     value: fmt(s.sessions),  delta: d?.sessions },
@@ -2911,6 +2919,56 @@ function GoogleAnalyticsContent({
           </ChartCard>
         )}
       </div>
+
+      {(hostnames.length > 0 || sources.length > 0) && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {hostnames.length > 0 && (
+            <ChartCard title="Hostnames" subtitle="Which domains sent traffic to this property" isMock={isMock}>
+              <div className="px-5 py-4 space-y-3">
+                {hostnames.map(h => (
+                  <div key={h.hostname} className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span className="text-[12px] font-medium text-text truncate">{h.hostname}</span>
+                      <span className="text-[12px] text-text-sec flex-shrink-0">{fmt(h.sessions)} sessions</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#3B82F6]"
+                        style={{ width: `${Math.max((h.sessions / maxHostnameSessions) * 100, 3)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ChartCard>
+          )}
+
+          {sources.length > 0 && (
+            <ChartCard title="Session source / medium" subtitle="Where sessions started — e.g. google / organic" isMock={isMock}>
+              <div className="px-5 py-4 space-y-3">
+                {sources.map((src, i) => {
+                  const pct = Math.round((src.sessions / totalSourceSessions) * 100)
+                  const color = GA_CHANNEL_COLORS[i % GA_CHANNEL_COLORS.length]
+                  return (
+                    <div key={src.label} className="flex items-center gap-3">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-3 mb-1">
+                          <span className="text-[12px] font-medium text-text truncate font-mono">{src.label}</span>
+                          <span className="text-[12px] text-text-sec flex-shrink-0">{fmt(src.sessions)} · {pct}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${Math.max(pct, 3)}%`, background: color }} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </ChartCard>
+          )}
+        </div>
+      )}
 
       {(countries.length > 0 || devices.length > 0 || events.length > 0) && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -3638,9 +3696,12 @@ export default function AnalyticsClient({
       router.replace('/dashboard/analytics')
     } else if (gaError) {
       const msgs: Record<string, string> = {
-        access_denied:    'Google sign-in was cancelled.',
-        no_refresh_token: 'Could not get access token. Please try again.',
-        save_failed:      'Failed to save connection. Please try again.',
+        access_denied:         'Google sign-in was cancelled.',
+        invalid_state:         'Session expired — please try reconnecting.',
+        invalid_client:        'Google OAuth is misconfigured on our side (client secret). Contact support if this persists.',
+        token_exchange_failed: 'Google sign-in completed but we could not finish the connection. Please try again.',
+        no_refresh_token:      'Google did not issue a new connection token. Remove Agent7even from your Google Account connections (myaccount.google.com → Security → Third-party access), then reconnect.',
+        save_failed:           'Failed to save connection. Please try again.',
       }
       setOauthError(msgs[gaError] ?? 'Something went wrong.')
       router.replace('/dashboard/analytics')

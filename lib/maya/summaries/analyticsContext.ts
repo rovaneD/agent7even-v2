@@ -22,6 +22,8 @@ interface GaSnapshot {
   channels?: { channel: string; sessions: number }[]
   countries?: { country: string; users: number }[]
   devices?: { device: string; users: number }[]
+  hostnames?: { hostname: string; sessions: number }[]
+  sources?: { label: string; sessions: number }[]
 }
 
 interface PostingSnapshot {
@@ -103,6 +105,16 @@ function summarizeGa(ga: GaSnapshot, dateRange: string): string[] {
     )
   }
 
+  if (ga.hostnames?.length) {
+    const top = ga.hostnames.slice(0, 3)
+    lines.push(`Hostnames (read-only on screen): ${top.map(h => `${h.hostname} (${h.sessions} sessions)`).join(', ')}`)
+  }
+
+  if (ga.sources?.length) {
+    const top = ga.sources.slice(0, 4)
+    lines.push(`Session source/medium (read-only on screen): ${top.map(s => `${s.label} ${s.sessions} sessions`).join(', ')}`)
+  }
+
   return lines
 }
 
@@ -114,6 +126,8 @@ function summarizeGaFromMock(dateRange: string): string[] {
     channels: MOCK_GA_DATA.trafficSources.map(s => ({ channel: s.source, sessions: s.pct })),
     countries: MOCK_GA_DATA.countries,
     devices: MOCK_GA_DATA.devices,
+    hostnames: MOCK_GA_DATA.hostnames,
+    sources: MOCK_GA_DATA.sources.map(s => ({ label: s.label, sessions: s.sessions })),
   }
   return summarizeGa(ga, dateRange)
 }

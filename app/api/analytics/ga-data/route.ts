@@ -116,6 +116,20 @@ function buildReports(range: string) {
       orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
       limit: 10,
     },
+    hostnames: {
+      dateRanges: [current],
+      dimensions: [{ name: 'hostName' }],
+      metrics: [{ name: 'sessions' }],
+      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit: 6,
+    },
+    sources: {
+      dateRanges: [current],
+      dimensions: [{ name: 'sessionSource' }, { name: 'sessionMedium' }],
+      metrics: [{ name: 'sessions' }],
+      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit: 8,
+    },
   }
 }
 
@@ -183,6 +197,12 @@ function parseReports(r: Record<keyof ReturnType<typeof buildReports>, GaReport>
     countries: (r.countries.rows ?? []).map(row => ({ country: dim(row), users: met(row) })),
     devices: (r.devices.rows ?? []).map(row => ({ device: dim(row), users: met(row) })),
     events: (r.events.rows ?? []).map(row => ({ name: dim(row), count: met(row) })),
+    hostnames: (r.hostnames.rows ?? []).map(row => ({ hostname: dim(row), sessions: met(row) })),
+    sources: (r.sources.rows ?? []).map(row => {
+      const source = dim(row, 0)
+      const medium = dim(row, 1)
+      return { source, medium, label: `${source} / ${medium}`, sessions: met(row, 0) }
+    }),
   }
 }
 

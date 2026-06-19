@@ -43,6 +43,18 @@ export const MOCK_GA_DATA = {
     { source: 'Organic',  pct: 22 },
     { source: 'Referral', pct: 12 },
   ],
+  hostnames: [
+    { hostname: 'www.sunrisebakery.com', sessions: 842 },
+    { hostname: 'sunrisebakery.com',     sessions: 118 },
+    { hostname: 'shop.sunrisebakery.com', sessions: 64 },
+  ],
+  sources: [
+    { source: 'google',   medium: 'organic', label: 'google / organic',           sessions: 412 },
+    { source: '(direct)', medium: '(none)',  label: '(direct) / (none)',        sessions: 368 },
+    { source: 'instagram.com', medium: 'referral', label: 'instagram.com / referral', sessions: 186 },
+    { source: 'facebook.com',  medium: 'referral', label: 'facebook.com / referral',  sessions: 94 },
+    { source: 'bing',       medium: 'organic', label: 'bing / organic',           sessions: 52 },
+  ],
   countries: [
     { country: 'United States',  users: 524 },
     { country: 'Canada',         users: 118 },
