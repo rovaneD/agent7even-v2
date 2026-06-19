@@ -26,7 +26,7 @@
 
   const rail = (icons) => `
     <div class="mk-rail">
-      <div class="mk-rail-logo">7</div>
+      <div class="mk-rail-logo"><img src="/agent7even_mark.svg" alt="" /></div>
       ${icons.map(([i, on]) => `<div class="mk-ic ${on ? 'on' : ''}">${ic(i)}</div>`).join('')}
       <div class="mk-ic mt-auto">${ic('user')}</div>
     </div>`;

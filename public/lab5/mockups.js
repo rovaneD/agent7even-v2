@@ -5,7 +5,7 @@
 (function () {
   const rail = (icons) => `
     <div class="mk-rail">
-      <div class="mk-rail-logo">7</div>
+      <div class="mk-rail-logo"><img src="/agent7even_mark.svg" alt="" /></div>
       ${icons.map(([i, on]) => `<div class="mk-ic ${on ? 'on' : ''}">${ic(i)}</div>`).join('')}
       <div class="mk-ic mt-auto">${ic('user')}</div>
     </div>`;
@@ -25,6 +25,12 @@
   const chev = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>';
   const arrowUp = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>';
   const check = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4.5 4.5L19 7"/></svg>';
+
+  const miniBar = (url) => `
+    <div class="mk-bar" style="height:30px;padding:0 10px">
+      <div class="mk-traffic" style="gap:5px"><i style="width:8px;height:8px"></i><i style="width:8px;height:8px"></i><i style="width:8px;height:8px"></i></div>
+      <div class="mk-url" style="height:18px;font-size:9.5px;margin:0 6px">${url}</div>
+    </div>`;
 
   const M = {
     /* hero dashboard: rail + maya chat + dashboard canvas */
@@ -133,6 +139,109 @@
             <div class="mk-note accent-red"><div class="nl">Maya flagged</div><div style="font-size:13.5px;font-weight:600;color:var(--ink);margin:1px 0 3px">Rival Coffee Co. launched a 15% off promo</div><div class="nt">Running on Instagram since yesterday. Want a counter-offer drafted before the weekend?</div></div>
             <div class="mk-row"><span class="dot" style="background:var(--amber)"></span><div class="grow"><div class="rt">The Press Bar — new Instagram ad</div><div class="rs">Spotted 2 days ago</div></div><span class="tag tag-ghost">Watching</span></div>
             <div class="mk-row"><span class="dot" style="background:var(--blue)"></span><div class="grow"><div class="rt">Grounds Market — email campaign</div><div class="rs">Spotted 3 days ago</div></div><span class="tag tag-ghost">Watching</span></div>
+          </div>
+        </div>
+      </div>`,
+
+    /* card widgets — cropped mini UI for homepage cards */
+    'widget-campaign': () => `
+      ${miniBar('agent7even.ai/campaigns')}
+      <div class="mk-body" style="height:auto;background:#fff">
+        <div class="mk-main">
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Friday Slow-Day Promo</div><div class="sub" style="font-size:10px">20% off · Ember Coffee</div></div><span class="tag tag-amber" style="font-size:10px;padding:3px 8px">Draft</span></div>
+          <div class="mk-pad" style="padding:10px 12px;gap:7px">
+            <div class="mk-note accent-blue" style="padding:8px 10px"><div class="nl">Strategy</div><div class="nt" style="font-size:11px">Drive Friday traffic with 20% off — Instagram + email to regulars.</div></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-blue">IG</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Post 1 — lead visual</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Promo announcement</div></div><span style="font-size:10px;color:var(--blue);font-weight:500">Do this ${chev}</span></div>
+          </div>
+        </div>
+      </div>`,
+
+    'widget-competitor': () => `
+      ${miniBar('agent7even.ai/watch')}
+      <div class="mk-body" style="height:auto;background:#fff">
+        <div class="mk-main">
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Competitor watch</div><div class="sub" style="font-size:10px">Last scan 2 hours ago</div></div><span class="pill" style="font-size:10px;padding:3px 9px"><span class="live-dot"></span>Monitoring 4</span></div>
+          <div class="mk-pad" style="padding:10px 12px;gap:7px">
+            <div class="mk-note accent-red" style="padding:8px 10px"><div class="nl">Maya flagged</div><div style="font-size:12px;font-weight:600;color:var(--ink);margin:1px 0 2px">Rival Coffee Co. — 15% off promo</div><div class="nt" style="font-size:11px">Running on Instagram since yesterday.</div></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="dot" style="background:var(--amber)"></span><div class="grow"><div class="rt" style="font-size:12px">The Press Bar — new ad</div></div><span class="tag tag-ghost" style="font-size:10px">Watching</span></div>
+          </div>
+        </div>
+      </div>`,
+
+    'widget-reputation': () => `
+      ${miniBar('agent7even.ai/approvals')}
+      <div class="mk-body" style="height:auto;background:#fff">
+        <div class="mk-main">
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Approval queue</div><div class="sub" style="font-size:10px">3 items ready · Ember Coffee</div></div><span class="pill" style="font-size:10px;padding:3px 9px">3 waiting</span></div>
+          <div class="mk-pad" style="padding:10px 12px;gap:7px">
+            <div class="mk-row" style="padding:7px 9px;border-color:#DCE9FF;background:#F8FBFF;align-items:flex-start"><span class="dot" style="background:var(--blue);margin-top:4px"></span><div class="grow"><div class="rt" style="font-size:12px">Friday promo email</div><div class="rs" style="font-size:10px">Ready to send</div></div><span style="font-size:10px;padding:5px 10px;border-radius:7px;background:var(--blue);color:#fff;font-weight:500">Approve</span></div>
+            <div class="mk-row" style="padding:7px 9px;align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:4px"></span><div class="grow"><div class="rt" style="font-size:12px">New 4★ review — Google</div><div class="rs" style="font-size:10px">Reply drafted</div></div><span class="tag tag-green" style="font-size:10px;padding:4px 9px">Reply</span></div>
+          </div>
+        </div>
+      </div>`,
+
+    'widget-voice': () => `
+      ${miniBar('agent7even.ai/campaigns')}
+      <div class="mk-body" style="height:auto;background:#fff">
+        <div class="mk-main">
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Copy options</div><div class="sub" style="font-size:10px">Friday promo · your voice</div></div><span class="tag tag-blue" style="font-size:10px;padding:3px 8px">On-brand</span></div>
+          <div class="mk-pad" style="padding:10px 12px;gap:7px">
+            <div style="background:#fff;border:1.5px solid var(--blue);border-radius:10px;padding:9px 11px"><div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Option A</div><div style="font-size:11px;color:var(--ink-2);line-height:1.45">Fridays just got better. 20% off every drink — this Friday only.</div></div>
+            <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px"><div style="font-family:var(--mono);font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Option B</div><div style="font-size:11px;color:var(--ink-2);line-height:1.45">Your Friday deserves a proper sit-down. 20% off, all day.</div></div>
+          </div>
+        </div>
+      </div>`,
+
+    'widget-use-ecommerce': () => `
+      ${miniBar('agent7even.ai/campaigns')}
+      <div class="mk-body" style="height:auto;background:#fff">
+        <div class="mk-main">
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Autumn Ember — launch</div><div class="sub" style="font-size:10px">Maker &amp; Co. · drops Fri</div></div><span class="tag tag-amber" style="font-size:10px;padding:3px 8px">Draft</span></div>
+          <div class="mk-pad" style="padding:10px 12px;gap:7px">
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Fri</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Drop email — "It's here"</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Sun</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Abandoned-cart catch</div></div><span style="font-size:10px;color:var(--blue);font-weight:500">Review ${chev}</span></div>
+            <div class="mk-stats" style="margin-top:0"><div class="mk-stat"><div class="n" style="font-size:18px">5</div><div class="l">Assets drafted</div></div><div class="mk-stat"><div class="n" style="font-size:18px;color:var(--green)">1</div><div class="l">Cart recovery</div></div></div>
+          </div>
+        </div>
+      </div>`,
+
+    'widget-use-local': () => `
+      ${miniBar('agent7even.ai/approvals')}
+      <div class="mk-body" style="height:auto;background:#fff">
+        <div class="mk-main">
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Ready for you</div><div class="sub" style="font-size:10px">Cedar Lane · 3 items waiting</div></div><span class="pill" style="font-size:10px;padding:3px 9px">3 waiting</span></div>
+          <div class="mk-pad" style="padding:10px 12px;gap:7px">
+            <div class="mk-row" style="padding:7px 9px;border-color:#BFEFDB;background:#F4FCF8"><span class="dot" style="background:var(--green)"></span><div class="grow"><div class="rt" style="font-size:12px">Midweek promo — "Book by Friday"</div></div><span style="font-size:10px;padding:4px 9px;border-radius:7px;background:var(--green);color:#fff;font-weight:500">Approve</span></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="dot" style="background:var(--amber)"></span><div class="grow"><div class="rt" style="font-size:12px">New 5★ review — Google</div></div><span class="tag tag-green" style="font-size:10px;padding:4px 9px">Reply</span></div>
+          </div>
+        </div>
+      </div>`,
+
+    'widget-use-creators': () => `
+      ${miniBar('agent7even.ai/campaigns')}
+      <div class="mk-body" style="height:auto;background:#fff">
+        <div class="mk-main">
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Cohort 4 — launch</div><div class="sub" style="font-size:10px">Lena Ray · opens Mon</div></div><span class="tag tag-pink" style="font-size:10px;padding:3px 8px">In your voice</span></div>
+          <div class="mk-pad" style="padding:10px 12px;gap:7px">
+            <div class="mk-note accent-pink" style="padding:8px 10px"><div class="nl">Voice match</div><div class="nt" style="font-size:11px">Warm, direct, no hype — <b style="color:var(--brand)">98% on-voice.</b></div></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Waitlist — "Doors open Monday"</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
+          </div>
+        </div>
+      </div>`,
+
+    'widget-use-agencies': () => `
+      ${miniBar('agent7even.ai/studio')}
+      <div class="mk-body" style="height:auto;background:#fff;display:flex">
+        <div style="width:130px;flex-shrink:0;border-right:1px solid var(--line-2);background:#FCFCFD">
+          <div style="padding:8px 10px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Clients</div>
+          <div style="padding:8px 10px;background:#F4F8FF;border-left:2px solid var(--blue)"><div style="font-size:11px;font-weight:600">Vela Skincare</div><div style="font-size:9px;color:var(--faint);margin-top:1px">3 drafts</div></div>
+          <div style="padding:8px 10px"><div style="font-size:11px;font-weight:500">Northwind Gear</div><div style="font-size:9px;color:var(--faint);margin-top:1px">Live</div></div>
+        </div>
+        <div class="mk-main" style="min-width:0">
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Vela Skincare</div><div class="sub" style="font-size:10px">Drafted by Maya</div></div></div>
+          <div class="mk-pad" style="padding:10px 12px;gap:7px">
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Social</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">3 posts — ingredient story</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
           </div>
         </div>
       </div>`,

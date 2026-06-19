@@ -43,7 +43,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How is this different from a social media scheduling tool?',
-    a: "Scheduling tools post content you've already created. Maya creates it — writes the copy, plans the calendar, runs the campaigns — then schedules it. She's a team, not a tool.",
+    a: "Scheduling tools just post what you hand them. Maya does the work before that — she plans the calendar, writes the copy and captions in your brand voice, and runs the campaigns, then queues it all for your approval. You bring the visuals; Maya brings everything else. She's a team, not a tool.",
   },
 ]
 
@@ -83,16 +83,45 @@ export default function Lab5Page() {
       <header className="hero">
         <div className="wrap hero-grid">
           <div className="hero-copy">
-            <h1 className="t-display">Meet <em>Maya</em>, the<br />marketing team that<br />never clocks out.</h1>
-            <p className="t-lead">Campaigns planned, copy drafted, content posted — in your voice, approved by you. She runs the marketing while you run the business.</p>
-            <p className="hero-tag">No agency. No busywork. No missed momentum.</p>
-            <div className="hero-cta">
-              <a className="btn btn-blue btn-lg" href="/pricing"
-                onClick={() => trackEvent('cta_click', { cta: 'start_trial', location: 'hero' })}>Start your free trial</a>
-              <a className="btn btn-ghost btn-lg" href="#how"
-                onClick={() => trackEvent('cta_click', { cta: 'see_how_it_works', location: 'hero' })}>See how it works →</a>
+            <h1 className="hero-title">
+              <span className="hero-title-name">
+                Meet <em>Maya</em>
+              </span>
+              <span className="hero-title-deck">
+                <span className="hero-title-deck-line">An AI agent that orchestrates your</span>
+                <span className="hero-title-deck-line">entire marketing and never clocks out.</span>
+              </span>
+            </h1>
+            <div className="hero-body">
+              <p>Your campaigns planned, copy drafted, posts queued in your voice, approved by you.</p>
+              <p>She runs the marketing while you run the business.</p>
             </div>
-            <p className="hero-note">3-day free trial. No charge until day 4.</p>
+            <a
+              className="hero-link"
+              href="/pricing"
+              onClick={() => trackEvent('cta_click', { cta: 'join_smb_owners', location: 'hero' })}
+            >
+              Join the SMB owners getting their marketing done with Maya →
+            </a>
+            <div className="hero-cta">
+              <div className="hero-primary-stack">
+                <a
+                  className="btn btn-hero-primary btn-lg"
+                  href="/pricing"
+                  onClick={() => trackEvent('cta_click', { cta: 'start_trial', location: 'hero' })}
+                >
+                  Start your free trial
+                </a>
+                <p className="hero-note">3-day free trial. No charge until day 4.</p>
+              </div>
+              <a
+                className="btn btn-ghost btn-lg"
+                href="#how"
+                onClick={() => trackEvent('cta_click', { cta: 'see_how_it_works', location: 'hero' })}
+              >
+                See how it works →
+              </a>
+            </div>
           </div>
           <div className="hero-orb">
             <Metaballs
@@ -236,28 +265,36 @@ export default function Lab5Page() {
           </div>
           <div className="cards">
             <div className="lcard reveal">
-              <div className="swatch" style={{ background: 'var(--brand)' }}></div>
-              <h3>Campaigns on command</h3>
-              <p>Tell Maya the offer; get the full sequence — emails, posts, the whole push — ready to approve.</p>
-              <a href="#features">See it →</a>
+              <div className="lcard-copy">
+                <h3>Campaigns on command</h3>
+                <p>Tell Maya the offer; get the full sequence — emails, posts, the whole push — ready to approve.</p>
+                <a href="#features">See it →</a>
+              </div>
+              <div className="card-widget"><div data-mk="widget-campaign"></div></div>
             </div>
             <div className="lcard reveal">
-              <div className="swatch" style={{ background: 'var(--orange)' }}></div>
-              <h3>Competitor watch</h3>
-              <p>Maya tracks your market and flags what rivals are running before it costs you.</p>
-              <a href="#features">See it →</a>
+              <div className="lcard-copy">
+                <h3>Competitor watch</h3>
+                <p>Maya tracks your market and flags what rivals are running before it costs you.</p>
+                <a href="#features">See it →</a>
+              </div>
+              <div className="card-widget"><div data-mk="widget-competitor"></div></div>
             </div>
             <div className="lcard reveal">
-              <div className="swatch" style={{ background: 'var(--green)' }}></div>
-              <h3>Reputation loops</h3>
-              <p>Reviews to answer, leads gone cold, follow-ups overdue — surfaced and ready, never dropped.</p>
-              <a href="#features">See it →</a>
+              <div className="lcard-copy">
+                <h3>Reputation loops</h3>
+                <p>Reviews to answer, leads gone cold, follow-ups overdue — surfaced and ready, never dropped.</p>
+                <a href="#features">See it →</a>
+              </div>
+              <div className="card-widget"><div data-mk="widget-reputation"></div></div>
             </div>
             <div className="lcard reveal">
-              <div className="swatch" style={{ background: 'var(--blue)' }}></div>
-              <h3>One brand voice</h3>
-              <p>Maya learns your business once and sounds like you everywhere you show up.</p>
-              <a href="#how">See it →</a>
+              <div className="lcard-copy">
+                <h3>One brand voice</h3>
+                <p>Maya learns your business once and sounds like you everywhere you show up.</p>
+                <a href="#how">See it →</a>
+              </div>
+              <div className="card-widget"><div data-mk="widget-voice"></div></div>
             </div>
           </div>
         </div>
@@ -271,42 +308,38 @@ export default function Lab5Page() {
             <h2 className="t-h2">Maya fits your kind of business.</h2>
           </div>
           <div className="uses">
-            <div className="use reveal">
-              <div className="ico">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 8h16l-1 12H5L4 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" />
-                </svg>
+            <a className="use reveal" href="/use-cases/ecommerce">
+              <div className="use-copy">
+                <h3>E-commerce brands</h3>
+                <p>The store stops going quiet between launches.</p>
+                <span className="use-link">See it →</span>
               </div>
-              <h3>E-commerce brands</h3>
-              <p>The store stops going quiet between launches.</p>
-            </div>
-            <div className="use reveal">
-              <div className="ico">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" /><circle cx="12" cy="10" r="2.5" />
-                </svg>
+              <div className="card-widget"><div data-mk="widget-use-ecommerce"></div></div>
+            </a>
+            <a className="use reveal" href="/use-cases/local-service">
+              <div className="use-copy">
+                <h3>Local service</h3>
+                <p>Stay visible without staying up late.</p>
+                <span className="use-link">See it →</span>
               </div>
-              <h3>Local service</h3>
-              <p>Stay visible without staying up late.</p>
-            </div>
-            <div className="use reveal">
-              <div className="ico">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="3.4" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
-                </svg>
+              <div className="card-widget"><div data-mk="widget-use-local"></div></div>
+            </a>
+            <a className="use reveal" href="/use-cases/coaches-creators">
+              <div className="use-copy">
+                <h3>Creators &amp; founders</h3>
+                <p>Finally be in two places at once.</p>
+                <span className="use-link">See it →</span>
               </div>
-              <h3>Creators &amp; founders</h3>
-              <p>Finally be in two places at once.</p>
-            </div>
-            <div className="use reveal">
-              <div className="ico">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 21V5l8-2v18M12 21V8l8 2v11M3 21h18M8 8h0M8 12h0M16 13h0M16 17h0" />
-                </svg>
+              <div className="card-widget"><div data-mk="widget-use-creators"></div></div>
+            </a>
+            <a className="use reveal" href="/use-cases/agencies">
+              <div className="use-copy">
+                <h3>Agencies</h3>
+                <p>The production capacity you&rsquo;d otherwise hire.</p>
+                <span className="use-link">See it →</span>
               </div>
-              <h3>Agencies</h3>
-              <p>The production capacity you&rsquo;d otherwise hire.</p>
-            </div>
+              <div className="card-widget"><div data-mk="widget-use-agencies"></div></div>
+            </a>
           </div>
         </div>
       </section>
