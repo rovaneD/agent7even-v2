@@ -13,3 +13,18 @@ export function oauthCallbackBase(): string {
   }
   return canonical ?? 'http://localhost:3000'
 }
+
+/** Prefer the host the user is actually on — avoids redirect_uri_mismatch when env is stale. */
+export function oauthCallbackBaseFromRequest(req: Request): string {
+  const forwardedHost = req.headers.get('x-forwarded-host')
+  const host = forwardedHost?.split(',')[0]?.trim() || req.headers.get('host')
+  if (host) {
+    const proto = req.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() || 'https'
+    return `${proto}://${host}`.replace(/\/$/, '')
+  }
+  return oauthCallbackBase()
+}
+
+export function gaOAuthRedirectUri(req: Request): string {
+  return `${oauthCallbackBaseFromRequest(req)}/api/analytics/ga-callback`
+}

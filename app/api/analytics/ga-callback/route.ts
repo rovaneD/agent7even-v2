@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { consumeOAuthState } from '@/lib/oauth-state'
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL!
+import { gaOAuthRedirectUri, oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const code  = searchParams.get('code')
   const nonce = searchParams.get('state')
   const error = searchParams.get('error')
+  const appBase = oauthCallbackBaseFromRequest(req)
+  const redirectUri = gaOAuthRedirectUri(req)
 
   if (error || !code || !nonce) {
-    return NextResponse.redirect(`${APP_URL}/dashboard/analytics?ga_error=access_denied`)
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=access_denied`)
   }
 
   // Validate nonce — single-use, bound to this provider, expires in 10 min
   const clerkId = await consumeOAuthState(nonce, 'google')
   if (!clerkId) {
-    return NextResponse.redirect(`${APP_URL}/dashboard/analytics?ga_error=invalid_state`)
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=invalid_state`)
   }
 
   // Exchange authorization code for tokens
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
       code,
       client_id:     process.env.GOOGLE_OAUTH_CLIENT_ID!,
       client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
-      redirect_uri:  `${APP_URL}/api/analytics/ga-callback`,
+      redirect_uri:  redirectUri,
       grant_type:    'authorization_code',
     }),
   })
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
   const tokens = await tokenRes.json()
 
   if (!tokens.refresh_token) {
-    return NextResponse.redirect(`${APP_URL}/dashboard/analytics?ga_error=no_refresh_token`)
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=no_refresh_token`)
   }
 
   // Get Google account email
@@ -57,8 +58,8 @@ export async function GET(req: NextRequest) {
     .eq('clerk_user_id', clerkId)
 
   if (updateError) {
-    return NextResponse.redirect(`${APP_URL}/dashboard/analytics?ga_error=save_failed`)
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=save_failed`)
   }
 
-  return NextResponse.redirect(`${APP_URL}/dashboard/analytics?ga_oauth=success`)
+  return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_oauth=success`)
 }

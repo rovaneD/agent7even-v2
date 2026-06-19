@@ -1,16 +1,18 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createOAuthState } from '@/lib/oauth-state'
+import { gaOAuthRedirectUri } from '@/lib/oauthCallbackBase'
 
-export async function GET() {
+export async function GET(req: Request) {
   const { userId } = await auth()
   if (!userId) return redirect('/sign-in')
 
   const nonce = await createOAuthState(userId, 'google')
+  const redirectUri = gaOAuthRedirectUri(req)
 
   const params = new URLSearchParams({
     client_id:     process.env.GOOGLE_OAUTH_CLIENT_ID!,
-    redirect_uri:  `${process.env.NEXT_PUBLIC_APP_URL}/api/analytics/ga-callback`,
+    redirect_uri:  redirectUri,
     response_type: 'code',
     scope:         'https://www.googleapis.com/auth/analytics.readonly',
     access_type:   'offline',
