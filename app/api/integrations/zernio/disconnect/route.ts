@@ -25,7 +25,7 @@ export async function DELETE(req: Request) {
 
   const zernioProfileIds = profile ? collectZernioProfileIds(profile) : []
   if (zernioProfileIds.length === 0) {
-    return NextResponse.json({ error: 'No Zernio profile found' }, { status: 404 })
+    return NextResponse.json({ error: 'No connected profile found' }, { status: 404 })
   }
 
   if (platform) {
@@ -33,7 +33,7 @@ export async function DELETE(req: Request) {
     const remaining = await syncTenantConnectedPlatforms(zernioProfileIds)
 
     if (!ok && remaining.some((p) => p === platform.toLowerCase())) {
-      return NextResponse.json({ error: 'Failed to disconnect platform from Zernio' }, { status: 502 })
+      return NextResponse.json({ error: 'Failed to disconnect account. Please try again.' }, { status: 502 })
     }
 
     await supabase

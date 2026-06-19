@@ -1396,7 +1396,7 @@ function FilterBar({
 
           {/* Profile scope — aggregates all Zernio profiles on this tenant */}
           <button
-            title="Aggregates all connected Zernio profiles and accounts for this workspace"
+            title="Aggregates all connected social accounts for this workspace"
             className="flex items-center gap-1.5 text-[12.5px] font-medium text-text-sec bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:border-gray-300 transition-colors cursor-default"
           >
             {isMock ? 'Demo Profile' : 'All connected accounts'}
@@ -2001,7 +2001,7 @@ function FollowerEvolutionChart({ isMock }: { isMock: boolean }) {
           <p className="text-[11px] text-text-soft mt-1 max-w-[240px]">
             {isMock
               ? 'Follower history will appear here once data is collected.'
-              : 'Daily follower counts will appear here once Zernio has enough history for this account.'}
+              : 'Daily follower counts will appear here once we have enough history for this account.'}
           </p>
         </div>
       ) : (
@@ -2121,7 +2121,7 @@ function TopPerformingPostsTable({ isMock }: { isMock: boolean }) {
                 <td colSpan={metaCols.length + 1} className="px-4 py-10 text-center">
                   <p className="text-[13px] font-medium text-text">No post details available yet</p>
                   <p className="text-[11px] text-text-soft mt-1 max-w-[320px] mx-auto">
-                    Post-level metrics will appear here once Zernio returns individual post records for this period.
+                    Post-level metrics will appear here once individual post records are available for this period.
                   </p>
                 </td>
               </tr>
@@ -3121,7 +3121,7 @@ function ConnectPanel({
       }
       // API responded but no authUrl — surface the actual error
       if (data.error === 'payment_required') {
-        setConnectError(data.message ?? 'Zernio account limit reached. Add a payment method at zernio.com/dashboard.')
+        setConnectError(data.message ?? 'Account connection limit reached. Please contact support to connect more accounts.')
       } else {
         setConnectError(data.error ?? data.message ?? 'Could not open connect page. Try again.')
       }
@@ -3196,13 +3196,13 @@ function ConnectPanel({
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <p className="text-[15px] font-semibold text-text mb-1">X / Twitter API costs</p>
-            <p className="text-[13px] text-text-sec mb-4">X charges per API call. These pass through from Zernio:</p>
+            <p className="text-[13px] text-text-sec mb-4">X charges per API call. Usage fees apply when reading posts, publishing, and pulling analytics:</p>
             <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-1.5">
               <p className="text-[13px] text-text-sec flex justify-between"><span>Read posts & analytics</span><span className="font-medium text-text">$0.005 / call</span></p>
               <p className="text-[13px] text-text-sec flex justify-between"><span>Publish posts</span><span className="font-medium text-text">$0.015 / post</span></p>
               <p className="text-[13px] text-text-sec flex justify-between"><span>Posts with URLs</span><span className="font-medium text-text">$0.200 / post</span></p>
             </div>
-            <p className="text-[12px] text-text-soft mb-4">Set a spending cap in your Zernio dashboard to control costs.</p>
+            <p className="text-[12px] text-text-soft mb-4">Contact support if you need help managing API usage costs.</p>
             <div className="flex gap-3">
               <button onClick={() => setXCostModal(false)}
                 className="flex-1 border border-gray-200 text-sm font-medium text-text-sec px-4 py-2 rounded-xl hover:border-gray-300 transition-colors">
@@ -3653,7 +3653,7 @@ export default function AnalyticsClient({
         invalid_state:      'Session expired — please try again.',
         save_failed:        'Failed to save connection. Please try again.',
         profile_not_found:  'Profile not found. Please try again.',
-        profile_mismatch:   'Zernio profile mismatch. Please reconnect.',
+        profile_mismatch:   'Account profile mismatch. Please reconnect this platform.',
         no_pages:           'No Facebook Pages found on this account. Connect a Page in Meta Business Suite first.',
       }
       setOauthError(msgs[zernioErr] ?? 'Something went wrong connecting your account.')

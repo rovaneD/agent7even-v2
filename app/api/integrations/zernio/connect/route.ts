@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       } else {
         console.error('[zernio/connect] could not recover profile. profiles:', JSON.stringify(profiles))
         return NextResponse.json(
-          { error: 'Could not create or recover Zernio profile. Please contact support.' },
+          { error: 'Could not set up your connection profile. Please contact support.' },
           { status: 502 },
         )
       }
@@ -107,12 +107,12 @@ export async function POST(req: Request) {
     // Zernio free tier allows only 2 connected accounts
     if (msg.includes('402') || msg.includes('PAYMENT_REQUIRED') || msg.includes('free_tier_exceeded')) {
       return NextResponse.json(
-        { error: 'payment_required', message: 'Your Zernio account has reached the free tier limit (2 accounts). Add a payment method at zernio.com/dashboard to connect more.' },
+        { error: 'payment_required', message: 'You have reached the account connection limit. Please contact support to connect more accounts.' },
         { status: 402 },
       )
     }
 
-    return NextResponse.json({ error: `Zernio connect URL failed: ${msg}` }, { status: 502 })
+    return NextResponse.json({ error: `Could not open connect page: ${msg}` }, { status: 502 })
   }
 
   return NextResponse.json({ authUrl })
