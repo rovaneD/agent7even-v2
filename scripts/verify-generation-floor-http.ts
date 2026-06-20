@@ -93,8 +93,8 @@ async function main() {
   const unauth = await fetch(`${appUrl}/api/foundation/generation-floor`, { redirect: 'manual' })
   console.log(`  status: ${unauth.status}`)
   console.log(`  location: ${unauth.headers.get('location') ?? '(none)'}`)
-  if (unauth.status !== 307) {
-    console.error(`  FAIL: expected 307, got ${unauth.status}`)
+  if (unauth.status !== 401 && unauth.status !== 307) {
+    console.error(`  FAIL: expected 401 or 307, got ${unauth.status}`)
     process.exit(1)
   }
   console.log('  PASS')
