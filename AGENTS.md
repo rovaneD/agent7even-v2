@@ -64,14 +64,14 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV18.md` — latest technical handoff (launch prep, auth/billing, lab5 homepage).
+- `CONTEXTV18.md` — latest technical handoff (launch prep, auth/billing, lab5 homepage, analytics/GA, Zernio connect).
 - `CONTEXTV17.md` — prior handoff (Zernio inbox, Stage 2 Idea Analysis, Viral Hooks UX).
 - `MAYA_CONTEXT_V09.md` — current versioned Maya product context and visual rules.
 - `MAYA_CONTEXT_V08.md` — prior Maya snapshot (superseded by V09).
 - `PRODUCTION_GREENLIGHT.md` — go-live checklist for www.agent7even.ai.
 - `zernio_inbox_phase_b_plan.md` — inbox Phase A/B build record (shipped June 14).
 - `stage2_idea_analysis_plan.md` — Idea Analysis → Viral Hooks build record (shipped June 14).
-- `SESSION_2026-06-18.md` — June 18 session log (homepage, auth, billing, docs).
+- `SESSION_2026-06-18.md` — June 18 session log (homepage, auth, billing, analytics/GA, Zernio connect, docs).
 - `SESSION_2026-06-11.md` — Foundation contamination fix, undo, reference-layer roadmap.
 - `SESSION_2026-06-12.md` — June 12 session log (merge to main, Zernio/cache notes).
 - `SESSION_2026-06-14.md` — June 14 session log (inbox, Stage 2, docs pass).

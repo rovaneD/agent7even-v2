@@ -32,6 +32,10 @@ import {
 import { AGENTS, AGENT_COLORS } from '@/lib/agents/registry'
 import type { FoundationSectionKey } from '@/lib/agents/registry'
 import { isCommandCenterAgent } from '@/lib/agents/contentPosting'
+import {
+  computeSectionScore,
+  FOUNDATION_SECTION_KEY_FIELDS,
+} from '@/lib/foundation/sections'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -122,7 +126,7 @@ function agentsForSection(sectionKey: FoundationSectionKey): AgentTag[] {
 const SECTIONS: SectionDef[] = [
   {
     key: 'business', title: 'Your Business', icon: Building2, editable: true,
-    keyFields: ['businessDescription', 'problemSolved'],
+    keyFields: FOUNDATION_SECTION_KEY_FIELDS.business,
     editFields: [
       { key: 'businessDescription', label: 'What your business does', type: 'textarea' },
       { key: 'problemSolved',       label: 'The problem you solve',   type: 'textarea' },
@@ -134,7 +138,7 @@ const SECTIONS: SectionDef[] = [
   },
   {
     key: 'customer', title: 'Your Customer', icon: Users, editable: true,
-    keyFields: ['customerWho', 'customerFrustration'],
+    keyFields: FOUNDATION_SECTION_KEY_FIELDS.customer,
     editFields: [
       { key: 'customerWho',           label: 'Who is your ideal customer?',       type: 'textarea' },
       { key: 'customerFrustration',   label: 'Their biggest frustration',         type: 'textarea' },
@@ -147,7 +151,7 @@ const SECTIONS: SectionDef[] = [
   },
   {
     key: 'position', title: 'Your Position', icon: Target, editable: true,
-    keyFields: ['differentiator', 'competitors'],
+    keyFields: FOUNDATION_SECTION_KEY_FIELDS.position,
     editFields: [
       { key: 'competitors',       label: 'Main competitors',                    type: 'competitors' },
       { key: 'differentiator',    label: 'What makes you genuinely different',  type: 'textarea' },
@@ -159,7 +163,7 @@ const SECTIONS: SectionDef[] = [
   },
   {
     key: 'voice', title: 'Your Voice', icon: Mic, editable: true,
-    keyFields: ['toneTraits', 'brandsAdmired'],
+    keyFields: FOUNDATION_SECTION_KEY_FIELDS.voice,
     editFields: [
       { key: 'toneTraits',      label: 'Tone traits (comma-separated)',   type: 'chips' },
       { key: 'brandsAdmired',   label: 'Brands you admire',               type: 'textarea' },
@@ -171,7 +175,7 @@ const SECTIONS: SectionDef[] = [
   },
   {
     key: 'plan', title: 'Your 30 Days', icon: Calendar, editable: true,
-    keyFields: ['marketingBudget', 'monthlyGoal'],
+    keyFields: FOUNDATION_SECTION_KEY_FIELDS.plan,
     editFields: [
       { key: 'marketingBudget', label: 'Monthly marketing budget', type: 'text' },
       { key: 'channels',        label: 'Channels (comma-separated)', type: 'chips' },
@@ -226,10 +230,7 @@ function sectionHealth(answers: Answers, fieldScores: Record<string, FieldScore>
 
 function sectionScore(fieldScores: Record<string, FieldScore>, key: SectionKey): number | null {
   if (key === 'memory') return null
-  const fields = SECTIONS.find(s => s.key === key)!.keyFields
-  const scored = fields.filter(f => fieldScores[f]?.score != null)
-  if (scored.length === 0) return null
-  return Math.round(scored.reduce((s, f) => s + fieldScores[f].score, 0) / scored.length)
+  return computeSectionScore(fieldScores, key)
 }
 
 function toArr(v: unknown): string[] {

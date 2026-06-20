@@ -16,6 +16,7 @@ import {
   approvalQueueKind,
   type ApprovalQueueKind,
   isLegacyContentAgent,
+  latestAgentOutput,
   singlePostPublishBlockReason,
 } from '@/lib/agents/contentPosting'
 
@@ -129,7 +130,7 @@ function ApprovalItem({
   onReject: (taskId: string, outputId: string, note: string, reason: string, rerun: boolean) => Promise<void>
   onMarkReviewed: () => void
 }) {
-  const output    = task.agent_outputs?.[0]
+  const output    = latestAgentOutput(task.agent_outputs)
   const ideaAnalysis = task.agent === 'idea_analysis'
     ? readIdeaAnalysisFromContent(output?.content)
     : null
@@ -435,13 +436,17 @@ function ApprovalItem({
 export default function ApprovalsClient({ profileId, initialTasks, viralHooksHints }: Props) {
   const searchParams = useSearchParams()
   const autoExpandId = searchParams.get('task')
+  const queueParam = searchParams.get('queue')
 
   const [tasks,          setTasks]          = useState<ApprovalTask[]>(initialTasks)
   const [expanded,       setExpanded]       = useState<Set<string>>(new Set(autoExpandId ? [autoExpandId] : []))
   const [checkedIds,     setCheckedIds]     = useState<Set<string>>(new Set())
   const [hasReviewedOne, setHasReviewedOne] = useState(!!autoExpandId)
   const [agentFilter,    setAgentFilter]    = useState<string>('all')
-  const [queueKindFilter, setQueueKindFilter] = useState<'all' | ApprovalQueueKind>('all')
+  const [queueKindFilter, setQueueKindFilter] = useState<'all' | ApprovalQueueKind>(() => {
+    if (queueParam === 'post' || queueParam === 'plan' || queueParam === 'other') return queueParam
+    return 'all'
+  })
   const [sortOrder,      setSortOrder]      = useState<'newest' | 'oldest'>('newest')
   const [bulkAction,     setBulkAction]     = useState<'approve' | 'reject' | null>(null)
   const [bulkNote,       setBulkNote]       = useState('')

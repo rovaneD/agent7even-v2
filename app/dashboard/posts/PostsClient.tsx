@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import {
   Plus, X, ExternalLink, Trash2, Pencil, Hash, Loader2,
   LayoutGrid, List, ChevronDown, CheckCircle, ImagePlus, Film,
@@ -55,6 +56,7 @@ interface Props {
   zernioProfileIds: string[]
   zernioConnectedPlatforms: string[]
   accounts: Account[]
+  pendingPostApprovalCount?: number
 }
 
 // ── Platform meta ─────────────────────────────────────────────────────────────
@@ -119,6 +121,7 @@ export default function PostsClient({
   zernioProfileIds,
   zernioConnectedPlatforms,
   accounts: initialAccounts,
+  pendingPostApprovalCount = 0,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -600,6 +603,17 @@ export default function PostsClient({
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
           <CheckCircle size={16} /> {toast}
           <button type="button" className="ml-auto text-emerald-600" onClick={() => setToast('')}><X size={14} /></button>
+        </div>
+      )}
+
+      {pendingPostApprovalCount > 0 && (
+        <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] text-blue-900">
+          {pendingPostApprovalCount === 1
+            ? 'You have a new post waiting in Approvals. Approve it there first — this page only lists scheduled and published drafts after approval.'
+            : `You have ${pendingPostApprovalCount} posts waiting in Approvals. Approve them there first — this page only lists scheduled and published drafts after approval.`}{' '}
+          <Link href="/dashboard/agents/approvals?queue=post" className="font-semibold text-[#3B82F6] hover:underline">
+            Open Posts to review
+          </Link>
         </div>
       )}
 

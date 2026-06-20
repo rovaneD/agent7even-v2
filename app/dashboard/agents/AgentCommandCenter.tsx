@@ -4,7 +4,12 @@ import { Fragment, useState, useEffect, useMemo, type ReactNode } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildAgentCommandCenterMayaContext } from '@/lib/maya/summaries/agentsContext'
 import PostImageAttach from '@/components/agents/PostImageAttach'
+import PostImageGenerate from '@/components/agents/PostImageGenerate'
+import PostImageGeneratePicker from '@/components/agents/PostImageGeneratePicker'
+import PostImageTextQaPanel from '@/components/agents/PostImageTextQaPanel'
+import { TEXT_QA_MAX_REGENERATE_RETRIES, type GeneratedImageOption, type TextQaResult } from '@/lib/agents/imageGeneration/types'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Loader2, CheckCircle2, AlertCircle, ArrowRight, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { AGENTS, AgentId, AgentDefinition, AGENT_COLORS, COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
@@ -379,7 +384,10 @@ function friendlyRunError(error: string | null | undefined): string {
   return error.length > 180 ? `${error.slice(0, 180)}…` : error
 }
 
-function runTrackerGeneratingMessage(agent: string, contentFlow?: ContentPostingFlow): string {
+function runTrackerGeneratingMessage(agent: string, contentFlow?: ContentPostingFlow, generatedCompose?: boolean): string {
+  if (generatedCompose) {
+    return 'Composing caption and submitting for approval…'
+  }
   if (agent === 'content_posting' && contentFlow === 'single') {
     return 'Generating your post caption from your image…'
   }
@@ -398,9 +406,9 @@ function runTrackerDoneState(
   if (agent === 'content_posting' && contentFlow === 'single') {
     return {
       message: 'Done — your caption is ready.',
-      detail: 'Review and approve it, then finish scheduling on Posts.',
-      primaryHref: `/dashboard/agents/approvals?task=${taskId}`,
-      primaryLabel: 'Review caption',
+      detail: 'It is in Approvals until you approve it. The Posts page only shows drafts after approval.',
+      primaryHref: `/dashboard/agents/approvals?task=${taskId}&queue=post`,
+      primaryLabel: 'Review in Approvals',
     }
   }
   if (requiresApproval) {
@@ -561,6 +569,7 @@ export default function AgentCommandCenter({
   profileId, companyName, activeTasks: initActiveTasks,
   pendingApprovals: initPendingApprovals, recentTasks: initRecent, recentOutputs: initRecentOutputs, scorecard,
 }: Props) {
+  const router = useRouter()
   const [activeTasks, setActiveTasks] = useState(initActiveTasks)
   const [pendingApprovals, setPendingApprovals] = useState(initPendingApprovals)
   const [recentTasks, setRecentTasks] = useState(initRecent)
@@ -583,7 +592,16 @@ export default function AgentCommandCenter({
     filename?: string
   } | null>(null)
   const [postImageRequiredError, setPostImageRequiredError] = useState<string | null>(null)
+  const [generatedImageOptions, setGeneratedImageOptions] = useState<GeneratedImageOption[]>([])
+  const [generatedBriefId, setGeneratedBriefId] = useState<string | null>(null)
+  const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null)
+  const [generatedTextQa, setGeneratedTextQa] = useState<TextQaResult | null>(null)
+  const [generatedQaLoading, setGeneratedQaLoading] = useState(false)
+  const [generatedQaRegenerating, setGeneratedQaRegenerating] = useState(false)
+  const [qaRetryByIndex, setQaRetryByIndex] = useState<Record<number, number>>({})
   const [taskCreateError, setTaskCreateError] = useState<string | null>(null)
+
+  const imageGenerationEnabled = process.env.NEXT_PUBLIC_IMAGE_GENERATION === 'true'
 
   // Orchestration state
   const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
@@ -611,6 +629,12 @@ export default function AgentCommandCenter({
     setSelectedAgent('content_posting')
     setContentPostingFlow('single')
     setPostImageRequiredError(null)
+    setGeneratedImageOptions([])
+    setGeneratedBriefId(null)
+    setSelectedGeneratedIndex(null)
+    setGeneratedTextQa(null)
+    setGeneratedQaLoading(false)
+    setQaRetryByIndex({})
     setTimeout(() => {
       document.getElementById('run-agent')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
@@ -652,6 +676,95 @@ export default function AgentCommandCenter({
       ? agentForms[selectedAgent]
       : {}
   const isSinglePostSelected = selectedAgent === 'content_posting' && contentPostingFlow === 'single'
+
+  const selectedGeneratedOption = useMemo(
+    () => generatedImageOptions.find(o => o.index === selectedGeneratedIndex) ?? null,
+    [generatedImageOptions, selectedGeneratedIndex],
+  )
+
+  const requiresGeneratedTextQa =
+    imageGenerationEnabled && isSinglePostSelected && selectedGeneratedIndex != null
+
+  const isGeneratedComposePath =
+    requiresGeneratedTextQa && generatedTextQa?.passed === true
+
+  async function runTextQaForOption(option: GeneratedImageOption) {
+    setGeneratedQaLoading(true)
+    setGeneratedTextQa(null)
+    setPostImageRequiredError(null)
+    try {
+      const res = await fetch('/api/posts/generate-images/qa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storagePath: option.storagePath }),
+      })
+      const data = await res.json().catch(() => ({}))
+      const qa = data.qa as TextQaResult | undefined
+      if (!qa) {
+        const msg =
+          (typeof data.message === 'string' ? data.message : null) ??
+          (typeof data.error === 'string' ? data.error : null) ??
+          'Text QA could not run.'
+        setPostImageRequiredError(msg)
+        return
+      }
+      setGeneratedTextQa(qa)
+      if (!qa.passed) {
+        setPostImageRequiredError('Text QA failed. Regenerate this option or pick another image.')
+      }
+    } catch {
+      setPostImageRequiredError('Text QA could not run. Try again.')
+    } finally {
+      setGeneratedQaLoading(false)
+    }
+  }
+
+  async function handleRegenerateAfterQaFail() {
+    const option = selectedGeneratedOption
+    if (!option || !generatedBriefId || generatedQaRegenerating) return
+    const retryCount = qaRetryByIndex[option.index] ?? 0
+    if (retryCount >= TEXT_QA_MAX_REGENERATE_RETRIES) return
+
+    setGeneratedQaRegenerating(true)
+    setPostImageRequiredError(null)
+    try {
+      const res = await fetch('/api/posts/generate-images/regenerate-option', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          briefId: generatedBriefId,
+          optionIndex: option.index,
+          brief: option.brief,
+          retryCount,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const msg =
+          (typeof data.message === 'string' ? data.message : null) ??
+          (typeof data.error === 'string' ? data.error : null) ??
+          'Regeneration failed.'
+        setPostImageRequiredError(msg)
+        return
+      }
+      const newOption = data.option as GeneratedImageOption
+      setGeneratedImageOptions(prev =>
+        prev.map(o => (o.index === newOption.index ? newOption : o)),
+      )
+      setQaRetryByIndex(prev => ({ ...prev, [option.index]: retryCount + 1 }))
+      setPostImageMedia({
+        storagePath: newOption.storagePath,
+        mime: newOption.mime,
+        previewUrl: newOption.previewUrl ?? '',
+        filename: `generated-option-${newOption.index + 1}`,
+      })
+      await runTextQaForOption(newOption)
+    } catch {
+      setPostImageRequiredError('Regeneration failed. Try again.')
+    } finally {
+      setGeneratedQaRegenerating(false)
+    }
+  }
 
   const CONSTRAINT_TEMPLATES = [
     { label: 'No discounting', text: 'Never offer discounts, promotions, or reduced pricing without explicit client approval.' },
@@ -885,9 +998,89 @@ export default function AgentCommandCenter({
 
         if (contentPostingFlow === 'single') {
           if (!postImageMedia) {
-            setPostImageRequiredError('Attach the post image before running Single post.')
+            setPostImageRequiredError(
+              imageGenerationEnabled
+                ? 'Generate and pick an image, or upload one, before running Single post.'
+                : 'Attach the post image before running Single post.',
+            )
             return
           }
+
+          if (selectedGeneratedIndex != null && imageGenerationEnabled) {
+            if (generatedQaLoading) {
+              setPostImageRequiredError('Text QA is still running. Wait a moment.')
+              return
+            }
+            if (!generatedTextQa?.passed) {
+              setPostImageRequiredError(
+                'Pick a generated image that passes text QA, or upload your own.',
+              )
+              return
+            }
+            const option = selectedGeneratedOption
+            if (!option || !generatedBriefId) {
+              setPostImageRequiredError('Select a generated image option first.')
+              return
+            }
+
+            setRunTracker({
+              taskId: 'compose',
+              agent: 'content_posting',
+              contentFlow: 'single',
+              phase: 'generating',
+              message: runTrackerGeneratingMessage('content_posting', 'single', true),
+            })
+
+            const composeRes = await fetch('/api/posts/generate-images/compose', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                briefId: generatedBriefId,
+                optionIndex: option.index,
+                brief: option.brief,
+                storagePath: postImageMedia.storagePath,
+                mime: postImageMedia.mime,
+                imageModel: option.model,
+                optionsCount: generatedImageOptions.length,
+                qa: generatedTextQa,
+                instructions,
+                contentFlow: 'single',
+                ...form,
+                priority: taskPriority,
+              }),
+            })
+            const composeData = await composeRes.json().catch(() => ({}))
+            if (!composeRes.ok) {
+              setRunTracker(null)
+              const msg =
+                (typeof composeData.message === 'string' ? composeData.message : null) ??
+                (typeof composeData.error === 'string' ? composeData.error : null) ??
+                'Could not compose and queue this post.'
+              setTaskCreateError(
+                msg === 'INSUFFICIENT_CREDITS'
+                  ? 'Not enough credits for image generation (25 credits).'
+                  : msg,
+              )
+              return
+            }
+
+            const taskId = composeData.taskId as string
+            setSubmitted(true)
+            setTaskInstructions('')
+            setPostImageMedia(null)
+            setGeneratedImageOptions([])
+            setGeneratedBriefId(null)
+            setSelectedGeneratedIndex(null)
+            setGeneratedTextQa(null)
+            setGeneratedQaLoading(false)
+            setQaRetryByIndex({})
+            setSelectedAgent(null)
+            setTimeout(() => setSubmitted(false), 3000)
+            setRunTracker(null)
+            router.push(`/dashboard/agents/approvals?task=${taskId}&queue=post`)
+            return
+          }
+
           input.media_storage_path = postImageMedia.storagePath
           input.media_mime = postImageMedia.mime
           input.image_caption_mode = true
@@ -918,6 +1111,12 @@ export default function AgentCommandCenter({
       setSubmitted(true)
       setTaskInstructions('')
       setPostImageMedia(null)
+      setGeneratedImageOptions([])
+      setGeneratedBriefId(null)
+      setSelectedGeneratedIndex(null)
+      setGeneratedTextQa(null)
+      setGeneratedQaLoading(false)
+      setQaRetryByIndex({})
       setSelectedAgent(null)
       setTimeout(() => setSubmitted(false), 3000)
       if (typeof data.taskId === 'string' && queuedAgent) {
@@ -1215,7 +1414,52 @@ export default function AgentCommandCenter({
                 </label>
 
                 {isSinglePostSelected && (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-4">
+                    {imageGenerationEnabled && (
+                      <>
+                        <PostImageGenerate
+                          disabled={submitting}
+                          sceneDirection={taskInstructions}
+                          onOptionsReady={({ briefId, options }) => {
+                            setGeneratedBriefId(briefId)
+                            setGeneratedImageOptions(options)
+                            setSelectedGeneratedIndex(null)
+                            setPostImageMedia(null)
+                            setPostImageRequiredError(null)
+                            setGeneratedTextQa(null)
+                            setGeneratedQaLoading(false)
+                            setQaRetryByIndex({})
+                          }}
+                        />
+                        <PostImageGeneratePicker
+                          options={generatedImageOptions}
+                          selectedIndex={selectedGeneratedIndex}
+                          disabled={submitting || generatedQaLoading || generatedQaRegenerating}
+                          onSelect={option => {
+                            setSelectedGeneratedIndex(option.index)
+                            setPostImageRequiredError(null)
+                            setGeneratedTextQa(null)
+                            setPostImageMedia({
+                              storagePath: option.storagePath,
+                              mime: option.mime,
+                              previewUrl: option.previewUrl ?? '',
+                              filename: `generated-option-${option.index + 1}`,
+                            })
+                            void runTextQaForOption(option)
+                          }}
+                        />
+                        <PostImageTextQaPanel
+                          qa={generatedTextQa}
+                          loading={generatedQaLoading}
+                          retryCount={selectedGeneratedOption ? (qaRetryByIndex[selectedGeneratedOption.index] ?? 0) : 0}
+                          maxRetries={TEXT_QA_MAX_REGENERATE_RETRIES}
+                          selectedOption={selectedGeneratedOption}
+                          onRegenerate={() => void handleRegenerateAfterQaFail()}
+                          regenerating={generatedQaRegenerating}
+                        />
+                        <p className="text-center text-xs text-text-soft">or upload your own image</p>
+                      </>
+                    )}
                     <PostImageAttach
                       disabled={submitting}
                       attached={postImageMedia ? {
@@ -1225,8 +1469,16 @@ export default function AgentCommandCenter({
                       onAttached={media => {
                         setPostImageRequiredError(null)
                         setPostImageMedia(media)
+                        setSelectedGeneratedIndex(null)
+                        setGeneratedTextQa(null)
+                        setGeneratedQaLoading(false)
                       }}
-                      onClear={() => setPostImageMedia(null)}
+                      onClear={() => {
+                        setPostImageMedia(null)
+                        setSelectedGeneratedIndex(null)
+                        setGeneratedTextQa(null)
+                        setGeneratedQaLoading(false)
+                      }}
                     />
                     {postImageRequiredError && (
                       <p className="mt-2 text-sm text-red-600">{postImageRequiredError}</p>
@@ -1258,18 +1510,21 @@ export default function AgentCommandCenter({
                   || submitted
                   || runTracker?.phase === 'generating'
                   || (isSinglePostSelected && !postImageMedia)
+                  || (requiresGeneratedTextQa && (generatedQaLoading || !generatedTextQa?.passed))
                 }
                 className={`ml-auto min-w-[180px] rounded-xl px-5 py-3 text-sm font-semibold text-text-inverse transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   submitted ? 'bg-status-success' : 'bg-brand-primary hover:bg-[#2563EB]'
                 }`}
               >
                 {runTracker?.phase === 'generating'
-                  ? 'Generating…'
+                  ? (isGeneratedComposePath ? 'Composing…' : 'Generating…')
                   : submitted
-                    ? 'Task queued'
+                    ? (isGeneratedComposePath ? 'Submitted' : 'Task queued')
                     : submitting
-                      ? 'Queuing...'
-                      : `Run ${AGENTS[selectedAgent].name}`}
+                      ? (isGeneratedComposePath ? 'Composing…' : 'Queuing...')
+                      : isGeneratedComposePath
+                        ? 'Submit for approval'
+                        : `Run ${AGENTS[selectedAgent].name}`}
               </button>
             </div>
 

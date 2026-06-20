@@ -46,14 +46,26 @@ export function isCommandCenterAgent(id: AgentId): boolean {
   return !isLegacyContentAgent(id)
 }
 
+/** Prefer the newest output when a task has more than one row. */
+export function latestAgentOutput<T extends { created_at?: string | null }>(
+  outputs: T[] | null | undefined,
+): T | undefined {
+  if (!outputs?.length) return undefined
+  return [...outputs].sort((a, b) => {
+    const da = a.created_at ? new Date(a.created_at).getTime() : 0
+    const db = b.created_at ? new Date(b.created_at).getTime() : 0
+    return db - da
+  })[0]
+}
+
 /** Classify approval-queue items for Posts vs Plans tabs. */
 export function approvalQueueKind(task: {
   agent: string
   input?: Record<string, unknown>
-  agent_outputs?: Array<{ content?: Record<string, unknown> }>
+  agent_outputs?: Array<{ content?: Record<string, unknown>; created_at?: string | null }>
 }): ApprovalQueueKind {
   const input = (task.input ?? {}) as Record<string, unknown>
-  const content = (task.agent_outputs?.[0]?.content ?? {}) as Record<string, unknown>
+  const content = (latestAgentOutput(task.agent_outputs)?.content ?? {}) as Record<string, unknown>
   const agent = task.agent
 
   if (agent === 'post_caption') return 'post'

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import PostsClient from './PostsClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
+import { approvalQueueKind } from '@/lib/agents/contentPosting'
 import * as publisher from '@/lib/social/publisher'
 
 export type PostsDataState = 'mock' | 'live' | 'empty'
@@ -66,6 +67,22 @@ export default async function PostsPage() {
     zernio_connected_platforms: zernioConnectedPlatforms,
   })
 
+  let pendingPostApprovalCount = 0
+  if (profile?.id) {
+    const { data: pendingApprovalTasks } = await supabase
+      .from('agent_tasks')
+      .select('id, agent, input, agent_outputs(content, created_at)')
+      .eq('user_id', profile.id)
+      .eq('requires_approval', true)
+      .eq('status', 'completed')
+      .is('approved_at', null)
+      .is('rejected_at', null)
+
+    pendingPostApprovalCount = (pendingApprovalTasks ?? []).filter(
+      task => approvalQueueKind(task) === 'post',
+    ).length
+  }
+
   return (
     <Suspense>
       <PostsClient
@@ -76,6 +93,7 @@ export default async function PostsPage() {
         zernioProfileIds={profileIds}
         zernioConnectedPlatforms={zernioConnectedPlatforms}
         accounts={accounts}
+        pendingPostApprovalCount={pendingPostApprovalCount}
       />
     </Suspense>
   )
