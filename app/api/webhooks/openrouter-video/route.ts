@@ -136,7 +136,10 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
     return
   }
 
-  // Upload to post-assets bucket — bypass image MIME check (video is handled separately)
+  // Ensure bucket allows video/mp4 (bucket was originally created for images only)
+  await ensureBucketAllowsVideo(supabase)
+
+  // Upload to post-assets bucket
   const storagePath = `${profileId}/${randomUUID()}.mp4`
   const { error: uploadError } = await supabase.storage
     .from(POST_ASSETS_BUCKET)
@@ -185,4 +188,21 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
     .eq('id', taskId)
 
   console.log('[openrouter-video] Video ready, task:', taskId, 'path:', storagePath)
+}
+
+type SupabaseClient = ReturnType<typeof createServiceClient>
+
+/** Update post-assets bucket to allow video/mp4 uploads (idempotent). */
+async function ensureBucketAllowsVideo(supabase: SupabaseClient): Promise<void> {
+  const { data: bucket } = await supabase.storage.getBucket(POST_ASSETS_BUCKET)
+  const currentTypes = (bucket as { allowed_mime_types?: string[] | null } | null)?.allowed_mime_types
+  if (Array.isArray(currentTypes) && currentTypes.includes('video/mp4')) return
+  const updated = [...(currentTypes ?? []), 'video/mp4']
+  const { error } = await supabase.storage.updateBucket(POST_ASSETS_BUCKET, {
+    public: false,
+    allowedMimeTypes: updated,
+  })
+  if (error) {
+    console.error('[openrouter-video] Failed to update bucket MIME types:', error.message)
+  }
 }
