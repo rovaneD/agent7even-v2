@@ -2,6 +2,7 @@ import { openRouterComplete } from '@/lib/agents/openrouter'
 import { resolveImageGenerationModel, type ImageGenerationModelId } from './imageModelCatalog'
 import { prepareBriefForImageModel } from './briefValidation'
 import { GLOBAL_IMAGE_BRIEF_RULES, modelBriefRulesBlock } from './modelBriefRules'
+import type { PostGroundingContext } from './postGrounding'
 
 const DEFAULT_BRIEF_MODEL = 'anthropic/claude-sonnet-4'
 
@@ -37,6 +38,7 @@ export async function composeImageBriefs(opts: {
   count?: number
   brandKitBlock?: string | null
   postContextBlock?: string | null
+  postContext?: PostGroundingContext
   imageModelId?: ImageGenerationModelId
 }): Promise<string[]> {
   const count = opts.count ?? imageOptionCount()
@@ -67,9 +69,9 @@ Brief text is sent directly to the image model — write plain creative directio
 - Describe typography as "bold sans headline" — not "Inter weight 700".
 ${opts.imageModelId === 'photoreal'
     ? '- Photoreal: describe a photograph or abstract scene only — no headlines, charts, infographics, or on-image text in the brief.'
-    : '- If on-image text is appropriate for this model, quote the marketing words only (e.g. headline: "Results Without Reports") — never font or color specs.'}
+    : '- If on-image text is appropriate for this model, quote the marketing words only (e.g. headline: "Results Without Reports") — never font or color specs. Include a CTA button when Offer/CTA is set in the post form.'}
 ${diversityLine}
-Ground every prompt in Voice, Position, and Customer from Foundation — not generic stock SaaS.
+Ground every prompt in Voice, Position, Customer, AND the post ask block — not generic stock SaaS or coffee-chat filler.
 Do NOT mention "Foundation" or "Brand Kit" — write as if briefing a designer.${brandBlock}${postBlock}${directionBlock}`
 
   const result = await openRouterComplete({
@@ -101,5 +103,5 @@ Do NOT mention "Foundation" or "Brand Kit" — write as if briefing a designer.$
   const modelId = opts.imageModelId ?? resolveImageGenerationModel(null).id
   return briefs
     .slice(0, count)
-    .map(brief => prepareBriefForImageModel(brief, modelId, opts.companyName))
+    .map(brief => prepareBriefForImageModel(brief, modelId, opts.companyName, opts.postContext))
 }

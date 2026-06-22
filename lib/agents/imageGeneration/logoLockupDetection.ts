@@ -1,4 +1,6 @@
 import type { TextQaIssue } from './types'
+import type { PostGroundingContext } from './postGrounding'
+import { buildGroundedSocialPostBrief } from './postGrounding'
 
 const LOGO_BRIEF_PATTERNS = [
   /\bwordmark\b/i,
@@ -7,10 +9,13 @@ const LOGO_BRIEF_PATTERNS = [
   /\bbrand mark\b/i,
   /\bmonogram\b/i,
   /\babstract (?:logo|mark|icon|symbol|emblem)\b/i,
-  /\b(?:logo|wordmark|brand icon) (?:as|for) (?:the )?(?:hero|focal|center|centrepiece|centerpiece)\b/i,
-  /\bidentity (?:tile|card|lockup|system)\b/i,
+  /\b(?:logo|wordmark|brand icon) (?:as|for|in) (?:the )?(?:hero|focal|center|centrepiece|centerpiece|corner|header)\b/i,
+  /\bidentity (?:tile|card|lockup|system|grid)\b/i,
   /\bcentered (?:logo|wordmark|brand name)\b/i,
   /\bcompany name (?:as|for) (?:the )?(?:hero|focal|main visual|primary)\b/i,
+  /\b(?:geometric|abstract) (?:grid|pattern|tile|mosaic|mark)\b/i,
+  /\b(?:three|3) (?:bars|pillars|columns) (?:as|for) (?:visual|hero|graphic)\b/i,
+  /\bbrand icon (?:top|bottom|corner)\b/i,
 ]
 
 /** Brief steers toward logo/identity design instead of a social post. */
@@ -94,7 +99,15 @@ export function detectVagueSocialBrief(brief: string): TextQaIssue | null {
   return null
 }
 
-export function buildSocialPostReplacementBrief(companyName: string, themeHint?: string): string {
-  const theme = themeHint?.trim() || 'the post goal and customer pain point'
-  return `Instagram/LinkedIn post graphic for ${companyName}: full-bleed social layout with one bold marketing headline (under 8 words) about ${theme}, optional one short supporting line or CTA button. Use brand colors in the design only — NOT a logo tile, wordmark lockup, monogram, or abstract brand-mark symbol. Do NOT make "${companyName}" the hero text; use a post-specific headline instead. Company name may appear small in a corner at most.`
+export function buildSocialPostReplacementBrief(
+  companyName: string,
+  themeHint?: string | PostGroundingContext,
+): string {
+  if (themeHint && typeof themeHint === 'object') {
+    return buildGroundedSocialPostBrief(companyName, themeHint)
+  }
+  const theme = typeof themeHint === 'string' ? themeHint.trim() : ''
+  return buildGroundedSocialPostBrief(companyName, {
+    postGoal: theme || 'the post goal and customer pain point',
+  })
 }

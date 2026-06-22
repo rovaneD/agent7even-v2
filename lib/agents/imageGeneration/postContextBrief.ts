@@ -18,8 +18,10 @@ export function formatPostContextBriefBlock(form: Record<string, string> | undef
   if (lines.length === 0) return null
 
   return [
-    '## This post ask (honor in every image option)',
+    '## This post ask (honor in every image option — non-negotiable)',
     ...lines,
-    '- Visuals should support this specific post — not generic brand awareness only.',
+    '- Visuals must support this specific post — not generic brand awareness only.',
+    '- Quote a concrete headline tied to Post goal and customer pain; include a visible CTA button or line when Offer/CTA is set.',
+    '- Do NOT use vague lifestyle scenes (coffee chat, generic "boost your brand") unless the post ask explicitly requests them.',
   ].join('\n')
 }

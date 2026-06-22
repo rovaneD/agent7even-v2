@@ -12,6 +12,7 @@ import {
 } from './brandKitSnapshot'
 import { resolveImageGenerationModel, type ImageGenerationModelId } from './imageModelCatalog'
 import { formatPostContextBriefBlock } from './postContextBrief'
+import { postGroundingFromForm, type PostGroundingContext } from './postGrounding'
 import { buildTextOnlyRegenBrief, detectImageEditMode, type ImageEditMode } from './editPrompt'
 import { generateImageEditFromSource, generateImageFromBrief, isGoogleImageModel } from './openRouterImage'
 import { runTextQaGate } from './textQaGate'
@@ -65,6 +66,8 @@ export async function generateImageOptions(opts: {
     }
   }
 
+  const postContext = postGroundingFromForm(opts.postContext)
+
   const briefs = await composeImageBriefs({
     foundationMarkdown,
     companyName: opts.companyName,
@@ -72,6 +75,7 @@ export async function generateImageOptions(opts: {
     count,
     brandKitBlock,
     postContextBlock: formatPostContextBriefBlock(opts.postContext),
+    postContext,
     imageModelId: modelEntry.id,
   })
 
@@ -91,7 +95,8 @@ export async function generateImageOptions(opts: {
       ensureOptionPassesQa({
         profileId: opts.profileId,
         companyName: opts.companyName,
-        postGoal: opts.postContext?.postGoal?.trim(),
+        postContext,
+        includeLogo: opts.includeLogo === true,
         briefId,
         optionIndex: index,
         brief: briefs[index]!,
@@ -147,7 +152,8 @@ async function uploadRegeneratedOption(opts: {
 async function ensureOptionPassesQa(opts: {
   profileId: string
   companyName: string
-  postGoal?: string
+  postContext?: PostGroundingContext
+  includeLogo?: boolean
   briefId: string
   optionIndex: number
   brief: string
@@ -155,7 +161,7 @@ async function ensureOptionPassesQa(opts: {
   imageModelId: ImageGenerationModelId
   initialBytes: Buffer
 }): Promise<GenerateImageOptionsResult['options'][number]> {
-  let brief = prepareBriefForImageModel(opts.brief, opts.imageModelId, opts.companyName)
+  let brief = prepareBriefForImageModel(opts.brief, opts.imageModelId, opts.companyName, opts.postContext)
   let bytes = opts.initialBytes
 
   for (let attempt = 0; attempt <= GENERATION_OPTION_QA_MAX_RETRIES; attempt++) {
@@ -173,6 +179,8 @@ async function ensureOptionPassesQa(opts: {
       profileId: opts.profileId,
       companyName: opts.companyName,
       storagePath: option.storagePath,
+      postContext: opts.postContext,
+      includeLogo: opts.includeLogo,
     })
     if (qa.passed) return option
 
@@ -185,7 +193,7 @@ async function ensureOptionPassesQa(opts: {
       qa.issues,
       opts.imageModelId,
       opts.companyName,
-      opts.postGoal,
+      opts.postContext,
     )
     bytes = await generateImageFromBrief(opts.imageModel, brief)
   }

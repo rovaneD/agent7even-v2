@@ -4,6 +4,7 @@ import {
   detectLogoLockupBrief,
   detectVagueSocialBrief,
 } from './logoLockupDetection'
+import { detectBriefMissingPostGrounding, type PostGroundingContext } from './postGrounding'
 import type { TextQaIssue } from './types'
 
 const PHOTOREAL_FORBIDDEN_BRIEF = [
@@ -35,6 +36,7 @@ const FONT_SPEC_IN_BRIEF =
 export function validateBriefForModel(
   brief: string,
   modelId: ImageGenerationModelId,
+  postContext?: PostGroundingContext,
 ): TextQaIssue[] {
   const issues: TextQaIssue[] = []
 
@@ -84,6 +86,9 @@ export function validateBriefForModel(
   const logoIssue = detectLogoLockupBrief(brief) ?? detectVagueSocialBrief(brief)
   if (logoIssue) issues.push(logoIssue)
 
+  const groundingIssue = detectBriefMissingPostGrounding(brief, postContext)
+  if (groundingIssue) issues.push(groundingIssue)
+
   return issues
 }
 
@@ -121,8 +126,9 @@ export function prepareBriefForImageModel(
   brief: string,
   modelId: ImageGenerationModelId,
   companyName: string,
+  postContext?: PostGroundingContext,
 ): string {
-  const issues = validateBriefForModel(brief, modelId)
+  const issues = validateBriefForModel(brief, modelId, postContext)
   if (issues.length === 0) return stripDesignSpecsFromBrief(brief)
 
   const hasPhotorealLayoutIssue = modelId === 'photoreal'
@@ -133,9 +139,11 @@ export function prepareBriefForImageModel(
     return `Editorial photograph for ${companyName} social post: an authentic, cinematic scene that visually metaphorizes ${theme}. Natural lighting, shallow depth of field, real environment (workspace detail, hands at work, decisive moment — never a chart, diagram, infographic, or pillar layout). Apply the brand palette through scene color grading only — never as labels. Absolutely no text, typography, headlines, hex codes, color names, font specs, or graphic overlays anywhere in the frame.`
   }
 
-  const hasLogoLockupIssue = issues.some(i => i.code === 'brief_logo_lockup')
-  if (hasLogoLockupIssue) {
-    return buildSocialPostReplacementBrief(companyName, extractThemeHint(brief))
+  const needsGroundedRewrite = issues.some(
+    i => i.code === 'brief_logo_lockup' || i.code === 'brief_vague',
+  )
+  if (needsGroundedRewrite) {
+    return buildSocialPostReplacementBrief(companyName, postContext ?? { postGoal: extractThemeHint(brief) })
   }
 
   const stripped = stripDesignSpecsFromBrief(brief)
@@ -156,13 +164,13 @@ export function tightenBriefForModel(
 export function buildSafeFallbackBrief(
   modelId: ImageGenerationModelId,
   companyName: string,
-  themeHint?: string,
+  postContext?: PostGroundingContext,
 ): string {
   if (modelId === 'photoreal') {
     return `Professional editorial photograph for ${companyName}: natural lighting, shallow depth of field, authentic business metaphor (hands at work, thoughtful pause, movement in a real environment). Absolutely no text, typography, charts, labels, hex codes, or graphic overlays anywhere in the frame.`
   }
 
-  return buildSocialPostReplacementBrief(companyName, themeHint)
+  return buildSocialPostReplacementBrief(companyName, postContext)
 }
 
 export function appendQaFixToBrief(
@@ -170,14 +178,26 @@ export function appendQaFixToBrief(
   issues: TextQaIssue[],
   modelId: ImageGenerationModelId,
   companyName: string,
-  themeHint?: string,
+  postContext?: PostGroundingContext,
 ): string {
   if (modelId === 'photoreal') {
-    return buildSafeFallbackBrief(modelId, companyName, themeHint)
+    return buildSafeFallbackBrief(modelId, companyName, postContext)
   }
 
-  if (issues.some(i => i.code === 'logo_lockup' || i.code === 'brief_logo_lockup')) {
-    return buildSocialPostReplacementBrief(companyName, themeHint ?? extractThemeHint(brief))
+  const needsGroundedRewrite = issues.some(
+    i =>
+      i.code === 'logo_lockup'
+      || i.code === 'brief_logo_lockup'
+      || i.code === 'vague_headline'
+      || i.code === 'missing_cta'
+      || i.code === 'invented_logo'
+      || i.code === 'brief_vague',
+  )
+  if (needsGroundedRewrite) {
+    return buildSocialPostReplacementBrief(
+      companyName,
+      postContext ?? { postGoal: extractThemeHint(brief) },
+    )
   }
 
   const summary = issues.map(i => i.message).join(' ')

@@ -40,4 +40,6 @@ export const GLOBAL_IMAGE_BRIEF_RULES = `## Hard rules (every image option)
 - Stay in the business category described in Foundation — B2B marketing SaaS for this brand, not random small-business stock scenarios.
 - No fake UI mockups with gibberish labels or lorem filler in prominent areas.
 - On-image copy must be real marketing words only — not brief instructions, model names, or metadata.
-- Social POST images only — NEVER brief a logo lockup, wordmark tile, monogram hero, or abstract brand-mark symbol. The company name must not be the main visual; use a post-specific headline about the offer or pain point instead.`
+- Social POST images only — NEVER brief a logo lockup, wordmark tile, monogram hero, or abstract brand-mark symbol. The company name must not be the main visual; use a post-specific headline about the offer or pain point instead.
+- Every option MUST tie to the post form (Post goal, Offer/CTA, Audience) — quote a specific headline and include a visible CTA when an offer is provided. No generic filler like "Boost your brand" or "Real talk over coffee" unless the post ask explicitly requests that scene.
+- When Brand Kit is on but logo is off: colors and typography only — NEVER invent logo icons, geometric identity grids, or wordmark lockups.`

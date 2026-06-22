@@ -5,6 +5,7 @@ import { loadBrandKitGenerationSnapshot } from './brandKitSnapshot'
 import { detectDesignSpecInImageText } from './designSpecLeakDetection'
 import { detectFontMetadataInImageText } from './fontLeakDetection'
 import { detectLogoLockupInImageText } from './logoLockupDetection'
+import { detectGenericHeadlineInImageText, type PostGroundingContext } from './postGrounding'
 import { loadBrandTokensForQa } from './brandTokens'
 import type { TextQaResult } from './types'
 
@@ -17,7 +18,7 @@ Return ONLY valid JSON — no markdown fences:
   "transcribedText": "full transcription or empty string if no text",
   "lines": ["each distinct text line"],
   "issues": [
-    { "code": "typo|garbled|wrong_brand|unintended_text", "message": "specific issue" }
+    { "code": "typo|garbled|wrong_brand|unintended_text|invented_logo|vague_headline|missing_cta", "message": "specific issue" }
   ],
   "passed": true
 }
@@ -30,12 +31,41 @@ Rules for passed=false:
 - Font family names, font weights, or CSS typography specs visible as text (e.g. "Inter 600", "Lora Bold", "font-weight: 600") — these are design metadata, not marketing copy
 - Hex color codes (#RGB or #RRGGBB) or color swatch legends visible as text
 - Image is primarily a logo lockup, wordmark tile, monogram, or abstract brand mark with the company name — social posts need a marketing headline about the post topic, not identity design
+- Headline is generic stock filler unrelated to the post ask (e.g. "Boost your brand", "Real talk over coffee") when a specific post goal is provided below
+- Post form includes an offer/CTA but the image has no visible call-to-action tied to it
+{{LOGO_RULE}}
+{{POST_CONTEXT}}
 
 Rules for passed=true:
 - No readable text in the image, OR
-- All prominent text is legible and brand names are spelled correctly
+- All prominent text is legible, connects to the post ask, and brand names are spelled correctly
 
 Known brand name(s) to verify: {{BRANDS}}`
+
+function buildQaInstruction(opts: {
+  brandTokens: string[]
+  companyName: string
+  postContext?: PostGroundingContext
+  includeLogo?: boolean
+}): string {
+  const logoRule = opts.includeLogo
+    ? '- User opted IN to include a logo — a small logo placement zone is OK; still fail invented wrong logos that do not match uploaded assets.'
+    : '- User did NOT request a logo on this post — fail if the image includes ANY invented logo icon, wordmark beside a symbol, geometric identity grid, abstract brand mark, or company name paired with a graphic mark (flag code invented_logo). Colors and typography only.'
+
+  const postLines: string[] = []
+  if (opts.postContext?.postGoal) postLines.push(`Post goal: ${opts.postContext.postGoal}`)
+  if (opts.postContext?.offer) postLines.push(`Offer / CTA: ${opts.postContext.offer}`)
+  if (opts.postContext?.audience) postLines.push(`Audience: ${opts.postContext.audience}`)
+  if (opts.postContext?.mustInclude) postLines.push(`Must include: ${opts.postContext.mustInclude}`)
+  const postBlock = postLines.length > 0
+    ? `\nPost ask (headline and CTA must connect to this):\n${postLines.join('\n')}`
+    : ''
+
+  return QA_INSTRUCTION
+    .replace('{{BRANDS}}', opts.brandTokens.join(' · ') || opts.companyName)
+    .replace('{{LOGO_RULE}}', logoRule)
+    .replace('{{POST_CONTEXT}}', postBlock)
+}
 
 function parseQaJson(raw: string): {
   transcribedText: string
@@ -72,9 +102,16 @@ export async function runTextQaGate(opts: {
   profileId: string
   companyName: string
   storagePath: string
+  postContext?: PostGroundingContext
+  includeLogo?: boolean
 }): Promise<TextQaResult> {
   const brandTokens = await loadBrandTokensForQa(opts.profileId, opts.companyName)
-  const instruction = QA_INSTRUCTION.replace('{{BRANDS}}', brandTokens.join(' · ') || opts.companyName)
+  const instruction = buildQaInstruction({
+    brandTokens,
+    companyName: opts.companyName,
+    postContext: opts.postContext,
+    includeLogo: opts.includeLogo,
+  })
 
   let visionContent
   try {
@@ -105,7 +142,14 @@ export async function runTextQaGate(opts: {
   const fontLeakIssues = detectFontMetadataInImageText(parsed.transcribedText, fontFamilies)
   const designLeakIssues = detectDesignSpecInImageText(parsed.transcribedText, colorNames)
   const logoLockupIssues = detectLogoLockupInImageText(parsed.transcribedText, brandTokens)
-  const mergedIssues = [...parsed.issues, ...fontLeakIssues, ...designLeakIssues, ...logoLockupIssues]
+  const groundingIssues = detectGenericHeadlineInImageText(parsed.transcribedText, opts.postContext)
+  const mergedIssues = [
+    ...parsed.issues,
+    ...fontLeakIssues,
+    ...designLeakIssues,
+    ...logoLockupIssues,
+    ...groundingIssues,
+  ]
   const passed = parsed.passed && mergedIssues.length === 0
 
   return {

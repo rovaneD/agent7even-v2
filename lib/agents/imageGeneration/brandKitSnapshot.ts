@@ -128,7 +128,8 @@ export function formatBrandKitBriefBlock(
 
   lines.push(
     'Layout rules:',
-    '- Prefer minimal on-image text (one short headline max, under 8 words).',
+    '- Prefer minimal on-image text (one short headline max, under 8 words) plus one CTA button or line when the post form includes an offer.',
+    '- Every image must connect to the post goal and offer — no generic "boost your brand" or coffee-chat filler.',
     '- Avoid carousel multi-step copy, fake UI chrome, and generic stock-SaaS templates.',
     `- Brand name spelling when text appears: "${opts.companyName}" (exact casing and digits).`,
   )
@@ -139,7 +140,11 @@ export function formatBrandKitBriefBlock(
       '- Do NOT invent a new wordmark — simple placement zone only; real logo may be composited later.',
     )
   } else {
-    lines.push('- Do NOT include any logo, wordmark, monogram, or brand icon in the image.')
+    lines.push(
+      '- Do NOT include any logo, wordmark, monogram, brand icon, or abstract identity mark in the image.',
+      '- Do NOT invent or approximate a logo (no triangle-A marks, geometric grids, pillar bars as fake logos, or company name beside a symbol).',
+      '- Brand Kit here means colors + typography only — identity marks are excluded for this post.',
+    )
   }
 
   return lines.join('\n')
