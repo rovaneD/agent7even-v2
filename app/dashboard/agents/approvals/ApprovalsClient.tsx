@@ -55,9 +55,16 @@ interface ApprovalTask {
   agent_outputs: AgentOutput[]
 }
 
+interface RunningVideoTask {
+  id: string
+  createdAt: string
+  input: Record<string, unknown>
+}
+
 interface Props {
   profileId: string
   initialTasks: ApprovalTask[]
+  runningVideoTasks?: RunningVideoTask[]
   viralHooksHints?: ViralHooksDraftHints
 }
 
@@ -463,9 +470,135 @@ function ApprovalItem({
   )
 }
 
+// ── VideoGeneratingCard ────────────────────────────────────────────────────
+
+function prettyModelLabel(slug: string): string {
+  const map: Record<string, string> = {
+    'kwaivgi/kling-v3.0-std':      'Kling v3.0 Standard',
+    'kwaivgi/kling-v3.0-pro':      'Kling v3.0 Pro',
+    'kwaivgi/kling-video-o1':      'Kling Video O1',
+    'bytedance/seedance-2.0-fast': 'Seedance 2.0 Fast',
+    'bytedance/seedance-2.0':      'Seedance 2.0',
+    'bytedance/seedance-1-5-pro':  'Seedance 1.5 Pro',
+    'google/veo-3.1':              'Google Veo 3.1',
+    'google/veo-3.1-fast':         'Google Veo 3.1 Fast',
+    'google/veo-3.1-lite':         'Google Veo 3.1 Lite',
+    'xai/grok-imagine-video':      'xAI Grok Imagine Video',
+    'minimax/hailuo-2.3':          'MiniMax Hailuo 2.3',
+    'alibaba/wan-2.7':             'Alibaba Wan 2.7',
+    'alibaba/wan-2.6':             'Alibaba Wan 2.6',
+    'openai/sora-2-pro':           'OpenAI Sora 2 Pro',
+  }
+  return map[slug] ?? slug
+}
+
+function VideoGeneratingCard({ task, onCheckReady }: {
+  task: RunningVideoTask
+  onCheckReady: () => Promise<void>
+}) {
+  const [checking, setChecking] = useState(false)
+  const [elapsed, setElapsed]   = useState(
+    Math.floor((Date.now() - new Date(task.createdAt).getTime()) / 1000),
+  )
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - new Date(task.createdAt).getTime()) / 1000))
+    }, 10_000)
+    return () => clearInterval(id)
+  }, [task.createdAt])
+
+  const totalEstSec = 5 * 60
+  const pct      = Math.min(Math.round((elapsed / totalEstSec) * 100), 92)
+  const isLong   = elapsed > totalEstSec
+  const minsAgo  = Math.floor(elapsed / 60)
+  const timeLabel = minsAgo < 1 ? 'just now' : `${minsAgo}m ago`
+
+  const modelSlug = (task.input.video_model as string | undefined) ?? ''
+  const postGoal  = (task.input.postGoal   as string | undefined) ?? ''
+
+  async function handleCheck() {
+    if (checking) return
+    setChecking(true)
+    try { await onCheckReady() } finally { setChecking(false) }
+  }
+
+  return (
+    <div style={{
+      background: '#F0F9FF', border: '0.5px solid #BAE6FD',
+      borderRadius: 14, padding: '18px 20px', marginBottom: 16,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', background: '#3B82F6',
+            display: 'inline-block', animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+          }} />
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: '#0C4A6E' }}>Video generating…</span>
+        </div>
+        <span style={{ fontSize: 11, color: '#7DD3FC' }}>Started {timeLabel}</span>
+      </div>
+
+      <div style={{ display: 'flex', gap: 20, marginBottom: 14, flexWrap: 'wrap' }}>
+        {postGoal && (
+          <div>
+            <p style={{ fontSize: 10, fontWeight: 600, color: '#7DD3FC', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Goal</p>
+            <p style={{ fontSize: 12.5, color: '#0C4A6E' }}>{postGoal}</p>
+          </div>
+        )}
+        {modelSlug && (
+          <div>
+            <p style={{ fontSize: 10, fontWeight: 600, color: '#7DD3FC', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Model</p>
+            <p style={{ fontSize: 12.5, color: '#0C4A6E' }}>{prettyModelLabel(modelSlug)}</p>
+          </div>
+        )}
+        <div>
+          <p style={{ fontSize: 10, fontWeight: 600, color: '#7DD3FC', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Format</p>
+          <p style={{ fontSize: 12.5, color: '#0C4A6E' }}>9:16 · 8 sec</p>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+          <span style={{ fontSize: 11, color: '#38BDF8' }}>
+            {isLong ? 'Taking a little longer than usual…' : 'Rendering video'}
+          </span>
+          <span style={{ fontSize: 11, color: '#38BDF8' }}>{pct}%</span>
+        </div>
+        <div style={{ height: 6, background: '#BAE6FD', borderRadius: 99, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', width: `${pct}%`,
+            background: 'linear-gradient(90deg, #3B82F6, #60A5FA)',
+            borderRadius: 99, transition: 'width 2s ease',
+          }} />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button
+          type="button"
+          onClick={() => void handleCheck()}
+          disabled={checking}
+          style={{
+            fontSize: 12, fontWeight: 500, color: '#1D4ED8',
+            background: 'white', border: '0.5px solid #93C5FD',
+            borderRadius: 7, padding: '5px 12px', cursor: 'pointer',
+            opacity: checking ? 0.6 : 1, fontFamily: 'inherit',
+          }}
+        >
+          {checking ? 'Checking…' : 'Check if ready'}
+        </button>
+        <span style={{ fontSize: 11, color: '#7DD3FC' }}>
+          Your video will appear here automatically when it&apos;s done.
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
-export default function ApprovalsClient({ profileId, initialTasks, viralHooksHints }: Props) {
+export default function ApprovalsClient({ profileId, initialTasks, runningVideoTasks = [], viralHooksHints }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const autoExpandId = searchParams.get('task')
@@ -521,6 +654,12 @@ export default function ApprovalsClient({ profileId, initialTasks, viralHooksHin
     setRefreshing(true)
     router.refresh()
     setTimeout(() => setRefreshing(false), 1500)
+  }
+
+  async function handleReconcile() {
+    const res  = await fetch('/api/posts/reconcile-video', { method: 'POST' })
+    const data = await res.json().catch(() => ({})) as { processed?: number }
+    if ((data.processed ?? 0) > 0) router.refresh()
   }
 
   // Scroll to auto-expanded task
@@ -733,8 +872,13 @@ export default function ApprovalsClient({ profileId, initialTasks, viralHooksHin
         </div>
       )}
 
+      {/* Generating video cards */}
+      {runningVideoTasks.map(t => (
+        <VideoGeneratingCard key={t.id} task={t} onCheckReady={handleReconcile} />
+      ))}
+
       {/* Empty state */}
-      {tasks.length === 0 && (
+      {tasks.length === 0 && runningVideoTasks.length === 0 && (
         <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
           <CheckCircle2 size={32} color="#E2E8F0" style={{ marginBottom: 12 }} />
           <p style={{ fontSize: 14, color: '#aaa', margin: 0 }}>Queue is clear</p>
