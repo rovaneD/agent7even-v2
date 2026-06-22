@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useMayaContext } from '@/hooks/useMayaContext'
+import { buildAssetsMayaContext } from '@/lib/maya/summaries/assetsContext'
 import {
   Bookmark,
   Folder,
@@ -53,6 +55,17 @@ export default function AssetsClient({
     () => assets.find(a => a.id === previewAssetId) ?? null,
     [assets, previewAssetId],
   )
+
+  const mayaContext = useMemo(
+    () =>
+      buildAssetsMayaContext({
+        companyName,
+        assetCount: assets.length,
+        folderCount: folders.length,
+      }),
+    [companyName, assets.length, folders.length],
+  )
+  useMayaContext(mayaContext)
 
   useEffect(() => {
     if (!previewAssetId) return

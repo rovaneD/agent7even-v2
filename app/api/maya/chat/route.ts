@@ -10,6 +10,7 @@ import { calculateCost, CREDIT_COST } from '@/lib/agents/cost'
 import { loadFoundationContext } from '@/lib/agents/loadFoundationContext'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { buildImageContextCapabilityPrompt } from '@/lib/posts/imageContextCapabilities'
+import { MAYA_NO_FAKE_ACTIONS } from '@/lib/maya/voiceRules'
 
 const CHAT_CREDITS = CREDIT_COST.light  // 2 credits per turn
 const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas, isHelpMode, attachments } = await req.json()
+  const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas, isHelpMode, attachments, chatSurface } = await req.json()
   const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
   if (!converted?.length) {
@@ -26,10 +27,10 @@ export async function POST(req: Request) {
   }
 
   const MODE_PROMPTS: Record<string, string> = {
-    'Build a campaign': 'The user wants to build a 30-day marketing campaign. Start by confirming their primary goal for this month based on what you know from their foundation. Ask one clarifying question to get started.',
-    'Create content': 'The user wants to create marketing content. Ask them what type of content they need today — caption, email, ad copy, or something else. Keep it to one question.',
-    'Analyze my marketing': 'The user wants to analyze their marketing performance. Ask them what channel or campaign they want to review first.',
-    'Just talk to Maya': 'The user wants an open conversation. Greet them warmly and ask what is on their mind today regarding their marketing.',
+    'Build a campaign': 'The user wants a 30-day marketing campaign. Ask at most ONE clarifying question, then either outline the approach or tell them to open Campaigns for the full builder. Do not interview them for six turns.',
+    'Create content': 'The user wants marketing content now. Ask at most ONE question if channel or format is unclear, then draft the deliverable (caption, email, ad copy) or send them to Agents → Content Posting → Single post with exact steps. Do not loop on strategy questions.',
+    'Analyze my marketing': 'The user wants to analyze performance. Ask at most ONE question if the channel is unclear, then give concrete analysis steps or insights from Foundation. Move to action quickly.',
+    'Just talk to Maya': 'Open conversation. Greet briefly and ask what they want to accomplish today — one question only.',
   }
 
   // Extract mode/task from messages; replace sentinels with neutral openers
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
     if (text === '__PAGE_CONTEXT__') {
       modeInstruction = `The user opened Maya from the page they are currently working on. Use the PAGE CONTEXT/CANVAS CONTEXT below as your primary frame.
 
-Start by naming the page or workflow they are in and offer the most useful next-step help for that exact screen. Do not show the generic Maya mode menu. Do not ask what business they run. Ask one practical question that helps them get a better outcome from the current page.`
+Start by naming the page or workflow they are in and offer the most useful next step for that screen. Do not show the generic Maya mode menu. Do not ask what business they run. Ask at most ONE practical question, then give steps or a draft — do not run a long discovery interview.`
       return { ...msg, content: "I'm working on this page." }
     }
     if (text.startsWith('__TASK__')) {
@@ -201,7 +202,7 @@ PRODUCT KNOWLEDGE — AGENT7EVEN MAYA PLATFORM:
 
 NAVIGATION SECTIONS:
 - Dashboard: Overview of campaigns, morning digest, agent activity, and quick stats
-- Agents: 10 automated marketing agents. Run them manually, schedule them, or review their queued outputs in the approval queue. Each agent has a "What NOT to do" constraints field for brand safety.
+- Agents: Run marketing agents from the Command Center. **Content Posting** = single Instagram/LinkedIn post (attach or generate image + caption → approval → publish). **Weekly Content** = 7-day plan. Other agents: Campaign Builder, Brand Voice, etc. Outputs that need review land in Agents → Approvals.
 - Campaigns: Two creation modes — Guided (3 steps: pick audience segment → set goal → set timeline/budget) or Open Canvas (chat with Maya → she asks questions → generates the full plan). Each campaign has a "Do this today" action list and a week-by-week schedule. Click "Do this with Maya →" on any task to get help executing it.
 - Services: Add-on work from the Agent7even team (design, web, photography, etc.). Browse, request, and track status.
 - Content Calendar: Week-by-week content plan generated from campaigns. Shows platform, content type, estimated time.
@@ -224,9 +225,9 @@ Foundation is a 5-step setup that collects deep business context — description
 THE APPROVAL QUEUE:
 Some agents (like Campaign Builder and Brand Voice Guardian) require approval before their output is saved. These outputs appear in Agents → Approvals. You can expand each item, edit it, approve it, or reject it with a reason (rejection feeds back to Maya as training signal).
 
-IMAGE-CONTEXT CAPTIONS (Post Caption agent):
+IMAGE-CONTEXT CAPTIONS + GENERATION:
 ${buildImageContextCapabilityPrompt()}
-Use Agents → Post Caption: attach one image, run the agent, review in Approvals, then publish. Weekly Content is for multi-day plans — not single image posts.
+Single post: Agents → Content Posting → Single post → set Post goal → attach image or Generate with Maya → Run → Approvals. Saved images: Assets page → Use for post. You cannot start agents from this help chat — give literal navigation steps.
 
 YOUR ROLE IN HELP MODE:
 You are a helpful guide for the Maya platform. Answer questions about how to use any feature. Be specific, direct, and practical. Walk users through exact steps. Do not talk about pricing unless asked. Do not speculate about features that don't exist. If someone asks how to do something, give them the literal steps — not vague suggestions.
@@ -249,27 +250,47 @@ Do NOT say this until you have: what they're promoting, who the audience is, and
 `
       : ''
 
+    const isSidebarChat = chatSurface === 'sidebar' || (!chatSurface && !isOpenCanvas && !isHelpMode)
+
+    const sidebarChatSection = isSidebarChat ? `
+SIDEBAR CHAT — CRITICAL (this panel cannot run agents):
+${MAYA_NO_FAKE_ACTIONS}
+- Never say "I'm spinning up the Campaign Builder" or that an agent is running — nothing starts from sidebar chat.
+- When the user asks to run Content Posting, post content, or "one pass" / one post: give exact steps — Sidebar → Agents → Content Posting → Single post → Post goal → image (upload, Generate with Maya, or Assets → Use for post) → Run → Approvals. Or draft the caption/post copy right here if they only need words.
+- Content Posting is NOT Campaign Builder. Do not pivot to 30-day plans unless they explicitly ask for a campaign.
+- If their intent is clear, ask at most ONE clarifying question total before acting (steps or draft). No six-question interviews.
+` : ''
+
+    const orchestrateSection =
+      chatSurface === 'maya_shell' && !isHelpMode && !isOpenCanvas
+        ? `WHEN TO ORCHESTRATE — after 4–6 meaningful exchanges on campaign planning only:
+Say exactly: "Got everything I need. I'm spinning up the Campaign Builder now — it'll have your full 30-day plan ready in about a minute."
+This exact phrase triggers the Campaign Builder on the Maya page. Only use for full campaign builds — never for a single post or Content Posting.
+
+`
+        : ''
+
     const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
+Speak as "I" / "me" always — never refer to yourself as "Maya" or "she" in replies.
 Never use emoji in your responses. Use plain text only.
 ${helpSection}
+${sidebarChatSection}
 ${contextSection}
 ${canvasSection}${foundationSection}
 HOW YOU OPEN:
-One sentence. Pick one specific thing you know — their goal, their main challenge, or their differentiator — and lead with it. Then ask one direct question. Do not summarize or recite their foundation back at them. Do not list everything you know.
+One sentence. Pick one specific thing you know — their goal, their main challenge, or their differentiator — and lead with it. Then ask one direct question OR give the next step. Do not summarize or recite their foundation back at them. Do not list everything you know.
 
-Bad: "I know you're running [company] — you're targeting [customer] who are [frustration] and you position yourself as [differentiator]..."
+Bad: "I know you're running [company] — you're targeting [customer] who are [frustration]..."
 Bad: "What kind of business do you run?"
+Bad: "Maya will create your opening post — give her 30 seconds."
 Good: "Your goal this month is your first 10 customers — what does your current Instagram look like?"
+Good: "I'll draft your opening Instagram post now — here's option one:"
 ${modeSection}${editSection}${openCanvasSection}
 
 RESPONSE LENGTH — CRITICAL:
 Maximum 3 sentences per reply. Stop. Never output more than 4 sentences before pausing for a response.
 
-${isOpenCanvas || isHelpMode ? '' : `WHEN TO ORCHESTRATE — after 4–6 meaningful exchanges:
-Say exactly: "Got everything I need. I'm spinning up the Campaign Builder now — it'll have your full 30-day plan ready in about a minute."
-This exact phrase triggers the Campaign Builder. Only use it when you genuinely have enough context.
-
-`}PERSONALITY:
+${orchestrateSection}PERSONALITY:
 Direct. Warm. A little energetic. Never say "Great!" or "Absolutely!" Just respond and move.
 Never use markdown in conversation. Save structure for the plan.`
 

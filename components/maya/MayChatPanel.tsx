@@ -150,7 +150,7 @@ export default function MayChatPanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const transport = useMemo(() => new DefaultChatTransport({
     api: '/api/maya/chat',
-    body: { canvasContext, ...(isHelpMode ? { isHelpMode: true } : {}) },
+    body: { canvasContext, chatSurface: 'sidebar' as const, ...(isHelpMode ? { isHelpMode: true } : {}) },
     fetch: async (url, init) => {
       const body = JSON.parse((init?.body as string) ?? '{}')
       if (canvasDataRef.current) body.canvasData = canvasDataRef.current

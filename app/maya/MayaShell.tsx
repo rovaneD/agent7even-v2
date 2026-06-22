@@ -292,7 +292,7 @@ export default function MayaShell({
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/maya/chat',
-      body: { profile: profileData, isEdit, priorOption },
+      body: { profile: profileData, isEdit, priorOption, chatSurface: 'maya_shell' as const },
       fetch: async (url, init) => {
         const response = await fetch(url, init)
         if (!response.ok) {
