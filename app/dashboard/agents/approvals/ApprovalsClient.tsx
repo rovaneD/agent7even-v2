@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildApprovalsMayaContext } from '@/lib/maya/summaries/agentsContext'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronDown, ChevronUp, CheckCircle2, RotateCcw, ArrowLeft, Filter, SortDesc, Image as ImageIcon, CalendarDays, FileText } from 'lucide-react'
 import { AGENTS, AgentId } from '@/lib/agents/registry'
@@ -466,9 +466,10 @@ function ApprovalItem({
 // ── Main ───────────────────────────────────────────────────────────────────
 
 export default function ApprovalsClient({ profileId, initialTasks, viralHooksHints }: Props) {
+  const router       = useRouter()
   const searchParams = useSearchParams()
   const autoExpandId = searchParams.get('task')
-  const queueParam = searchParams.get('queue')
+  const queueParam   = searchParams.get('queue')
 
   const [tasks,          setTasks]          = useState<ApprovalTask[]>(initialTasks)
   const [expanded,       setExpanded]       = useState<Set<string>>(new Set(autoExpandId ? [autoExpandId] : []))
@@ -484,6 +485,32 @@ export default function ApprovalsClient({ profileId, initialTasks, viralHooksHin
   const [bulkNote,       setBulkNote]       = useState('')
   const [bulkLoading,    setBulkLoading]    = useState(false)
   const [approveNotice,  setApproveNotice]  = useState<{ message: string; postsLink?: string } | null>(null)
+  const [newItemsBanner, setNewItemsBanner] = useState(false)
+  const [refreshing,     setRefreshing]     = useState(false)
+
+  // Track which task IDs we've already surfaced so we can detect new arrivals
+  const knownIdsRef = useRef<Set<string>>(new Set(initialTasks.map(t => t.id)))
+
+  // Merge newly arrived tasks from server re-render without clobbering local state
+  useEffect(() => {
+    const incoming = initialTasks.filter(t => !knownIdsRef.current.has(t.id))
+    if (incoming.length === 0) return
+    incoming.forEach(t => knownIdsRef.current.add(t.id))
+    setTasks(prev => [...incoming, ...prev])
+    setNewItemsBanner(true)
+  }, [initialTasks])
+
+  // Poll every 45 s — triggers router.refresh() so the server re-fetches the queue
+  useEffect(() => {
+    const id = setInterval(() => { router.refresh() }, 45_000)
+    return () => clearInterval(id)
+  }, [router])
+
+  function handleManualRefresh() {
+    setRefreshing(true)
+    router.refresh()
+    setTimeout(() => setRefreshing(false), 1500)
+  }
 
   // Scroll to auto-expanded task
   useEffect(() => {
@@ -630,20 +657,47 @@ export default function ApprovalsClient({ profileId, initialTasks, viralHooksHin
           <ArrowLeft size={12} />
           Agent Command Center
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#2D3748', letterSpacing: '-0.3px', margin: 0 }}>
-            Approval Queue
-          </h1>
-          {tasks.length > 0 && (
-            <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{tasks.length}</span>
-            </div>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: '#2D3748', letterSpacing: '-0.3px', margin: 0 }}>
+              Approval Queue
+            </h1>
+            {tasks.length > 0 && (
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{tasks.length}</span>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#888', background: 'transparent', border: '0.5px solid #e5e7eb', borderRadius: 7, padding: '5px 10px', cursor: 'pointer', opacity: refreshing ? 0.5 : 1, fontFamily: 'inherit' }}
+          >
+            <RotateCcw size={11} style={refreshing ? { animation: 'spin 0.8s linear infinite' } : undefined} />
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
         </div>
         <p style={{ fontSize: 13.5, color: '#888', marginTop: 4 }}>
           Review agent outputs before they go anywhere. Posts with images can become Zernio drafts after you approve.
         </p>
       </div>
+
+      {newItemsBanner && (
+        <div style={{
+          background: '#EFF6FF', border: '0.5px solid #BFDBFE', borderRadius: 10,
+          padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        }}>
+          <p style={{ fontSize: 13, color: '#1D4ED8', margin: 0 }}>New items are ready to review.</p>
+          <button
+            type="button"
+            onClick={() => setNewItemsBanner(false)}
+            style={{ fontSize: 12, color: '#1D4ED8', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {approveNotice && (
         <div style={{
@@ -673,13 +727,23 @@ export default function ApprovalsClient({ profileId, initialTasks, viralHooksHin
         <div style={{ background: '#fff', border: '0.5px solid #ebebeb', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
           <CheckCircle2 size={32} color="#E2E8F0" style={{ marginBottom: 12 }} />
           <p style={{ fontSize: 14, color: '#aaa', margin: 0 }}>Queue is clear</p>
-          <p style={{ fontSize: 13, color: '#ccc', marginTop: 4 }}>Outputs from approval-required agents will appear here</p>
-          <Link
-            href="/dashboard/agents"
-            style={{ display: 'inline-block', marginTop: 16, fontSize: 12.5, color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}
-          >
-            ← Back to agents
-          </Link>
+          <p style={{ fontSize: 13, color: '#ccc', marginTop: 4 }}>Outputs from approval-required agents will appear here. Videos generating in the background will appear automatically.</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 16 }}>
+            <Link
+              href="/dashboard/agents"
+              style={{ fontSize: 12.5, color: '#3B82F6', textDecoration: 'none', fontWeight: 500 }}
+            >
+              ← Back to agents
+            </Link>
+            <button
+              type="button"
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              style={{ fontSize: 12.5, color: '#888', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: refreshing ? 0.5 : 1 }}
+            >
+              {refreshing ? 'Checking…' : 'Check now'}
+            </button>
+          </div>
         </div>
       )}
 

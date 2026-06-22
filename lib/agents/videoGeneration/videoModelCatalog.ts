@@ -123,7 +123,7 @@ const VIDEO_MODEL_CATALOG: Record<VideoModelId, VideoModelEntry> = {
   },
 }
 
-const DEFAULT_VIDEO_MODEL_ID: VideoModelId = 'kling-v3-std'
+export const DEFAULT_VIDEO_MODEL_ID: VideoModelId = 'kling-v3-std'
 
 export function resolveVideoModel(id: string | null | undefined): VideoModelEntry {
   const envOverride = process.env.VIDEO_GENERATION_MODEL?.trim()
@@ -138,3 +138,7 @@ export function resolveVideoModel(id: string | null | undefined): VideoModelEntr
 export function defaultVideoModelEntry(): VideoModelEntry {
   return resolveVideoModel(null)
 }
+
+/** Flat list safe to import in client components (no server-only env reads). */
+export const VIDEO_MODEL_OPTIONS: Array<{ id: VideoModelId; label: string }> =
+  Object.values(VIDEO_MODEL_CATALOG).map(m => ({ id: m.id, label: m.label }))

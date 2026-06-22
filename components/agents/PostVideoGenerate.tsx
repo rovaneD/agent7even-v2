@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
+import { VIDEO_MODEL_OPTIONS, DEFAULT_VIDEO_MODEL_ID } from '@/lib/agents/videoGeneration/videoModelCatalog'
 
 export type VideoGenerateState =
   | { phase: 'idle' }
@@ -22,11 +24,11 @@ export default function PostVideoGenerate({
   sceneDirection,
   onJobStarted,
 }: PostVideoGenerateProps) {
-  const [state, setState] = useState<VideoGenerateState>({ phase: 'idle' })
+  const [state, setState]       = useState<VideoGenerateState>({ phase: 'idle' })
+  const [modelId, setModelId]   = useState<string>(DEFAULT_VIDEO_MODEL_ID)
 
   async function handleGenerate() {
     if (disabled || state.phase === 'composing' || state.phase === 'pending') return
-
     setState({ phase: 'composing' })
 
     try {
@@ -34,25 +36,22 @@ export default function PostVideoGenerate({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          postGoal: postContext?.postGoal ?? '',
-          platform: postContext?.platform ?? '',
-          offer: postContext?.offer ?? '',
-          audience: postContext?.audience ?? '',
+          postGoal:      postContext?.postGoal ?? '',
+          platform:      postContext?.platform ?? '',
+          offer:         postContext?.offer ?? '',
+          audience:      postContext?.audience ?? '',
           sceneDirection: sceneDirection ?? '',
+          videoModelId:  modelId,
         }),
       })
 
       const data = await res.json().catch(() => ({})) as {
-        jobId?: string
-        taskId?: string
-        model?: string
-        error?: string
-        message?: string
+        jobId?: string; taskId?: string; model?: string
+        error?: string; message?: string
       }
 
       if (!res.ok || !data.jobId) {
-        const msg = sanitizeUserFacingError(data.message ?? data.error, 'video_generation')
-        setState({ phase: 'error', message: msg })
+        setState({ phase: 'error', message: sanitizeUserFacingError(data.message ?? data.error, 'video_generation') })
         return
       }
 
@@ -60,27 +59,28 @@ export default function PostVideoGenerate({
       setState({ phase: 'pending', ...result })
       onJobStarted?.(result)
     } catch {
-      setState({
-        phase: 'error',
-        message: 'We couldn\'t start your video right now. Please try again in a few minutes.',
-      })
+      setState({ phase: 'error', message: 'We couldn\'t start your video right now. Please try again in a few minutes.' })
     }
-  }
-
-  function handleDismissError() {
-    setState({ phase: 'idle' })
   }
 
   if (state.phase === 'pending') {
     return (
-      <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3">
+      <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-primary" />
-          <p className="text-sm font-medium text-text-primary">Generating your video…</p>
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+          <p className="text-sm font-medium text-blue-900">Generating your video…</p>
         </div>
-        <p className="mt-1 pl-4 text-xs text-text-sec">
-          This usually takes 2–5 minutes. We'll show it in your approval queue when it's ready — you can close this tab.
+        <p className="mt-1 pl-4 text-xs text-blue-700">
+          Using {state.model}. This usually takes 2–5 minutes.
         </p>
+        <div className="mt-2 pl-4">
+          <Link
+            href="/dashboard/agents/approvals"
+            className="text-xs font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700"
+          >
+            Check approval queue →
+          </Link>
+        </div>
       </div>
     )
   }
@@ -91,7 +91,7 @@ export default function PostVideoGenerate({
         <p className="text-sm text-red-700">{state.message}</p>
         <button
           type="button"
-          onClick={handleDismissError}
+          onClick={() => setState({ phase: 'idle' })}
           className="mt-1.5 text-xs font-medium text-red-600 underline hover:text-red-700"
         >
           Try again
@@ -101,18 +101,37 @@ export default function PostVideoGenerate({
   }
 
   const isLoading = state.phase === 'composing'
-  const noGoal = !postContext?.postGoal?.trim()
+  const noGoal    = !postContext?.postGoal?.trim()
 
   return (
     <div className="rounded-xl border border-border bg-surface px-4 py-3">
       <p className="mb-2 text-sm font-medium text-text-primary">Generate a short video</p>
       <p className="mb-3 text-xs text-text-sec">
-        Maya will write a 9:16 video brief from your Foundation profile and create a short Reels/TikTok-ready clip.
-        Your credits will be deducted when you submit — the video generates in the background.
+        Maya writes a 9:16 video brief from your Foundation profile and generates a Reels/TikTok-ready clip in the background. 40 credits are deducted when submitted.
       </p>
+
+      {/* Model selector */}
+      <div className="mb-3">
+        <label htmlFor="video-model-select" className="mb-1 block text-xs font-medium text-text-sec">
+          Model
+        </label>
+        <select
+          id="video-model-select"
+          value={modelId}
+          onChange={e => setModelId(e.target.value)}
+          disabled={isLoading}
+          className="w-full rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
+        >
+          {VIDEO_MODEL_OPTIONS.map(opt => (
+            <option key={opt.id} value={opt.id}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
       {noGoal && (
         <p className="mb-2 text-xs text-amber-600">Set a post goal above before generating a video.</p>
       )}
+
       <button
         type="button"
         onClick={() => void handleGenerate()}

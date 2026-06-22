@@ -1768,12 +1768,6 @@ export default function AgentCommandCenter({
                             setVideoModel(model)
                           }}
                         />
-                        {videoJobId && (
-                          <p className="text-xs text-text-soft">
-                            Video job <span className="font-mono text-text-sec">{videoJobId.slice(0, 12)}…</span> is generating with {videoModel}.
-                            It will appear in your approval queue when ready.
-                          </p>
-                        )}
                       </>
                     )}
                     <PostImageAttach
