@@ -1,7 +1,9 @@
 /**
- * Image-context caption capability (v1).
- * Source of truth for what this flow supports and explicitly does not do.
+ * Post media capability (upload + optional generation behind flag).
+ * Source of truth for Maya chat prompts and agent constraint copy.
  */
+
+import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 
 export const IMAGE_CONTEXT_CAPABILITY = {
   id: 'image_context_caption',
@@ -24,6 +26,22 @@ export const IMAGE_CONTEXT_CAPABILITY = {
   },
 } as const
 
+const GENERATION_SUPPORTED =
+  'Generate post images in Agents → Single post → Generate with Maya (Foundation-grounded brief, 3 options, text QA before approval); saved options live in Assets'
+
+/** Upload/caption baseline — generation removed when flag is on. */
+function effectiveUnsupportedList(): string[] {
+  const base = [...IMAGE_CONTEXT_CAPABILITY.unsupported]
+  if (!isImageGenerationEnabled()) return base
+  return base.filter(item => item !== 'Image generation')
+}
+
+function effectiveSupportedList(): string[] {
+  const base: string[] = [...IMAGE_CONTEXT_CAPABILITY.supported]
+  if (isImageGenerationEnabled()) base.push(GENERATION_SUPPORTED)
+  return base
+}
+
 export type ImageContextUploadError =
   | 'unsupported_type'
   | 'file_too_large'
@@ -43,18 +61,24 @@ export function imageContextAcceptHeader(): string {
 }
 
 export function buildImageContextCapabilityPrompt(): string {
-  const supported = IMAGE_CONTEXT_CAPABILITY.supported.join('; ')
-  const unsupported = IMAGE_CONTEXT_CAPABILITY.unsupported.join('; ')
-  return `IMAGE-CONTEXT CAPABILITY (v1):
+  const supported = effectiveSupportedList().join('; ')
+  const unsupported = effectiveUnsupportedList().join('; ')
+  const generationNote = isImageGenerationEnabled()
+    ? 'If asked to create a new post image in chat, direct them to Agents → Single post → Generate with Maya (you cannot run the image model from chat). Targeted edits on a picked generated option happen in that same flow.'
+    : 'If asked to generate, crop, edit, build a carousel, or use video, refuse and explain the owner must supply a ready-to-post still image — Maya writes the caption to match it.'
+  return `POST MEDIA CAPABILITY (v1${isImageGenerationEnabled() ? ' + generation' : ''}):
 Supported: ${supported}.
 Not supported: ${unsupported}.
-If asked to generate, crop, edit, build a carousel, or use video, refuse and explain the owner must supply a ready-to-post still image — Maya writes the caption to match it.`
+${generationNote}`
 }
 
 export function buildImageContextAgentConstraints(): string {
-  const unsupported = IMAGE_CONTEXT_CAPABILITY.unsupported
+  const unsupported = effectiveUnsupportedList()
     .map(item => item.toLowerCase())
     .join(', ')
+  if (isImageGenerationEnabled()) {
+    return `Post media: user may upload a still for vision captions, or generate options in Agents → Single post → Generate with Maya (not in this chat). Saved generations are in Assets. You must never ${unsupported}. One image per post only.`
+  }
   return `Image-context captions: you may read a user-supplied still image and write matching copy. You must never ${unsupported}. One image per post only.`
 }
 

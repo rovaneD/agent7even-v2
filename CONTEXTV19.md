@@ -181,7 +181,7 @@ From `SESSION_2026-06-20-creative-generation.md` — unchanged:
 
 ## Known limitations / follow-ups
 
-1. **`lib/posts/imageContextCapabilities.ts`** still lists “Image generation” under `unsupported` — accurate for Maya **chat** capability text; generation is a separate flagged Agents flow. Consider splitting capability docs or updating Maya prompts when flag goes prod-wide.
+1. **`lib/posts/imageContextCapabilities.ts`** — Maya/agent prompts are **flag-aware** when `NEXT_PUBLIC_IMAGE_GENERATION=true` (generation directed to Agents → Generate with Maya; crop/carousel/video still unsupported). Static `IMAGE_CONTEXT_CAPABILITY` object unchanged for upload validators.
 2. **Post media Phases A–C** (crop, carousel, video) — still in `post_media_expansion_handoff.md`; independent of generation.
 3. **Assets without SQL** — save/delete fail gracefully; folders require `21_*`.
 4. **Photoreal + on-image text** — some Photoreal outputs may still include short headlines; QA allows legible marketing copy but blocks design-token leaks. Infographic/chart briefs are replaced before generation.
@@ -200,7 +200,7 @@ From `SESSION_2026-06-20-creative-generation.md` — unchanged:
 2. Post media expansion Phases A–C
 3. Production flag decision for `NEXT_PUBLIC_IMAGE_GENERATION` on www.agent7even.ai
 4. Additional generation UX (user mentioned revisiting later — TBD)
-5. `imageContextCapabilities.ts` / Maya chat alignment when generation goes GA
+5. **Production flag enablement** — Vercel Production `NEXT_PUBLIC_IMAGE_GENERATION=true` + redeploy + smoke (see SESSION checklist below)
 
 ---
 
