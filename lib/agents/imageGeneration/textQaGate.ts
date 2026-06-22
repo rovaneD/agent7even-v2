@@ -1,7 +1,9 @@
 import { generateText } from 'ai'
 import { openrouter } from '@/lib/ai/client'
-import { createPostAssetSignedUrl } from '@/lib/postAssets'
-import { buildVisionUserMessage, VISION_CAPTION_MODEL } from '@/lib/agents/visionCaption'
+import { buildVisionUserMessageFromStorage, VISION_CAPTION_MODEL } from '@/lib/agents/visionCaption'
+import { loadBrandKitGenerationSnapshot } from './brandKitSnapshot'
+import { detectDesignSpecInImageText } from './designSpecLeakDetection'
+import { detectFontMetadataInImageText } from './fontLeakDetection'
 import { loadBrandTokensForQa } from './brandTokens'
 import type { TextQaResult } from './types'
 
@@ -24,6 +26,8 @@ Rules for passed=false:
 - Misspelling of the known brand name(s) provided below
 - Random letter soup, broken words, or lorem-style filler in headline areas
 - Text that contradicts the brand (wrong company name)
+- Font family names, font weights, or CSS typography specs visible as text (e.g. "Inter 600", "Lora Bold", "font-weight: 600") — these are design metadata, not marketing copy
+- Hex color codes (#RGB or #RRGGBB) or color swatch legends visible as text
 
 Rules for passed=true:
 - No readable text in the image, OR
@@ -67,8 +71,16 @@ export async function runTextQaGate(opts: {
   companyName: string
   storagePath: string
 }): Promise<TextQaResult> {
-  const signedUrl = await createPostAssetSignedUrl(opts.storagePath, 3600)
-  if (!signedUrl) {
+  const brandTokens = await loadBrandTokensForQa(opts.profileId, opts.companyName)
+  const instruction = QA_INSTRUCTION.replace('{{BRANDS}}', brandTokens.join(' · ') || opts.companyName)
+
+  let visionContent
+  try {
+    visionContent = await buildVisionUserMessageFromStorage({
+      textInstruction: instruction,
+      storagePath: opts.storagePath,
+    })
+  } catch {
     return {
       passed: false,
       transcription: null,
@@ -76,14 +88,6 @@ export async function runTextQaGate(opts: {
       qaMethod: 'vision_readback',
     }
   }
-
-  const brandTokens = await loadBrandTokensForQa(opts.profileId, opts.companyName)
-  const instruction = QA_INSTRUCTION.replace('{{BRANDS}}', brandTokens.join(' · ') || opts.companyName)
-
-  const visionContent = buildVisionUserMessage({
-    textInstruction: instruction,
-    imageUrl: signedUrl,
-  })
 
   const result = await generateText({
     model: openrouter(VISION_CAPTION_MODEL),
@@ -93,14 +97,20 @@ export async function runTextQaGate(opts: {
   })
 
   const parsed = parseQaJson(result.text.trim())
-  const passed = parsed.passed && parsed.issues.length === 0
+  const brandKit = await loadBrandKitGenerationSnapshot(opts.profileId)
+  const fontFamilies = brandKit.fonts.map(f => f.family)
+  const colorNames = brandKit.colors.map(c => c.name).filter(Boolean) as string[]
+  const fontLeakIssues = detectFontMetadataInImageText(parsed.transcribedText, fontFamilies)
+  const designLeakIssues = detectDesignSpecInImageText(parsed.transcribedText, colorNames)
+  const mergedIssues = [...parsed.issues, ...fontLeakIssues, ...designLeakIssues]
+  const passed = parsed.passed && mergedIssues.length === 0
 
   return {
     passed,
     transcription: parsed.transcribedText || null,
     lines: parsed.lines,
-    issues: passed ? [] : parsed.issues.length > 0
-      ? parsed.issues
+    issues: passed ? [] : mergedIssues.length > 0
+      ? mergedIssues
       : [{ code: 'qa_failed', message: 'Text QA flagged this image — review spelling and brand name in the visual.' }],
     qaMethod: 'vision_readback',
   }

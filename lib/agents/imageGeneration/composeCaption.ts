@@ -1,11 +1,10 @@
 import { generateText } from 'ai'
 import { openrouter } from '@/lib/ai/client'
-import { createPostAssetSignedUrl } from '@/lib/postAssets'
 import { buildSystemPrompt } from '@/lib/agents/runner'
 import { buildAgentFlowPrompt, buildAgentUserMessage } from '@/lib/agents/flows'
 import {
   buildImageCaptionSystemAddon,
-  buildVisionUserMessage,
+  buildVisionUserMessageFromStorage,
   platformCharLimit,
   primaryPlatformFromInput,
   VISION_CAPTION_MODEL,
@@ -60,12 +59,9 @@ export async function composeImageCaption(opts: {
   let userMessage = buildAgentUserMessage(agentId, taskInput)
   userMessage += buildQaTranscriptionAddon(opts.qaTranscription)
 
-  const signedUrl = await createPostAssetSignedUrl(opts.storagePath, 3600)
-  if (!signedUrl) throw new Error('image_url_failed')
-
-  const visionContent = buildVisionUserMessage({
+  const visionContent = await buildVisionUserMessageFromStorage({
     textInstruction: userMessage,
-    imageUrl: signedUrl,
+    storagePath: opts.storagePath,
   })
 
   const result = await generateText({

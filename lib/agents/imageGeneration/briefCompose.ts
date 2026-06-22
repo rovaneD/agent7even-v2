@@ -1,4 +1,7 @@
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import { resolveImageGenerationModel, type ImageGenerationModelId } from './imageModelCatalog'
+import { prepareBriefForImageModel } from './briefValidation'
+import { GLOBAL_IMAGE_BRIEF_RULES, modelBriefRulesBlock } from './modelBriefRules'
 
 const DEFAULT_BRIEF_MODEL = 'anthropic/claude-sonnet-4'
 
@@ -12,26 +15,62 @@ export function imageOptionCount(): number {
 }
 
 export function defaultImageModel(): string {
-  return process.env.IMAGE_GENERATION_MODEL ?? 'google/gemini-2.5-flash-image'
+  return resolveImageGenerationModel(null).openRouterModel
 }
 
-/** Compose N distinct grounded image briefs from Foundation + optional user direction. */
+function optionDiversityLine(count: number, modelId?: ImageGenerationModelId): string {
+  switch (modelId) {
+    case 'photoreal':
+      return `Make the ${count} options visually distinct but cohesive: editorial photograph, symbolic object close-up, environmental wide shot, or abstract texture — NEVER bar charts, infographics, pillar diagrams, stat dashboards, or UI mockups.`
+    case 'sharp-text':
+      return `Make the ${count} options visually distinct: bold headline card, stat callout with one number, quote card — readable typography is the point; still no hex codes, legends, or font specs as visible text.`
+    default:
+      return `Make the ${count} options visually distinct but cohesive with the same brand system — vary layout archetype, not generic stock templates.`
+  }
+}
+
+/** Compose N distinct grounded image briefs from Foundation + optional Brand Kit + user direction. */
 export async function composeImageBriefs(opts: {
   foundationMarkdown: string
   companyName: string
   sceneDirection?: string
   count?: number
+  brandKitBlock?: string | null
+  postContextBlock?: string | null
+  imageModelId?: ImageGenerationModelId
 }): Promise<string[]> {
   const count = opts.count ?? imageOptionCount()
   const directionBlock = opts.sceneDirection?.trim()
     ? `\nOwner scene direction (honor if compatible with brand):\n${opts.sceneDirection.trim()}\n`
     : ''
 
-  const kindSpec = `Write exactly ${count} distinct Instagram/LinkedIn POST IMAGE generation prompts for ${opts.companyName}.
-Each prompt must be a self-contained paragraph (150-350 words) with: visual composition, color palette tied to brand (#3B82F6 primary blue, restrained pink #F5349B for logo moments only), typography/text to render ON the image, mood, what to avoid (generic AI slop, business-in-a-box templates).
-Make the ${count} options visually distinct (e.g. carousel cover, stat/insight post with readable headline, quote/thought-leadership card — adapt to brand).
+  const brandBlock = opts.brandKitBlock?.trim()
+    ? `\n${opts.brandKitBlock.trim()}\n`
+    : `\nUse Agent7even platform palette only when no Brand Kit colors are provided: primary #3B82F6, restrained pink #F5349B for logo moments.\n`
+
+  const postBlock = opts.postContextBlock?.trim()
+    ? `\n${opts.postContextBlock.trim()}\n`
+    : ''
+
+  const modelBlock = opts.imageModelId
+    ? `\n${modelBriefRulesBlock(opts.imageModelId)}\n`
+    : ''
+
+  const diversityLine = optionDiversityLine(count, opts.imageModelId)
+
+  const kindSpec = `${GLOBAL_IMAGE_BRIEF_RULES}${modelBlock}
+Write exactly ${count} distinct Instagram/LinkedIn POST IMAGE generation prompts for ${opts.companyName}.
+Each prompt must be a self-contained paragraph (150-350 words) describing visual composition, mood, and what to avoid (generic AI slop, business-in-a-box templates).
+Brief text is sent directly to the image model — write plain creative direction only:
+- Do NOT paste hex codes, color token names, or font specs into the brief (they become visible labels on the image).
+- Describe palette as "warm amber accent", "deep slate", "clean white background" — not "Insight Amber (#F59E0B)".
+- Describe typography as "bold sans headline" — not "Inter weight 700".
+${opts.imageModelId === 'photoreal'
+    ? '- Photoreal: describe a photograph or abstract scene only — no headlines, charts, infographics, or on-image text in the brief.'
+    : '- If on-image text is appropriate for this model, quote the marketing words only (e.g. headline: "Results Without Reports") — never font or color specs.'}
+${diversityLine}
 Ground every prompt in Voice, Position, and Customer from Foundation — not generic stock SaaS.
-Do NOT mention "Foundation" — write as if briefing a designer.${directionBlock}`
+Do NOT mention "Foundation" or "Brand Kit" — write as if briefing a designer.${brandBlock}${postBlock}${directionBlock}`
 
   const result = await openRouterComplete({
     model: briefComposeModel(),
@@ -41,7 +80,7 @@ Do NOT mention "Foundation" — write as if briefing a designer.${directionBlock
       {
         role: 'system',
         content:
-          'You are Maya, Agent7even\'s brand strategist. Output ONLY valid JSON: { "briefs": string[] } with the requested count. No markdown fences.',
+          'You are Maya, Agent7even\'s brand strategist. Output ONLY valid JSON: { "briefs": string[] } with the requested count. No markdown fences. Never put hex codes, Brand Kit color names, or font weights in brief strings — image models render them as visible text.',
       },
       {
         role: 'user',
@@ -59,5 +98,8 @@ Do NOT mention "Foundation" — write as if briefing a designer.${directionBlock
   if (briefs.length < count) {
     throw new Error(`Expected ${count} image briefs, got ${briefs.length}`)
   }
-  return briefs.slice(0, count)
+  const modelId = opts.imageModelId ?? resolveImageGenerationModel(null).id
+  return briefs
+    .slice(0, count)
+    .map(brief => prepareBriefForImageModel(brief, modelId, opts.companyName))
 }

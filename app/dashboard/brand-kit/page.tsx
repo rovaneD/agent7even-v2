@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { createBrandAssetSignedUrl } from '@/lib/brandKit/signAssetUrl'
 import { createServiceClient } from '@/lib/supabase/server'
 import BrandKitView from './BrandKitView'
 
@@ -42,15 +43,9 @@ export default async function BrandKitPage() {
   const assets = await Promise.all(
     (rawAssets ?? []).map(async (asset) => {
       if (!asset.file_url) return asset
-      try {
-        const path = asset.file_url.split('/brand-assets/')[1]
-        if (!path) return asset
-        const { data } = await supabase.storage.from('brand-assets').createSignedUrl(path, 3600)
-        return { ...asset, signed_url: data?.signedUrl ?? asset.file_url }
-      } catch {
-        return asset
-      }
-    })
+      const signed_url = await createBrandAssetSignedUrl(supabase, asset.file_url)
+      return signed_url ? { ...asset, signed_url } : asset
+    }),
   )
 
   return (

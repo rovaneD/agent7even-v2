@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { runTextQaGate } from '@/lib/agents/imageGeneration/textQaGate'
+import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration/generateOptions'
 import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -67,6 +68,12 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('[generate-images/qa]', err)
     const msg = err instanceof Error ? err.message : 'qa_failed'
-    return NextResponse.json({ error: 'qa_failed', message: msg }, { status: 502 })
+    return NextResponse.json(
+      {
+        error: 'qa_failed',
+        message: sanitizeUserFacingError(msg, 'image_qa'),
+      },
+      { status: 502 },
+    )
   }
 }

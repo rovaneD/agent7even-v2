@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { POST_IMAGE_MAX_BYTES } from '@/lib/postAssetLimits'
+import DownloadImageButton from '@/components/media/DownloadImageButton'
 
 import { imageContextAcceptHeader } from '@/lib/posts/imageContextCapabilities'
 
@@ -11,7 +12,12 @@ type Props = {
   disabled?: boolean
   onAttached: (media: { storagePath: string; mime: string; previewUrl: string; filename?: string }) => void
   onClear: () => void
-  attached?: { previewUrl: string; filename?: string } | null
+  attached?: {
+    previewUrl: string
+    filename?: string
+    storagePath?: string
+    mime?: string
+  } | null
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -125,14 +131,25 @@ export default function PostImageAttach({ disabled, onAttached, onClear, attache
             {attached.filename && (
               <p className="text-xs text-text-sec">{attached.filename}</p>
             )}
-            <button
-              type="button"
-              disabled={disabled || uploading}
-              onClick={onClear}
-              className="text-sm font-medium text-brand-primary hover:text-[#2563EB] disabled:opacity-60"
-            >
-              Remove image
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              {attached.storagePath && (
+                <DownloadImageButton
+                  storagePath={attached.storagePath}
+                  mime={attached.mime}
+                  filename={attached.filename}
+                  label="Download"
+                  disabled={disabled || uploading}
+                />
+              )}
+              <button
+                type="button"
+                disabled={disabled || uploading}
+                onClick={onClear}
+                className="text-sm font-medium text-brand-primary hover:text-[#2563EB] disabled:opacity-60"
+              >
+                Remove image
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { createBrandAssetSignedUrl } from '@/lib/brandKit/signAssetUrl'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(req: Request) {
@@ -70,7 +71,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to save asset record' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, asset: assetRow })
+    const signedUrl = await createBrandAssetSignedUrl(supabase, storagePath)
+
+    return NextResponse.json({
+      success: true,
+      asset: { ...assetRow, signed_url: signedUrl },
+    })
   }
 
   // Mode B: application/json — external link

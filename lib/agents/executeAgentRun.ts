@@ -12,15 +12,15 @@ import { isSinglePostRun, isWeeklyContentRun, resolveContentPostingFlow } from '
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
 import { CREDIT_COST, type RunTier } from '@/lib/agents/cost'
 import { buildAgentFlowPrompt, buildAgentUserMessage } from '@/lib/agents/flows'
+import { parseAndValidateIdeaAnalysis } from '@/lib/agents/ideaAnalysis'
+import { readPostMediaRef } from '@/lib/postAssets'
 import {
   buildImageCaptionSystemAddon,
-  buildVisionUserMessage,
+  buildVisionUserMessageFromStorage,
   platformCharLimit,
   primaryPlatformFromInput,
   VISION_CAPTION_MODEL,
 } from '@/lib/agents/visionCaption'
-import { parseAndValidateIdeaAnalysis } from '@/lib/agents/ideaAnalysis'
-import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 
 export type ExecuteAgentRunResult =
   | { ok: true }
@@ -116,12 +116,9 @@ export async function executeAgentRun(opts: {
     let usage: { inputTokens?: number; outputTokens?: number }
 
     if (hasImage && media.media_storage_path) {
-      const signedUrl = await createPostAssetSignedUrl(media.media_storage_path, 3600)
-      if (!signedUrl) throw new Error('image_url_failed')
-
-      const visionContent = buildVisionUserMessage({
+      const visionContent = await buildVisionUserMessageFromStorage({
         textInstruction: userMessage,
-        imageUrl: signedUrl,
+        storagePath: media.media_storage_path,
       })
 
       const result = await generateText({

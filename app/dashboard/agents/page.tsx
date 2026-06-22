@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -20,6 +21,41 @@ export default async function AgentsPage() {
   const profile = profileRows?.[0] ?? null
 
   if (!profile) redirect('/foundation')
+
+  const [
+    { count: colorCount },
+    { count: fontCount },
+    { count: logoCount },
+    { count: styleRefCount },
+    { data: imageryStyleDoc },
+  ] = await Promise.all([
+    supabase.from('brand_kit_colors').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
+    supabase.from('brand_kit_fonts').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
+    supabase
+      .from('brand_kit_assets')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', profile.id)
+      .in('asset_type', ['logo_primary', 'logo_alternate', 'logo_icon']),
+    supabase
+      .from('brand_kit_assets')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', profile.id)
+      .eq('asset_type', 'style_reference'),
+    supabase
+      .from('foundation_documents')
+      .select('markdown')
+      .eq('user_id', profile.id)
+      .eq('type', 'imagery_style')
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  const brandKitAvailable =
+    (colorCount ?? 0) > 0
+    || (fontCount ?? 0) > 0
+    || (styleRefCount ?? 0) > 0
+    || !!(imageryStyleDoc?.markdown?.trim())
+  const hasUploadedLogo = (logoCount ?? 0) > 0
 
   const [
     { data: activeTasks },
@@ -99,14 +135,18 @@ export default async function AgentsPage() {
   })
 
   return (
-    <AgentCommandCenter
-      profileId={profile.id}
-      companyName={profile.company_name ?? 'Your business'}
-      activeTasks={activeTasks ?? []}
-      pendingApprovals={pendingApprovals ?? []}
-      recentTasks={recentTasks ?? []}
-      recentOutputs={recentOutputs ?? []}
-      scorecard={scorecard}
-    />
+    <Suspense fallback={<div className="mx-auto max-w-6xl px-4 py-8 text-sm text-text-sec">Loading agents…</div>}>
+      <AgentCommandCenter
+        profileId={profile.id}
+        companyName={profile.company_name ?? 'Your business'}
+        brandKitAvailable={brandKitAvailable}
+        hasUploadedLogo={hasUploadedLogo}
+        activeTasks={activeTasks ?? []}
+        pendingApprovals={pendingApprovals ?? []}
+        recentTasks={recentTasks ?? []}
+        recentOutputs={recentOutputs ?? []}
+        scorecard={scorecard}
+      />
+    </Suspense>
   )
 }

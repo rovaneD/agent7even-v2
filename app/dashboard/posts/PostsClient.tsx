@@ -7,6 +7,7 @@ import {
   Plus, X, ExternalLink, Trash2, Pencil, Hash, Loader2,
   LayoutGrid, List, ChevronDown, CheckCircle, ImagePlus, Film,
 } from 'lucide-react'
+import DownloadImageButton from '@/components/media/DownloadImageButton'
 import type { PostsDataState } from './page'
 import type { ZernioPostRow } from '@/lib/social/zernioPostsParse'
 import type { ZernioQueueRow } from '@/lib/social/zernioQueuesParse'
@@ -109,6 +110,15 @@ function fmtDate(iso: string | null | undefined) {
 
 function platformLabel(id: string) {
   return PLATFORM_LABELS[id.toLowerCase()] ?? id
+}
+
+function postImageDownloadTarget(post: ZernioPostRow): { url: string; filename: string } | null {
+  const image = post.media.find(m => m.type !== 'video')
+  const url = image?.url ?? post.mediaPreviewUrl
+  if (!url) return null
+  const base = post.title?.trim() || `post-${post.id.slice(0, 8)}`
+  const safe = base.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'post-image'
+  return { url, filename: `${safe}.jpg` }
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -857,6 +867,7 @@ function PostCard({
   const url = post.platforms.find(p => p.platformPostUrl)?.platformPostUrl
   const canModify = ['draft', 'scheduled', 'failed'].includes(post.status)
   const showPublishedTime = post.status === 'published' || post.status === 'publishing'
+  const downloadTarget = postImageDownloadTarget(post)
 
   return (
     <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col">
@@ -867,6 +878,15 @@ function PostCard({
             {post.status}
           </span>
           <div className="flex gap-1">
+            {downloadTarget && (
+              <DownloadImageButton
+                url={downloadTarget.url}
+                filename={downloadTarget.filename}
+                label="Download image"
+                iconOnly
+                className="p-1.5 text-text-soft hover:text-blue-600 bg-transparent shadow-none hover:bg-transparent"
+              />
+            )}
             {url && (
               <a href={url} target="_blank" rel="noreferrer" className="p-1.5 text-text-soft hover:text-blue-600" aria-label="View post">
                 <ExternalLink size={14} />
@@ -915,6 +935,7 @@ function PostListRow({
   const url = post.platforms.find(p => p.platformPostUrl)?.platformPostUrl
   const canModify = ['draft', 'scheduled', 'failed'].includes(post.status)
   const showPublishedTime = post.status === 'published' || post.status === 'publishing'
+  const downloadTarget = postImageDownloadTarget(post)
 
   return (
     <div className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50">
@@ -927,6 +948,15 @@ function PostListRow({
         {showPublishedTime ? fmtDate(post.publishedAt) : fmtDate(post.scheduledFor)}
       </p>
       <div className="flex gap-1">
+        {downloadTarget && (
+          <DownloadImageButton
+            url={downloadTarget.url}
+            filename={downloadTarget.filename}
+            label="Download image"
+            iconOnly
+            className="p-1.5 text-text-soft hover:text-blue-600 bg-transparent shadow-none hover:bg-transparent"
+          />
+        )}
         {url && (
           <a href={url} target="_blank" rel="noreferrer" className="p-1.5 text-text-soft hover:text-blue-600">
             <ExternalLink size={14} />
@@ -1052,14 +1082,25 @@ function CreatePostDrawer({
                       </div>
                     )}
                     {!item.uploading && (
-                      <button
-                        type="button"
-                        onClick={() => onMediaRemove(item.localId)}
-                        className="absolute top-1 right-1 p-1 rounded-md bg-black/50 text-white hover:bg-black/70"
-                        aria-label="Remove media"
-                      >
-                        <X size={12} />
-                      </button>
+                      <>
+                        {item.type === 'image' && (item.previewUrl || item.url) && (
+                          <DownloadImageButton
+                            url={item.url || item.previewUrl}
+                            filename={item.title}
+                            label="Download image"
+                            iconOnly
+                            className="absolute left-1 top-1 bg-black/50 text-white shadow-none hover:bg-black/70"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => onMediaRemove(item.localId)}
+                          className="absolute top-1 right-1 p-1 rounded-md bg-black/50 text-white hover:bg-black/70"
+                          aria-label="Remove media"
+                        >
+                          <X size={12} />
+                        </button>
+                      </>
                     )}
                   </div>
                 ))}

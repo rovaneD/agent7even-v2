@@ -5,6 +5,7 @@ import {
   regenerateImageOption,
   TEXT_QA_MAX_REGENERATE_RETRIES,
 } from '@/lib/agents/imageGeneration'
+import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 import { createServiceClient } from '@/lib/supabase/server'
 
@@ -15,6 +16,7 @@ type Body = {
   optionIndex?: number
   brief?: string
   retryCount?: number
+  imageModel?: string
 }
 
 /** Regenerate one image option after QA failure (bounded retries). */
@@ -70,6 +72,7 @@ export async function POST(req: Request) {
       briefId,
       optionIndex,
       brief: brief.trim(),
+      imageModel: body.imageModel,
     })
 
     if (!assertPostAssetOwnedByProfile(option.storagePath, profile.id)) {
@@ -80,6 +83,12 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('[generate-images/regenerate-option]', err)
     const msg = err instanceof Error ? err.message : 'regenerate_failed'
-    return NextResponse.json({ error: 'regenerate_failed', message: msg }, { status: 502 })
+    return NextResponse.json(
+      {
+        error: 'regenerate_failed',
+        message: sanitizeUserFacingError(msg, 'image_regenerate'),
+      },
+      { status: 502 },
+    )
   }
 }

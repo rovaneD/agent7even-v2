@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { generateImageOptions } from '@/lib/agents/imageGeneration'
+import { logProviderError, sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { assertGenerationFloor } from '@/lib/foundation/sectionStrength'
 import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -9,6 +10,10 @@ export const maxDuration = 180
 
 type Body = {
   sceneDirection?: string
+  useBrandKit?: boolean
+  includeLogo?: boolean
+  imageModelId?: string
+  postContext?: Record<string, string>
 }
 
 /** Step 2 compose: Foundation gate → brief compose → 3 image options (pre-queue). */
@@ -65,12 +70,31 @@ export async function POST(req: Request) {
       profileId: profile.id,
       companyName: (profile.company_name as string | null) ?? 'your business',
       sceneDirection: body.sceneDirection,
+      useBrandKit: body.useBrandKit === true,
+      includeLogo: body.includeLogo === true,
+      imageModelId: body.imageModelId,
+      postContext: body.postContext,
     })
 
     return NextResponse.json(result)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'generation_failed'
+    if (msg === 'post_goal_required') {
+      return NextResponse.json(
+        {
+          error: 'post_goal_required',
+          message: 'Choose a Post goal in the setup form before generating images.',
+        },
+        { status: 422 },
+      )
+    }
     console.error('[posts/generate-images]', err)
-    return NextResponse.json({ error: 'generation_failed', message: msg }, { status: 502 })
+    return NextResponse.json(
+      {
+        error: 'generation_failed',
+        message: sanitizeUserFacingError(msg, 'image_generation'),
+      },
+      { status: 502 },
+    )
   }
 }

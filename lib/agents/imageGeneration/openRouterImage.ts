@@ -1,3 +1,6 @@
+import { compressImageForApiPayload } from '@/lib/postAssetsImagePayload'
+import { buildImageEditPrompt, detectImageEditMode, type ImageEditMode } from './editPrompt'
+
 const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1'
 
 export function openRouterHeaders(): Record<string, string> {
@@ -19,15 +22,18 @@ type ImageGenResponse = {
   }>
 }
 
-/** Generate one still image from a text brief (ported from spikes/foundation-creative-ab). */
-export async function generateImageFromBrief(model: string, prompt: string): Promise<Buffer> {
+type ImageContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+
+async function requestImageGeneration(model: string, content: ImageContentPart[] | string): Promise<Buffer> {
   const modalities = model.startsWith('recraft/') || model.includes('flux')
     ? ['image']
     : ['image', 'text']
 
   const body: Record<string, unknown> = {
     model,
-    messages: [{ role: 'user', content: prompt }],
+    messages: [{ role: 'user', content }],
     modalities,
     stream: false,
     image_config: {
@@ -69,4 +75,37 @@ export async function generateImageFromBrief(model: string, prompt: string): Pro
   const imgRes = await fetch(url)
   if (!imgRes.ok) throw new Error(`Failed to download generated image: ${imgRes.status}`)
   return Buffer.from(await imgRes.arrayBuffer())
+}
+
+/** Generate one still image from a text brief (ported from spikes/foundation-creative-ab). */
+export async function generateImageFromBrief(model: string, prompt: string): Promise<Buffer> {
+  return requestImageGeneration(model, prompt)
+}
+
+export function isGoogleImageModel(model: string): boolean {
+  return model.startsWith('google/') && model.includes('image')
+}
+
+/** Edit an existing still using the source image + instruction (Gemini image models). */
+export async function generateImageEditFromSource(opts: {
+  model: string
+  sourceBytes: Buffer
+  sourceMime: string
+  brief: string
+  editInstruction: string
+  editMode?: ImageEditMode
+}): Promise<Buffer> {
+  const { bytes: payloadBytes, mime: payloadMime } = await compressImageForApiPayload(opts.sourceBytes)
+  const dataUrl = `data:${payloadMime};base64,${payloadBytes.toString('base64')}`
+  const mode = opts.editMode ?? detectImageEditMode(opts.editInstruction)
+  const instruction = buildImageEditPrompt({
+    editInstruction: opts.editInstruction,
+    brief: opts.brief,
+    mode,
+  })
+
+  return requestImageGeneration(opts.model, [
+    { type: 'image_url', image_url: { url: dataUrl } },
+    { type: 'text', text: instruction },
+  ])
 }

@@ -6,10 +6,19 @@ import { buildAgentCommandCenterMayaContext } from '@/lib/maya/summaries/agentsC
 import PostImageAttach from '@/components/agents/PostImageAttach'
 import PostImageGenerate from '@/components/agents/PostImageGenerate'
 import PostImageGeneratePicker from '@/components/agents/PostImageGeneratePicker'
+import PostImageEditPanel from '@/components/agents/PostImageEditPanel'
 import PostImageTextQaPanel from '@/components/agents/PostImageTextQaPanel'
+import {
+  clearGenerationSession,
+  loadGenerationSession,
+  saveGenerationSession,
+  type GenerationSession,
+} from '@/lib/agents/imageGeneration/generationSessionStorage'
 import { TEXT_QA_MAX_REGENERATE_RETRIES, type GeneratedImageOption, type TextQaResult } from '@/lib/agents/imageGeneration/types'
+import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
+import type { CreativeAssetWithUrl } from '@/lib/creativeAssets'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, CheckCircle2, AlertCircle, ArrowRight, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { AGENTS, AgentId, AgentDefinition, AGENT_COLORS, COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
@@ -70,6 +79,8 @@ interface ScorecardEntry {
 interface Props {
   profileId: string
   companyName: string
+  brandKitAvailable?: boolean
+  hasUploadedLogo?: boolean
   activeTasks: AgentTask[]
   pendingApprovals: AgentTask[]
   recentTasks: AgentTask[]
@@ -274,6 +285,18 @@ const INITIAL_CONTENT_POSTING_FORMS = Object.fromEntries(
     Object.fromEntries(config.fields.map(field => [field.key, field.options?.[0] ?? ''])),
   ])
 ) as Record<ContentPostingFlow, Record<string, string>>
+
+function mergePostContextForm(
+  base: Record<string, string>,
+  postContext: Record<string, unknown> | null | undefined,
+): Record<string, string> {
+  if (!postContext) return base
+  const next = { ...base }
+  for (const [key, value] of Object.entries(postContext)) {
+    if (typeof value === 'string') next[key] = value
+  }
+  return next
+}
 
 function buildContentPostingInstructions(
   flow: ContentPostingFlow,
@@ -566,10 +589,13 @@ function AgentSetupShell({
 }
 
 export default function AgentCommandCenter({
-  profileId, companyName, activeTasks: initActiveTasks,
+  profileId, companyName, brandKitAvailable = false, hasUploadedLogo = false,
+  activeTasks: initActiveTasks,
   pendingApprovals: initPendingApprovals, recentTasks: initRecent, recentOutputs: initRecentOutputs, scorecard,
 }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const useAssetId = searchParams.get('useAsset')
   const [activeTasks, setActiveTasks] = useState(initActiveTasks)
   const [pendingApprovals, setPendingApprovals] = useState(initPendingApprovals)
   const [recentTasks, setRecentTasks] = useState(initRecent)
@@ -594,11 +620,15 @@ export default function AgentCommandCenter({
   const [postImageRequiredError, setPostImageRequiredError] = useState<string | null>(null)
   const [generatedImageOptions, setGeneratedImageOptions] = useState<GeneratedImageOption[]>([])
   const [generatedBriefId, setGeneratedBriefId] = useState<string | null>(null)
+  const [generatedImageModelLabel, setGeneratedImageModelLabel] = useState<string | null>(null)
   const [selectedGeneratedIndex, setSelectedGeneratedIndex] = useState<number | null>(null)
   const [generatedTextQa, setGeneratedTextQa] = useState<TextQaResult | null>(null)
   const [generatedQaLoading, setGeneratedQaLoading] = useState(false)
   const [generatedQaRegenerating, setGeneratedQaRegenerating] = useState(false)
   const [qaRetryByIndex, setQaRetryByIndex] = useState<Record<number, number>>({})
+  const [generatedImageEditing, setGeneratedImageEditing] = useState(false)
+  const [sessionHydrated, setSessionHydrated] = useState(false)
+  const [sessionRestored, setSessionRestored] = useState(false)
   const [taskCreateError, setTaskCreateError] = useState<string | null>(null)
 
   const imageGenerationEnabled = process.env.NEXT_PUBLIC_IMAGE_GENERATION === 'true'
@@ -625,16 +655,136 @@ export default function AgentCommandCenter({
 
   const agentList = useMemo(() => COMMAND_CENTER_AGENTS, [])
 
-  function startSinglePostFlow() {
-    setSelectedAgent('content_posting')
-    setContentPostingFlow('single')
-    setPostImageRequiredError(null)
+  function resetGenerationState() {
     setGeneratedImageOptions([])
     setGeneratedBriefId(null)
+    setGeneratedImageModelLabel(null)
     setSelectedGeneratedIndex(null)
     setGeneratedTextQa(null)
     setGeneratedQaLoading(false)
+    setGeneratedImageEditing(false)
     setQaRetryByIndex({})
+    setPostImageMedia(null)
+    setPostImageRequiredError(null)
+    setSessionRestored(false)
+  }
+
+  function startSinglePostFlow() {
+    setSelectedAgent('content_posting')
+    setContentPostingFlow('single')
+    clearGenerationSession(profileId)
+    resetGenerationState()
+    setTimeout(() => {
+      document.getElementById('run-agent')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
+
+  function handleDiscardSession() {
+    clearGenerationSession(profileId)
+    resetGenerationState()
+  }
+
+  async function refreshOptionPreviews(
+    options: Array<Omit<GeneratedImageOption, 'previewUrl'> & { previewUrl?: string | null }>,
+  ): Promise<GeneratedImageOption[]> {
+    const res = await fetch('/api/posts/generate-images/refresh-previews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storagePaths: options.map(o => o.storagePath) }),
+    })
+    const data = await res.json().catch(() => ({}))
+    const previews = (data.previews ?? {}) as Record<string, string | null>
+    return options.map(o => ({
+      ...o,
+      previewUrl: previews[o.storagePath] ?? o.previewUrl ?? null,
+    }))
+  }
+
+  async function applyLoadedAsset(asset: CreativeAssetWithUrl) {
+    setSelectedAgent('content_posting')
+    setContentPostingFlow('single')
+    setPostImageRequiredError(null)
+    setTaskCreateError(null)
+
+    if (asset.post_context) {
+      setContentPostingForms(prev => ({
+        ...prev,
+        single: mergePostContextForm(prev.single, asset.post_context),
+      }))
+    }
+
+    const index = asset.option_index ?? 0
+    const brief = asset.brief ?? asset.brief_excerpt ?? ''
+    const option: GeneratedImageOption = {
+      index,
+      brief,
+      storagePath: asset.storage_path,
+      mime: asset.mime,
+      previewUrl: asset.preview_url,
+      model: asset.image_model ?? 'google/gemini-2.5-flash-image',
+    }
+
+    setGeneratedBriefId(asset.brief_id ?? crypto.randomUUID())
+    setGeneratedImageModelLabel(asset.image_model_label)
+    setGeneratedImageOptions([option])
+    setSelectedGeneratedIndex(index)
+    setPostImageMedia({
+      storagePath: option.storagePath,
+      mime: option.mime,
+      previewUrl: option.previewUrl ?? '',
+      filename: 'saved-asset',
+    })
+    setQaRetryByIndex({})
+
+    if (asset.qa_passed === true) {
+      setGeneratedTextQa({
+        passed: true,
+        transcription: null,
+        issues: [],
+        qaMethod: 'vision_readback',
+      })
+    } else {
+      setGeneratedTextQa(null)
+      await runTextQaForOption(option)
+    }
+
+    setTimeout(() => {
+      document.getElementById('run-agent')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
+
+  async function restoreGenerationSession(session: GenerationSession) {
+    setSelectedAgent('content_posting')
+    setContentPostingFlow('single')
+    setContentPostingForms(prev => ({
+      ...prev,
+      single: session.contentPostingForm,
+    }))
+    setTaskInstructions(session.taskInstructions)
+    setGeneratedBriefId(session.briefId)
+    setGeneratedImageModelLabel(session.imageModelLabel)
+    setSelectedGeneratedIndex(session.selectedIndex)
+    setGeneratedTextQa(session.generatedTextQa)
+    setQaRetryByIndex(session.qaRetryByIndex)
+
+    const options = await refreshOptionPreviews(session.options)
+    setGeneratedImageOptions(options)
+
+    if (session.selectedIndex != null) {
+      const opt = options.find(o => o.index === session.selectedIndex)
+      if (opt) {
+        setPostImageMedia({
+          storagePath: opt.storagePath,
+          mime: opt.mime,
+          previewUrl: opt.previewUrl ?? '',
+          filename: `generated-option-${opt.index + 1}`,
+        })
+      }
+    } else {
+      setPostImageMedia(null)
+    }
+
+    setSessionRestored(true)
     setTimeout(() => {
       document.getElementById('run-agent')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
@@ -701,11 +851,11 @@ export default function AgentCommandCenter({
       const data = await res.json().catch(() => ({}))
       const qa = data.qa as TextQaResult | undefined
       if (!qa) {
-        const msg =
-          (typeof data.message === 'string' ? data.message : null) ??
-          (typeof data.error === 'string' ? data.error : null) ??
-          'Text QA could not run.'
-        setPostImageRequiredError(msg)
+        const raw =
+          (typeof data.message === 'string' ? data.message : null)
+          ?? (typeof data.error === 'string' ? data.error : null)
+          ?? 'Text QA could not run.'
+        setPostImageRequiredError(sanitizeUserFacingError(raw, 'image_qa'))
         return
       }
       setGeneratedTextQa(qa)
@@ -736,15 +886,16 @@ export default function AgentCommandCenter({
           optionIndex: option.index,
           brief: option.brief,
           retryCount,
+          imageModel: option.model,
         }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const msg =
-          (typeof data.message === 'string' ? data.message : null) ??
-          (typeof data.error === 'string' ? data.error : null) ??
-          'Regeneration failed.'
-        setPostImageRequiredError(msg)
+        const raw =
+          (typeof data.message === 'string' ? data.message : null)
+          ?? (typeof data.error === 'string' ? data.error : null)
+          ?? 'Regeneration failed.'
+        setPostImageRequiredError(sanitizeUserFacingError(raw, 'image_regenerate'))
         return
       }
       const newOption = data.option as GeneratedImageOption
@@ -763,6 +914,57 @@ export default function AgentCommandCenter({
       setPostImageRequiredError('Regeneration failed. Try again.')
     } finally {
       setGeneratedQaRegenerating(false)
+    }
+  }
+
+  async function handleEditImageOption(instruction: string, editMode: 'text-only' | 'visual') {
+    const option = selectedGeneratedOption
+    if (!option || !generatedBriefId || generatedImageEditing) {
+      throw new Error('Select an image option first.')
+    }
+
+    setGeneratedImageEditing(true)
+    setPostImageRequiredError(null)
+    try {
+      const res = await fetch('/api/posts/generate-images/edit-option', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          briefId: generatedBriefId,
+          optionIndex: option.index,
+          brief: option.brief,
+          editInstruction: instruction,
+          imageModel: option.model,
+          sourceStoragePath: option.storagePath,
+          editMode,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const raw =
+        (typeof data.message === 'string' ? data.message : null)
+        ?? (typeof data.error === 'string' ? data.error : null)
+        ?? 'Edit failed.'
+      const msg = sanitizeUserFacingError(raw, 'image_edit')
+      if (msg.toLowerCase().includes('image is too large')) {
+        throw new Error('Image is too large to edit in-place. Try Fix text only mode or pick another option.')
+      }
+      throw new Error(msg)
+    }
+      const newOption = data.option as GeneratedImageOption
+      setGeneratedImageOptions(prev =>
+        prev.map(o => (o.index === newOption.index ? newOption : o)),
+      )
+      setPostImageMedia({
+        storagePath: newOption.storagePath,
+        mime: newOption.mime,
+        previewUrl: newOption.previewUrl ?? '',
+        filename: `generated-option-${newOption.index + 1}`,
+      })
+      setGeneratedTextQa(null)
+      await runTextQaForOption(newOption)
+    } finally {
+      setGeneratedImageEditing(false)
     }
   }
 
@@ -786,6 +988,59 @@ export default function AgentCommandCenter({
     [companyName, activeTasks.length, pendingApprovals.length, scorecard],
   )
   useMayaContext(mayaContext)
+
+  useEffect(() => {
+    if (!imageGenerationEnabled || sessionHydrated) return
+
+    async function hydrate() {
+      try {
+        if (useAssetId) {
+          const res = await fetch(`/api/creative-assets/${useAssetId}`)
+          const data = await res.json().catch(() => ({}))
+          if (res.ok && data.asset) {
+            await applyLoadedAsset(data.asset as CreativeAssetWithUrl)
+            router.replace('/dashboard/agents')
+          }
+        } else {
+          const session = loadGenerationSession(profileId)
+          if (session) {
+            await restoreGenerationSession(session)
+          }
+        }
+      } finally {
+        setSessionHydrated(true)
+      }
+    }
+
+    void hydrate()
+  }, [imageGenerationEnabled, sessionHydrated, useAssetId, profileId, router])
+
+  useEffect(() => {
+    if (!imageGenerationEnabled || !sessionHydrated) return
+    if (generatedImageOptions.length === 0 || !generatedBriefId) return
+    saveGenerationSession(profileId, {
+      briefId: generatedBriefId,
+      imageModelLabel: generatedImageModelLabel,
+      options: generatedImageOptions,
+      selectedIndex: selectedGeneratedIndex,
+      generatedTextQa,
+      qaRetryByIndex,
+      contentPostingForm: contentPostingForms.single,
+      taskInstructions,
+    })
+  }, [
+    imageGenerationEnabled,
+    sessionHydrated,
+    profileId,
+    generatedBriefId,
+    generatedImageModelLabel,
+    generatedImageOptions,
+    selectedGeneratedIndex,
+    generatedTextQa,
+    qaRetryByIndex,
+    contentPostingForms.single,
+    taskInstructions,
+  ])
 
   useEffect(() => {
     if (!isSinglePostSelected && postImageMedia) {
@@ -1065,15 +1320,10 @@ export default function AgentCommandCenter({
             }
 
             const taskId = composeData.taskId as string
+            clearGenerationSession(profileId)
             setSubmitted(true)
             setTaskInstructions('')
-            setPostImageMedia(null)
-            setGeneratedImageOptions([])
-            setGeneratedBriefId(null)
-            setSelectedGeneratedIndex(null)
-            setGeneratedTextQa(null)
-            setGeneratedQaLoading(false)
-            setQaRetryByIndex({})
+            resetGenerationState()
             setSelectedAgent(null)
             setTimeout(() => setSubmitted(false), 3000)
             setRunTracker(null)
@@ -1113,6 +1363,7 @@ export default function AgentCommandCenter({
       setPostImageMedia(null)
       setGeneratedImageOptions([])
       setGeneratedBriefId(null)
+    setGeneratedImageModelLabel(null)
       setSelectedGeneratedIndex(null)
       setGeneratedTextQa(null)
       setGeneratedQaLoading(false)
@@ -1417,11 +1668,30 @@ export default function AgentCommandCenter({
                   <div className="mt-4 space-y-4">
                     {imageGenerationEnabled && (
                       <>
+                        {sessionRestored && generatedImageOptions.length > 0 && (
+                          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-3 py-2">
+                            <p className="text-xs text-text-sec">
+                              Your last generation session was restored. Pick up where you left off or discard it.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={handleDiscardSession}
+                              className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-text-sec hover:border-gray-300"
+                            >
+                              Discard session
+                            </button>
+                          </div>
+                        )}
                         <PostImageGenerate
                           disabled={submitting}
                           sceneDirection={taskInstructions}
-                          onOptionsReady={({ briefId, options }) => {
+                          postContext={contentPostingForms.single}
+                          brandKitAvailable={brandKitAvailable}
+                          hasUploadedLogo={hasUploadedLogo}
+                          onOptionsReady={({ briefId, options, imageModelLabel }) => {
+                            setSessionRestored(false)
                             setGeneratedBriefId(briefId)
+                            setGeneratedImageModelLabel(imageModelLabel ?? null)
                             setGeneratedImageOptions(options)
                             setSelectedGeneratedIndex(null)
                             setPostImageMedia(null)
@@ -1432,9 +1702,19 @@ export default function AgentCommandCenter({
                           }}
                         />
                         <PostImageGeneratePicker
+                          key={generatedBriefId ?? 'no-brief'}
                           options={generatedImageOptions}
                           selectedIndex={selectedGeneratedIndex}
-                          disabled={submitting || generatedQaLoading || generatedQaRegenerating}
+                          briefId={generatedBriefId}
+                          imageModelLabel={generatedImageModelLabel}
+                          postContext={contentPostingForms.single}
+                          qaPassed={generatedTextQa?.passed === true}
+                          disabled={
+                            submitting
+                            || generatedQaLoading
+                            || generatedQaRegenerating
+                            || generatedImageEditing
+                          }
                           onSelect={option => {
                             setSelectedGeneratedIndex(option.index)
                             setPostImageRequiredError(null)
@@ -1448,6 +1728,14 @@ export default function AgentCommandCenter({
                             void runTextQaForOption(option)
                           }}
                         />
+                        {selectedGeneratedOption && generatedBriefId && (
+                          <PostImageEditPanel
+                            option={selectedGeneratedOption}
+                            disabled={submitting}
+                            editing={generatedImageEditing}
+                            onEdit={handleEditImageOption}
+                          />
+                        )}
                         <PostImageTextQaPanel
                           qa={generatedTextQa}
                           loading={generatedQaLoading}
@@ -1465,6 +1753,8 @@ export default function AgentCommandCenter({
                       attached={postImageMedia ? {
                         previewUrl: postImageMedia.previewUrl,
                         filename: postImageMedia.filename,
+                        storagePath: postImageMedia.storagePath,
+                        mime: postImageMedia.mime,
                       } : null}
                       onAttached={media => {
                         setPostImageRequiredError(null)
@@ -1509,6 +1799,7 @@ export default function AgentCommandCenter({
                   submitting
                   || submitted
                   || runTracker?.phase === 'generating'
+                  || generatedImageEditing
                   || (isSinglePostSelected && !postImageMedia)
                   || (requiresGeneratedTextQa && (generatedQaLoading || !generatedTextQa?.passed))
                 }

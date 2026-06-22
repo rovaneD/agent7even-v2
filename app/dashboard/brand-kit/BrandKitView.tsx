@@ -877,12 +877,17 @@ function ImagerySection({ profileId: _profileId, assets, documents, onAssetsChan
   const [style, setStyle]       = useState(() => documents.find(d => d.type === 'imagery_style')?.markdown ?? '')
   const [styleSaved, setStyleSaved] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadingRefs, setUploadingRefs] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const styleRefInput = useRef<HTMLInputElement>(null)
+
+  const photoAssets = assets.filter(a => a.asset_type !== 'style_reference')
+  const styleReferences = assets.filter(a => a.asset_type === 'style_reference')
 
   useEffect(() => {
-    const done = style.trim().length > 20 || assets.length > 0
+    const done = style.trim().length > 20 || photoAssets.length > 0 || styleReferences.length > 0
     if (done !== completed) onMarkComplete(done)
-  }, [style, assets]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [style, photoAssets.length, styleReferences.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function saveStyle() {
     await fetch('/api/brand-kit/documents', {
@@ -894,19 +899,20 @@ function ImagerySection({ profileId: _profileId, assets, documents, onAssetsChan
     setTimeout(() => setStyleSaved(false), 2000)
   }
 
-  async function uploadAsset(file: File) {
-    setUploading(true)
+  async function uploadAsset(file: File, assetType: 'photo' | 'style_reference') {
+    const setBusy = assetType === 'style_reference' ? setUploadingRefs : setUploading
+    setBusy(true)
     try {
       const form = new FormData()
       form.append('file', file)
       form.append('name', file.name)
       form.append('sectionKey', 'imagery')
-      form.append('assetType', 'photo')
+      form.append('assetType', assetType)
       const res  = await fetch('/api/brand-kit/assets', { method: 'POST', body: form })
       const data = await res.json()
       if (data.asset) onAssetsChange([...allAssets, data.asset])
     } finally {
-      setUploading(false)
+      setBusy(false)
     }
   }
 
@@ -940,24 +946,25 @@ function ImagerySection({ profileId: _profileId, assets, documents, onAssetsChan
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">Asset library</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-1">Style references</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Upload layouts, mood boards, or posts you aspire to. Maya uses these when you enable &quot;Use Brand Kit&quot; on image generation.
+        </p>
 
-        {/* Upload zone */}
         <div
-          onClick={() => fileRef.current?.click()}
-          className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-gray-400 transition-colors cursor-pointer mb-5"
+          onClick={() => styleRefInput.current?.click()}
+          className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-gray-400 transition-colors cursor-pointer mb-4"
         >
-          {uploading ? <Loader2 size={24} className="text-gray-300 mx-auto mb-2 animate-spin" /> : <Upload size={24} className="text-gray-300 mx-auto mb-2" />}
-          <p className="text-sm text-gray-500">{uploading ? 'Uploading…' : 'Drop files here or click to upload'}</p>
-          <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG, WebP up to 10MB</p>
-          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
-            onChange={e => { Array.from(e.target.files ?? []).forEach(uploadAsset); e.target.value = '' }} />
+          {uploadingRefs ? <Loader2 size={22} className="text-gray-300 mx-auto mb-2 animate-spin" /> : <Upload size={22} className="text-gray-300 mx-auto mb-2" />}
+          <p className="text-sm text-gray-500">{uploadingRefs ? 'Uploading…' : 'Add style reference'}</p>
+          <p className="text-xs text-gray-400 mt-1">Screenshots, competitor inspo, Canva exports — PNG/JPG up to 10MB</p>
+          <input ref={styleRefInput} type="file" accept="image/*" multiple className="hidden"
+            onChange={e => { Array.from(e.target.files ?? []).forEach(f => uploadAsset(f, 'style_reference')); e.target.value = '' }} />
         </div>
 
-        {/* Asset grid */}
-        {assets.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {assets.map(asset => (
+        {styleReferences.length > 0 && (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-2">
+            {styleReferences.map(asset => (
               <div key={asset.id} className="relative group">
                 <div className="aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
                   {asset.signed_url || asset.file_url || asset.thumbnail_url ? (
@@ -977,7 +984,47 @@ function ImagerySection({ profileId: _profileId, assets, documents, onAssetsChan
             ))}
           </div>
         )}
-        {assets.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No assets uploaded yet.</p>}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">Asset library</h2>
+
+        {/* Upload zone */}
+        <div
+          onClick={() => fileRef.current?.click()}
+          className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-gray-400 transition-colors cursor-pointer mb-5"
+        >
+          {uploading ? <Loader2 size={24} className="text-gray-300 mx-auto mb-2 animate-spin" /> : <Upload size={24} className="text-gray-300 mx-auto mb-2" />}
+          <p className="text-sm text-gray-500">{uploading ? 'Uploading…' : 'Drop files here or click to upload'}</p>
+          <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG, WebP up to 10MB</p>
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
+            onChange={e => { Array.from(e.target.files ?? []).forEach(f => uploadAsset(f, 'photo')); e.target.value = '' }} />
+        </div>
+
+        {/* Asset grid */}
+        {photoAssets.length > 0 && (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {photoAssets.map(asset => (
+              <div key={asset.id} className="relative group">
+                <div className="aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
+                  {asset.signed_url || asset.file_url || asset.thumbnail_url ? (
+                    <img src={asset.signed_url ?? asset.thumbnail_url ?? asset.file_url ?? ''} alt={asset.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full"><ImageIcon size={24} className="text-gray-300" /></div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1 truncate">{asset.name}</p>
+                <button
+                  onClick={() => deleteAsset(asset.id)}
+                  className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 bg-white rounded-lg p-1 shadow-sm transition-opacity"
+                >
+                  <Trash2 size={11} className="text-gray-500" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {photoAssets.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No assets uploaded yet.</p>}
       </div>
     </div>
   )
