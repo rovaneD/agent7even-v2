@@ -460,7 +460,7 @@ Extends v1 without changing the pre-queue compose architecture (§1) or approval
 
 **Full file map + API list:** `CONTEXTV19.md`
 
-**Still gated:** `NEXT_PUBLIC_IMAGE_GENERATION` — production enablement is an ops decision, not automatic with merge.
+**Still gated:** ~~Production enablement~~ — flag **ON** in Production as of June 22, 2026. Real publish still gated on Zernio DPA.
 
 ---
 

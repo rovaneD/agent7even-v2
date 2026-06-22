@@ -175,7 +175,7 @@ From `SESSION_2026-06-20-creative-generation.md` — unchanged:
 - Pre-queue compose architecture (brief → options → pick → QA → compose → one `pending_approval` row)
 - Foundation floor **70%** on Voice + Position + Customer (`scripts/calibrate-generation-floor.ts`)
 - Bundled **25 credits** per compose run (`GENERATION_BUNDLE_CREDIT_COST`)
-- Production flag was OFF at June 20 staging pass — re-check Vercel env before enabling on prod
+- Production flag **ON** in Vercel Production as of June 22, 2026 (`NEXT_PUBLIC_IMAGE_GENERATION=true` — must be exact string, not empty)
 
 ---
 
@@ -198,9 +198,9 @@ From `SESSION_2026-06-20-creative-generation.md` — unchanged:
 
 1. Zernio DPA / real client publish gate (unchanged from V18)
 2. Post media expansion Phases A–C
-3. Production flag decision for `NEXT_PUBLIC_IMAGE_GENERATION` on www.agent7even.ai
+3. ~~Production flag decision~~ — **Done June 22, 2026** (`NEXT_PUBLIC_IMAGE_GENERATION=true` on www.agent7even.ai)
 4. Additional generation UX (user mentioned revisiting later — TBD)
-5. **Production flag enablement** — Vercel Production `NEXT_PUBLIC_IMAGE_GENERATION=true` + redeploy + smoke (see SESSION checklist below)
+5. **Prod smoke** — full checklist in `SESSION_2026-06-21.md` (generate → Assets → approval); brief quality iteration ongoing
 
 ---
 
