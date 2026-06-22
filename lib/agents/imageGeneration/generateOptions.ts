@@ -3,7 +3,6 @@ import { createPostAssetSignedUrl, downloadPostAsset, uploadPostAsset } from '@/
 import { composeImageBriefs, briefComposeModel, defaultImageModel, imageOptionCount } from './briefCompose'
 import {
   appendQaFixToBrief,
-  buildSafeFallbackBrief,
   prepareBriefForImageModel,
 } from './briefValidation'
 import { buildFoundationSnapshotMarkdown } from './foundationSnapshot'
@@ -92,6 +91,7 @@ export async function generateImageOptions(opts: {
       ensureOptionPassesQa({
         profileId: opts.profileId,
         companyName: opts.companyName,
+        postGoal: opts.postContext?.postGoal?.trim(),
         briefId,
         optionIndex: index,
         brief: briefs[index]!,
@@ -147,6 +147,7 @@ async function uploadRegeneratedOption(opts: {
 async function ensureOptionPassesQa(opts: {
   profileId: string
   companyName: string
+  postGoal?: string
   briefId: string
   optionIndex: number
   brief: string
@@ -179,9 +180,13 @@ async function ensureOptionPassesQa(opts: {
       return option
     }
 
-    brief = attempt + 1 >= GENERATION_OPTION_QA_MAX_RETRIES
-      ? buildSafeFallbackBrief(opts.imageModelId, opts.companyName)
-      : appendQaFixToBrief(brief, qa.issues, opts.imageModelId, opts.companyName)
+    brief = appendQaFixToBrief(
+      brief,
+      qa.issues,
+      opts.imageModelId,
+      opts.companyName,
+      opts.postGoal,
+    )
     bytes = await generateImageFromBrief(opts.imageModel, brief)
   }
 

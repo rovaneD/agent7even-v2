@@ -1,4 +1,9 @@
 import type { ImageGenerationModelId } from './imageModelCatalog'
+import {
+  buildSocialPostReplacementBrief,
+  detectLogoLockupBrief,
+  detectVagueSocialBrief,
+} from './logoLockupDetection'
 import type { TextQaIssue } from './types'
 
 const PHOTOREAL_FORBIDDEN_BRIEF = [
@@ -76,6 +81,9 @@ export function validateBriefForModel(
     })
   }
 
+  const logoIssue = detectLogoLockupBrief(brief) ?? detectVagueSocialBrief(brief)
+  if (logoIssue) issues.push(logoIssue)
+
   return issues
 }
 
@@ -125,6 +133,11 @@ export function prepareBriefForImageModel(
     return `Editorial photograph for ${companyName} social post: an authentic, cinematic scene that visually metaphorizes ${theme}. Natural lighting, shallow depth of field, real environment (workspace detail, hands at work, decisive moment — never a chart, diagram, infographic, or pillar layout). Apply the brand palette through scene color grading only — never as labels. Absolutely no text, typography, headlines, hex codes, color names, font specs, or graphic overlays anywhere in the frame.`
   }
 
+  const hasLogoLockupIssue = issues.some(i => i.code === 'brief_logo_lockup')
+  if (hasLogoLockupIssue) {
+    return buildSocialPostReplacementBrief(companyName, extractThemeHint(brief))
+  }
+
   const stripped = stripDesignSpecsFromBrief(brief)
   return `${stripped}
 
@@ -143,12 +156,13 @@ export function tightenBriefForModel(
 export function buildSafeFallbackBrief(
   modelId: ImageGenerationModelId,
   companyName: string,
+  themeHint?: string,
 ): string {
   if (modelId === 'photoreal') {
     return `Professional editorial photograph for ${companyName}: natural lighting, shallow depth of field, authentic business metaphor (hands at work, thoughtful pause, movement in a real environment). Absolutely no text, typography, charts, labels, hex codes, or graphic overlays anywhere in the frame.`
   }
 
-  return `Clean social post visual for ${companyName}: strong composition with brand-appropriate colors applied in the design only. At most one short marketing headline using real words — no hex codes, color names, font specs, or chart layouts.`
+  return buildSocialPostReplacementBrief(companyName, themeHint)
 }
 
 export function appendQaFixToBrief(
@@ -156,9 +170,14 @@ export function appendQaFixToBrief(
   issues: TextQaIssue[],
   modelId: ImageGenerationModelId,
   companyName: string,
+  themeHint?: string,
 ): string {
   if (modelId === 'photoreal') {
-    return buildSafeFallbackBrief(modelId, companyName)
+    return buildSafeFallbackBrief(modelId, companyName, themeHint)
+  }
+
+  if (issues.some(i => i.code === 'logo_lockup' || i.code === 'brief_logo_lockup')) {
+    return buildSocialPostReplacementBrief(companyName, themeHint ?? extractThemeHint(brief))
   }
 
   const summary = issues.map(i => i.message).join(' ')

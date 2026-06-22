@@ -13,7 +13,8 @@ export function modelBriefRulesBlock(modelId: ImageGenerationModelId): string {
     case 'sharp-text':
       return [
         '## Image model constraints (Sharp text)',
-        '- At most ONE headline (under 8 words) plus optionally ONE short stat.',
+        '- At most ONE headline (under 8 words) plus optionally ONE short stat or CTA.',
+        '- Social POST layout — NOT a logo tile, wordmark lockup, monogram, or abstract brand-mark hero.',
         '- No color swatches, hex codes, legends, multi-step carousels, or fake dashboards with lorem labels.',
       ].join('\n')
     case 'latest-gemini':
@@ -38,4 +39,5 @@ export const GLOBAL_IMAGE_BRIEF_RULES = `## Hard rules (every image option)
 - NEVER invent fake customer testimonials, named people, or unrelated industries (bakery, therapy, retail foot traffic, etc.) unless the post ask explicitly requests that format.
 - Stay in the business category described in Foundation — B2B marketing SaaS for this brand, not random small-business stock scenarios.
 - No fake UI mockups with gibberish labels or lorem filler in prominent areas.
-- On-image copy must be real marketing words only — not brief instructions, model names, or metadata.`
+- On-image copy must be real marketing words only — not brief instructions, model names, or metadata.
+- Social POST images only — NEVER brief a logo lockup, wordmark tile, monogram hero, or abstract brand-mark symbol. The company name must not be the main visual; use a post-specific headline about the offer or pain point instead.`

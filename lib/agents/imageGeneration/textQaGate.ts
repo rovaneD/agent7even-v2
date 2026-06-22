@@ -4,6 +4,7 @@ import { buildVisionUserMessageFromStorage, VISION_CAPTION_MODEL } from '@/lib/a
 import { loadBrandKitGenerationSnapshot } from './brandKitSnapshot'
 import { detectDesignSpecInImageText } from './designSpecLeakDetection'
 import { detectFontMetadataInImageText } from './fontLeakDetection'
+import { detectLogoLockupInImageText } from './logoLockupDetection'
 import { loadBrandTokensForQa } from './brandTokens'
 import type { TextQaResult } from './types'
 
@@ -28,6 +29,7 @@ Rules for passed=false:
 - Text that contradicts the brand (wrong company name)
 - Font family names, font weights, or CSS typography specs visible as text (e.g. "Inter 600", "Lora Bold", "font-weight: 600") — these are design metadata, not marketing copy
 - Hex color codes (#RGB or #RRGGBB) or color swatch legends visible as text
+- Image is primarily a logo lockup, wordmark tile, monogram, or abstract brand mark with the company name — social posts need a marketing headline about the post topic, not identity design
 
 Rules for passed=true:
 - No readable text in the image, OR
@@ -102,7 +104,8 @@ export async function runTextQaGate(opts: {
   const colorNames = brandKit.colors.map(c => c.name).filter(Boolean) as string[]
   const fontLeakIssues = detectFontMetadataInImageText(parsed.transcribedText, fontFamilies)
   const designLeakIssues = detectDesignSpecInImageText(parsed.transcribedText, colorNames)
-  const mergedIssues = [...parsed.issues, ...fontLeakIssues, ...designLeakIssues]
+  const logoLockupIssues = detectLogoLockupInImageText(parsed.transcribedText, brandTokens)
+  const mergedIssues = [...parsed.issues, ...fontLeakIssues, ...designLeakIssues, ...logoLockupIssues]
   const passed = parsed.passed && mergedIssues.length === 0
 
   return {

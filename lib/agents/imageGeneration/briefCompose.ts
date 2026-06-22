@@ -23,7 +23,7 @@ function optionDiversityLine(count: number, modelId?: ImageGenerationModelId): s
     case 'photoreal':
       return `Make the ${count} options visually distinct but cohesive: editorial photograph, symbolic object close-up, environmental wide shot, or abstract texture — NEVER bar charts, infographics, pillar diagrams, stat dashboards, or UI mockups.`
     case 'sharp-text':
-      return `Make the ${count} options visually distinct: bold headline card, stat callout with one number, quote card — readable typography is the point; still no hex codes, legends, or font specs as visible text.`
+      return `Make the ${count} options visually distinct: bold headline card, stat callout with one number, quote card — readable typography is the point; NEVER logo lockups, wordmarks, monograms, or abstract brand-mark tiles.`
     default:
       return `Make the ${count} options visually distinct but cohesive with the same brand system — vary layout archetype, not generic stock templates.`
   }
