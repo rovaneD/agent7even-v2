@@ -635,10 +635,20 @@ export default function AgentCommandCenter({
   const imageGenerationEnabled = process.env.NEXT_PUBLIC_IMAGE_GENERATION === 'true'
   const videoGenerationEnabled = process.env.NEXT_PUBLIC_VIDEO_GENERATION === 'true'
 
-  // Video generation state
-  const [videoJobId, setVideoJobId] = useState<string | null>(null)
-  const [videoTaskId, setVideoTaskId] = useState<string | null>(null)
-  const [videoModel, setVideoModel] = useState<string | null>(null)
+  // Video generation state — pre-populate from any running video task so the
+  // indicator survives navigation away and back
+  const runningVideoTask = initActiveTasks.find(
+    t => t.agent === 'video_generation' && t.status === 'running',
+  )
+  const [videoJobId, setVideoJobId] = useState<string | null>(
+    (runningVideoTask?.input?.video_job_id as string | undefined) ?? null,
+  )
+  const [videoTaskId, setVideoTaskId] = useState<string | null>(
+    runningVideoTask?.id ?? null,
+  )
+  const [videoModel, setVideoModel] = useState<string | null>(
+    (runningVideoTask?.input?.video_model as string | undefined) ?? null,
+  )
 
   // Orchestration state
   const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
@@ -1762,6 +1772,7 @@ export default function AgentCommandCenter({
                           disabled={submitting}
                           postContext={contentPostingForms.single}
                           sceneDirection={taskInstructions}
+                          initialPending={videoJobId ? { jobId: videoJobId, taskId: videoTaskId ?? '', model: videoModel ?? '' } : undefined}
                           onJobStarted={({ jobId, taskId, model }) => {
                             setVideoJobId(jobId)
                             setVideoTaskId(taskId)

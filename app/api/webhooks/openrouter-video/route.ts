@@ -14,16 +14,63 @@ type VideoWebhookPayload = {
   error?: string
 }
 
+/** JSON-minify so our HMAC matches Convoy's (it strips whitespace before signing). */
+function minifyJson(raw: string): string {
+  try { return JSON.stringify(JSON.parse(raw)) } catch { return raw }
+}
+
+function hmacHex(secret: string, payload: string): string {
+  return createHmac('sha256', secret).update(payload).digest('hex')
+}
+
+function safeEqual(a: string, b: string): boolean {
+  try {
+    if (a.length !== b.length) return false
+    return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+  } catch { return false }
+}
+
+/**
+ * Verify an OpenRouter/Convoy HMAC-SHA256 signature.
+ *
+ * Convoy sends one of two formats:
+ *   Simple:   "<hex>"
+ *   Advanced: "t=<ts>,v1=<hex>[,v0=<hex>]"  — signed over "<ts>,<minified-body>"
+ *
+ * In both cases Convoy signs the JSON-minified body, not the raw bytes.
+ * We also fall back to the raw body in case OpenRouter skips minification.
+ */
 function verifySignature(body: string, signature: string | null, secret: string): boolean {
   if (!signature) return false
-  const expected = createHmac('sha256', secret).update(body).digest('hex')
-  try {
-    const sigBuf = Buffer.from(signature.length === expected.length ? signature : '')
-    const expBuf = Buffer.from(expected)
-    return timingSafeEqual(sigBuf, expBuf)
-  } catch {
-    return false
+
+  const minified = minifyJson(body)
+
+  // ── Advanced Convoy format: t=<ts>,v1=<hex> ───────────────────────────
+  if (signature.startsWith('t=')) {
+    const parts = signature.split(',')
+    const tsPart = parts.find(p => p.startsWith('t='))
+    if (!tsPart) return false
+    const ts = tsPart.slice(2)
+    const hashes = parts
+      .filter(p => /^v\d+=/.test(p))
+      .map(p => p.slice(p.indexOf('=') + 1))
+
+    if (hashes.length === 0) return false
+
+    // Signed payload is "<timestamp>,<minified-body>"
+    const signedPayload = `${ts},${minified}`
+    const expected = hmacHex(secret, signedPayload)
+
+    return hashes.some(h => safeEqual(h, expected))
   }
+
+  // ── Simple format: raw hex of (minified body) ──────────────────────────
+  const expectedMin = hmacHex(secret, minified)
+  if (safeEqual(signature, expectedMin)) return true
+
+  // ── Fallback: raw body (in case OpenRouter doesn't minify) ─────────────
+  const expectedRaw = hmacHex(secret, body)
+  return safeEqual(signature, expectedRaw)
 }
 
 export async function POST(req: Request) {

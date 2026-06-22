@@ -15,6 +15,7 @@ interface PostVideoGenerateProps {
   disabled?: boolean
   postContext?: Record<string, string>
   sceneDirection?: string
+  initialPending?: { jobId: string; taskId: string; model: string }
   onJobStarted?: (opts: { jobId: string; taskId: string; model: string }) => void
 }
 
@@ -22,9 +23,14 @@ export default function PostVideoGenerate({
   disabled = false,
   postContext,
   sceneDirection,
+  initialPending,
   onJobStarted,
 }: PostVideoGenerateProps) {
-  const [state, setState]       = useState<VideoGenerateState>({ phase: 'idle' })
+  const [state, setState]       = useState<VideoGenerateState>(
+    initialPending
+      ? { phase: 'pending', ...initialPending }
+      : { phase: 'idle' },
+  )
   const [modelId, setModelId]   = useState<string>(DEFAULT_VIDEO_MODEL_ID)
 
   async function handleGenerate() {
