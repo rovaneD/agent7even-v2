@@ -84,8 +84,16 @@ export async function POST(): Promise<NextResponse> {
         continue
       }
 
-      // Download
+      // Download — 401 means the signed URL expired; mark failed so we stop retrying
       const dlRes = await fetch(videoUrl)
+      if (dlRes.status === 401 || dlRes.status === 403) {
+        await supabase
+          .from('agent_tasks')
+          .update({ status: 'failed', completed_at: new Date().toISOString() })
+          .eq('id', task.id as string)
+        result.failed++
+        continue
+      }
       if (!dlRes.ok) throw new Error(`Download ${dlRes.status}`)
       const videoBytes = Buffer.from(await dlRes.arrayBuffer())
 
