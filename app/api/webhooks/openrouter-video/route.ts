@@ -7,11 +7,18 @@ import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 
 export const maxDuration = 60
 
-type VideoWebhookPayload = {
+type VideoJobData = {
   id?: string
   status?: string
   unsigned_urls?: string[]
   error?: string
+}
+
+/** Convoy may wrap the OpenRouter event in a { data: {...} } envelope. */
+type VideoWebhookPayload = VideoJobData & {
+  data?: VideoJobData
+  event_type?: string
+  uid?: string
 }
 
 /** JSON-minify so our HMAC matches Convoy's (it strips whitespace before signing). */
@@ -105,11 +112,18 @@ export async function POST(req: Request) {
 }
 
 async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
-  const jobId = payload.id
+  // Convoy may wrap the actual event in a `data` field
+  const inner = payload.data ?? payload
+  const jobId = inner.id
+
   if (!jobId) {
-    console.error('[openrouter-video] Missing job id in webhook payload')
+    console.error('[openrouter-video] Missing job id — payload keys:', Object.keys(payload).join(', '))
     return
   }
+
+  const status       = inner.status
+  const unsignedUrls = inner.unsigned_urls
+  const errorMsg     = inner.error
 
   const supabase = createServiceClient()
 
@@ -143,22 +157,22 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
   }
 
   // Handle failed job
-  if (payload.status === 'failed') {
+  if (status === 'failed') {
     await supabase
       .from('agent_tasks')
       .update({ status: 'failed', completed_at: new Date().toISOString() })
       .eq('id', taskId)
-    console.log('[openrouter-video] Job failed, task marked failed:', taskId)
+    console.log('[openrouter-video] Job failed, task marked failed:', taskId, errorMsg ?? '')
     return
   }
 
   // Ignore non-terminal statuses (pending, processing)
-  if (payload.status !== 'completed') {
-    console.log('[openrouter-video] Intermediate status ignored:', payload.status, 'job:', jobId)
+  if (status !== 'completed') {
+    console.log('[openrouter-video] Intermediate status ignored:', status, 'job:', jobId)
     return
   }
 
-  const videoUrl = payload.unsigned_urls?.[0]
+  const videoUrl = unsignedUrls?.[0]
   if (!videoUrl) {
     console.error('[openrouter-video] No video URL in completed payload, task:', taskId)
     await supabase
