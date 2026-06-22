@@ -76,7 +76,7 @@ If credit deduction fails (INSUFFICIENT_CREDITS) → task marked `failed`, 402 r
   "media_storage_path": "post-assets/{profileId}/{uuid}.mp4",
   "media_mime": "video/mp4",
   "generated": {
-    "model": "kling/kling-v1-5",
+    "model": "kwaivgi/kling-v3.0-std",
     "job_id": "or-video-...",
     "brief_excerpt": "...",
     "qa_passed": true
@@ -90,9 +90,20 @@ If credit deduction fails (INSUFFICIENT_CREDITS) → task marked `failed`, 402 r
 
 | ID | Label | OpenRouter slug | Default |
 |----|-------|-----------------|---------|
-| `kling-v1-5` | Kling v1.5 | `kling/kling-v1-5` | ✓ |
-| `runway-gen3` | Runway Gen-3 | `runway/gen-3-alpha-turbo` | |
-| `luma-dream` | Luma Dream Machine | `luma/dream-machine` | |
+| `kling-v3-std` | Kling v3.0 Standard | `kwaivgi/kling-v3.0-std` | ✓ |
+| `kling-v3-pro` | Kling v3.0 Pro | `kwaivgi/kling-v3.0-pro` | |
+| `kling-video-o1` | Kling Video O1 | `kwaivgi/kling-video-o1` | |
+| `seedance-2-fast` | Seedance 2.0 Fast | `bytedance/seedance-2.0-fast` | |
+| `seedance-2` | Seedance 2.0 | `bytedance/seedance-2.0` | |
+| `seedance-1-5-pro` | Seedance 1.5 Pro | `bytedance/seedance-1-5-pro` | |
+| `veo-3-1` | Google Veo 3.1 | `google/veo-3.1` | |
+| `veo-3-1-fast` | Google Veo 3.1 Fast | `google/veo-3.1-fast` | |
+| `veo-3-1-lite` | Google Veo 3.1 Lite | `google/veo-3.1-lite` | |
+| `grok-imagine-video` | xAI Grok Imagine Video | `xai/grok-imagine-video` | |
+| `hailuo-2-3` | MiniMax Hailuo 2.3 | `minimax/hailuo-2.3` | |
+| `wan-2-7` | Alibaba Wan 2.7 | `alibaba/wan-2.7` | |
+| `wan-2-6` | Alibaba Wan 2.6 | `alibaba/wan-2.6` | |
+| `sora-2-pro` | OpenAI Sora 2 Pro | `openai/sora-2-pro` | |
 
 Override with `VIDEO_GENERATION_MODEL` env var (OpenRouter slug or catalog ID).
 
