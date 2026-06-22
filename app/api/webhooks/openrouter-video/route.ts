@@ -4,6 +4,7 @@ import { after, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logProviderError } from '@/lib/agents/sanitizeProviderError'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
+import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
 
 export const maxDuration = 60
 
@@ -185,7 +186,7 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
   // Download video from OpenRouter
   let videoBytes: Buffer
   try {
-    const dlRes = await fetch(videoUrl)
+    const dlRes = await fetch(videoUrl, { headers: openRouterHeaders() })
     if (!dlRes.ok) throw new Error(`Download failed: ${dlRes.status}`)
     videoBytes = Buffer.from(await dlRes.arrayBuffer())
   } catch (err) {

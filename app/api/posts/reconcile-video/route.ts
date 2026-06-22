@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { pollVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
 import { logProviderError } from '@/lib/agents/sanitizeProviderError'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
+import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
 
 export const maxDuration = 60
 
@@ -85,7 +86,7 @@ export async function POST(): Promise<NextResponse> {
       }
 
       // Download — 401 means the signed URL expired; mark failed so we stop retrying
-      const dlRes = await fetch(videoUrl)
+      const dlRes = await fetch(videoUrl, { headers: openRouterHeaders() })
       if (dlRes.status === 401 || dlRes.status === 403) {
         await supabase
           .from('agent_tasks')
