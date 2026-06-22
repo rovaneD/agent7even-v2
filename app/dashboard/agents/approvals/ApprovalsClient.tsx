@@ -500,6 +500,17 @@ export default function ApprovalsClient({ profileId, initialTasks, viralHooksHin
     setNewItemsBanner(true)
   }, [initialTasks])
 
+  // On mount: reconcile any running video tasks so completed ones surface immediately
+  useEffect(() => {
+    fetch('/api/posts/reconcile-video', { method: 'POST' })
+      .then(r => r.json())
+      .then((d: { processed?: number }) => {
+        if ((d.processed ?? 0) > 0) router.refresh()
+      })
+      .catch(() => undefined)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Poll every 45 s — triggers router.refresh() so the server re-fetches the queue
   useEffect(() => {
     const id = setInterval(() => { router.refresh() }, 45_000)

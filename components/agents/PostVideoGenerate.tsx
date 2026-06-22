@@ -32,6 +32,29 @@ export default function PostVideoGenerate({
       : { phase: 'idle' },
   )
   const [modelId, setModelId]   = useState<string>(DEFAULT_VIDEO_MODEL_ID)
+  const [checking, setChecking] = useState(false)
+  const [checkMsg, setCheckMsg] = useState<string | null>(null)
+
+  async function handleCheckReady() {
+    if (checking) return
+    setChecking(true)
+    setCheckMsg(null)
+    try {
+      const res  = await fetch('/api/posts/reconcile-video', { method: 'POST' })
+      const data = await res.json().catch(() => ({})) as { processed?: number; still_running?: number }
+      if ((data.processed ?? 0) > 0) {
+        setCheckMsg('Your video is ready! Check the approval queue.')
+      } else if ((data.still_running ?? 0) > 0) {
+        setCheckMsg('Still generating — check back in a minute.')
+      } else {
+        setCheckMsg('No active video jobs found.')
+      }
+    } catch {
+      setCheckMsg('Could not check status. Try again.')
+    } finally {
+      setChecking(false)
+    }
+  }
 
   async function handleGenerate() {
     if (disabled || state.phase === 'composing' || state.phase === 'pending') return
@@ -77,16 +100,27 @@ export default function PostVideoGenerate({
           <p className="text-sm font-medium text-blue-900">Generating your video…</p>
         </div>
         <p className="mt-1 pl-4 text-xs text-blue-700">
-          Using {state.model}. This usually takes 2–5 minutes.
+          Using {state.model}. Usually 2–5 minutes.
         </p>
-        <div className="mt-2 pl-4">
+        <div className="mt-2 pl-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void handleCheckReady()}
+            disabled={checking}
+            className="text-xs font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700 disabled:opacity-50"
+          >
+            {checking ? 'Checking…' : 'Check if ready'}
+          </button>
           <Link
             href="/dashboard/agents/approvals"
-            className="text-xs font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700"
+            className="text-xs text-blue-500 hover:text-blue-600"
           >
-            Check approval queue →
+            Approval queue →
           </Link>
         </div>
+        {checkMsg && (
+          <p className="mt-1.5 pl-4 text-xs font-medium text-blue-800">{checkMsg}</p>
+        )}
       </div>
     )
   }
