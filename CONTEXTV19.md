@@ -1,10 +1,10 @@
-# CONTEXTV19 — Creative assets library + hardened Maya image generation (v1.1)
+# CONTEXTV19 — Creative generation: images, assets, and video
 *Snapshot: June 21, 2026 — supersedes `CONTEXTV18.md` for creative generation scope*
 
-This document supersedes `CONTEXTV18.md` for **image generation, creative assets, and related Agents UX**.
+This document supersedes `CONTEXTV18.md` for **image generation, video generation, creative assets, and related Agents UX**.
 Everything in V18 still applies unless this file explicitly changes it.
 
-Prior session logs: `SESSION_2026-06-21.md` (this ship), `SESSION_2026-06-20-creative-generation.md` (v1 core).
+Prior session logs: `SESSION_2026-06-21-video-generation.md` (video gen ship), `SESSION_2026-06-21.md` (image gen v1.1), `SESSION_2026-06-20-creative-generation.md` (v1 core).
 
 ---
 
@@ -16,29 +16,34 @@ GitHub: rovaneD/agent7even-v2
 Vercel: agent7even-v2.vercel.app (+ www.agent7even.ai when DNS pointed)
 Branch: main
 Latest commit (June 21, 2026):
-  f300349 — Add creative assets library and harden Maya image generation
+  4b065ea — Render video/mp4 in approval queue using native video element
+  77ed305 — Fix video generation operation order and bucket MIME type support
+  8e492b8 — Add video generation for Maya — async OpenRouter video API
 Prior creative gen baseline:
+  f300349 — Add creative assets library and harden Maya image generation
   634c53a — Add creative image generation v1 behind feature flag
-  f1a047c — Clerk load error on sign-in (preview auth)
 ```
 
 Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 
 ---
 
-## Feature flag
+## Feature flags
 
 | Env var | Purpose | Default |
 |---------|---------|---------|
-| `NEXT_PUBLIC_IMAGE_GENERATION` | Gates generate UI + all `/api/posts/generate-images/*` routes | `false` in `.env.example` |
+| `NEXT_PUBLIC_IMAGE_GENERATION` | Gates image generate UI + all `/api/posts/generate-images/*` routes | `false` in `.env.example` |
+| `NEXT_PUBLIC_VIDEO_GENERATION` | Gates video generate UI + `/api/posts/generate-video` route | `false` in `.env.example` |
 
-When `false`: generate block hidden in Agents; API returns 404/disabled.
+When `false`: UI block hidden in Agents; API returns 404/disabled.
+**Note:** `NEXT_PUBLIC_*` is inlined at build time — changing the value requires a redeploy.
 
 Optional server tuning (see `.env.example`):
 
-- `IMAGE_GENERATION_MODEL` — fallback OpenRouter slug if UI pick missing
+- `IMAGE_GENERATION_MODEL` — fallback OpenRouter image model slug
 - `IMAGE_GENERATION_BRIEF_MODEL` — brief composer LLM (default `anthropic/claude-sonnet-4`)
-- `IMAGE_GENERATION_OPTIONS_COUNT` — options per run (default `3`, max 4)
+- `IMAGE_GENERATION_OPTIONS_COUNT` — options per image run (default `3`, max 4)
+- `VIDEO_GENERATION_MODEL` — override OpenRouter video model slug (default `kling/kling-v1-5`)
 
 ---
 
@@ -119,6 +124,94 @@ User-facing fallback (credit/outage): *“Image generation is temporarily unavai
 
 ---
 
+---
+
+## What shipped — June 21 (video generation)
+
+Commits `8e492b8`, `77ed305`, `4b065ea`. Full details: `SESSION_2026-06-21-video-generation.md`.
+
+### Architecture
+
+Async job flow — user does not wait in-session:
+
+```
+POST /api/posts/generate-video
+  Foundation floor gate (70% Voice/Position/Customer — same as image gen)
+  composeVideoBrief()  ←  Foundation snapshot + post goal
+  submitVideoJob()     →  OpenRouter POST /api/v1/videos  →  job_id
+  createTask()         →  agent_tasks (status=running, requires_approval=true,
+                            input.video_job_id, input.video_model, input.brief_excerpt)
+  deductCredits()      →  40 credits linked to taskId
+
+OpenRouter webhook → POST /api/webhooks/openrouter-video
+  HMAC-SHA256 verify (OPENROUTER_VIDEO_WEBHOOK_SECRET, header X-OpenRouter-Signature)
+  Return 200 immediately via next/server after()
+  Find task by input->>video_job_id
+  On completed: download video → ensureBucketAllowsVideo() →
+    upload post-assets/{profileId}/{uuid}.mp4 →
+    insert agent_outputs (status=pending_approval) →
+    agent_task.status = completed
+  On failed: agent_task.status = failed, no output inserted
+```
+
+### Operation order (non-negotiable)
+
+`compose brief → submit OpenRouter job → create task → deduct credits`
+
+Submit fail → no task, no credits. Insufficient credits → task marked failed, 402.
+
+### Video brief quality rules
+
+`lib/agents/videoGeneration/briefComposeVideo.ts` — 120–220 word brief with:
+- **Scene direction** — opening (0–2s), main (2–6s), close (6–8s)
+- **Visual tone** — plain English palette ("warm amber", "deep slate") — never hex codes or color token names
+- **Motion style** — camera movement and text animation
+- **Text overlay** — max 8 words, tied to post goal, must be specific copy (no generic filler)
+
+Post-compose `stripDesignTokenLeaks()` strips any hex/token/font-spec leaks.
+
+### Video model catalog
+
+`lib/agents/videoGeneration/videoModelCatalog.ts`
+
+| ID | Label | OpenRouter slug | Default |
+|----|-------|-----------------|---------|
+| `kling-v1-5` | Kling v1.5 | `kling/kling-v1-5` | ✓ |
+| `runway-gen3` | Runway Gen-3 | `runway/gen-3-alpha-turbo` | |
+| `luma-dream` | Luma Dream Machine | `luma/dream-machine` | |
+
+Override with `VIDEO_GENERATION_MODEL` env var.
+
+### Credits
+
+`GENERATION_VIDEO_CREDIT_COST = 40` — deducted at submit time, one `credit_ledger` row.
+Calibrate after staging once model is finalized.
+
+### Storage
+
+- Bucket: `post-assets` (shared with image generation)
+- Path: `{profileId}/{uuid}.mp4`
+- MIME: `video/mp4`
+- `ensureBucketAllowsVideo()` in webhook updates bucket MIME types at runtime (idempotent)
+- SQL: `22_post_assets_allow_video.sql` for manual application
+
+### agent_outputs content shape
+
+```json
+{
+  "raw": "Generated video ready for review.",
+  "media_storage_path": "post-assets/{profileId}/{uuid}.mp4",
+  "media_mime": "video/mp4",
+  "generated": { "model": "...", "job_id": "...", "brief_excerpt": "...", "qa_passed": true }
+}
+```
+
+Approval queue picks it up with no changes to existing query logic (requires_approval=true,
+status=completed, approved_at IS NULL). ApprovalsClient renders `<video>` when media_mime is
+`video/mp4`.
+
+---
+
 ## Image model catalog (user-facing picks)
 
 Defined in `lib/agents/imageGeneration/imageModelCatalog.ts`:
@@ -134,7 +227,7 @@ Defined in `lib/agents/imageGeneration/imageModelCatalog.ts`:
 
 ## API routes — creative generation
 
-All gated on `NEXT_PUBLIC_IMAGE_GENERATION` + auth + Foundation floor (see `creative_generation_handoff.md` §3).
+### Image routes — gated on `NEXT_PUBLIC_IMAGE_GENERATION` + auth + Foundation floor
 
 | Route | Method | Purpose |
 |-------|--------|---------|
@@ -144,6 +237,18 @@ All gated on `NEXT_PUBLIC_IMAGE_GENERATION` + auth + Foundation floor (see `crea
 | `/api/posts/generate-images/edit-option` | POST | User-directed edit |
 | `/api/posts/generate-images/compose` | POST | Caption + insert `pending_approval` |
 | `/api/posts/generate-images/refresh-previews` | POST | Refresh signed URLs for restored session |
+
+### Video routes — gated on `NEXT_PUBLIC_VIDEO_GENERATION` + auth + Foundation floor
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/posts/generate-video` | POST | Compose brief → submit OpenRouter job → create task → deduct 40 credits |
+| `/api/webhooks/openrouter-video` | POST | OpenRouter completion webhook — verify sig → download → upload → output |
+
+### Asset / media routes
+
+| Route | Method | Purpose |
+|-------|--------|---------|
 | `/api/creative-assets` | GET/POST | List / save asset |
 | `/api/creative-assets/[id]` | GET/PATCH/DELETE | Asset detail, move folder, delete |
 | `/api/creative-asset-folders` | GET/POST | List / create folder |
@@ -158,12 +263,17 @@ All gated on `NEXT_PUBLIC_IMAGE_GENERATION` + auth + Foundation floor (see `crea
 | Area | Paths |
 |------|-------|
 | Agents UI | `app/dashboard/agents/AgentCommandCenter.tsx` |
-| Generate UI | `components/agents/PostImageGenerate.tsx`, `PostImageGeneratePicker.tsx`, `PostImageEditPanel.tsx`, `PostImageTextQaPanel.tsx` |
+| Image generate UI | `components/agents/PostImageGenerate.tsx`, `PostImageGeneratePicker.tsx`, `PostImageEditPanel.tsx`, `PostImageTextQaPanel.tsx` |
+| Video generate UI | `components/agents/PostVideoGenerate.tsx` |
+| Approvals UI | `app/dashboard/agents/approvals/ApprovalsClient.tsx` (renders `<video>` for video/mp4) |
 | Assets UI | `app/dashboard/assets/AssetsClient.tsx`, `AssetPreviewModal.tsx` |
 | Download | `components/media/DownloadImageButton.tsx`, `lib/downloadMedia.ts` |
-| Generation core | `lib/agents/imageGeneration/*` |
+| Image generation core | `lib/agents/imageGeneration/*` |
+| Video generation core | `lib/agents/videoGeneration/*` |
 | Creative assets lib | `lib/creativeAssets/index.ts` |
+| Feature flags | `lib/posts/imageGenerationFlag.ts`, `lib/posts/videoGenerationFlag.ts` |
 | Foundation gate | `lib/foundation/sectionStrength.ts`, `lib/foundation/sections.ts` |
+| Error sanitization | `lib/agents/sanitizeProviderError.ts` |
 | Verification scripts | `scripts/verify-generate-images-*.ts` |
 
 ---
@@ -181,26 +291,45 @@ From `SESSION_2026-06-20-creative-generation.md` — unchanged:
 
 ## Known limitations / follow-ups
 
-1. **`lib/posts/imageContextCapabilities.ts`** — Maya/agent prompts are **flag-aware** when `NEXT_PUBLIC_IMAGE_GENERATION=true` (generation directed to Agents → Generate with Maya; crop/carousel/video still unsupported). Static `IMAGE_CONTEXT_CAPABILITY` object unchanged for upload validators.
-2. **Post media Phases A–C** (crop, carousel, video) — still in `post_media_expansion_handoff.md`; independent of generation.
-3. **Assets without SQL** — save/delete fail gracefully; folders require `21_*`.
-4. **Photoreal + on-image text** — some Photoreal outputs may still include short headlines; QA allows legible marketing copy but blocks design-token leaks. Infographic/chart briefs are replaced before generation.
-5. **Orphan post-asset files** — deleting a creative asset row does not delete storage objects.
-6. **Port to agent7even-app** — experimental v2 only until explicit production port.
+1. **`lib/posts/imageContextCapabilities.ts`** — Maya/agent prompts are **flag-aware** for image gen (`NEXT_PUBLIC_IMAGE_GENERATION=true`). Video generation is not yet reflected in `imageContextCapabilities.ts`; update when `NEXT_PUBLIC_VIDEO_GENERATION` is confirmed on in production.
+2. **Video caption** — `agent_outputs.content.raw` is a placeholder string ("Generated video ready for review."). A Maya-authored caption compose step (similar to `generate-images/compose`) is a follow-on.
+3. **Video credit calibration** — `GENERATION_VIDEO_CREDIT_COST = 40` is a placeholder; benchmark real cost after staging.
+4. **Webhook polling fallback** — if webhook doesn't fire within ~10 minutes, client should poll `GET /openrouter.ai/api/v1/videos/{job_id}` on next page load. Not yet built; webhook is the primary path.
+5. **Post media Phases A–C** (crop, carousel, user-uploaded video) — still in `post_media_expansion_handoff.md`; independent of generation.
+6. **Assets without SQL** — save/delete fail gracefully; folders require `21_*`.
+7. **Photoreal + on-image text** — some Photoreal outputs may still include short headlines; QA allows legible marketing copy but blocks design-token leaks.
+8. **Orphan post-asset files** — deleting a creative asset row does not delete storage objects.
+9. **Port to agent7even-app** — experimental v2 only until explicit production port.
 
 ---
 
 ## Open backlog (carried from V18 + new)
 
-**Closed June 21:** raw OpenRouter errors in UI; infographic/data-viz briefs on Photoreal; hex/color-token brief leaks; save checkmark stuck after edit; session lost on Agents ↔ Assets navigation.
+**Closed June 21 (image gen v1.1):** raw OpenRouter errors in UI; infographic/data-viz briefs on Photoreal; hex/color-token brief leaks; save checkmark stuck after edit; session lost on Agents ↔ Assets navigation.
+
+**Closed June 21 (video gen):** async OpenRouter video job submission; webhook receiver; Foundation floor gate; brief composition with scene direction / visual tone / motion style / text overlay; approval queue rendering for video/mp4.
 
 **Still open:**
 
 1. Zernio DPA / real client publish gate (unchanged from V18)
-2. Post media expansion Phases A–C
-3. ~~Production flag decision~~ — **Done June 22, 2026** (`NEXT_PUBLIC_IMAGE_GENERATION=true` on www.agent7even.ai)
-4. Additional generation UX (user mentioned revisiting later — TBD)
-5. **Prod smoke** — full checklist in `SESSION_2026-06-21.md` (generate → Assets → approval); brief quality iteration ongoing
+2. Post media expansion Phases A–C (user-supplied crop, carousel, video upload)
+3. ~~Production image flag~~ — **Done June 22, 2026** (`NEXT_PUBLIC_IMAGE_GENERATION=true` on www.agent7even.ai)
+4. Video flag prod enable — `NEXT_PUBLIC_VIDEO_GENERATION=true` + SQL `22` + smoke test (not yet flipped)
+5. Video caption compose step (`agent_outputs.content.raw` is placeholder)
+6. Video credit calibration (`GENERATION_VIDEO_CREDIT_COST = 40` — benchmark after staging)
+7. Webhook polling fallback (agent_task still running after 10 min → poll OpenRouter)
+8. Update `imageContextCapabilities.ts` to reflect video generation capability
+
+---
+
+## SQL migrations (apply in order if not already run)
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `19_creative_assets.sql` | Base `creative_assets` table | Applied prod |
+| `20_creative_assets_extend.sql` | `brief`, `qa_passed` columns | Applied prod |
+| `21_creative_asset_folders.sql` | `creative_asset_folders` + folder_id | Applied prod |
+| `22_post_assets_allow_video.sql` | Add `video/mp4` to post-assets bucket | **Run before enabling video flag** |
 
 ---
 
@@ -212,7 +341,8 @@ From `SESSION_2026-06-20-creative-generation.md` — unchanged:
 | Prior technical | `CONTEXTV18.md` |
 | Creative gen spec | `creative_generation_handoff.md` (v1 spec + v1.1 addendum) |
 | Maya product rules | `MAYA_CONTEXT_V10.md` |
-| June 21 session | `SESSION_2026-06-21.md` |
+| Video gen session | `SESSION_2026-06-21-video-generation.md` |
+| Image gen v1.1 session | `SESSION_2026-06-21.md` |
 | June 20 session | `SESSION_2026-06-20-creative-generation.md` |
 | Post media roadmap | `post_media_expansion_handoff.md` |
 | Go-live | `PRODUCTION_GREENLIGHT.md` |

@@ -64,11 +64,12 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV19.md` — latest technical handoff (creative assets, image generation v1.1, brief QA, provider error sanitization).
+- `CONTEXTV19.md` — latest technical handoff (image gen v1.1, video gen, creative assets, brief QA, provider error sanitization).
 - `CONTEXTV18.md` — prior handoff (launch prep, auth/billing, lab5 homepage, analytics/GA, Zernio connect).
 - `MAYA_CONTEXT_V10.md` — current versioned Maya product context (image gen UX, Assets, brief safety).
 - `MAYA_CONTEXT_V09.md` — prior Maya snapshot (homepage, inbox, scheduling FAQ).
 - `creative_generation_handoff.md` — v1 spec + v1.1 addendum (June 21).
+- `SESSION_2026-06-21-video-generation.md` — June 21 video generation ship (async OpenRouter video, webhook, approval queue).
 - `SESSION_2026-06-21.md` — June 21 session log (Assets + generation hardening ship).
 - `SESSION_2026-06-20-creative-generation.md` — June 20 v1 generate ship.
 - `PRODUCTION_GREENLIGHT.md` — go-live checklist for www.agent7even.ai.
@@ -88,6 +89,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - `19_creative_assets.sql` — creative asset library base table (**run if not applied**).
 - `20_creative_assets_extend.sql` — `brief`, `qa_passed` on creative_assets (**run if not applied**).
 - `21_creative_asset_folders.sql` — asset folders (**run if not applied**).
+- `22_post_assets_allow_video.sql` — add `video/mp4` to post-assets bucket (**run before enabling video flag**).
 
 ## Current visual-system rules
 - Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.
