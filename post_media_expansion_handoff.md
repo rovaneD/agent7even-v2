@@ -1,7 +1,7 @@
 # Post Media Expansion — Full Scope Handoff
 *Extends image-context captions (v1) with crop, carousels, and video*
 
-**Status:** Planning — gated on image-context v1 verification.  
+**Status:** Planning — gated on image-context v1 verification. Image **generation** is a separate shipped track (`creative_generation_handoff.md`, `CONTEXTV19.md`); this handoff covers crop/carousel/video on **user-supplied** media.
 **Technical baseline:** `CONTEXTV15.md` §2 (image-context v1).  
 **Product rules:** `MAYA_CONTEXT_V06.md`.
 
@@ -25,7 +25,7 @@ Confirm `git remote -v` shows **`agent7even-v2`**, NEVER `agent7even-app`.
 | **C1** | Video publish | Caption from brief/text — **not** from watching video | ~2–3 weeks |
 | **C2** | Video-aware captions | Frame extraction or video-capable model | +2–4 weeks + infra |
 
-**Explicit non-goals across all phases:** image **generation** (Maya still does not create visuals).
+**Explicit non-goals across Phases A–C:** in-platform **generation** (Maya creating visuals) — see `creative_generation_handoff.md` instead. Crop/carousel/video here assume the user supplies media (upload or saved asset).
 
 **Dependency gate (unchanged from v1):** live publish to real client accounts remains gated on Zernio Q4 (DPA/data handling). Build and test on Zernio FREE tier (2 accounts) until cleared.
 

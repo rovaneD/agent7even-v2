@@ -1,14 +1,14 @@
 # Creative Generation Handoff — Image Generation (v1)
 *Maya generates the visual, grounded in Foundation — first expression of the hard-floor gate*
 
-**Status:** Planning. Spike complete (CONDITIONAL GO image / NO-GO video). Not started.
+**Status:** **v1 shipped** (`634c53a`, June 20, 2026). **v1.1 shipped** (`f300349`, June 21, 2026) — Assets library, session/edit/download, brief QA hardening. See §13 and `CONTEXTV19.md`.
 **Sits downstream of:** `foundation_intelligence_vision.md` (June 19, 2026) — read it first.
 **Supersedes one line in:** `post_media_expansion_handoff.md` — image generation was an
 explicit non-goal there (§0, §10, §11). **This document changes that.** Generation is now
 in scope as a separate, gated capability. The post-media non-goal language for generation is
 retired; everything else in that handoff stands.
-**Technical baseline:** `CONTEXTV15.md` §2 (image-context v1), `CONTEXTV18.md`.
-**Product rules:** `MAYA_CONTEXT_V06.md` (latest) / `MAYA_CONTEXT_V08.md` if newer.
+**Technical baseline:** `CONTEXTV19.md` (latest), `CONTEXTV18.md`, `CONTEXTV15.md` §2 (image-context v1).
+**Product rules:** `MAYA_CONTEXT_V10.md` (latest) / `MAYA_CONTEXT_V09.md` for non-generation rules.
 
 Read `foundation_intelligence_vision.md`, `MAYA_CONTEXT_V06.md`, `CONTEXTV15.md`, and
 `post_media_expansion_handoff.md` §1–2 before any code.
@@ -370,6 +370,8 @@ becomes real code — specifically its hard-floor exception. Sequencing:
 
 ## 9. Build order (v1)
 
+**Status:** Steps 1–9 shipped June 20 (`634c53a`). v1.1 extensions June 21 (`f300349`) — see §13.
+
 ```
 1. **Foundation-strength server read — NET-NEW, prerequisite.** Build
    `lib/foundation/sections.ts` (shared keyFields) +
@@ -440,6 +442,28 @@ These are real but out of scope for generation. Capture, do not fix inline:
 
 ---
 
-*Creative Generation Handoff v1 — June 19, 2026.*
+## 13. v1.1 addendum — shipped June 21, 2026 (`f300349`)
+
+Extends v1 without changing the pre-queue compose architecture (§1) or approval insert shape (§2e).
+
+| Area | Shipped |
+|------|---------|
+| **Assets library** | `/dashboard/assets` — save options, folders, preview, delete, use-for-post |
+| **Session persistence** | Client session survives Agents ↔ Assets until discard/submit |
+| **Edit** | Fix text only (Recraft) / Change visual (img2img); `edit-option` API |
+| **Download** | Picker, Assets, Posts |
+| **Brief safety** | `briefValidation.ts` — no hex/token/font specs in briefs; Photoreal infographics replaced |
+| **Post-gen QA** | Vision QA on all 3 options before UI; auto-regen once per fail |
+| **Provider errors** | `sanitizeProviderError.ts` — no raw OpenRouter text in UI |
+
+**SQL (Supabase):** `19_creative_assets.sql`, `20_creative_assets_extend.sql`, `21_creative_asset_folders.sql`
+
+**Full file map + API list:** `CONTEXTV19.md`
+
+**Still gated:** `NEXT_PUBLIC_IMAGE_GENERATION` — production enablement is an ops decision, not automatic with merge.
+
+---
+
+*Creative Generation Handoff v1 — June 19, 2026; v1.1 addendum June 21, 2026.*
 *Downstream of Foundation Intelligence Vision. Supersedes the image-generation non-goal in
 post_media_expansion_handoff.md. Video generation NO-GO recorded, recheck-when-models-improve.*

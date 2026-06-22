@@ -68,5 +68,6 @@ vercel env update NEXT_PUBLIC_IMAGE_GENERATION production --value false -y
 
 - Manual preview smoke (generate + upload paths)
 - When staging passes → consider Production flag (affects www.agent7even.ai)
+- **v1.1 follow-on (June 21):** Assets library, edit/session/download, brief hardening — see `SESSION_2026-06-21.md`, `CONTEXTV19.md`, commit `f300349`
 
-*Session: June 20, 2026*
+*Session: June 20, 2026 — updated June 21 for v1.1 pointer*
