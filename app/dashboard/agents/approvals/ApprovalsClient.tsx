@@ -227,18 +227,34 @@ function ApprovalItem({
 
           {mediaPreviewUrl && (
             <div style={{ marginBottom: 10 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={mediaPreviewUrl}
-                alt="Post preview"
-                style={{
-                  width: 120,
-                  height: 120,
-                  objectFit: 'cover',
-                  borderRadius: 12,
-                  border: '0.5px solid #f0f0f0',
-                }}
-              />
+              {output?.content?.media_mime === 'video/mp4' ? (
+                <video
+                  src={mediaPreviewUrl}
+                  controls
+                  muted
+                  style={{
+                    width: 68,
+                    height: 120,
+                    objectFit: 'cover',
+                    borderRadius: 12,
+                    border: '0.5px solid #f0f0f0',
+                    display: 'block',
+                  }}
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={mediaPreviewUrl}
+                  alt="Post preview"
+                  style={{
+                    width: 120,
+                    height: 120,
+                    objectFit: 'cover',
+                    borderRadius: 12,
+                    border: '0.5px solid #f0f0f0',
+                  }}
+                />
+              )}
             </div>
           )}
 
@@ -263,18 +279,34 @@ function ApprovalItem({
             <div style={{ marginBottom: 12 }}>
               {mediaPreviewUrl && (
                 <div style={{ marginBottom: 12 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={mediaPreviewUrl}
-                    alt="Post preview"
-                    style={{
-                      maxWidth: 220,
-                      maxHeight: 220,
-                      objectFit: 'cover',
-                      borderRadius: 12,
-                      border: '0.5px solid #f0f0f0',
-                    }}
-                  />
+                  {output?.content?.media_mime === 'video/mp4' ? (
+                    <video
+                      src={mediaPreviewUrl}
+                      controls
+                      muted
+                      style={{
+                        maxWidth: 124,
+                        maxHeight: 220,
+                        objectFit: 'cover',
+                        borderRadius: 12,
+                        border: '0.5px solid #f0f0f0',
+                        display: 'block',
+                      }}
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={mediaPreviewUrl}
+                      alt="Post preview"
+                      style={{
+                        maxWidth: 220,
+                        maxHeight: 220,
+                        objectFit: 'cover',
+                        borderRadius: 12,
+                        border: '0.5px solid #f0f0f0',
+                      }}
+                    />
+                  )}
                 </div>
               )}
               {isEditing ? (
