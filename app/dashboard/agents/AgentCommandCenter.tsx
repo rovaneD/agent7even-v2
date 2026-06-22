@@ -8,6 +8,7 @@ import PostImageGenerate from '@/components/agents/PostImageGenerate'
 import PostImageGeneratePicker from '@/components/agents/PostImageGeneratePicker'
 import PostImageEditPanel from '@/components/agents/PostImageEditPanel'
 import PostImageTextQaPanel from '@/components/agents/PostImageTextQaPanel'
+import PostVideoGenerate from '@/components/agents/PostVideoGenerate'
 import {
   clearGenerationSession,
   loadGenerationSession,
@@ -632,6 +633,12 @@ export default function AgentCommandCenter({
   const [taskCreateError, setTaskCreateError] = useState<string | null>(null)
 
   const imageGenerationEnabled = process.env.NEXT_PUBLIC_IMAGE_GENERATION === 'true'
+  const videoGenerationEnabled = process.env.NEXT_PUBLIC_VIDEO_GENERATION === 'true'
+
+  // Video generation state
+  const [videoJobId, setVideoJobId] = useState<string | null>(null)
+  const [videoTaskId, setVideoTaskId] = useState<string | null>(null)
+  const [videoModel, setVideoModel] = useState<string | null>(null)
 
   // Orchestration state
   const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
@@ -1746,6 +1753,27 @@ export default function AgentCommandCenter({
                           regenerating={generatedQaRegenerating}
                         />
                         <p className="text-center text-xs text-text-soft">or upload your own image</p>
+                      </>
+                    )}
+                    {videoGenerationEnabled && isSinglePostSelected && (
+                      <>
+                        <p className="text-center text-xs text-text-soft">or generate a video</p>
+                        <PostVideoGenerate
+                          disabled={submitting}
+                          postContext={contentPostingForms.single}
+                          sceneDirection={taskInstructions}
+                          onJobStarted={({ jobId, taskId, model }) => {
+                            setVideoJobId(jobId)
+                            setVideoTaskId(taskId)
+                            setVideoModel(model)
+                          }}
+                        />
+                        {videoJobId && (
+                          <p className="text-xs text-text-soft">
+                            Video job <span className="font-mono text-text-sec">{videoJobId.slice(0, 12)}…</span> is generating with {videoModel}.
+                            It will appear in your approval queue when ready.
+                          </p>
+                        )}
                       </>
                     )}
                     <PostImageAttach

@@ -21,6 +21,7 @@ export type UserErrorContext =
   | 'image_edit'
   | 'image_qa'
   | 'image_regenerate'
+  | 'video_generation'
   | 'agent'
   | 'chat'
 
@@ -29,6 +30,7 @@ const DEFAULT_BY_CONTEXT: Record<UserErrorContext, string> = {
   image_edit: 'We couldn\'t apply that edit right now. Please try again in a few minutes.',
   image_qa: 'Text check couldn\'t run right now. Please try again in a few minutes.',
   image_regenerate: 'We couldn\'t regenerate that option right now. Please try again in a few minutes.',
+  video_generation: 'We couldn\'t start your video right now. Please try again in a few minutes.',
   agent: 'This run couldn\'t complete right now. Please try again in a few minutes.',
   chat: 'Maya couldn\'t respond right now. Please try again in a few minutes.',
 }
@@ -49,6 +51,10 @@ const ALLOWLIST_SUBSTRINGS = [
   'post goal required',
   'image is too large',
   'wait for text qa',
+  'video is generating',
+  'ready to review',
+  'top up your credits',
+  'costs 40 credits',
 ]
 
 function looksLikeProviderLeak(raw: string): boolean {

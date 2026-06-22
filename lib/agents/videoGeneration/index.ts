@@ -1,0 +1,5 @@
+export { composeVideoBrief } from './briefComposeVideo'
+export { resolveVideoModel, defaultVideoModelEntry } from './videoModelCatalog'
+export { submitVideoJob, pollVideoJob } from './openRouterVideo'
+export type { VideoModelId, VideoModelEntry } from './videoModelCatalog'
+export type { VideoJobSubmitResult, VideoJobPollResult, VideoJobStatus } from './openRouterVideo'
