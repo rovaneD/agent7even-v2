@@ -1,9 +1,13 @@
 import type { ImageGenerationModelId } from './imageModelCatalog'
+import { detectTextlessStockBrief } from './headlineRequiredBrief'
 import {
   buildSocialPostReplacementBrief,
   detectLogoLockupBrief,
+  detectLifestyleDefaultBrief,
   detectVagueSocialBrief,
 } from './logoLockupDetection'
+import { detectFakeScreenUiBrief, stripFakeScreenUiFromBrief } from './fakeScreenUiDetection'
+import { detectOnImageCtaBrief, stripOnImageCtaFromBrief } from './onImageCtaDetection'
 import { detectBriefMissingPostGrounding, type PostGroundingContext } from './postGrounding'
 import type { TextQaIssue } from './types'
 
@@ -86,8 +90,20 @@ export function validateBriefForModel(
   const logoIssue = detectLogoLockupBrief(brief) ?? detectVagueSocialBrief(brief)
   if (logoIssue) issues.push(logoIssue)
 
-  const groundingIssue = detectBriefMissingPostGrounding(brief, postContext)
+  const lifestyleIssue = detectLifestyleDefaultBrief(brief, postContext)
+  if (lifestyleIssue) issues.push(lifestyleIssue)
+
+  const screenUiIssue = detectFakeScreenUiBrief(brief, postContext)
+  if (screenUiIssue) issues.push(screenUiIssue)
+
+  const ctaButtonIssue = detectOnImageCtaBrief(brief, postContext)
+  if (ctaButtonIssue) issues.push(ctaButtonIssue)
+
+  const groundingIssue = detectBriefMissingPostGrounding(brief, postContext, modelId)
   if (groundingIssue) issues.push(groundingIssue)
+
+  const textlessIssue = detectTextlessStockBrief(brief, modelId)
+  if (textlessIssue) issues.push(textlessIssue)
 
   return issues
 }
@@ -104,6 +120,21 @@ export function stripDesignSpecsFromBrief(brief: string): string {
   )
   out = out.replace(/\bweight\s+\d{3}\b/gi, 'bold weight')
   out = out.replace(COLOR_TOKEN_NAMES, 'brand accent')
+  out = out.replace(
+    /\b(?:warm amber|terracotta|burnt orange|earthy brown|brown cta|brown button|amber button|orange button)\b/gi,
+    'electric blue accent',
+  )
+  out = out.replace(
+    /\b(?:coffee shop|cozy caf[eé]|warm candid|sepia(?: tone)?|golden hour|earth(?:y)? tones?)\b/gi,
+    'bright modern workspace',
+  )
+  out = out.replace(
+    /\b(?:logo|wordmark|brand mark|emblem|neon sign).{0,30}\b(?:on|atop|across) (?:the )?(?:laptop|wall|device|background)\b/gi,
+    'plain laptop lid with no decals',
+  )
+
+  out = stripFakeScreenUiFromBrief(out)
+  out = stripOnImageCtaFromBrief(out)
 
   return out.replace(/\s{2,}/g, ' ').trim()
 }
@@ -140,7 +171,13 @@ export function prepareBriefForImageModel(
   }
 
   const needsGroundedRewrite = issues.some(
-    i => i.code === 'brief_logo_lockup' || i.code === 'brief_vague',
+    i =>
+      i.code === 'brief_logo_lockup'
+      || i.code === 'brief_vague'
+      || i.code === 'brief_lifestyle_default'
+      || i.code === 'brief_fake_screen_ui'
+      || i.code === 'brief_unwanted_cta'
+      || i.code === 'brief_textless_stock',
   )
   if (needsGroundedRewrite) {
     return buildSocialPostReplacementBrief(companyName, postContext ?? { postGoal: extractThemeHint(brief) })
@@ -188,9 +225,17 @@ export function appendQaFixToBrief(
     i =>
       i.code === 'logo_lockup'
       || i.code === 'brief_logo_lockup'
+      || i.code === 'brief_lifestyle_default'
       || i.code === 'vague_headline'
-      || i.code === 'missing_cta'
+      || i.code === 'unwanted_cta'
+      || i.code === 'brief_unwanted_cta'
       || i.code === 'invented_logo'
+      || i.code === 'environmental_logo'
+      || i.code === 'off_palette_grade'
+      || i.code === 'fake_screen_ui'
+      || i.code === 'brief_textless_stock'
+      || i.code === 'missing_headline'
+      || i.code === 'typo'
       || i.code === 'brief_vague',
   )
   if (needsGroundedRewrite) {

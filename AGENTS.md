@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: June 21, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: June 23, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -26,7 +26,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV19.md > MAYA_CONTEXT_V10.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV20.md > CONTEXTV19.md > MAYA_CONTEXT_V10.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -64,11 +64,14 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV19.md` — latest technical handoff (image gen v1.1, video gen, creative assets, brief QA, provider error sanitization).
+- `CONTEXTV20.md` — latest handoff: Content Posting 3-step UX (hub → format picker → setup), platform formats, brand icons, back-nav rules.
+- `CONTEXTV19.md` — prior handoff (image gen v1.1, video gen v1 + hardening, creative assets, brief QA).
 - `CONTEXTV18.md` — prior handoff (launch prep, auth/billing, lab5 homepage, analytics/GA, Zernio connect).
 - `MAYA_CONTEXT_V10.md` — current versioned Maya product context (image gen UX, Assets, brief safety).
 - `MAYA_CONTEXT_V09.md` — prior Maya snapshot (homepage, inbox, scheduling FAQ).
 - `creative_generation_handoff.md` — v1 spec + v1.1 addendum (June 21).
+- `SESSION_2026-06-23.md` — June 23 session log (Content Posting workflow UX: hub, format picker, platform previews, nav fixes).
+- `SESSION_2026-06-22.md` — June 22 session log (video gen debug: Convoy HMAC, data envelope, unsigned_urls auth, reconcile endpoint, model catalog fix, generating card, pricing analysis).
 - `SESSION_2026-06-21-video-generation.md` — June 21 video generation ship (async OpenRouter video, webhook, approval queue).
 - `SESSION_2026-06-21.md` — June 21 session log (Assets + generation hardening ship).
 - `SESSION_2026-06-20-creative-generation.md` — June 20 v1 generate ship.

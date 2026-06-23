@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { generateImageOptions } from '@/lib/agents/imageGeneration'
+import type { ImageAspectRatio } from '@/lib/agents/imageGeneration/openRouterImage'
 import { logProviderError, sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { assertGenerationFloor } from '@/lib/foundation/sectionStrength'
 import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
@@ -14,6 +15,18 @@ type Body = {
   includeLogo?: boolean
   imageModelId?: string
   postContext?: Record<string, string>
+  aspectRatio?: ImageAspectRatio
+}
+
+const VALID_ASPECT_RATIOS: ImageAspectRatio[] = [
+  '1:1', '4:5', '9:16', '16:9', '3:2', '2:3', '3:4', '4:3', '5:4', '21:9',
+]
+
+function resolveAspectRatio(value: unknown): ImageAspectRatio {
+  if (typeof value === 'string' && VALID_ASPECT_RATIOS.includes(value as ImageAspectRatio)) {
+    return value as ImageAspectRatio
+  }
+  return '4:5'
 }
 
 /** Step 2 compose: Foundation gate → brief compose → 3 image options (pre-queue). */
@@ -74,6 +87,7 @@ export async function POST(req: Request) {
       includeLogo: body.includeLogo === true,
       imageModelId: body.imageModelId,
       postContext: body.postContext,
+      aspectRatio: resolveAspectRatio(body.aspectRatio),
     })
 
     return NextResponse.json(result)

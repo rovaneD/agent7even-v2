@@ -22,11 +22,17 @@ type ImageGenResponse = {
   }>
 }
 
+export type ImageAspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | '3:2' | '2:3' | '3:4' | '4:3' | '5:4' | '21:9'
+
 type ImageContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } }
 
-async function requestImageGeneration(model: string, content: ImageContentPart[] | string): Promise<Buffer> {
+async function requestImageGeneration(
+  model: string,
+  content: ImageContentPart[] | string,
+  aspectRatio: ImageAspectRatio = '4:5',
+): Promise<Buffer> {
   const modalities = model.startsWith('recraft/') || model.includes('flux')
     ? ['image']
     : ['image', 'text']
@@ -37,14 +43,14 @@ async function requestImageGeneration(model: string, content: ImageContentPart[]
     modalities,
     stream: false,
     image_config: {
-      aspect_ratio: '4:5',
+      aspect_ratio: aspectRatio,
       image_size: '1K',
     },
   }
 
   if (model.includes('recraft')) {
     body.image_config = {
-      aspect_ratio: '4:5',
+      aspect_ratio: aspectRatio,
       rgb_colors: [[59, 130, 246], [255, 255, 255]],
       background_rgb_color: [255, 255, 255],
     }
@@ -78,8 +84,12 @@ async function requestImageGeneration(model: string, content: ImageContentPart[]
 }
 
 /** Generate one still image from a text brief (ported from spikes/foundation-creative-ab). */
-export async function generateImageFromBrief(model: string, prompt: string): Promise<Buffer> {
-  return requestImageGeneration(model, prompt)
+export async function generateImageFromBrief(
+  model: string,
+  prompt: string,
+  aspectRatio: ImageAspectRatio = '4:5',
+): Promise<Buffer> {
+  return requestImageGeneration(model, prompt, aspectRatio)
 }
 
 export function isGoogleImageModel(model: string): boolean {
@@ -94,6 +104,7 @@ export async function generateImageEditFromSource(opts: {
   brief: string
   editInstruction: string
   editMode?: ImageEditMode
+  spellingRetry?: boolean
 }): Promise<Buffer> {
   const { bytes: payloadBytes, mime: payloadMime } = await compressImageForApiPayload(opts.sourceBytes)
   const dataUrl = `data:${payloadMime};base64,${payloadBytes.toString('base64')}`
@@ -102,6 +113,7 @@ export async function generateImageEditFromSource(opts: {
     editInstruction: opts.editInstruction,
     brief: opts.brief,
     mode,
+    spellingRetry: opts.spellingRetry,
   })
 
   return requestImageGeneration(opts.model, [

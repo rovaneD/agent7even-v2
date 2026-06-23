@@ -1,5 +1,6 @@
 import type { FoundationMemoryResponse } from '@/lib/foundation/memory'
 import { AGENTS } from '@/lib/agents/registry'
+import { formatVisualFieldsForMaya, FOUNDATION_VISUAL_FIELDS } from '@/lib/foundation/visualFields'
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
 import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
 
@@ -21,9 +22,15 @@ const SECTION_TITLES: Record<string, string> = {
   customer: 'Your Customer',
   position: 'Your Position',
   voice: 'Your Voice',
+  visual: 'Your Look',
   plan: 'Your 30 Days',
   memory: "Maya's Memory",
 }
+
+const YOUR_LOOK_MAYA_RULE =
+  'YOUR LOOK COACHING: There are exactly five fields in fixed order. Never invent fields (no "Brand Colors", "logo situation", or hex codes). ' +
+  `Order: ${FOUNDATION_VISUAL_FIELDS.map((f, i) => `${i + 1}) "${f.label}"`).join('; ')}. ` +
+  'Help one field at a time using the exact label from the form. Field 1 is overall aesthetic; field 4 is palette in words only.'
 
 const DOC_LABELS: Record<string, string> = {
   brief: 'Business Brief',
@@ -117,10 +124,48 @@ export function buildFoundationHubMayaContext(input: {
   knowledgeItems: KnowledgeItem[]
   memoryData: FoundationMemoryResponse | null | undefined
   weakSections: string[]
+  answers?: Record<string, unknown>
+  fieldScores?: Record<string, { score: number; feedback: string | null }>
 }): MayaPageContext {
   const healthLine = Object.entries(input.sectionHealth)
     .map(([k, h]) => `${SECTION_TITLES[k] ?? k}: ${h}`)
     .join('; ')
+
+  const metrics: string[] = [
+    `Foundation score: ${input.score}%`,
+    `Section health: ${healthLine}`,
+    `Knowledge sources: ${input.knowledgeItems.length}`,
+  ]
+
+  if (input.memoryData?.totalOutputs != null) {
+    metrics.push(`Agent memory outputs: ${input.memoryData.totalOutputs}`)
+  }
+  if (input.weakSections.length) {
+    metrics.push(`Needs work: ${input.weakSections.join(', ')}`)
+  }
+
+  const coachingVisual =
+    input.editingSection === 'visual' ||
+    input.weakSections.includes('Your Look') ||
+    input.sectionHealth.visual === 'needs_work' ||
+    input.sectionHealth.visual === 'thin'
+
+  if (coachingVisual && input.answers) {
+    metrics.push('Your Look fields (exact form order):')
+    metrics.push(...formatVisualFieldsForMaya(input.answers, input.fieldScores))
+  }
+
+  let affordance =
+    `${MAYA_VOICE_RULE} User manages Foundation intelligence, knowledge uploads, agent memory, and connections. Lead with CURRENTLY VIEWING before page summary.`
+
+  if (coachingVisual) {
+    affordance += ` ${YOUR_LOOK_MAYA_RULE}`
+  }
+
+  if (input.editingSection === 'visual') {
+    affordance +=
+      ' User is editing Your Look now — suggest copy for the next empty field only, using the exact field label shown above.'
+  }
 
   return {
     page: 'FOUNDATION PAGE',
@@ -130,15 +175,7 @@ export function buildFoundationHubMayaContext(input: {
       label: TAB_LABELS[input.activeTab],
       state: buildFoundationHubTabState(input),
     },
-    metrics: [
-      `Foundation score: ${input.score}%`,
-      `Section health: ${healthLine}`,
-      `Knowledge sources: ${input.knowledgeItems.length}`,
-      ...(input.memoryData?.totalOutputs != null
-        ? [`Agent memory outputs: ${input.memoryData.totalOutputs}`]
-        : []),
-      ...(input.weakSections.length ? [`Needs work: ${input.weakSections.join(', ')}`] : []),
-    ],
-    affordance: `${MAYA_VOICE_RULE} User manages Foundation intelligence, knowledge uploads, agent memory, and connections. Lead with CURRENTLY VIEWING before page summary.`,
+    metrics,
+    affordance,
   }
 }

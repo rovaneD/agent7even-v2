@@ -251,9 +251,9 @@ export default function PostsClient({
       const json = await res.json()
       if (!res.ok) {
         if (json.error === 'zernio_not_configured') {
-          setError('Zernio is not configured locally. Add ZERNIO_API_KEY to .env.local and restart the dev server.')
+          setError('Social publishing is not configured on this server. Contact support if this persists.')
         } else if (json.error === 'zernio_api_error') {
-          setError('Could not reach Zernio. Check your API key and try again.')
+          setError('Could not load your posts. Try again in a moment.')
         } else {
           setError(json.message ?? json.detail ?? json.error ?? 'Failed to load posts')
         }
@@ -802,7 +802,7 @@ function EmptyConnectState({ onConnect }: { onConnect: () => void }) {
     <div className="rounded-2xl border border-gray-100 bg-white py-20 text-center">
       <p className="text-[16px] font-semibold text-text mb-1">Connect your social accounts</p>
       <p className="text-[13px] text-text-soft mb-5 max-w-md mx-auto">
-        Link Instagram, Facebook, and other platforms through Zernio to schedule and publish from Maya.
+        Link Instagram, Facebook, and other platforms to schedule and publish from Maya.
       </p>
       <button type="button" onClick={onConnect} className="inline-flex items-center gap-1.5 bg-[#3B82F6] text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl">
         Connect accounts
@@ -1288,7 +1288,7 @@ function CreatePostDrawer({
                   <p className="text-[12px] text-text-soft bg-gray-50 rounded-xl px-3 py-2">
                     {queues[0]
                       ? `Uses queue: ${queues[0].name}${queues[0].isDefault ? ' (default)' : ''}`
-                      : 'Adds to your default Zernio queue for the next available slot.'}
+                      : 'Adds to your default queue for the next available slot.'}
                   </p>
                 )}
               </div>

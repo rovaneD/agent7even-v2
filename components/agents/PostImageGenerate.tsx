@@ -7,6 +7,7 @@ import {
   type ImageGenerationModelId,
 } from '@/lib/agents/imageGeneration/imageModelCatalog'
 import type { GeneratedImageOption } from '@/lib/agents/imageGeneration/types'
+import type { ImageAspectRatio } from '@/lib/agents/imageGeneration/openRouterImage'
 import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
   postContext?: Record<string, string>
   brandKitAvailable?: boolean
   hasUploadedLogo?: boolean
+  aspectRatio?: ImageAspectRatio
   onOptionsReady: (payload: {
     briefId: string
     options: GeneratedImageOption[]
@@ -33,6 +35,7 @@ export default function PostImageGenerate({
   postContext,
   brandKitAvailable = false,
   hasUploadedLogo = false,
+  aspectRatio = '4:5',
   onOptionsReady,
   onError,
 }: Props) {
@@ -71,6 +74,7 @@ export default function PostImageGenerate({
           includeLogo: includeLogo && useBrandKit && hasUploadedLogo,
           imageModelId,
           postContext,
+          aspectRatio,
         }),
       })
       const data = await res.json().catch(() => ({}))

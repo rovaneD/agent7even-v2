@@ -829,7 +829,7 @@ export default function ApprovalsClient({ profileId, initialTasks, runningVideoT
           </button>
         </div>
         <p style={{ fontSize: 13.5, color: '#888', marginTop: 4 }}>
-          Review agent outputs before they go anywhere. Posts with images can become Zernio drafts after you approve.
+          Review agent outputs before they go anywhere. Posts with images can become drafts on Posts after you approve.
         </p>
       </div>
 

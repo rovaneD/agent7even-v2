@@ -5,7 +5,12 @@ import { assertGenerationFloor } from '@/lib/foundation/sectionStrength'
 import { deductCredits } from '@/lib/credits'
 import { logProviderError, sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { createServiceClient } from '@/lib/supabase/server'
-import { buildFoundationSnapshotMarkdown } from '@/lib/agents/imageGeneration/foundationSnapshot'
+import {
+  formatCreativeDirectionBlock,
+  translateFoundationToCreativeDirection,
+} from '@/lib/agents/foundationCreativeDirection'
+import { formatPostContextBriefBlock } from '@/lib/agents/imageGeneration/postContextBrief'
+import { postGroundingFromForm } from '@/lib/agents/imageGeneration/postGrounding'
 import { composeVideoBrief } from '@/lib/agents/videoGeneration/briefComposeVideo'
 import { resolveVideoModel } from '@/lib/agents/videoGeneration/videoModelCatalog'
 import { submitVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
@@ -19,6 +24,8 @@ type Body = {
   platform?: string
   offer?: string
   audience?: string
+  mustInclude?: string
+  mustAvoid?: string
   sceneDirection?: string
   videoModelId?: string
 }
@@ -86,17 +93,31 @@ export async function POST(req: Request) {
   const companyName = (profile.company_name as string | null) ?? 'your business'
   const modelEntry = resolveVideoModel(body.videoModelId)
 
-  // ── Step 1: Compose brief (no side effects — fail early) ─────────────────
+  const postForm: Record<string, string> = {
+    postGoal: body.postGoal ?? '',
+    platform: body.platform ?? '',
+    offer: body.offer ?? '',
+    audience: body.audience ?? '',
+    mustInclude: body.mustInclude ?? '',
+    mustAvoid: body.mustAvoid ?? '',
+  }
+  const postContext = postGroundingFromForm(postForm)
+  const postContextBlock = formatPostContextBriefBlock(postForm, 'video')
+
+  // ── Step 1: Creative Direction → video brief (no side effects — fail early) ─
   let brief: string
   try {
-    const foundationMarkdown = await buildFoundationSnapshotMarkdown(profileId, companyName)
-    brief = await composeVideoBrief({
-      foundationMarkdown,
+    const creativeDirection = await translateFoundationToCreativeDirection({
+      profileId,
       companyName,
-      postGoal: body.postGoal,
-      platform: body.platform,
-      offer: body.offer,
-      audience: body.audience,
+    })
+    const creativeDirectionBlock = formatCreativeDirectionBlock(creativeDirection, companyName)
+
+    brief = await composeVideoBrief({
+      creativeDirectionBlock,
+      companyName,
+      postContext,
+      postContextBlock,
       sceneDirection: body.sceneDirection,
     })
   } catch (err) {

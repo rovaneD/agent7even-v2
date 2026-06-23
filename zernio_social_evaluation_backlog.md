@@ -1,5 +1,5 @@
 # Social Scheduling Integration — Zernio Evaluation
-*Backlog entry. EVALUATION, not a build. Snapshot: June 4, 2026.*
+*Backlog entry. EVALUATION, not a build. Snapshot: June 4, 2026; vendor log through June 2026.*
 *Append to CONTEXTV11 successor as queue item #19-class; gated — see decision gates.*
 
 ## Why this exists
@@ -97,6 +97,35 @@ Rules carried from prior architecture decisions:
   distinct "publish" line item, separate from LLM token cost.
 - Per-tenant connection stored scoped to the client (never one shared credential across
   tenants).
+
+## Vendor support log
+
+### Instagram analytics zeros — root cause confirmed (Zernio support, June 2026)
+
+**Reported symptom:** Instagram analytics showed zeros / empty post list despite connected account.
+
+**Root cause (Zernio):** On **June 15 reconnect**, the OAuth token was saved **without** the `instagram_business_basic` permission. This happens when that permission is **unchecked on Meta's consent screen** during OAuth. Instagram does not return an error — it **silently returns no posts**, which surfaces as empty analytics.
+
+**Important nuance (June 22):** Instagram → Apps and websites can show **all permissions ON** (basic business info, manage insights, publish, messages, comments) while Zernio still holds an **older token** minted before scopes were fixed. The Instagram UI reflects current app authorization; **Zernio's stored token only refreshes when you complete OAuth through Agent7even again** (Reconnect), not when you toggle permissions in Instagram settings alone.
+
+**Fix (operator):**
+1. If Instagram Apps and websites already shows all permissions ON (e.g. added Jun 22) — **skip removing the app**.
+2. Tap **Reconnect** in Analytics → Connect accounts to refresh Zernio's token (Meta may skip the consent screen — that's OK).
+3. Allow up to **24 hours** for analytics backfill after reconnect.
+4. If still empty after reconnect + wait, reply to Zernio: permissions ON in Instagram UI, analytics still empty — ask them to verify token scopes on their backend for your profile.
+
+**Why Meta may not show a permission screen on reconnect:** Meta reuses prior authorization when the app is still connected. That does not mean Zernio has refreshed its token — use Agent7even Reconnect to force a new token exchange.
+
+**Fix (vendor):** Zernio pushed a UI change so this case shows a clear **"reconnect needed"** message instead of silently showing empty data. Confirm that banner appears in our white-label flow after their deploy.
+
+**Connect UX (product direction):** Zernio confirmed the long-term pattern is **headless** — building our own pickers per platform is the right assumption. **No hosted connect portal on their roadmap** currently; they noted feedback if more API customers hit this pain point.
+
+**Action items for us:**
+- [ ] Operator: use **Reconnect** in Analytics connect panel + remove Meta Business integration first; verify analytics post list + metrics.
+- [ ] Verify Zernio "reconnect needed" UI surfaces in Agent7even after insufficient-scope connect (don't rely on silent zeros).
+- [ ] Document required Meta scopes in connect flow / help copy so users don't uncheck permissions.
+
+---
 
 ## Decision gates (do not build until BOTH are true)
 

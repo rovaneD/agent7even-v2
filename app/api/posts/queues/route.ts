@@ -7,7 +7,7 @@ import { parseQueueList } from '@/lib/social/zernioQueuesParse'
 export async function GET(req: NextRequest) {
   if (!process.env.ZERNIO_API_KEY) {
     return NextResponse.json(
-      { error: 'zernio_not_configured', message: 'ZERNIO_API_KEY is not set on this server.' },
+      { error: 'zernio_not_configured', message: 'Social publishing is not configured on this server.' },
       { status: 503 },
     )
   }

@@ -3157,7 +3157,9 @@ function ConnectPanel({
   const [xCostModal, setXCostModal] = useState(false)
   const [pendingXConnect, setPendingXConnect] = useState(false)
   const [metaModalPlatform, setMetaModalPlatform] = useState<string | null>(null)
+  const [metaModalMode, setMetaModalMode] = useState<'connect' | 'reconnect'>('connect')
   const [pendingMetaConnect, setPendingMetaConnect] = useState(false)
+  const [pendingMetaReconnect, setPendingMetaReconnect] = useState(false)
   const [accountsLoading, setAccountsLoading] = useState(false)
 
   useEffect(() => {
@@ -3177,24 +3179,27 @@ function ConnectPanel({
     return () => { cancelled = true }
   }, [open, dataState, onAccountsChange])
 
-  const handleConnect = async (platform: string) => {
+  const handleConnect = async (platform: string, opts?: { reconnect?: boolean }) => {
     if (platform === 'x' && !pendingXConnect) {
       setXCostModal(true)
       return
     }
-    if (isMetaOAuthPlatform(platform) && !pendingMetaConnect) {
+    if (isMetaOAuthPlatform(platform) && !pendingMetaConnect && !pendingMetaReconnect && !opts?.reconnect) {
+      setMetaModalMode(opts?.reconnect ? 'reconnect' : 'connect')
       setMetaModalPlatform(platform)
       return
     }
     setPendingXConnect(false)
     setPendingMetaConnect(false)
+    const isReconnect = pendingMetaReconnect || opts?.reconnect === true
+    setPendingMetaReconnect(false)
     setConnecting(platform)
     setConnectError('')
     try {
       const res = await fetch('/api/integrations/zernio/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform }),
+        body: JSON.stringify({ platform, reconnect: isReconnect }),
       })
       const data = await res.json()
       if (data.authUrl) {
@@ -3263,13 +3268,23 @@ function ConnectPanel({
       <MetaConnectDisclosureModal
         open={Boolean(metaModalPlatform)}
         platform={metaModalPlatform}
-        onCancel={() => setMetaModalPlatform(null)}
+        mode={metaModalMode}
+        onCancel={() => {
+          setMetaModalPlatform(null)
+          setMetaModalMode('connect')
+        }}
         onContinue={() => {
           const platform = metaModalPlatform
+          const reconnect = metaModalMode === 'reconnect'
           setMetaModalPlatform(null)
+          setMetaModalMode('connect')
           if (!platform) return
-          setPendingMetaConnect(true)
-          handleConnect(platform)
+          if (reconnect) {
+            setPendingMetaReconnect(true)
+          } else {
+            setPendingMetaConnect(true)
+          }
+          handleConnect(platform, { reconnect })
         }}
       />
 
@@ -3397,13 +3412,26 @@ function ConnectPanel({
                       </div>
                     </div>
                     {isConnected ? (
-                      <button
-                        onClick={() => handleDisconnect(id, account?.id)}
-                        disabled={isDisconnecting}
-                        className="text-[12px] font-medium text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors"
-                      >
-                        {isDisconnecting ? 'Removing…' : 'Disconnect'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {isMetaOAuthPlatform(id) && (
+                          <button
+                            type="button"
+                            onClick={() => handleConnect(id, { reconnect: true })}
+                            disabled={isConnecting || isDisconnecting}
+                            className="text-[12px] font-medium text-[#3B82F6] hover:text-[#2563EB] disabled:opacity-50 transition-colors"
+                          >
+                            {isConnecting ? 'Opening…' : 'Reconnect'}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDisconnect(id, account?.id)}
+                          disabled={isDisconnecting}
+                          className="text-[12px] font-medium text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors"
+                        >
+                          {isDisconnecting ? 'Removing…' : 'Disconnect'}
+                        </button>
+                      </div>
                     ) : (
                       <button
                         onClick={() => handleConnect(id)}

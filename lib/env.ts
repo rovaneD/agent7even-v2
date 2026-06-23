@@ -74,7 +74,7 @@ const SPEC: EnvSpec = {
       vars: ['EXA_API_KEY'],
     },
     {
-      feature: 'Zernio social analytics',
+      feature: 'Social posting & analytics',
       vars: ['ZERNIO_API_KEY'],
     },
   ],

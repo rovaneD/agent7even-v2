@@ -17,7 +17,7 @@ export type AgentId =
 
 export type AgentTrigger = 'user' | 'maya' | 'scheduled' | 'event'
 
-export type FoundationSectionKey = 'business' | 'customer' | 'position' | 'voice' | 'plan' | 'memory'
+export type FoundationSectionKey = 'business' | 'customer' | 'position' | 'voice' | 'visual' | 'plan' | 'memory'
 
 export interface AgentDefinition {
   id: AgentId
@@ -43,14 +43,14 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
   content_posting: {
     id: 'content_posting',
     name: 'Content Posting',
-    description: 'Single post with your image, or plan a week of content',
+    description: 'Image posts, short-form video, or a weekly content plan',
     icon: 'ti-image',
     autonomyLevel: 'approval_required',
     outputType: 'content_posting',
     model: 'anthropic/claude-haiku-4-5',
     defaultConstraints: `Never make specific income or results claims without disclaimer. Never use urgency tactics like "limited time" unless explicitly provided by the client. Never post content that hasn't been approved if autonomy is set to approval_required. Always stay within the brand voice defined in Brand Kit. ${buildImageContextAgentConstraints()}`,
-    foundationSections: ['business', 'voice', 'memory'],
-    warnIfThinSections: ['voice'],
+    foundationSections: ['business', 'voice', 'visual', 'memory'],
+    warnIfThinSections: ['voice', 'visual'],
   },
   post_caption: {
     id: 'post_caption',
@@ -61,8 +61,8 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     outputType: 'post_caption',
     model: 'anthropic/claude-haiku-4-5',
     defaultConstraints: `Never make specific income or results claims without disclaimer. Never use urgency tactics like "limited time" unless explicitly provided by the client. Always stay within the brand voice defined in Brand Kit. ${buildImageContextAgentConstraints()}`,
-    foundationSections: ['business', 'voice', 'memory'],
-    warnIfThinSections: ['voice'],
+    foundationSections: ['business', 'voice', 'visual', 'memory'],
+    warnIfThinSections: ['voice', 'visual'],
   },
   competitor_watcher: {
     id: 'competitor_watcher',

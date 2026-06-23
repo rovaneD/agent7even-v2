@@ -76,6 +76,8 @@ export default async function FoundationPage() {
       differentiator: '', differentiatorOwn: '', toneTraits: [] as string[],
       brandsAdmired: '', neverSoundLike: '', marketingBudget: '',
       channels: [] as string[], monthlyGoal: '',
+      visualAesthetic: '', visualCasting: '', visualHeroSubjects: '',
+      visualPaletteWords: '', visualMustNotDepict: '',
     }
     const hubAnswers = { ...emptyAnswers, ...(initialAnswers ?? {}) }
 

@@ -8,7 +8,7 @@ import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 import { createServiceClient } from '@/lib/supabase/server'
 
-export const maxDuration = 120
+export const maxDuration = 180
 
 type Body = {
   briefId?: string
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, plan')
+    .select('id, plan, company_name')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -74,6 +74,7 @@ export async function POST(req: Request) {
   try {
     const option = await editImageOption({
       profileId: profile.id,
+      companyName: (profile.company_name as string | null) ?? 'your business',
       briefId,
       optionIndex,
       brief: brief.trim(),

@@ -128,7 +128,7 @@ export function formatBrandKitBriefBlock(
 
   lines.push(
     'Layout rules:',
-    '- Prefer minimal on-image text (one short headline max, under 8 words) plus one CTA button or line when the post form includes an offer.',
+    '- Prefer minimal on-image text: one short headline (under 8 words), optional one subhead — no CTA buttons or pills on the image.',
     '- Every image must connect to the post goal and offer — no generic "boost your brand" or coffee-chat filler.',
     '- Avoid carousel multi-step copy, fake UI chrome, and generic stock-SaaS templates.',
     `- Brand name spelling when text appears: "${opts.companyName}" (exact casing and digits).`,

@@ -1,3 +1,4 @@
+
 # Post Media Expansion — Full Scope Handoff
 *Extends image-context captions (v1) with crop, carousels, and video*
 

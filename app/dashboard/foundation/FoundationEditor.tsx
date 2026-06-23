@@ -37,6 +37,11 @@ interface Answers {
   marketingBudget: string
   channels: string[]
   monthlyGoal: string
+  visualAesthetic: string
+  visualCasting: string
+  visualHeroSubjects: string
+  visualPaletteWords: string
+  visualMustNotDepict: string
 }
 
 interface Props {
@@ -71,6 +76,11 @@ const FIELD_LABELS: Record<string, string> = {
   marketingBudget:       'Marketing budget',
   channels:              'Channels',
   monthlyGoal:           'Monthly goal',
+  visualAesthetic:       'Visual aesthetic',
+  visualCasting:         'Visual casting',
+  visualHeroSubjects:    'Hero visual subjects',
+  visualPaletteWords:    'Palette in words',
+  visualMustNotDepict:   'Forbidden visuals',
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -100,6 +110,8 @@ function normalizeAnswers(raw: Record<string, unknown> | null): Answers {
     differentiator: '', differentiatorOwn: '',
     toneTraits: [], brandsAdmired: '', neverSoundLike: '',
     marketingBudget: '', channels: [], monthlyGoal: '',
+    visualAesthetic: '', visualCasting: '', visualHeroSubjects: '',
+    visualPaletteWords: '', visualMustNotDepict: '',
   }
   if (!raw) return empty
 
@@ -141,6 +153,11 @@ function normalizeAnswers(raw: Record<string, unknown> | null): Answers {
     marketingBudget:       str(raw.marketingBudget),
     channels:              strArr(raw.channels),
     monthlyGoal:           str(raw.monthlyGoal),
+    visualAesthetic:       str(raw.visualAesthetic),
+    visualCasting:         str(raw.visualCasting),
+    visualHeroSubjects:    str(raw.visualHeroSubjects),
+    visualPaletteWords:    str(raw.visualPaletteWords),
+    visualMustNotDepict:   str(raw.visualMustNotDepict),
   }
 }
 

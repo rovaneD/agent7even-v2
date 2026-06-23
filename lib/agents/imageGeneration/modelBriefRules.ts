@@ -13,7 +13,7 @@ export function modelBriefRulesBlock(modelId: ImageGenerationModelId): string {
     case 'sharp-text':
       return [
         '## Image model constraints (Sharp text)',
-        '- At most ONE headline (under 8 words) plus optionally ONE short stat or CTA.',
+        '- At most ONE headline (under 8 words) plus optionally ONE short subhead — no CTA buttons.',
         '- Social POST layout — NOT a logo tile, wordmark lockup, monogram, or abstract brand-mark hero.',
         '- No color swatches, hex codes, legends, multi-step carousels, or fake dashboards with lorem labels.',
       ].join('\n')
@@ -27,6 +27,10 @@ export function modelBriefRulesBlock(modelId: ImageGenerationModelId): string {
       return [
         '## Image model constraints (Balanced)',
         '- Minimal on-image text; prefer one strong headline over dense copy.',
+        '- Headline-only overlay — NO CTA buttons, pills, or "See how it works" / "Learn how" link chrome.',
+        '- NO circular logo badges, floating brand icons, invented wordmarks, laptop-lid logos, neon wall signs, or environmental brand marks.',
+        '- Laptop screens off, angled away, or defocused — never a readable fake dashboard or chart UI on screen.',
+        '- Neutral/cool scene grade — no sepia, brown, or golden-hour wash; blue accent in headline typography only.',
       ].join('\n')
   }
 }
@@ -38,8 +42,13 @@ export const GLOBAL_IMAGE_BRIEF_RULES = `## Hard rules (every image option)
 - NEVER print hex codes, color token names, swatches, font specs, or design-system legends as visible text in the final image — apply colors/fonts in the render only.
 - NEVER invent fake customer testimonials, named people, or unrelated industries (bakery, therapy, retail foot traffic, etc.) unless the post ask explicitly requests that format.
 - Stay in the business category described in Foundation — B2B marketing SaaS for this brand, not random small-business stock scenarios.
+- Headline typography accent: electric blue on white/slate unless Creative Direction palette explicitly names earthy tones — never default to brown, terracotta, or amber.
+- NO on-image CTA buttons, pills, or link chrome ("See how it works", "Learn how", "Start free trial") — headline (+ optional subhead) only. Offer/CTA field informs headline angle; actual CTA lives in the post caption.
+- Scene color grade: neutral/cool daylight or clean office lighting — NOT sepia, brown wash, golden-hour amber, or coffee-shop warmth unless the post ask explicitly requests that mood.
+- No logos on laptop lids, device backs, phone screens, neon wall signs, or background decor when logo is off.
+- Laptop/phone screens: turned away from camera, closed, dark, or soft out-of-focus — NEVER a readable fake dashboard, chart grid, or SaaS UI on the screen. No desk papers with fake charts unless the post ask requests data viz.
 - No fake UI mockups with gibberish labels or lorem filler in prominent areas.
 - On-image copy must be real marketing words only — not brief instructions, model names, or metadata.
 - Social POST images only — NEVER brief a logo lockup, wordmark tile, monogram hero, or abstract brand-mark symbol. The company name must not be the main visual; use a post-specific headline about the offer or pain point instead.
-- Every option MUST tie to the post form (Post goal, Offer/CTA, Audience) — quote a specific headline and include a visible CTA when an offer is provided. No generic filler like "Boost your brand" or "Real talk over coffee" unless the post ask explicitly requests that scene.
-- When Brand Kit is on but logo is off: colors and typography only — NEVER invent logo icons, geometric identity grids, or wordmark lockups.`
+- Every option MUST tie to the post form (Post goal, Offer/CTA, Audience) — quote a specific headline. No generic filler like "Boost your brand" or "Real talk over coffee" unless the post ask explicitly requests that scene.
+- When Brand Kit is on but logo is off: colors and typography only — NEVER invent logo icons, geometric identity grids, wordmark lockups, circular badges, floating brand marks, laptop-lid decals, or neon/wall signage beside the subject.`

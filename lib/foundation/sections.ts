@@ -4,7 +4,7 @@
  * v1: generation gate uses customer | position | voice only — see creative_generation_handoff.md §3b.
  */
 
-export type FoundationScoredSectionKey = 'business' | 'customer' | 'position' | 'voice' | 'plan'
+export type FoundationScoredSectionKey = 'business' | 'customer' | 'position' | 'voice' | 'visual' | 'plan'
 
 export type GenerationGatedSectionKey = 'customer' | 'position' | 'voice'
 
@@ -16,6 +16,7 @@ export const FOUNDATION_SECTION_KEY_FIELDS: Record<FoundationScoredSectionKey, s
   customer: ['customerWho', 'customerFrustration'],
   position: ['differentiator', 'competitors'],
   voice:    ['toneTraits', 'brandsAdmired'],
+  visual:   ['visualAesthetic', 'visualCasting', 'visualHeroSubjects', 'visualPaletteWords', 'visualMustNotDepict'],
   plan:     ['marketingBudget', 'monthlyGoal'],
 }
 

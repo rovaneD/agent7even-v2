@@ -4,13 +4,22 @@ import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
 import { createOAuthState } from '@/lib/oauth-state'
 import { oauthCallbackBase } from '@/lib/oauthCallbackBase'
+import {
+  collectZernioProfileIds,
+  disconnectPlatformFromTenant,
+  syncTenantConnectedPlatforms,
+} from '@/lib/social/zernioProfileIds'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const { platform, returnTo: rawReturnTo } = body as { platform?: string; returnTo?: string }
+  const { platform, returnTo: rawReturnTo, reconnect } = body as {
+    platform?: string
+    returnTo?: string
+    reconnect?: boolean
+  }
   if (!platform) return NextResponse.json({ error: 'platform is required' }, { status: 400 })
 
   const returnTo =
@@ -34,6 +43,18 @@ export async function POST(req: Request) {
       { error: 'active_plan_required', message: 'Connect your accounts after activating your plan.' },
       { status: 403 },
     )
+  }
+
+  if (reconnect === true && platform) {
+    const profileIds = collectZernioProfileIds(profile)
+    if (profileIds.length > 0) {
+      await disconnectPlatformFromTenant(profileIds, platform)
+      const remaining = await syncTenantConnectedPlatforms(profileIds)
+      await supabase
+        .from('profiles')
+        .update({ zernio_connected_platforms: remaining })
+        .eq('id', profile.id)
+    }
   }
 
   // Create Zernio profile on first connection for this tenant.

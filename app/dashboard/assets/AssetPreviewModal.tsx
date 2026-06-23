@@ -147,7 +147,7 @@ export default function AssetPreviewModal({
             </div>
 
             <Link
-              href={`/dashboard/agents?useAsset=${asset.id}`}
+              href={`/dashboard/agents/content-posting/image?format=ig-feed-post&useAsset=${asset.id}`}
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white no-underline hover:bg-[#2563EB]"
             >
               <Send size={14} />

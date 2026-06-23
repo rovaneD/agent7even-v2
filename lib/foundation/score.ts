@@ -15,4 +15,9 @@ export const FIELD_EXPECTATIONS: Record<string, { label: string; minWords: numbe
   channels:              { label: 'Channels',                    minWords: 0,  weight: 6  },
   monthlyGoal:           { label: 'Monthly goal',                minWords: 0,  weight: 6  },
   competitors:           { label: 'Competitors',                 minWords: 0,  weight: 4  },
+  visualAesthetic:       { label: 'Visual aesthetic',            minWords: 5,  weight: 4  },
+  visualCasting:         { label: 'Visual casting',              minWords: 3,  weight: 3  },
+  visualHeroSubjects:    { label: 'Hero visual subjects',        minWords: 3,  weight: 4  },
+  visualPaletteWords:    { label: 'Palette in words',            minWords: 0,  weight: 2  },
+  visualMustNotDepict:   { label: 'Forbidden visuals',           minWords: 0,  weight: 3  },
 }

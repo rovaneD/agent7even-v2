@@ -1,9 +1,10 @@
+import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
+import { isVideoGenerationEnabled } from '@/lib/posts/videoGenerationFlag'
+
 /**
  * Post media capability (upload + optional generation behind flag).
  * Source of truth for Maya chat prompts and agent constraint copy.
  */
-
-import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 
 export const IMAGE_CONTEXT_CAPABILITY = {
   id: 'image_context_caption',
@@ -17,7 +18,7 @@ export const IMAGE_CONTEXT_CAPABILITY = {
     'Image generation',
     'Cropping or in-platform image editing',
     'Carousels (multi-image posts)',
-    'Video',
+    'Video generation',
   ],
   limits: {
     maxImagesPerPost: 1,
@@ -29,16 +30,25 @@ export const IMAGE_CONTEXT_CAPABILITY = {
 const GENERATION_SUPPORTED =
   'Generate post images in Agents → Single post → Generate with Maya (Foundation-grounded brief, 3 options, text QA before approval); saved options live in Assets'
 
-/** Upload/caption baseline — generation removed when flag is on. */
+const VIDEO_GENERATION_SUPPORTED =
+  'Generate short-form video (9:16 Reels/TikTok) in Agents → Single post → Generate video (Creative Direction brief, async job, review in Approvals)'
+
+/** Upload/caption baseline — generation removed when flags are on. */
 function effectiveUnsupportedList(): string[] {
-  const base = [...IMAGE_CONTEXT_CAPABILITY.unsupported]
-  if (!isImageGenerationEnabled()) return base
-  return base.filter(item => item !== 'Image generation')
+  let base = [...IMAGE_CONTEXT_CAPABILITY.unsupported]
+  if (isImageGenerationEnabled()) {
+    base = base.filter(item => item !== 'Image generation')
+  }
+  if (isVideoGenerationEnabled()) {
+    base = base.filter(item => item !== 'Video generation')
+  }
+  return base
 }
 
 function effectiveSupportedList(): string[] {
   const base: string[] = [...IMAGE_CONTEXT_CAPABILITY.supported]
   if (isImageGenerationEnabled()) base.push(GENERATION_SUPPORTED)
+  if (isVideoGenerationEnabled()) base.push(VIDEO_GENERATION_SUPPORTED)
   return base
 }
 
@@ -63,21 +73,41 @@ export function imageContextAcceptHeader(): string {
 export function buildImageContextCapabilityPrompt(): string {
   const supported = effectiveSupportedList().join('; ')
   const unsupported = effectiveUnsupportedList().join('; ')
-  const generationNote = isImageGenerationEnabled()
+  const imageNote = isImageGenerationEnabled()
     ? 'If asked to create a new post image in chat, direct them to Agents → Single post → Generate with Maya (you cannot run the image model from chat). Targeted edits on a picked generated option happen in that same flow.'
-    : 'If asked to generate, crop, edit, build a carousel, or use video, refuse and explain the owner must supply a ready-to-post still image — Maya writes the caption to match it.'
-  return `POST MEDIA CAPABILITY (v1${isImageGenerationEnabled() ? ' + generation' : ''}):
+    : null
+  const videoNote = isVideoGenerationEnabled()
+    ? 'If asked to generate a short video in chat, direct them to Agents → Single post → Generate video (async — review in Approvals when ready).'
+    : null
+  const fallbackNote =
+    !isImageGenerationEnabled() && !isVideoGenerationEnabled()
+      ? 'If asked to generate, crop, edit, build a carousel, or use video, refuse and explain the owner must supply a ready-to-post still image — Maya writes the caption to match it.'
+      : [imageNote, videoNote].filter(Boolean).join(' ')
+
+  const flagSuffix = [
+    isImageGenerationEnabled() ? ' + image gen' : '',
+    isVideoGenerationEnabled() ? ' + video gen' : '',
+  ].join('')
+
+  return `POST MEDIA CAPABILITY (v1${flagSuffix}):
 Supported: ${supported}.
 Not supported: ${unsupported}.
-${generationNote}`
+${fallbackNote}`
 }
 
 export function buildImageContextAgentConstraints(): string {
   const unsupported = effectiveUnsupportedList()
     .map(item => item.toLowerCase())
     .join(', ')
+  const parts: string[] = []
   if (isImageGenerationEnabled()) {
-    return `Post media: user may upload a still for vision captions, or generate options in Agents → Single post → Generate with Maya (not in this chat). Saved generations are in Assets. You must never ${unsupported}. One image per post only.`
+    parts.push('generate post images in Agents → Single post → Generate with Maya (not in this chat)')
+  }
+  if (isVideoGenerationEnabled()) {
+    parts.push('generate short video in Agents → Single post → Generate video (not in this chat)')
+  }
+  if (parts.length > 0) {
+    return `Post media: user may upload a still for vision captions, or ${parts.join('; ')}. Saved image generations are in Assets. You must never ${unsupported}. One image per post only.`
   }
   return `Image-context captions: you may read a user-supplied still image and write matching copy. You must never ${unsupported}. One image per post only.`
 }

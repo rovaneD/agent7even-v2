@@ -1,4 +1,8 @@
 import type { TextQaIssue } from './types'
+import type { ImageGenerationModelId } from './imageModelCatalog'
+import { modelRequiresOnImageHeadline } from './headlineRequiredBrief'
+import { LAPTOP_SCREEN_SAFE_LINE } from './fakeScreenUiDetection'
+import { NO_ON_IMAGE_CTA_RULE } from './onImageCtaDetection'
 
 export type PostGroundingContext = {
   postGoal?: string
@@ -56,23 +60,6 @@ export function detectGenericHeadlineInImageText(
     }
   }
 
-  // Offer provided but no CTA-ish copy visible
-  const offer = ctx?.offer?.trim()
-  if (offer && offer.length >= 4) {
-    const offerNorm = normalize(offer)
-    const textNorm = normalize(text)
-    const offerTokens = offerNorm.split(' ').filter(t => t.length >= 4)
-    const hasOfferEcho = offerTokens.some(t => textNorm.includes(t))
-    const hasCtaShape =
-      /\b(start|try|get|book|sign up|learn more|free trial|let'?s talk|shop|download|join)\b/i.test(text)
-    if (!hasOfferEcho && !hasCtaShape) {
-      return [{
-        code: 'missing_cta',
-        message: 'Post form includes an offer/CTA but the image has no visible call-to-action tied to it.',
-      }]
-    }
-  }
-
   return []
 }
 
@@ -80,8 +67,20 @@ export function detectGenericHeadlineInImageText(
 export function detectBriefMissingPostGrounding(
   brief: string,
   ctx?: PostGroundingContext,
+  modelId?: ImageGenerationModelId,
 ): TextQaIssue | null {
-  const hasQuotedHeadline = /["'][^"']{6,}["']/.test(brief)
+  const hasQuotedHeadline = /["'][^"']{8,}["']/.test(brief)
+
+  if (modelId && modelRequiresOnImageHeadline(modelId)) {
+    if (!hasQuotedHeadline) {
+      return {
+        code: 'brief_vague',
+        message: 'Brief must quote a concrete on-image headline — textless editorial photos are not social post graphics.',
+      }
+    }
+    return null
+  }
+
   const mentionsPost =
     /\bpost goal\b/i.test(brief)
     || (ctx?.postGoal && new RegExp(normalize(ctx.postGoal).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(brief))
@@ -98,11 +97,11 @@ export function detectBriefMissingPostGrounding(
     const briefNorm = normalize(brief)
     const offerTokens = offerNorm.split(' ').filter(t => t.length >= 4)
     const hasOfferRef = offerTokens.some(t => briefNorm.includes(t))
-    const hasCtaWord = /\b(?:cta|call to action|button|pill)\b/i.test(brief)
-    if (!hasOfferRef && !hasCtaWord) {
+    const hasHeadlineQuote = /["'][^"']{6,}["']/.test(brief)
+    if (!hasOfferRef && !hasHeadlineQuote) {
       return {
         code: 'brief_vague',
-        message: 'Brief omits the offer/CTA from the post form — image will lack a call to action.',
+        message: 'Brief omits the offer from the post form — weave it into the headline, not a separate button.',
       }
     }
   }
@@ -121,9 +120,11 @@ export function buildGroundedSocialPostBrief(
 
   const audienceLine = audience ? ` Audience: ${audience}.` : ''
   const includeLine = mustInclude ? ` Must reflect: ${mustInclude}.` : ''
-  const ctaLine = offer
-    ? ` Include a visible CTA button or pill with text like "${offer.slice(0, 40)}" — not a generic "Let's talk".`
-    : ' Include one short CTA line or button tied to the post goal (e.g. "Start free trial", "See how it works") — not generic filler.'
+  const offerLine = offer
+    ? ` Offer context (for headline angle only, not a button): ${offer.slice(0, 60)}.`
+    : ''
+  const headlineWords = goal.split(/\s+/).slice(0, 8).join(' ')
+  const quotedHeadline = `"${headlineWords.charAt(0).toUpperCase()}${headlineWords.slice(1)}"`
 
-  return `Instagram/LinkedIn post graphic for ${companyName}: bold marketing headline (under 8 words) about ${goal}.${audienceLine}${includeLine}${ctaLine} Full-bleed social layout with headline + supporting line — NOT a logo tile, invented wordmark, monogram, abstract brand-mark grid, or geometric identity symbol. Do NOT draw or invent any logo icon — user did not request a logo on this post. Do NOT make "${companyName}" the hero text. Company name may appear small in a corner at most. Stay on the B2B marketing SaaS product described in Foundation — no random coffee-shop or lifestyle scenes unless the post ask requests them.`
+  return `Instagram/LinkedIn post graphic for ${companyName}: headline on image ${quotedHeadline} — bold sans, under 8 words, tied to ${goal}.${audienceLine}${includeLine}${offerLine} ${NO_ON_IMAGE_CTA_RULE} Full-bleed layout with headline only — optional one short subhead max, no button chrome. NOT a logo tile, invented wordmark, monogram, abstract brand-mark grid, or geometric identity symbol. Do NOT draw or invent any logo icon anywhere — no logos on laptop lids, device backs, neon wall signs, or background decor; user did not request a logo on this post. ${LAPTOP_SCREEN_SAFE_LINE} Do NOT make "${companyName}" the hero text. Company name may appear small in a corner at most. Neutral/cool photo grade with electric blue accents — no sepia, brown, or terracotta color wash. Prefer bright modern workspace or product-adjacent scenes — no random coffee-shop or lifestyle stock unless the post ask requests them. Stay on the B2B marketing SaaS product described in Foundation.`
 }

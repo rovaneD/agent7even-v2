@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   })
 
   if (!data) {
-    return NextResponse.json({ error: 'Failed to fetch ads analytics from Zernio' }, { status: 502 })
+    return NextResponse.json({ error: 'Failed to fetch ads analytics' }, { status: 502 })
   }
 
   return NextResponse.json(data)

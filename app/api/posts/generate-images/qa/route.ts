@@ -6,10 +6,12 @@ import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration/gene
 import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 import { createServiceClient } from '@/lib/supabase/server'
 
-export const maxDuration = 60
+export const maxDuration = 90
 
 type Body = {
   storagePath?: string
+  brief?: string
+  expectedHeadline?: string
 }
 
 /** Step 4: vision read-back text QA on the user-picked generated image. */
@@ -58,6 +60,8 @@ export async function POST(req: Request) {
       profileId: profile.id,
       companyName: (profile.company_name as string | null) ?? 'your business',
       storagePath,
+      brief: body.brief?.trim() || null,
+      expectedHeadline: body.expectedHeadline?.trim() || null,
     })
 
     if (!qa.passed) {

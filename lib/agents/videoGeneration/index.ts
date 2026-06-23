@@ -1,4 +1,6 @@
 export { composeVideoBrief } from './briefComposeVideo'
+export { buildGroundedVideoBrief, prepareBriefForVideo } from './briefValidationVideo'
+export { GLOBAL_VIDEO_BRIEF_RULES } from './videoBriefRules'
 export { resolveVideoModel, defaultVideoModelEntry } from './videoModelCatalog'
 export { submitVideoJob, pollVideoJob } from './openRouterVideo'
 export type { VideoModelId, VideoModelEntry } from './videoModelCatalog'

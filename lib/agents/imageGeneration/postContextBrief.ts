@@ -1,5 +1,8 @@
-/** Single-post form fields → brief block for image generation (not caption-only). */
-export function formatPostContextBriefBlock(form: Record<string, string> | undefined): string | null {
+/** Single-post form fields → brief block for image/video generation (not caption-only). */
+export function formatPostContextBriefBlock(
+  form: Record<string, string> | undefined,
+  medium: 'image' | 'video' = 'image',
+): string | null {
   if (!form) return null
 
   const lines: string[] = []
@@ -17,11 +20,17 @@ export function formatPostContextBriefBlock(form: Record<string, string> | undef
 
   if (lines.length === 0) return null
 
+  const mediumLine = medium === 'video'
+    ? '- Honor in the video brief — scene, motion, and text overlay must support this specific post.'
+    : '- Honor in every image option — non-negotiable.'
+
   return [
-    '## This post ask (honor in every image option — non-negotiable)',
+    '## This post ask (non-negotiable)',
     ...lines,
+    mediumLine,
     '- Visuals must support this specific post — not generic brand awareness only.',
-    '- Quote a concrete headline tied to Post goal and customer pain; include a visible CTA button or line when Offer/CTA is set.',
+    '- Quote a concrete headline (max 8 words) tied to Post goal and customer pain.',
+    '- Offer/CTA field informs headline angle and caption — do NOT bake CTA buttons into the visual.',
     '- Do NOT use vague lifestyle scenes (coffee chat, generic "boost your brand") unless the post ask explicitly requests them.',
   ].join('\n')
 }

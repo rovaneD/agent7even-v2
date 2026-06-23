@@ -23,7 +23,7 @@ type KnowledgeItem = {
   created_at: string
 }
 import {
-  Building2, Users, Target, Mic, Calendar, History,
+  Building2, Users, Target, Mic, Calendar, History, Palette,
   Upload, Sparkles, RefreshCw, Plus, Pencil, RotateCcw,
   Eye, Rocket, BarChart2, TrendingUp, Mail, Megaphone, Search, ShieldCheck,
   Loader2, CloudUpload, Link2, FileText, Brain, Info,
@@ -36,12 +36,13 @@ import {
   computeSectionScore,
   FOUNDATION_SECTION_KEY_FIELDS,
 } from '@/lib/foundation/sections'
+import { FOUNDATION_VISUAL_FIELDS } from '@/lib/foundation/visualFields'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type TabId = 'intelligence' | 'knowledge' | 'memory' | 'connections'
 type Health = 'strong' | 'needs_work' | 'thin'
-type SectionKey = 'business' | 'customer' | 'position' | 'voice' | 'plan' | 'memory'
+type SectionKey = 'business' | 'customer' | 'position' | 'voice' | 'visual' | 'plan' | 'memory'
 
 interface AgentTag {
   id: string
@@ -55,7 +56,7 @@ interface SectionDef {
   title: string
   icon: React.ComponentType<{ size?: number; className?: string }>
   keyFields: string[]
-  editFields: { key: keyof Answers; label: string; type: 'textarea' | 'text' | 'chips' | 'competitors' }[]
+  editFields: { key: keyof Answers; label: string; type: 'textarea' | 'text' | 'chips' | 'competitors'; placeholder?: string }[]
   agents: AgentTag[]
   affectedDocs: string[]  // which foundation_documents types regenerate on edit
   emptyText: string
@@ -79,6 +80,11 @@ interface Answers {
   marketingBudget: string
   channels: string[]
   monthlyGoal: string
+  visualAesthetic: string
+  visualCasting: string
+  visualHeroSubjects: string
+  visualPaletteWords: string
+  visualMustNotDepict: string
 }
 
 interface FieldScore { score: number; feedback: string | null }
@@ -174,6 +180,24 @@ const SECTIONS: SectionDef[] = [
     agents: agentsForSection('voice'),
   },
   {
+    key: 'visual', title: 'Your Look', icon: Palette, editable: true,
+    keyFields: FOUNDATION_SECTION_KEY_FIELDS.visual,
+    editFields: FOUNDATION_VISUAL_FIELDS.map(f => ({
+      key: f.key,
+      label: f.label,
+      type: 'textarea' as const,
+      placeholder:
+        f.key === 'visualAesthetic' ? 'Warm and human, not corporate stock photos'
+        : f.key === 'visualCasting' ? 'Real small-business owners, mid-action — or "no people"'
+        : f.key === 'visualHeroSubjects' ? 'Your product, your team, your customers — be specific'
+        : f.key === 'visualPaletteWords' ? 'Soft blue accent, warm white, deep charcoal'
+        : 'Stock handshakes, fake dashboards, competitor logos',
+    })),
+    affectedDocs: [],
+    emptyText: 'Tell Maya how your brand should look in photos and graphics — not just how it sounds.',
+    agents: agentsForSection('visual'),
+  },
+  {
     key: 'plan', title: 'Your 30 Days', icon: Calendar, editable: true,
     keyFields: FOUNDATION_SECTION_KEY_FIELDS.plan,
     editFields: [
@@ -222,9 +246,10 @@ function sectionHealth(answers: Answers, fieldScores: Record<string, FieldScore>
   // No scores yet — fill check
   const filled = fields.filter(f => {
     const v = (answers as unknown as Record<string, unknown>)[f]
-    return Array.isArray(v) ? (v as string[]).filter(Boolean).length > 0 : Boolean(v)
+    return Array.isArray(v) ? (v as string[]).filter(Boolean).length > 0 : Boolean(String(v ?? '').trim())
   })
   if (filled.length === 0) return 'thin'
+  if (filled.length >= fields.length) return 'needs_work' // filled — rescore pending
   return 'needs_work'
 }
 
@@ -254,6 +279,9 @@ function sectionPreview(answers: Answers, key: SectionKey): string | null {
   if (key === 'voice') {
     const traits = toArr(answers.toneTraits)
     return traits.length > 0 ? `Tone: ${traits.join(' · ')}` : null
+  }
+  if (key === 'visual') {
+    return answers.visualAesthetic ? t(answers.visualAesthetic) : null
   }
   if (key === 'plan') {
     const channels = toArr(answers.channels)
@@ -311,6 +339,7 @@ function deriveSuggestions(answers: Answers, healthMap: Record<SectionKey, Healt
     if (comps.length < 2) s.push("Adding more competitors sharpens Competitor Watcher and Ad Variations — Maya needs context to differentiate you.")
   }
   if (healthMap.voice !== 'strong') s.push("Completing your Voice section ensures Weekly Content and Email Sequences match your actual tone, not a generic one.")
+  if (healthMap.visual !== 'strong') s.push("Your Look tells Maya how to compose on-brand images — without it, post graphics may look generic.")
   if (healthMap.customer !== 'strong') s.push("A detailed Customer section helps Ad Variations write copy that speaks directly to your buyer's frustration.")
   if (healthMap.business !== 'strong') s.push("Strengthening Your Business section improves every agent output — it's the baseline context all 9 agents read first.")
   return s.slice(0, 3)
@@ -397,6 +426,8 @@ function coerceHubAnswers(raw: Record<string, unknown>): Answers {
     differentiator: '', differentiatorOwn: '', toneTraits: [] as string[],
     brandsAdmired: '', neverSoundLike: '', marketingBudget: '',
     channels: [] as string[], monthlyGoal: '',
+    visualAesthetic: '', visualCasting: '', visualHeroSubjects: '',
+    visualPaletteWords: '', visualMustNotDepict: '',
   }
   const merged = { ...emptyAnswers, ...raw } as Answers
   merged.toneTraits = toArray(merged.toneTraits)
@@ -424,7 +455,7 @@ function StrengthCard({
     <div className="rounded-2xl border border-gray-100 bg-white p-5">
       <div className="flex items-center justify-between mb-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Foundation Strength</p>
-        <InfoTooltip text="Scored 0–100 by evaluating the depth and specificity of your answers across all six foundation sections. Agents use this score to decide how confidently they can generate content on your behalf — higher score means more autonomous output." />
+        <InfoTooltip text="Scored 0–100 by evaluating the depth and specificity of your answers across all foundation sections. Agents use this score to decide how confidently they can generate content on your behalf — higher score means more autonomous output." />
       </div>
       <p className="text-[32px] font-[500] leading-none mb-1" style={{ color }}>{score}</p>
       <p className="text-xs text-text-soft mb-2">out of 100 · {scoreStatus(score)}</p>
@@ -1213,6 +1244,7 @@ function SectionEditCard({
             <div key={field.key}>
               <label className="block text-[11px] font-semibold text-text-soft uppercase tracking-wide mb-1.5">{field.label}</label>
               <textarea rows={3} value={(val as string) ?? ''}
+                placeholder={field.placeholder}
                 onChange={e => onChange({ [field.key]: e.target.value } as Partial<Answers>)}
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#3B82F6] resize-none leading-relaxed"
               />
@@ -1255,10 +1287,11 @@ function SectionEditCard({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function FoundationHub({
-  companyName, answers, score: initialScore, fieldScores, lastUpdated, answersPreviousAt: initialAnswersPreviousAt,
+  companyName, answers, score: initialScore, fieldScores: initialFieldScores, lastUpdated, answersPreviousAt: initialAnswersPreviousAt,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>('intelligence')
   const [currentScore, setCurrentScore] = useState(initialScore)
+  const [localFieldScores, setLocalFieldScores] = useState(initialFieldScores)
   const [rescoring, setRescoring] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [restoreNotice, setRestoreNotice] = useState<string | null>(null)
@@ -1315,6 +1348,25 @@ export default function FoundationHub({
     setEditingSection(key)
   }
 
+  async function rescoreAnswers(nextAnswers: Answers) {
+    const res = await fetch('/api/foundation/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: nextAnswers }),
+    })
+    const data = await res.json() as {
+      overallScore?: number
+      fieldScores?: Record<string, FieldScore>
+    }
+    if (data.overallScore != null) {
+      setCurrentScore(data.overallScore)
+      setLastScored(new Date().toISOString())
+    }
+    if (data.fieldScores) {
+      setLocalFieldScores(prev => ({ ...prev, ...data.fieldScores }))
+    }
+  }
+
   async function saveEdit(section: SectionDef) {
     setEditSaving(true)
     const merged = { ...localAnswers, ...editDraft }
@@ -1327,6 +1379,8 @@ export default function FoundationHub({
       setLocalAnswers(merged)
       setEditingSection(null)
       setAnswersPreviousAt(new Date().toISOString())
+
+      await rescoreAnswers(merged).catch(() => {})
 
       // Partial regen
       if (section.affectedDocs.length > 0) {
@@ -1363,9 +1417,9 @@ export default function FoundationHub({
 
   const healthMap = useMemo(() => {
     const m = {} as Record<SectionKey, Health>
-    for (const s of SECTIONS) m[s.key] = sectionHealth(localAnswers, fieldScores, s.key)
+    for (const s of SECTIONS) m[s.key] = sectionHealth(localAnswers, localFieldScores, s.key)
     return m
-  }, [localAnswers, fieldScores])
+  }, [localAnswers, localFieldScores])
 
   const suggestions = useMemo(() => deriveSuggestions(localAnswers, healthMap), [localAnswers, healthMap])
 
@@ -1384,6 +1438,8 @@ export default function FoundationHub({
         knowledgeItems,
         memoryData,
         weakSections: weakSections.map(s => s.title),
+        answers: localAnswers as unknown as Record<string, unknown>,
+        fieldScores: localFieldScores,
       }),
     [
       companyName,
@@ -1395,6 +1451,8 @@ export default function FoundationHub({
       knowledgeItems,
       memoryData,
       weakSections,
+      localAnswers,
+      localFieldScores,
     ],
   )
   useMayaContext(mayaContext)
@@ -1411,16 +1469,7 @@ export default function FoundationHub({
     setRescoring(true)
     setRestoreNotice(null)
     try {
-      const res = await fetch('/api/foundation/score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: localAnswers }),
-      })
-      const data = await res.json()
-      if (data.overallScore != null) {
-        setCurrentScore(data.overallScore)
-        setLastScored(new Date().toISOString())
-      }
+      await rescoreAnswers(localAnswers)
     } finally {
       setRescoring(false)
     }
@@ -1446,7 +1495,7 @@ export default function FoundationHub({
   }
 
   const TABS: { id: TabId; label: string; count?: number }[] = [
-    { id: 'intelligence', label: 'Intelligence', count: 6 },
+    { id: 'intelligence', label: 'Intelligence', count: 7 },
     { id: 'knowledge',    label: 'Knowledge',    count: knowledgeItems.length || undefined },
     { id: 'memory',       label: 'Memory',       count: memoryData?.stats.length ?? undefined },
     { id: 'connections',  label: 'Agent connections' },

@@ -447,7 +447,7 @@ export default function AssetsClient({
                           </label>
 
                           <Link
-                            href={`/dashboard/agents?useAsset=${asset.id}`}
+                            href={`/dashboard/agents/content-posting/image?format=ig-feed-post&useAsset=${asset.id}`}
                             className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-primary px-2 py-1.5 text-[10px] font-semibold text-white no-underline hover:bg-[#2563EB]"
                           >
                             <Send size={12} />

@@ -5,16 +5,19 @@ import {
   appendQaFixToBrief,
   prepareBriefForImageModel,
 } from './briefValidation'
-import { buildFoundationSnapshotMarkdown } from './foundationSnapshot'
 import {
   formatBrandKitBriefBlock,
   loadBrandKitGenerationSnapshot,
 } from './brandKitSnapshot'
+import {
+  formatCreativeDirectionBlock,
+  translateFoundationToCreativeDirection,
+} from '@/lib/agents/foundationCreativeDirection'
 import { resolveImageGenerationModel, type ImageGenerationModelId } from './imageModelCatalog'
 import { formatPostContextBriefBlock } from './postContextBrief'
 import { postGroundingFromForm, type PostGroundingContext } from './postGrounding'
-import { buildTextOnlyRegenBrief, detectImageEditMode, type ImageEditMode } from './editPrompt'
-import { generateImageEditFromSource, generateImageFromBrief, isGoogleImageModel } from './openRouterImage'
+import { buildTextOnlyRegenBrief, detectImageEditMode, extractExpectedHeadline, TEXT_EDIT_QA_MAX_RETRIES, type ImageEditMode } from './editPrompt'
+import { generateImageEditFromSource, generateImageFromBrief, isGoogleImageModel, type ImageAspectRatio } from './openRouterImage'
 import { runTextQaGate } from './textQaGate'
 import { GENERATION_OPTION_QA_MAX_RETRIES, type GenerateImageOptionsResult } from './types'
 
@@ -43,6 +46,7 @@ export async function generateImageOptions(opts: {
   includeLogo?: boolean
   imageModelId?: ImageGenerationModelId | string | null
   postContext?: Record<string, string>
+  aspectRatio?: ImageAspectRatio
 }): Promise<GenerateImageOptionsResult> {
   const briefId = randomUUID()
   const modelEntry = resolveImageGenerationModel(opts.imageModelId)
@@ -53,23 +57,34 @@ export async function generateImageOptions(opts: {
     throw new Error('post_goal_required')
   }
 
-  const foundationMarkdown = await buildFoundationSnapshotMarkdown(opts.profileId, opts.companyName)
+  const [creativeDirection, brandKitSnapshot] = await Promise.all([
+    translateFoundationToCreativeDirection({
+      profileId: opts.profileId,
+      companyName: opts.companyName,
+    }),
+    opts.useBrandKit
+      ? loadBrandKitGenerationSnapshot(opts.profileId)
+      : Promise.resolve(null),
+  ])
+
+  const creativeDirectionBlock = formatCreativeDirectionBlock(
+    creativeDirection,
+    opts.companyName,
+  )
 
   let brandKitBlock: string | null = null
-  if (opts.useBrandKit) {
-    const snapshot = await loadBrandKitGenerationSnapshot(opts.profileId)
-    if (snapshot.available) {
-      brandKitBlock = formatBrandKitBriefBlock(snapshot, {
-        includeLogo: opts.includeLogo === true,
-        companyName: opts.companyName,
-      })
-    }
+  if (brandKitSnapshot?.available) {
+    brandKitBlock = formatBrandKitBriefBlock(brandKitSnapshot, {
+      includeLogo: opts.includeLogo === true,
+      companyName: opts.companyName,
+    })
   }
 
   const postContext = postGroundingFromForm(opts.postContext)
+  const aspectRatio: ImageAspectRatio = opts.aspectRatio ?? '4:5'
 
   const briefs = await composeImageBriefs({
-    foundationMarkdown,
+    creativeDirectionBlock,
     companyName: opts.companyName,
     sceneDirection: opts.sceneDirection,
     count,
@@ -82,7 +97,7 @@ export async function generateImageOptions(opts: {
   const bytesList = await Promise.all(
     briefs.map(async (brief, index) => {
       try {
-        return await generateImageFromBrief(imageModel, brief)
+        return await generateImageFromBrief(imageModel, brief, aspectRatio)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         throw new Error(`Image option ${index + 1} failed: ${msg}`)
@@ -103,6 +118,7 @@ export async function generateImageOptions(opts: {
         imageModel,
         imageModelId: modelEntry.id,
         initialBytes: bytes,
+        aspectRatio,
       }),
     ),
   )
@@ -160,6 +176,7 @@ async function ensureOptionPassesQa(opts: {
   imageModel: string
   imageModelId: ImageGenerationModelId
   initialBytes: Buffer
+  aspectRatio: ImageAspectRatio
 }): Promise<GenerateImageOptionsResult['options'][number]> {
   let brief = prepareBriefForImageModel(opts.brief, opts.imageModelId, opts.companyName, opts.postContext)
   let bytes = opts.initialBytes
@@ -181,6 +198,7 @@ async function ensureOptionPassesQa(opts: {
       storagePath: option.storagePath,
       postContext: opts.postContext,
       includeLogo: opts.includeLogo,
+      brief: opts.brief,
     })
     if (qa.passed) return option
 
@@ -195,7 +213,7 @@ async function ensureOptionPassesQa(opts: {
       opts.companyName,
       opts.postContext,
     )
-    bytes = await generateImageFromBrief(opts.imageModel, brief)
+    bytes = await generateImageFromBrief(opts.imageModel, brief, opts.aspectRatio)
   }
 
   throw new Error('qa_finalize_failed')
@@ -210,7 +228,7 @@ export async function regenerateImageOption(opts: {
   imageModel?: string
 }): Promise<GenerateImageOptionsResult['options'][number]> {
   const imageModel = opts.imageModel?.trim() || defaultImageModel()
-  const bytes = await generateImageFromBrief(imageModel, opts.brief)
+  const bytes = await generateImageFromBrief(imageModel, opts.brief, '4:5')
   return uploadRegeneratedOption({
     ...opts,
     imageModel,
@@ -219,9 +237,10 @@ export async function regenerateImageOption(opts: {
   })
 }
 
-/** User-directed edit — text-only uses Recraft regen; visual uses Gemini img2img when available. */
+/** User-directed edit — text-only always img2img on source; visual uses Gemini img2img when available. */
 export async function editImageOption(opts: {
   profileId: string
+  companyName: string
   briefId: string
   optionIndex: number
   brief: string
@@ -229,23 +248,74 @@ export async function editImageOption(opts: {
   imageModel?: string
   sourceStoragePath: string
   editMode?: ImageEditMode
+  postContext?: PostGroundingContext
+  includeLogo?: boolean
 }): Promise<GenerateImageOptionsResult['options'][number]> {
   const editMode = opts.editMode ?? detectImageEditMode(opts.editInstruction)
+  const expectedHeadline = extractExpectedHeadline(opts.editInstruction)
   const revisedBrief =
     editMode === 'text-only'
       ? buildTextOnlyRegenBrief(opts.brief, opts.editInstruction)
       : `${opts.brief.trim()}\n\nREVISION (apply exactly; keep everything else the same):\n${opts.editInstruction.trim()}`
 
-  const textEditModel = resolveImageGenerationModel('sharp-text').openRouterModel
   const visualModel = opts.imageModel?.trim() || defaultImageModel()
+  const img2imgModel = isGoogleImageModel(visualModel)
+    ? visualModel
+    : resolveImageGenerationModel('balanced').openRouterModel
 
   let bytes: Buffer
   let modelUsed: string
+  const lastBrief = revisedBrief
 
   if (editMode === 'text-only') {
-    modelUsed = textEditModel
-    bytes = await generateImageFromBrief(textEditModel, revisedBrief)
-  } else if (isGoogleImageModel(visualModel)) {
+    const sourceBytes = await downloadPostAsset(opts.sourceStoragePath)
+    if (!sourceBytes) throw new Error('source_image_not_found')
+    const sourceMime = detectImageMime(sourceBytes)
+
+    let lastOption: GenerateImageOptionsResult['options'][number] | null = null
+
+    for (let attempt = 0; attempt <= TEXT_EDIT_QA_MAX_RETRIES; attempt++) {
+      modelUsed = img2imgModel
+      bytes = await generateImageEditFromSource({
+        model: img2imgModel,
+        sourceBytes,
+        sourceMime,
+        brief: opts.brief,
+        editInstruction: opts.editInstruction,
+        editMode: 'text-only',
+        spellingRetry: attempt > 0,
+      })
+
+      const option = await uploadRegeneratedOption({
+        profileId: opts.profileId,
+        briefId: opts.briefId,
+        optionIndex: opts.optionIndex,
+        brief: lastBrief,
+        imageModel: modelUsed,
+        filenameSuffix: attempt === 0 ? 'edit' : `edit${attempt}`,
+        bytes,
+      })
+      lastOption = option
+
+      const qa = await runTextQaGate({
+        profileId: opts.profileId,
+        companyName: opts.companyName,
+        storagePath: option.storagePath,
+        postContext: opts.postContext,
+        includeLogo: opts.includeLogo,
+        expectedHeadline,
+        brief: opts.brief,
+      })
+      if (qa.passed || attempt >= TEXT_EDIT_QA_MAX_RETRIES) {
+        return option
+      }
+    }
+
+    if (lastOption) return lastOption
+    throw new Error('text_edit_failed')
+  }
+
+  if (isGoogleImageModel(visualModel)) {
     modelUsed = visualModel
     const sourceBytes = await downloadPostAsset(opts.sourceStoragePath)
     if (!sourceBytes) throw new Error('source_image_not_found')

@@ -43,8 +43,7 @@ export default function PostImageEditPanel({ option, disabled, editing, onEdit }
         </p>
       </div>
       <p className="mb-2 text-xs text-text-sec">
-        <strong className="font-semibold text-text-primary">Fix text only</strong> re-renders with Recraft (sharp headlines).
-        Layout may shift slightly, but text should stay legible.
+        <strong className="font-semibold text-text-primary">Fix text only</strong> edits headline copy on your selected image — same layout, people, and scene; only the text overlay changes.
         <strong className="font-semibold text-text-primary"> Change visual</strong> edits the scene from your selected image.
       </p>
       <div className="mb-2 flex gap-2">

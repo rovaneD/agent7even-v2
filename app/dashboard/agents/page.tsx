@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
 import { COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
 import AgentCommandCenter from './AgentCommandCenter'
+import AgentsLegacyRedirects from './AgentsLegacyRedirects'
 
 export default async function AgentsPage() {
   const { userId } = await auth()
@@ -136,6 +137,7 @@ export default async function AgentsPage() {
 
   return (
     <Suspense fallback={<div className="mx-auto max-w-6xl px-4 py-8 text-sm text-text-sec">Loading agents…</div>}>
+      <AgentsLegacyRedirects />
       <AgentCommandCenter
         profileId={profile.id}
         companyName={profile.company_name ?? 'Your business'}

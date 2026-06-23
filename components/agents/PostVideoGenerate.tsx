@@ -65,12 +65,14 @@ export default function PostVideoGenerate({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          postGoal:      postContext?.postGoal ?? '',
-          platform:      postContext?.platform ?? '',
-          offer:         postContext?.offer ?? '',
-          audience:      postContext?.audience ?? '',
+          postGoal:       postContext?.postGoal ?? '',
+          platform:       postContext?.platform ?? '',
+          offer:          postContext?.offer ?? '',
+          audience:       postContext?.audience ?? '',
+          mustInclude:    postContext?.mustInclude ?? '',
+          mustAvoid:      postContext?.mustAvoid ?? '',
           sceneDirection: sceneDirection ?? '',
-          videoModelId:  modelId,
+          videoModelId:   modelId,
         }),
       })
 
@@ -147,7 +149,7 @@ export default function PostVideoGenerate({
     <div className="rounded-xl border border-border bg-surface px-4 py-3">
       <p className="mb-2 text-sm font-medium text-text-primary">Generate a short video</p>
       <p className="mb-3 text-xs text-text-sec">
-        Maya writes a 9:16 video brief from your Foundation profile and generates a Reels/TikTok-ready clip in the background. 40 credits are deducted when submitted.
+        Maya writes a 9:16 video brief from your Foundation Creative Direction and generates a Reels/TikTok-ready clip in the background. 40 credits are deducted when submitted.
       </p>
 
       {/* Model selector */}
