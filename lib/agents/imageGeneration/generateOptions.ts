@@ -11,7 +11,7 @@ import {
 } from './brandKitSnapshot'
 import {
   formatCreativeDirectionBlock,
-  translateFoundationToCreativeDirection,
+  getOrComputeCreativeDirection,
 } from '@/lib/agents/foundationCreativeDirection'
 import { resolveImageGenerationModel, type ImageGenerationModelId } from './imageModelCatalog'
 import { formatPostContextBriefBlock } from './postContextBrief'
@@ -58,7 +58,7 @@ export async function generateImageOptions(opts: {
   }
 
   const [creativeDirection, brandKitSnapshot] = await Promise.all([
-    translateFoundationToCreativeDirection({
+    getOrComputeCreativeDirection({
       profileId: opts.profileId,
       companyName: opts.companyName,
     }),

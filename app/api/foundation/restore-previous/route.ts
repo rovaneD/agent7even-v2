@@ -5,6 +5,7 @@ import {
   buildIdentityRestoreSwap,
   cloneFoundationAnswers,
 } from '@/lib/foundation/answersSnapshot'
+import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
 
 export async function POST() {
   try {
@@ -14,7 +15,7 @@ export async function POST() {
     const supabase = createServiceClient()
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, foundation_answers, foundation_answers_previous, foundation_answers_previous_at, foundation_updated_at')
+      .select('id, company_name, foundation_answers, foundation_answers_previous, foundation_answers_previous_at, foundation_updated_at')
       .eq('clerk_user_id', userId)
       .single()
 
@@ -41,6 +42,11 @@ export async function POST() {
       .eq('id', profile.id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    scheduleCreativeDirectionCacheRefresh(
+      profile.id,
+      profile.company_name ?? 'Business',
+    )
 
     const answers = cloneFoundationAnswers(swapUpdate.foundation_answers)
 

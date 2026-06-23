@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { buildIdentityUpdateWithSnapshot, legacyColumnsFromAnswers } from '@/lib/foundation/answersSnapshot'
+import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
 
 // Hub editing route — merges updated answers into foundation_answers without
 // touching foundation_step (unlike save-step which is for the onboarding wizard).
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
     const supabase = createServiceClient()
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, foundation_answers')
+      .select('id, foundation_answers, company_name')
       .eq('clerk_user_id', userId)
       .single()
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
@@ -33,6 +34,11 @@ export async function POST(req: Request) {
         updated_at: new Date().toISOString(),
       }))
       .eq('id', profile.id)
+
+    scheduleCreativeDirectionCacheRefresh(
+      profile.id,
+      profile.company_name ?? 'Business',
+    )
 
     return NextResponse.json({ success: true })
   } catch {

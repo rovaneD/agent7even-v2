@@ -96,3 +96,28 @@ Claude Design bundle imported for format-picker layout lives under `design/` (~6
 - Format required before setup (`?format=` gate)
 - Weekly plan skips format step but uses same shell back-nav as image/video
 - Platform-native preview chrome on format picker (not generic placeholders)
+- Creative Direction cached on `profiles` — generation reads cache; recompute on content-checked Foundation save only (`creative_direction_cache_handoff.md`)
+
+---
+
+## Creative Direction cache (Step 5 — June 23, 2026)
+
+| Piece | Path |
+|-------|------|
+| Source hash (answer + document keys from translation layer) | `lib/agents/foundationCreativeDirection/sourceHash.ts` |
+| Cache read / lazy backfill / background refresh | `lib/agents/foundationCreativeDirection/cache.ts` |
+| SQL | `23_creative_direction_cache.sql` (apply in Supabase manually) |
+| Save triggers | `save-answers`, `save-exa-confirm`, `score`, `restore-previous`, `foundation/generate` |
+| Generation reads | `generateOptions.ts`, `generate-video` route via `getOrComputeCreativeDirection()` |
+
+Checkpoint script (isolation, still valid): `scripts/verify-creative-direction.ts`
+
+### Hub synthesis (Your Look preview)
+
+| Piece | Path |
+|-------|------|
+| Preview formatter | `lib/agents/foundationCreativeDirection/hubPreview.ts` |
+| Hub card | `FoundationHub.tsx` — `Look: {aesthetic} · {palette} · {casting}` |
+| Server load | `page.tsx` reads `profiles.creative_direction` |
+
+Client hub imports `hubPreview.ts` / `types.ts` directly — not the barrel (avoids `after()` in client bundle).

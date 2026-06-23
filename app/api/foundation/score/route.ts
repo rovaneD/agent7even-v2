@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { logActivity } from '@/lib/activity'
 import { FIELD_EXPECTATIONS } from '@/lib/foundation/score'
+import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
 
 export const maxDuration = 30
 
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, foundation_score')
+    .select('id, foundation_score, company_name')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -110,6 +111,11 @@ Return format exactly:
     .eq('id', profile.id)
 
   logActivity(profile.id, 'foundation_updated', { score: parsed.overallScore }).catch(() => {})
+
+  scheduleCreativeDirectionCacheRefresh(
+    profile.id,
+    profile.company_name ?? 'Business',
+  )
 
   // Congratulations notification when score crosses 80%
   const prevScore = profile.foundation_score ?? 0

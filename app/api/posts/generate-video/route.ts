@@ -7,7 +7,7 @@ import { logProviderError, sanitizeUserFacingError } from '@/lib/agents/sanitize
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   formatCreativeDirectionBlock,
-  translateFoundationToCreativeDirection,
+  getOrComputeCreativeDirection,
 } from '@/lib/agents/foundationCreativeDirection'
 import { formatPostContextBriefBlock } from '@/lib/agents/imageGeneration/postContextBrief'
 import { postGroundingFromForm } from '@/lib/agents/imageGeneration/postGrounding'
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
   // ── Step 1: Creative Direction → video brief (no side effects — fail early) ─
   let brief: string
   try {
-    const creativeDirection = await translateFoundationToCreativeDirection({
+    const creativeDirection = await getOrComputeCreativeDirection({
       profileId,
       companyName,
     })

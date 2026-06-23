@@ -6,6 +6,7 @@ import {
   createOrchestrationSession,
   completeOrchestration,
 } from '@/lib/agents/runner'
+import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
 
 const FOUNDATION_MODEL = 'anthropic/claude-sonnet-4'
 
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, plan')
+    .select('id, plan, company_name')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -178,6 +179,11 @@ Monthly goal: ${answers.monthlyGoal}
         { status: 500 },
       )
     }
+
+    scheduleCreativeDirectionCacheRefresh(
+      profile.id,
+      profile.company_name ?? companyName ?? 'Business',
+    )
 
     return NextResponse.json({ success: true, generated: saved, missing })
 

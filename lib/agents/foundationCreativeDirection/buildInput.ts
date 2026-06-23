@@ -10,7 +10,8 @@ import {
 import type { FieldScore } from '@/lib/foundation/sectionStrength'
 import { FOUNDATION_VISUAL_FIELDS } from '@/lib/foundation/visualFields'
 
-const ANSWER_SECTIONS: { title: string; keys: string[] }[] = [
+/** Answer keys the translation layer reads — hash must cover exactly this set. */
+export const CREATIVE_DIRECTION_ANSWER_SECTIONS: { title: string; keys: string[] }[] = [
   {
     title: 'Business',
     keys: ['businessDescription', 'problemSolved', 'transformation'],
@@ -53,7 +54,7 @@ function buildAnswersBlock(ctx: FoundationContext): string {
     '=== PRIMARY: Foundation answers (owner\'s words — trust these over documents) ===',
   ]
 
-  for (const section of ANSWER_SECTIONS) {
+  for (const section of CREATIVE_DIRECTION_ANSWER_SECTIONS) {
     lines.push('', `### ${section.title}`)
     for (const key of section.keys) {
       const value = ctx.answers[key] ?? ''

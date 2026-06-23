@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { CreativeDirectionSchema } from '@/lib/agents/foundationCreativeDirection/types'
 import FoundationEditor from './FoundationEditor'
 import FoundationHub from './FoundationHub'
 
@@ -17,6 +18,7 @@ export default async function FoundationPage() {
     .select(`
       id, company_name, foundation_answers, foundation_score,
       foundation_updated_at, foundation_complete, foundation_answers_previous_at,
+      creative_direction,
       ideal_customer, marketing_challenge, competitors,
       content_comfort, marketing_budget, sell_locations, top_goals
     `)
@@ -89,6 +91,9 @@ export default async function FoundationPage() {
     const comps = toArray(hubAnswers.competitors)
     hubAnswers.competitors = [...comps, '', '', ''].slice(0, 3)
 
+    const creativeDirectionParsed = CreativeDirectionSchema.safeParse(profile.creative_direction)
+    const creativeDirection = creativeDirectionParsed.success ? creativeDirectionParsed.data : null
+
     return (
       <FoundationHub
         profileId={profile.id}
@@ -99,6 +104,7 @@ export default async function FoundationPage() {
         fieldScores={fieldScoreMap}
         lastUpdated={profile.foundation_updated_at ?? null}
         answersPreviousAt={profile.foundation_answers_previous_at ?? null}
+        creativeDirection={creativeDirection}
       />
     )
   }

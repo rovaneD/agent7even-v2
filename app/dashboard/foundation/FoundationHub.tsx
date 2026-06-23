@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildFoundationHubMayaContext } from '@/lib/maya/summaries/foundationHubContext'
 import type { FoundationMemoryResponse, AgentMemoryStat } from '@/lib/foundation/memory'
@@ -37,6 +38,8 @@ import {
   FOUNDATION_SECTION_KEY_FIELDS,
 } from '@/lib/foundation/sections'
 import { FOUNDATION_VISUAL_FIELDS } from '@/lib/foundation/visualFields'
+import type { CreativeDirection } from '@/lib/agents/foundationCreativeDirection/types'
+import { visualHubSectionPreview } from '@/lib/agents/foundationCreativeDirection/hubPreview'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -97,6 +100,7 @@ export interface Props {
   fieldScores: Record<string, FieldScore>
   lastUpdated: string | null
   answersPreviousAt: string | null
+  creativeDirection?: CreativeDirection | null
 }
 
 // ── Registry-derived agent connectivity ───────────────────────────────────────
@@ -264,8 +268,15 @@ function toArr(v: unknown): string[] {
   return []
 }
 
-function sectionPreview(answers: Answers, key: SectionKey): string | null {
+function sectionPreview(
+  answers: Answers,
+  key: SectionKey,
+  creativeDirection?: CreativeDirection | null,
+): string | null {
   const t = (s: string) => s.length > 130 ? s.slice(0, 130) + '…' : s
+  if (key === 'visual') {
+    return visualHubSectionPreview(answers, creativeDirection ?? null)
+  }
   if (key === 'business') return answers.businessDescription ? t(answers.businessDescription) : null
   if (key === 'customer') return answers.customerWho ? t(answers.customerWho) : null
   if (key === 'position') {
@@ -279,9 +290,6 @@ function sectionPreview(answers: Answers, key: SectionKey): string | null {
   if (key === 'voice') {
     const traits = toArr(answers.toneTraits)
     return traits.length > 0 ? `Tone: ${traits.join(' · ')}` : null
-  }
-  if (key === 'visual') {
-    return answers.visualAesthetic ? t(answers.visualAesthetic) : null
   }
   if (key === 'plan') {
     const channels = toArr(answers.channels)
@@ -1288,7 +1296,9 @@ function SectionEditCard({
 
 export default function FoundationHub({
   companyName, answers, score: initialScore, fieldScores: initialFieldScores, lastUpdated, answersPreviousAt: initialAnswersPreviousAt,
+  creativeDirection,
 }: Props) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabId>('intelligence')
   const [currentScore, setCurrentScore] = useState(initialScore)
   const [localFieldScores, setLocalFieldScores] = useState(initialFieldScores)
@@ -1395,6 +1405,10 @@ export default function FoundationHub({
           }),
         }).catch(() => {})
         setRegenProgress(null)
+      }
+
+      if (section.key === 'visual') {
+        router.refresh()
       }
     } finally {
       setEditSaving(false)
@@ -1611,7 +1625,7 @@ export default function FoundationHub({
                 {SECTIONS.map(section => {
                   const Icon = section.icon
                   const health = healthMap[section.key]
-                  const preview = sectionPreview(localAnswers, section.key)
+                  const preview = sectionPreview(localAnswers, section.key, creativeDirection)
                   const isMemory = section.key === 'memory'
                   const isEditing = editingSection === section.key
 

@@ -93,6 +93,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - `20_creative_assets_extend.sql` — `brief`, `qa_passed` on creative_assets (**run if not applied**).
 - `21_creative_asset_folders.sql` — asset folders (**run if not applied**).
 - `22_post_assets_allow_video.sql` — add `video/mp4` to post-assets bucket (**run before enabling video flag**).
+- `23_creative_direction_cache.sql` — cache Creative Direction on profiles (**run before cache reads/writes ship**).
 
 ## Current visual-system rules
 - Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.

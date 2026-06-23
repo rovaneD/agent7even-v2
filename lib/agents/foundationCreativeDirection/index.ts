@@ -7,7 +7,22 @@ import {
   type CreativeDirection,
 } from './types'
 
-export { buildCreativeDirectionInput, listThinGatedSections } from './buildInput'
+export { buildCreativeDirectionInput, listThinGatedSections, CREATIVE_DIRECTION_ANSWER_SECTIONS } from './buildInput'
+export {
+  CREATIVE_DIRECTION_ANSWER_KEYS,
+  CREATIVE_DIRECTION_DOCUMENT_TYPES,
+  computeCreativeDirectionSourceHash,
+  normalizeCreativeDirectionAnswerValue,
+} from './sourceHash'
+export {
+  getOrComputeCreativeDirection,
+  refreshCreativeDirectionCacheIfNeeded,
+  scheduleCreativeDirectionCacheRefresh,
+} from './cache'
+export {
+  formatVisualDirectionHubPreview,
+  visualHubSectionPreview,
+} from './hubPreview'
 export {
   CreativeDirectionSchema,
   formatCreativeDirectionBlock,
