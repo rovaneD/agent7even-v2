@@ -1,6 +1,8 @@
 # Handoff — Creative Direction Cache (Step 5)
 *June 23, 2026. Stop recomputing the translation layer on every generate.*
 
+**Status:** `23_creative_direction_cache.sql` applied in Supabase (June 23, 2026). Cache + hub synthesis shipped (`c9e0259`).
+
 ## Context (what's already true — do not rebuild)
 
 The Foundation → Creative Direction translation layer is BUILT and WIRED:

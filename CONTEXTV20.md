@@ -106,7 +106,7 @@ Claude Design bundle imported for format-picker layout lives under `design/` (~6
 |-------|------|
 | Source hash (answer + document keys from translation layer) | `lib/agents/foundationCreativeDirection/sourceHash.ts` |
 | Cache read / lazy backfill / background refresh | `lib/agents/foundationCreativeDirection/cache.ts` |
-| SQL | `23_creative_direction_cache.sql` (apply in Supabase manually) |
+| SQL | `23_creative_direction_cache.sql` — applied in Supabase (June 23, 2026) |
 | Save triggers | `save-answers`, `save-exa-confirm`, `score`, `restore-previous`, `foundation/generate` |
 | Generation reads | `generateOptions.ts`, `generate-video` route via `getOrComputeCreativeDirection()` |
 
