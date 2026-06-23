@@ -19,7 +19,6 @@ import {
   Settings,
   Menu,
   X,
-  Sparkles,
   Layers,
   TrendingUp,
   Inbox,
@@ -38,6 +37,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
 import MayChatPanel, { type Profile } from '@/components/maya/MayChatPanel'
+import MayaOrb from '@/components/maya/MayaOrb'
 import NewCampaignModal from '@/components/campaigns/NewCampaignModal'
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -632,7 +632,7 @@ export default function DashboardShell({
           onMouseEnter={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border-strong)' } }}
           onMouseLeave={e => { if (!mayaOpen) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)' } }}
         >
-          <Sparkles size={13} strokeWidth={1.75} color={mayaOpen ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)'} />
+          <MayaOrb size={20} active={mayaOpen} inverted={mayaOpen} />
           Maya
           {mayaOpen && activeSessionId === null && (
             <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--color-text-secondary)', fontWeight: 400 }}>new</span>
@@ -749,7 +749,7 @@ export default function DashboardShell({
             onMouseEnter={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)' }}
             onMouseLeave={e => { if (!mayaOpen) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
           >
-            <Sparkles size={16} strokeWidth={1.75} color={mayaOpen ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)'} />
+            <MayaOrb size={20} active={mayaOpen} inverted={mayaOpen} />
           </button>
           <button
             onClick={() => setShowNewCampaign(true)}

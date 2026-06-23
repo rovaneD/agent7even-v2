@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
-import Script from 'next/script'
 import { notFound, useParams } from 'next/navigation'
 import Metaballs from '../../SafeMetaballs'
 import { cases } from '../../../lab-use-cases/_data'
 import MarketingNav from '../../MarketingNav'
+import { useMockupScript } from '../../useMockupScript'
 
 declare global {
   interface Window {
@@ -97,6 +97,7 @@ export default function UseCaseDetailPage() {
   const slug = params?.slug as string
   const cfg = SEG[slug]
   const uc = cases.find((c) => c.slug === slug)
+  useMockupScript('/lab5/usecase-mockups.js', '__initUseCaseMockups')
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -117,11 +118,6 @@ export default function UseCaseDetailPage() {
 
   return (
     <div className="lab5" style={{ '--seg': cfg.seg } as React.CSSProperties}>
-      <Script
-        src="/lab5/usecase-mockups.js"
-        strategy="afterInteractive"
-        onLoad={() => requestAnimationFrame(() => window.__initUseCaseMockups?.())}
-      />
 
       {/* NAV */}
       <MarketingNav active="use-cases" />

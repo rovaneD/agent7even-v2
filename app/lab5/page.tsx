@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Script from 'next/script'
 import Metaballs from './SafeMetaballs'
 import { trackEvent } from '@/lib/gtag'
 import MarketingNav from './MarketingNav'
+import { useMockupScript } from './useMockupScript'
 
 declare global {
   interface Window {
@@ -49,6 +49,7 @@ const FAQ_ITEMS = [
 
 export default function Lab5Page() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  useMockupScript('/lab5/mockups.js', '__initMockups')
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -68,13 +69,6 @@ export default function Lab5Page() {
 
   return (
     <div className="lab5">
-      <Script
-        src="/lab5/mockups.js"
-        strategy="afterInteractive"
-        onLoad={() => {
-          requestAnimationFrame(() => window.__initMockups?.())
-        }}
-      />
 
       {/* NAV */}
       <MarketingNav />

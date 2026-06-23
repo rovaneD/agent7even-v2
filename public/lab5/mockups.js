@@ -3,6 +3,39 @@
    Decorative app chrome shared across all directions.
    ============================================================ */
 (function () {
+  /* Maya orb avatar — mirrors components/maya/MayaOrb.tsx */
+  const ORB_BAR_COUNT = 24
+  const ORB_CENTER = 16
+  const ORB_INNER_R = 10.5
+  const ORB_OUTER_R = 15.5
+  const ORB_INNER_RING_R = 9.25
+
+  function orbBarColor(i) {
+    return i % 5 === 0 ? '#F5349B' : '#3B82F6'
+  }
+
+  function mayaOrbSvg(size, active) {
+    const activeClass = active ? ' maya-orb--active' : ''
+    const bars = []
+    for (let i = 0; i < ORB_BAR_COUNT; i++) {
+      const angle = (i / ORB_BAR_COUNT) * 360
+      const rad = (angle * Math.PI) / 180
+      const x1 = ORB_CENTER + ORB_INNER_R * Math.sin(rad)
+      const y1 = ORB_CENTER - ORB_INNER_R * Math.cos(rad)
+      const x2 = ORB_CENTER + ORB_OUTER_R * Math.sin(rad)
+      const y2 = ORB_CENTER - ORB_OUTER_R * Math.cos(rad)
+      const delay = ((i / ORB_BAR_COUNT) * 1.2).toFixed(2)
+      bars.push(
+        `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${orbBarColor(i)}" stroke-width="2.25" stroke-linecap="round" class="maya-orb-bar" style="animation-delay:${delay}s"/>`
+      )
+    }
+    return `<svg class="maya-orb${activeClass}" width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="${ORB_CENTER}" cy="${ORB_CENTER}" r="${ORB_INNER_RING_R}" stroke="#6366F1" stroke-width="1.35" class="maya-orb-inner-ring" opacity="0.85"/>${bars.join('')}</svg>`
+  }
+
+  function mayaOrbAvatar(size, active) {
+    return `<div class="mk-ava">${mayaOrbSvg(size || 24, active !== false)}</div>`
+  }
+
   const rail = (icons) => `
     <div class="mk-rail">
       <div class="mk-rail-logo"><img src="/agent7even_mark.svg" alt="" /></div>
@@ -40,7 +73,7 @@
       <div class="mk-body" style="height:418px">
         ${rail([['grid', true], ['spark', false], ['mega', false], ['cal', false]])}
         <div class="mk-chat">
-          <div class="mk-chat-hd"><div class="mk-ava">M</div><div><div class="nm">Maya</div><div class="rl">Your marketing partner</div></div></div>
+          <div class="mk-chat-hd">${mayaOrbAvatar(24, true)}<div><div class="nm">Maya</div><div class="rl">Your marketing partner</div></div></div>
           <div class="mk-msgs">
             <div class="bub bub-u">Fill next Friday — it's our slow day.</div>
             <div class="bub bub-m">On it. A Friday promo for Ember Coffee — offer, email and three posts. Drafting it in your canvas now.<span class="lnk">View campaign draft ${arrowUp}</span></div>

@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
 import { Rocket, PenLine, BarChart2, MessageCircle, X, ArrowUp, Paperclip, FileText, Loader2, AlertCircle } from 'lucide-react'
+import MayaOrb from '@/components/maya/MayaOrb'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -421,9 +422,7 @@ export default function MayChatPanel({
       {/* Header */}
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--color-brand-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ color: 'var(--color-text-inverse)', fontSize: 11, fontWeight: 700 }}>M</span>
-          </div>
+          <MayaOrb size={24} active={isLoading} />
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>Maya</span>
           <span style={{ fontSize: 12, color: 'var(--color-status-success)', fontWeight: 500 }}>online</span>
         </div>
@@ -443,9 +442,7 @@ export default function MayChatPanel({
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
         {showModePicker ? (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: 20 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--color-brand-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
-              <span style={{ color: 'var(--color-text-inverse)', fontSize: 18, fontWeight: 700 }}>M</span>
-            </div>
+            <MayaOrb size={44} className="mb-3" />
             <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 3 }}>Hey {companyName !== 'there' ? companyName : 'there'}.</p>
             <p style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 20 }}>What would you like to work on?</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, width: '100%' }}>
@@ -480,9 +477,7 @@ export default function MayChatPanel({
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--color-brand-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                        <span style={{ color: 'var(--color-text-inverse)', fontSize: 11, fontWeight: 700 }}>M</span>
-                      </div>
+                      <MayaOrb size={24} className="mt-0.5" />
                       <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
                         <ReactMarkdown components={PLAIN_MD as never}>{text}</ReactMarkdown>
                       </div>
@@ -494,9 +489,7 @@ export default function MayChatPanel({
 
             {showThinking && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--color-brand-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ color: 'var(--color-text-inverse)', fontSize: 11, fontWeight: 700 }}>M</span>
-                </div>
+                <MayaOrb size={24} active />
                 <p style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', fontStyle: 'italic', paddingTop: 4 }}>Maya is thinking...</p>
               </div>
             )}

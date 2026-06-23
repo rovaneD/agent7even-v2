@@ -5,6 +5,39 @@
    so the page reads as concrete, not abstract.
    ============================================================ */
 (function () {
+  /* Maya orb avatar — mirrors components/maya/MayaOrb.tsx */
+  const ORB_BAR_COUNT = 24
+  const ORB_CENTER = 16
+  const ORB_INNER_R = 10.5
+  const ORB_OUTER_R = 15.5
+  const ORB_INNER_RING_R = 9.25
+
+  function orbBarColor(i) {
+    return i % 5 === 0 ? '#F5349B' : '#3B82F6'
+  }
+
+  function mayaOrbSvg(size, active) {
+    const activeClass = active ? ' maya-orb--active' : ''
+    const bars = []
+    for (let i = 0; i < ORB_BAR_COUNT; i++) {
+      const angle = (i / ORB_BAR_COUNT) * 360
+      const rad = (angle * Math.PI) / 180
+      const x1 = ORB_CENTER + ORB_INNER_R * Math.sin(rad)
+      const y1 = ORB_CENTER - ORB_INNER_R * Math.cos(rad)
+      const x2 = ORB_CENTER + ORB_OUTER_R * Math.sin(rad)
+      const y2 = ORB_CENTER - ORB_OUTER_R * Math.cos(rad)
+      const delay = ((i / ORB_BAR_COUNT) * 1.2).toFixed(2)
+      bars.push(
+        `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${orbBarColor(i)}" stroke-width="2.25" stroke-linecap="round" class="maya-orb-bar" style="animation-delay:${delay}s"/>`
+      )
+    }
+    return `<svg class="maya-orb${activeClass}" width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="${ORB_CENTER}" cy="${ORB_CENTER}" r="${ORB_INNER_RING_R}" stroke="#6366F1" stroke-width="1.35" class="maya-orb-inner-ring" opacity="0.85"/>${bars.join('')}</svg>`
+  }
+
+  function mayaOrbAvatar(size, active) {
+    return `<div class="mk-ava">${mayaOrbSvg(size || 24, active !== false)}</div>`
+  }
+
   function ic(name) {
     const p = {
       grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
@@ -33,7 +66,7 @@
 
   const chat = (brand, role, msgs, compose) => `
     <div class="mk-chat">
-      <div class="mk-chat-hd"><div class="mk-ava">M</div><div><div class="nm">Maya</div><div class="rl">${role}</div></div></div>
+      <div class="mk-chat-hd">${mayaOrbAvatar(24, true)}<div><div class="nm">Maya</div><div class="rl">${role}</div></div></div>
       <div class="mk-msgs">${msgs}</div>
       <div class="mk-compose"><div class="field"><span>${compose}</span><b>${arrowUp}</b></div></div>
     </div>`;

@@ -1,0 +1,35 @@
+.maya-orb {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.maya-orb-inner-ring {
+  opacity: 0.85;
+}
+
+.maya-orb-bar {
+  opacity: 0.72;
+  animation: maya-orb-bar-pulse 2.2s ease-in-out infinite;
+}
+
+.maya-orb--active .maya-orb-bar {
+  animation-duration: 1s;
+}
+
+@keyframes maya-orb-bar-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maya-orb-bar {
+    animation: none;
+    opacity: 0.9;
+  }
+}

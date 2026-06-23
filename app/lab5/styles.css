@@ -553,7 +553,20 @@
 .lab5 .mk-ic.mt-auto { margin-top: auto; }
 .lab5 .mk-chat { width: 230px; flex-shrink: 0; border-right: 1px solid var(--line-2); display: flex; flex-direction: column; background: #fff; }
 .lab5 .mk-chat-hd { padding: 12px 14px; border-bottom: 1px solid var(--line-2); display: flex; align-items: center; gap: 9px; }
-.lab5 .mk-ava { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; color: var(--brand); flex-shrink: 0; }
+.lab5 .mk-ava { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: transparent; }
+
+/* Maya orb — marketing mockups (matches components/maya/MayaOrb) */
+.lab5 .maya-orb { display: block; flex-shrink: 0; overflow: visible; }
+.lab5 .maya-orb-inner-ring { opacity: 0.85; }
+.lab5 .maya-orb-bar { opacity: 0.72; animation: lab5-maya-orb-pulse 2.2s ease-in-out infinite; }
+.lab5 .maya-orb--active .maya-orb-bar { animation-duration: 1s; }
+@keyframes lab5-maya-orb-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab5 .maya-orb-bar { animation: none; opacity: 0.9; }
+}
 .lab5 .mk-chat-hd .nm { font-size: 13px; font-weight: 600; }
 .lab5 .mk-chat-hd .rl { font-size: 11px; color: var(--faint); }
 .lab5 .mk-msgs { flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
