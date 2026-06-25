@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import './lab5/styles.css'
 
 export const metadata: Metadata = {
-  title: 'Agent7even — Meet Maya, the marketing team that never clocks out',
+  title: 'Agent7even — Marketing that gets done without becoming your job',
   description:
-    'Campaigns planned, copy drafted, posts queued — in your voice, approved by you. The AI-first marketing platform for small business.',
+    'AI marketing OS for small business — campaigns, content, images, and video drafted in your voice, approved by you. Powered by Maya and twelve specialist agents.',
 }
 
 export { default } from './lab5/page'

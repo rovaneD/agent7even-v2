@@ -14,8 +14,8 @@ declare global {
 
 const FAQ_ITEMS = [
   {
-    q: 'What exactly is Maya?',
-    a: 'Maya is your AI marketing assistant. She drafts campaigns, writes social posts, handles follow-ups, watches competitors, and schedules content — all trained on your brand voice. You stay in control through an approval queue; nothing goes live until you say so.',
+    q: 'What exactly is Agent7even?',
+    a: 'Agent7even is an AI marketing operating system — twelve specialist agents for campaigns, content, creative, SEO, and more. Maya is the interface: she coordinates the agents, drafts in your brand voice, and routes everything through your approval queue. Nothing publishes until you approve it.',
   },
   {
     q: 'Does the copy actually sound like me?',
@@ -23,11 +23,11 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How does the approval flow work?',
-    a: "Maya puts every piece of content into your queue before it goes anywhere. You review, approve, or request changes. She only ships what you've signed off on. You can approve on the go or batch-review at the end of the week.",
+    a: "Every post, email, and campaign artifact lands in your queue first. You review, edit, approve, or send it back. Nothing goes live until you sign off — then you publish or schedule in a click.",
   },
   {
-    q: 'What channels does Maya cover?',
-    a: 'Email, Instagram, and Facebook on all plans. Scheduling across additional channels is available on Growth and ProAgent.',
+    q: 'What channels does Agent7even cover?',
+    a: 'Social publishing supports Instagram, Facebook, LinkedIn, and X when you connect accounts. Email sequences are drafted for you to paste into your ESP (Mailchimp, Klaviyo, etc.). Google Analytics connects for marketing intelligence reporting.',
   },
   {
     q: 'What happens after the 3-day trial?',
@@ -39,11 +39,11 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Is this right for a solo operator or small team?',
-    a: "Yes — it's built for exactly that. Most users are single-person businesses or teams under five. Maya gives you the output of a marketing department without the overhead.",
+    a: "Yes — it's built for exactly that. Most users are single-person businesses or teams under five. You get the output of a marketing department without the overhead.",
   },
   {
     q: 'How is this different from a social media scheduling tool?',
-    a: "Scheduling tools just post what you hand them. Maya does the work before that — she plans the calendar, writes the copy and captions in your brand voice, and runs the campaigns, then queues it all for your approval. You bring the visuals; Maya brings everything else. She's a team, not a tool.",
+    a: "Scheduling tools post what you give them. Agent7even plans, drafts, and generates — campaigns, captions, images, and video — then queues everything for your approval. You publish when you're ready.",
   },
 ]
 
@@ -79,23 +79,25 @@ export default function Lab5Page() {
           <div className="hero-copy">
             <h1 className="hero-title">
               <span className="hero-title-name">
-                Meet <em>Maya</em>
+                Marketing gets done.
               </span>
               <span className="hero-title-deck">
-                <span className="hero-title-deck-line">An AI agent that orchestrates your</span>
-                <span className="hero-title-deck-line">entire marketing and never clocks out.</span>
+                <span className="hero-title-deck-line">Without becoming your job.</span>
               </span>
             </h1>
+            <p className="hero-subhead" style={{ fontSize: '1.125rem', lineHeight: 1.5, color: 'var(--ink-2)', margin: '0 0 1rem', maxWidth: '36rem' }}>
+              Meet <em style={{ color: '#F5349B', fontStyle: 'normal' }}>Maya</em> — the intelligence layer coordinating twelve specialist agents that plan, write, generate, and queue your marketing for approval.
+            </p>
             <div className="hero-body">
-              <p>Your campaigns planned, copy drafted, posts queued in your voice, approved by you.</p>
-              <p>She runs the marketing while you run the business.</p>
+              <p>Campaigns planned, copy drafted, images and video generated — all in your voice, queued for your approval.</p>
+              <p>You run the business. The OS runs the marketing.</p>
             </div>
             <a
               className="hero-link"
-              href="/pricing"
-              onClick={() => trackEvent('cta_click', { cta: 'join_smb_owners', location: 'hero' })}
+              href="#how"
+              onClick={() => trackEvent('cta_click', { cta: 'see_how_it_works', location: 'hero' })}
             >
-              Join the SMB owners getting their marketing done with Maya →
+              See how the marketing OS works →
             </a>
             <div className="hero-cta">
               <div className="hero-primary-stack">
@@ -111,7 +113,7 @@ export default function Lab5Page() {
               <a
                 className="btn btn-ghost btn-lg"
                 href="#how"
-                onClick={() => trackEvent('cta_click', { cta: 'see_how_it_works', location: 'hero' })}
+                onClick={() => trackEvent('cta_click', { cta: 'see_how_it_works', location: 'hero_secondary' })}
               >
                 See how it works →
               </a>
@@ -137,13 +139,11 @@ export default function Lab5Page() {
       {/* TRUST STRIP */}
       <div className="strip">
         <div className="strip-in">
-          <p>Trusted by independent brands &amp; solo founders</p>
+          <p>Built for solo operators and small teams</p>
           <div className="names">
-            <span>Ember Coffee</span>
-            <span>Field Goods</span>
-            <span>Atlas Studio</span>
-            <span>Maker &amp; Co.</span>
-            <span>Northline</span>
+            <span>3-day Starter trial</span>
+            <span>Approval-first</span>
+            <span>12 specialist agents</span>
           </div>
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function Lab5Page() {
           <div className="sec-head reveal">
             <span className="eyebrow">How it works</span>
             <h2 className="t-h2">One conversation. A week of marketing done.</h2>
-            <p className="t-lead">No briefs, no tool-hopping. Tell Maya what you want and she takes it from idea to scheduled — you stay in approval.</p>
+            <p className="t-lead">No briefs, no tool-hopping. Tell Maya what you want and she takes it from idea to your approval queue — you stay in control.</p>
           </div>
           <div className="steps">
             <div className="step reveal">
@@ -165,12 +165,12 @@ export default function Lab5Page() {
             <div className="step reveal">
               <div className="step-n">02</div>
               <h3>She drafts it in your voice</h3>
-              <p>Emails, posts and offers — built from what Maya knows about your brand. One voice, every channel.</p>
+              <p>Posts, emails, images, and captions — built from your Brand Kit. One voice, every channel.</p>
             </div>
             <div className="step reveal">
               <div className="step-n">03</div>
-              <h3>You approve, she ships</h3>
-              <p>Nothing goes live until you say so. Review the queue, approve what&rsquo;s right, and Maya makes it happen.</p>
+              <h3>You approve, you publish</h3>
+              <p>Nothing goes live until you sign off. Review the queue, approve what&rsquo;s right, then schedule or publish in a click.</p>
             </div>
           </div>
         </div>
@@ -180,20 +180,20 @@ export default function Lab5Page() {
       <section id="features" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <div className="sec-head reveal">
-            <span className="eyebrow">What Maya runs</span>
+            <span className="eyebrow">What the OS runs</span>
             <h2 className="t-h2">A world-class marketing team, on call.</h2>
-            <p className="t-lead">Planned, drafted, scheduled and sent — while you run the business.</p>
+            <p className="t-lead">Planned, drafted, and queued for your approval — while you run the business.</p>
           </div>
 
           <div className="feat reveal">
             <div className="feat-copy">
               <div className="feat-relief">Campaigns</div>
               <h3 className="t-h3">Your week, promoted.</h3>
-              <p className="t-body">You say the offer. Maya builds the full push — email, posts, captions — and has it ready before you close your laptop.</p>
+              <p className="t-body">You say the offer. The Campaign Builder drafts the full push — strategy, email copy, social posts, ad variations, and a timeline — ready for your approval.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>The campaign drafted while you were on the floor</div>
-                <div className="check"><i>✓</i>Every channel covered — nothing left to figure out</div>
-                <div className="check"><i>✓</i>Ready to approve, not ready to start from scratch</div>
+                <div className="check"><i>✓</i>30-day plan in a single run</div>
+                <div className="check"><i>✓</i>Email, social, and ad copy drafted together</div>
+                <div className="check"><i>✓</i>You approve before anything goes live</div>
               </div>
             </div>
             <div className="feat-visual"><div className="mk" data-mk="campaign"></div></div>
@@ -202,13 +202,13 @@ export default function Lab5Page() {
 
           <div className="feat flip reveal">
             <div className="feat-copy">
-              <div className="feat-relief">Content</div>
-              <h3 className="t-h3">The feed, handled.</h3>
-              <p className="t-body">Your social presence stays alive even on your busiest weeks. Maya posts in your voice, so it always sounds like you — not like software.</p>
+              <div className="feat-relief">Creative</div>
+              <h3 className="t-h3">Images and video, on-brand.</h3>
+              <p className="t-body">Generate post images in your brand style, short-form video, and captions that match what&rsquo;s in the frame — not generic stock.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Posts written the way you&rsquo;d write them</div>
-                <div className="check"><i>✓</i>Scheduled and out without touching a tool</div>
-                <div className="check"><i>✓</i>Consistent even when life isn&rsquo;t</div>
+                <div className="check"><i>✓</i>AI images from your Brand Kit and Foundation</div>
+                <div className="check"><i>✓</i>Reads your image and writes the caption</div>
+                <div className="check"><i>✓</i>Every asset waits in your approval queue</div>
               </div>
             </div>
             <div className="feat-visual"><div className="mk" data-mk="calendar"></div></div>
@@ -217,13 +217,13 @@ export default function Lab5Page() {
 
           <div className="feat reveal">
             <div className="feat-copy">
-              <div className="feat-relief">Follow-up</div>
-              <h3 className="t-h3">The leads, still warm.</h3>
-              <p className="t-body">The inquiry from Tuesday. The customer you meant to win back. The review that deserved a reply. Maya catches what slips through.</p>
+              <div className="feat-relief">Content</div>
+              <h3 className="t-h3">The feed, handled.</h3>
+              <p className="t-body">Your social presence stays alive even on your busiest weeks. Maya drafts posts and captions in your voice — queued for approval, not auto-posted.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Cold leads followed up before they go cold for good</div>
-                <div className="check"><i>✓</i>Reviews answered in your voice, same day</div>
-                <div className="check"><i>✓</i>Nothing dropped because you were heads-down</div>
+                <div className="check"><i>✓</i>Posts written the way you&rsquo;d write them</div>
+                <div className="check"><i>✓</i>Queued for your approval — you choose when to publish</div>
+                <div className="check"><i>✓</i>Consistent even when life isn&rsquo;t</div>
               </div>
             </div>
             <div className="feat-visual"><div className="mk" data-mk="approvals"></div></div>
@@ -233,19 +233,19 @@ export default function Lab5Page() {
           <div className="feat flip reveal">
             <div className="feat-copy">
               <div className="feat-relief">Competitors</div>
-              <h3 className="t-h3">The market, watched.</h3>
-              <p className="t-body">Maya tracks what your competitors are running, so you&rsquo;re never the last to know — and never caught flat-footed on a Monday.</p>
+              <h3 className="t-h3">The market, understood.</h3>
+              <p className="t-body">Competitive reports grounded in your Foundation — actionable briefings you can respond to, not a live spy feed.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Rival promotions flagged before they cost you</div>
-                <div className="check"><i>✓</i>Trends surfaced before they peak</div>
-                <div className="check"><i>✓</i>You move first, not in reaction</div>
+                <div className="check"><i>✓</i>Weekly competitor briefings from your positioning</div>
+                <div className="check"><i>✓</i>Trend reports filtered for your brand</div>
+                <div className="check"><i>✓</i>You decide what to act on</div>
               </div>
             </div>
             <div className="feat-visual"><div className="mk" data-mk="competitor"></div></div>
           </div>
 
           <p className="agents-bridge reveal">
-            Plus analytics, trends, SEO, and email — nine agents in all. <a href="/agents">See the team →</a>
+            Plus marketing intelligence, SEO, and email — twelve specialist agents in all. <a href="/agents">See the team →</a>
           </p>
         </div>
       </section>
@@ -261,26 +261,26 @@ export default function Lab5Page() {
             <div className="lcard reveal">
               <div className="lcard-copy">
                 <h3>Campaigns on command</h3>
-                <p>Tell Maya the offer; get the full sequence — emails, posts, the whole push — ready to approve.</p>
+                <p>Tell Maya the offer; get the full sequence — emails, posts, ad variations — ready to approve.</p>
                 <a href="#features">See it →</a>
               </div>
               <div className="card-widget"><div data-mk="widget-campaign"></div></div>
             </div>
             <div className="lcard reveal">
               <div className="lcard-copy">
-                <h3>Competitor watch</h3>
-                <p>Maya tracks your market and flags what rivals are running before it costs you.</p>
+                <h3>Competitor reports</h3>
+                <p>Competitive briefings from your Foundation — so you know what to respond to.</p>
                 <a href="#features">See it →</a>
               </div>
               <div className="card-widget"><div data-mk="widget-competitor"></div></div>
             </div>
             <div className="lcard reveal">
               <div className="lcard-copy">
-                <h3>Reputation loops</h3>
-                <p>Reviews to answer, leads gone cold, follow-ups overdue — surfaced and ready, never dropped.</p>
-                <a href="#features">See it →</a>
+                <h3>Nothing goes live without you</h3>
+                <p>Every post, email, and campaign artifact lands in your queue. Review, edit, approve — then publish when you&rsquo;re ready.</p>
+                <a href="#how">See it →</a>
               </div>
-              <div className="card-widget"><div data-mk="widget-reputation"></div></div>
+              <div className="card-widget"><div data-mk="widget-approvals"></div></div>
             </div>
             <div className="lcard reveal">
               <div className="lcard-copy">
@@ -299,7 +299,7 @@ export default function Lab5Page() {
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">Built for the way you work</span>
-            <h2 className="t-h2">Maya fits your kind of business.</h2>
+            <h2 className="t-h2">Built for your kind of business.</h2>
           </div>
           <div className="uses">
             <a className="use reveal" href="/use-cases/ecommerce">
@@ -376,8 +376,8 @@ export default function Lab5Page() {
           />
         </div>
         <div className="cta-in">
-          <h2>Work like you have a full<br />marketing team. Because now you do.</h2>
-          <p>Hire Maya and spend your hours on the work only you can do.</p>
+          <h2>Work like you have a full<br />marketing team.</h2>
+          <p>Meet Maya and twelve specialist agents — spend your hours on the work only you can do.</p>
           <div className="cta-btns">
             <a className="btn btn-white btn-lg" href="/pricing"
               onClick={() => trackEvent('cta_click', { cta: 'start_trial', location: 'footer_cta' })}>Start your free trial</a>
@@ -396,7 +396,7 @@ export default function Lab5Page() {
               <a className="brand" href="/">
                 <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
               </a>
-              <p>The AI-first marketing platform for small business. Meet Maya.</p>
+              <p>The AI marketing operating system for small business. Meet Maya.</p>
             </div>
             <div className="fcol">
               <h5>Product</h5>

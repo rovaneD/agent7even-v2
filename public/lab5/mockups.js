@@ -76,20 +76,20 @@
           <div class="mk-chat-hd">${mayaOrbAvatar(24, true)}<div><div class="nm">Maya</div><div class="rl">Your marketing partner</div></div></div>
           <div class="mk-msgs">
             <div class="bub bub-u">Fill next Friday — it's our slow day.</div>
-            <div class="bub bub-m">On it. A Friday promo for Ember Coffee — offer, email and three posts. Drafting it in your canvas now.<span class="lnk">View campaign draft ${arrowUp}</span></div>
+            <div class="bub bub-m">On it. A Friday promo — offer, email draft and three posts. Drafting it in your canvas now.<span class="lnk">View campaign draft ${arrowUp}</span></div>
             <div class="bub bub-m">Want me to match the 20% you ran last spring, or go a little deeper?</div>
           </div>
           <div class="mk-compose"><div class="field"><span>Message Maya…</span><b>${arrowUp}</b></div></div>
         </div>
         <div class="mk-main">
-          <div class="mk-main-hd"><div><div class="ttl">Good morning, Ember</div><div class="sub">Here's where things stand</div></div><div class="pill" style="font-size:11px;padding:5px 11px"><span class="live-dot"></span>Maya is working</div></div>
+          <div class="mk-main-hd"><div><div class="ttl">Good morning</div><div class="sub">Here's where things stand</div></div><div class="pill" style="font-size:11px;padding:5px 11px"><span class="live-dot"></span>Maya is working</div></div>
           <div class="mk-pad">
             <div class="mk-stats">
               <div class="mk-stat"><div class="n">3</div><div class="l">Awaiting approval</div></div>
-              <div class="mk-stat"><div class="n" style="color:var(--green)">12</div><div class="l">Sent this week</div></div>
-              <div class="mk-stat"><div class="n">2</div><div class="l">Campaigns live</div></div>
+              <div class="mk-stat"><div class="n" style="color:var(--green)">12</div><div class="l">Drafted this week</div></div>
+              <div class="mk-stat"><div class="n">2</div><div class="l">Campaigns in progress</div></div>
             </div>
-            <div class="mk-row"><span class="dot" style="background:var(--green)"></span><div class="grow"><div class="rt">Summer Launch — Ember Coffee</div><div class="rs">Sequence 2 of 4 · performing above target</div></div><span class="tag tag-green">Live</span></div>
+            <div class="mk-row"><span class="dot" style="background:var(--green)"></span><div class="grow"><div class="rt">Summer Launch</div><div class="rs">Sequence 2 of 4 · strong engagement</div></div><span class="tag tag-green">Approved</span></div>
             <div class="mk-row"><span class="dot" style="background:var(--amber)"></span><div class="grow"><div class="rt">Friday Slow-Day Promo</div><div class="rs">Drafted by Maya · ready to review</div></div><span class="tag tag-amber">Draft</span></div>
             <div class="mk-row"><span class="dot" style="background:var(--blue)"></span><div class="grow"><div class="rt">Win-back email sequence</div><div class="rs">12 lapsed customers identified</div></div><span class="tag tag-blue">Queued</span></div>
           </div>
@@ -108,7 +108,7 @@
           <div style="padding:11px 14px"><div style="font-size:12.5px;font-weight:500">Win-back email</div><div style="font-size:11px;color:var(--faint);margin-top:2px">Draft</div></div>
         </div>
         <div class="mk-main" style="border-right:1px solid var(--line-2)">
-          <div class="mk-main-hd"><div><div class="ttl">Friday Slow-Day Promo</div><div class="sub">20% off · Ember Coffee</div></div><span class="tag tag-amber">Draft</span></div>
+          <div class="mk-main-hd"><div><div class="ttl">Friday Slow-Day Promo</div><div class="sub">20% off · this week only</div></div><span class="tag tag-amber">Draft</span></div>
           <div class="mk-pad" style="gap:10px">
             <div class="mk-note accent-blue"><div class="nl">Strategy</div><div class="nt">Drive Friday traffic with 20% off all drinks — Instagram + an email to regulars. Run this week only.</div></div>
             <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500">Promo announcement</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Do this ${chev}</span></div>
@@ -131,13 +131,13 @@
       <div class="mk-body" style="height:392px">
         ${rail([['inbox', true], ['mega', false], ['cal', false]])}
         <div class="mk-main">
-          <div class="mk-main-hd"><div><div class="ttl">Approval queue</div><div class="sub">3 items ready · Ember Coffee</div></div><span class="pill" style="font-size:11px;padding:5px 11px">3 waiting</span></div>
+          <div class="mk-main-hd"><div><div class="ttl">Approval queue</div><div class="sub">3 items ready</div></div><span class="pill" style="font-size:11px;padding:5px 11px">3 waiting</span></div>
           <div class="mk-pad">
-            <div class="mk-row" style="border-color:#DCE9FF;background:#F8FBFF;align-items:flex-start"><span class="dot" style="background:var(--blue);margin-top:5px"></span><div class="grow"><div class="rt">Friday promo email</div><div class="rs">Ember Coffee · ready to send</div></div>
+            <div class="mk-row" style="border-color:#DCE9FF;background:#F8FBFF;align-items:flex-start"><span class="dot" style="background:var(--blue);margin-top:5px"></span><div class="grow"><div class="rt">Friday promo email</div><div class="rs">Draft ready · paste into your ESP after approval</div></div>
               <div style="display:flex;gap:6px"><span class="btn-blue" style="font-size:12px;padding:6px 13px;border-radius:8px;color:#fff;font-weight:500">Approve</span><span class="tag tag-ghost" style="padding:6px 11px">Edit</span></div></div>
-            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:5px"></span><div class="grow"><div class="rt">New 4★ review — Google</div><div class="rs">2 hours ago · Maya drafted a reply</div></div><span class="tag tag-green" style="padding:6px 12px">Reply</span></div>
-            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--amber);margin-top:5px"></span><div class="grow"><div class="rt">Win-back — Sarah M.</div><div class="rs">No reply in 14 days · follow-up ready</div></div><span class="tag tag-amber" style="padding:6px 12px">Send</span></div>
-            <div class="mk-note accent-pink" style="margin-top:2px"><div class="nl">Maya · waiting on you</div><div class="nt">Nothing goes live until you say so. Approve what's right, send the rest back with a note.</div></div>
+            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:5px"></span><div class="grow"><div class="rt">Instagram post — slow-day promo</div><div class="rs">Image + caption drafted in your voice</div></div><span class="tag tag-green" style="padding:6px 12px">Approve</span></div>
+            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--amber);margin-top:5px"></span><div class="grow"><div class="rt">Weekly content plan</div><div class="rs">5 posts · one approval session</div></div><span class="tag tag-amber" style="padding:6px 12px">Review</span></div>
+            <div class="mk-note accent-pink" style="margin-top:2px"><div class="nl">Maya · waiting on you</div><div class="nt">Nothing goes live until you say so. Approve what's right, then publish when you're ready.</div></div>
           </div>
         </div>
       </div>`,
@@ -148,7 +148,7 @@
       <div class="mk-body" style="height:392px">
         ${rail([['cal', true], ['mega', false], ['grid', false]])}
         <div class="mk-main">
-          <div class="mk-main-hd"><div><div class="ttl">Content calendar</div><div class="sub">Ember Coffee · this week</div></div><span class="tag tag-green">6 scheduled</span></div>
+          <div class="mk-main-hd"><div><div class="ttl">Content calendar</div><div class="sub">This week · queued for approval</div></div><span class="tag tag-green">6 queued</span></div>
           <div class="mk-pad" style="gap:10px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
               <div style="background:#F4F8FF;border:1px solid #DCE9FF;border-radius:11px;padding:11px 13px"><div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--blue);margin-bottom:4px">MON</div><div style="font-size:12.5px;color:var(--ink-2)">Instagram — new roast drop</div></div>
@@ -167,7 +167,7 @@
       <div class="mk-body" style="height:392px">
         ${rail([['eye', true], ['mega', false], ['cal', false]])}
         <div class="mk-main">
-          <div class="mk-main-hd"><div><div class="ttl">Competitor watch</div><div class="sub">Last scan 2 hours ago</div></div><span class="pill" style="font-size:11px;padding:5px 11px"><span class="live-dot"></span>Monitoring 4</span></div>
+          <div class="mk-main-hd"><div><div class="ttl">Competitor watch</div><div class="sub">Weekly report · updated 2 hours ago</div></div><span class="pill" style="font-size:11px;padding:5px 11px">Report</span></div>
           <div class="mk-pad">
             <div class="mk-note accent-red"><div class="nl">Maya flagged</div><div style="font-size:13.5px;font-weight:600;color:var(--ink);margin:1px 0 3px">Rival Coffee Co. launched a 15% off promo</div><div class="nt">Running on Instagram since yesterday. Want a counter-offer drafted before the weekend?</div></div>
             <div class="mk-row"><span class="dot" style="background:var(--amber)"></span><div class="grow"><div class="rt">The Press Bar — new Instagram ad</div><div class="rs">Spotted 2 days ago</div></div><span class="tag tag-ghost">Watching</span></div>
@@ -181,7 +181,7 @@
       ${miniBar('agent7even.ai/campaigns')}
       <div class="mk-body" style="height:auto;background:#fff">
         <div class="mk-main">
-          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Friday Slow-Day Promo</div><div class="sub" style="font-size:10px">20% off · Ember Coffee</div></div><span class="tag tag-amber" style="font-size:10px;padding:3px 8px">Draft</span></div>
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Friday Slow-Day Promo</div><div class="sub" style="font-size:10px">20% off · this week only</div></div><span class="tag tag-amber" style="font-size:10px;padding:3px 8px">Draft</span></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
             <div class="mk-note accent-blue" style="padding:8px 10px"><div class="nl">Strategy</div><div class="nt" style="font-size:11px">Drive Friday traffic with 20% off — Instagram + email to regulars.</div></div>
             <div class="mk-row" style="padding:7px 9px"><span class="tag tag-blue">IG</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Post 1 — lead visual</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
@@ -194,7 +194,7 @@
       ${miniBar('agent7even.ai/watch')}
       <div class="mk-body" style="height:auto;background:#fff">
         <div class="mk-main">
-          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Competitor watch</div><div class="sub" style="font-size:10px">Last scan 2 hours ago</div></div><span class="pill" style="font-size:10px;padding:3px 9px"><span class="live-dot"></span>Monitoring 4</span></div>
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Competitor watch</div><div class="sub" style="font-size:10px">Weekly report</div></div><span class="pill" style="font-size:10px;padding:3px 9px">Report</span></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
             <div class="mk-note accent-red" style="padding:8px 10px"><div class="nl">Maya flagged</div><div style="font-size:12px;font-weight:600;color:var(--ink);margin:1px 0 2px">Rival Coffee Co. — 15% off promo</div><div class="nt" style="font-size:11px">Running on Instagram since yesterday.</div></div>
             <div class="mk-row" style="padding:7px 9px"><span class="dot" style="background:var(--amber)"></span><div class="grow"><div class="rt" style="font-size:12px">The Press Bar — new ad</div></div><span class="tag tag-ghost" style="font-size:10px">Watching</span></div>
@@ -202,14 +202,16 @@
         </div>
       </div>`,
 
-    'widget-reputation': () => `
+    'widget-reputation': () => M['widget-approvals'](),
+
+    'widget-approvals': () => `
       ${miniBar('agent7even.ai/approvals')}
       <div class="mk-body" style="height:auto;background:#fff">
         <div class="mk-main">
-          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Approval queue</div><div class="sub" style="font-size:10px">3 items ready · Ember Coffee</div></div><span class="pill" style="font-size:10px;padding:3px 9px">3 waiting</span></div>
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Approval queue</div><div class="sub" style="font-size:10px">3 drafts waiting</div></div><span class="pill" style="font-size:10px;padding:3px 9px">3 waiting</span></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
-            <div class="mk-row" style="padding:7px 9px;border-color:#DCE9FF;background:#F8FBFF;align-items:flex-start"><span class="dot" style="background:var(--blue);margin-top:4px"></span><div class="grow"><div class="rt" style="font-size:12px">Friday promo email</div><div class="rs" style="font-size:10px">Ready to send</div></div><span style="font-size:10px;padding:5px 10px;border-radius:7px;background:var(--blue);color:#fff;font-weight:500">Approve</span></div>
-            <div class="mk-row" style="padding:7px 9px;align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:4px"></span><div class="grow"><div class="rt" style="font-size:12px">New 4★ review — Google</div><div class="rs" style="font-size:10px">Reply drafted</div></div><span class="tag tag-green" style="font-size:10px;padding:4px 9px">Reply</span></div>
+            <div class="mk-row" style="padding:7px 9px;border-color:#DCE9FF;background:#F8FBFF;align-items:flex-start"><span class="dot" style="background:var(--blue);margin-top:4px"></span><div class="grow"><div class="rt" style="font-size:12px">Friday promo email</div><div class="rs" style="font-size:10px">Draft · approve to use</div></div><span style="font-size:10px;padding:5px 10px;border-radius:7px;background:var(--blue);color:#fff;font-weight:500">Approve</span></div>
+            <div class="mk-row" style="padding:7px 9px;align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:4px"></span><div class="grow"><div class="rt" style="font-size:12px">IG post + caption</div><div class="rs" style="font-size:10px">Image generated · on-brand</div></div><span class="tag tag-green" style="font-size:10px;padding:4px 9px">Approve</span></div>
           </div>
         </div>
       </div>`,
@@ -230,7 +232,7 @@
       ${miniBar('agent7even.ai/campaigns')}
       <div class="mk-body" style="height:auto;background:#fff">
         <div class="mk-main">
-          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Autumn Ember — launch</div><div class="sub" style="font-size:10px">Maker &amp; Co. · drops Fri</div></div><span class="tag tag-amber" style="font-size:10px;padding:3px 8px">Draft</span></div>
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Autumn launch</div><div class="sub" style="font-size:10px">Product drop · Fri</div></div><span class="tag tag-amber" style="font-size:10px;padding:3px 8px">Draft</span></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
             <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Fri</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Drop email — "It's here"</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
             <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Sun</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Abandoned-cart catch</div></div><span style="font-size:10px;color:var(--blue);font-weight:500">Review ${chev}</span></div>
@@ -243,10 +245,10 @@
       ${miniBar('agent7even.ai/approvals')}
       <div class="mk-body" style="height:auto;background:#fff">
         <div class="mk-main">
-          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Ready for you</div><div class="sub" style="font-size:10px">Cedar Lane · 3 items waiting</div></div><span class="pill" style="font-size:10px;padding:3px 9px">3 waiting</span></div>
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Ready for you</div><div class="sub" style="font-size:10px">3 items waiting</div></div><span class="pill" style="font-size:10px;padding:3px 9px">3 waiting</span></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
             <div class="mk-row" style="padding:7px 9px;border-color:#BFEFDB;background:#F4FCF8"><span class="dot" style="background:var(--green)"></span><div class="grow"><div class="rt" style="font-size:12px">Midweek promo — "Book by Friday"</div></div><span style="font-size:10px;padding:4px 9px;border-radius:7px;background:var(--green);color:#fff;font-weight:500">Approve</span></div>
-            <div class="mk-row" style="padding:7px 9px"><span class="dot" style="background:var(--amber)"></span><div class="grow"><div class="rt" style="font-size:12px">New 5★ review — Google</div></div><span class="tag tag-green" style="font-size:10px;padding:4px 9px">Reply</span></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="dot" style="background:var(--blue)"></span><div class="grow"><div class="rt" style="font-size:12px">SEO scan notes</div><div class="rs" style="font-size:10px">3 quick wins flagged</div></div><span class="tag tag-blue" style="font-size:10px;padding:4px 9px">View</span></div>
           </div>
         </div>
       </div>`,
@@ -264,17 +266,13 @@
       </div>`,
 
     'widget-use-agencies': () => `
-      ${miniBar('agent7even.ai/studio')}
-      <div class="mk-body" style="height:auto;background:#fff;display:flex">
-        <div style="width:130px;flex-shrink:0;border-right:1px solid var(--line-2);background:#FCFCFD">
-          <div style="padding:8px 10px;font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Clients</div>
-          <div style="padding:8px 10px;background:#F4F8FF;border-left:2px solid var(--blue)"><div style="font-size:11px;font-weight:600">Vela Skincare</div><div style="font-size:9px;color:var(--faint);margin-top:1px">3 drafts</div></div>
-          <div style="padding:8px 10px"><div style="font-size:11px;font-weight:500">Northwind Gear</div><div style="font-size:9px;color:var(--faint);margin-top:1px">Live</div></div>
-        </div>
-        <div class="mk-main" style="min-width:0">
-          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Vela Skincare</div><div class="sub" style="font-size:10px">Drafted by Maya</div></div></div>
+      ${miniBar('agent7even.ai/approvals')}
+      <div class="mk-body" style="height:auto;background:#fff">
+        <div class="mk-main">
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Approval queue</div><div class="sub" style="font-size:10px">8 drafts · team review</div></div></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
-            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Social</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">3 posts — ingredient story</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">3-email sequence</div></div><span style="font-size:10px;color:var(--blue);font-weight:500">Review ${chev}</span></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Ads</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">4 ad variations</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
           </div>
         </div>
       </div>`,
