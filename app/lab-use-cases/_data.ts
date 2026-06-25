@@ -74,7 +74,7 @@ export const cases: UseCase[] = [
     label: 'E-commerce brands',
     accent: '#EE533B',
     hero: {
-      headline: "The store runs. The brand doesn't have to stop.",
+      headline: "The store runs.\nThe brand doesn't have to stop.",
       subhead:
         'You can build the store, source the product, and nail the photos. Then the marketing has to run every single day — and you only have so many days in you. How Maya keeps the brand moving between drops.',
     },

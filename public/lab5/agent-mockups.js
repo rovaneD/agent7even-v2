@@ -156,7 +156,7 @@
         <div class="mk-main">
           <div class="mk-main-hd"><div><div class="ttl">Content plan</div><div class="sub">Week of Jun 8 · written in your voice</div></div><span class="tag tag-green">5 drafted</span></div>
           <div class="mk-pad" style="gap:12px">
-            <div style="display:grid;grid-template-columns:repeat(7,minmax(56px,1fr));gap:6px;overflow-x:auto">
+            <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;max-width:100%">
               ${[['MON','IG','var(--brand)','New roast drop'],['TUE','','',''],['WED','Email','var(--blue)','Loyalty offer'],['THU','IG','var(--brand)','Behind the bake'],['FRI','Story','var(--amber)','Slow-day promo'],['SAT','IG','var(--brand)','Weekend hours'],['SUN','','','']].map(([d,ch,c,t]) => `
                 <div style="border:1px solid var(--line-2);border-radius:9px;min-height:96px;padding:7px 6px;background:${ch?'#fff':'#FCFCFD'};display:flex;flex-direction:column;gap:5px">
                   <div style="font-family:var(--mono);font-size:8.5px;color:var(--faint);text-align:center">${d}</div>

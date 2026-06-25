@@ -14,6 +14,17 @@ declare global {
   }
 }
 
+function headlineLines(text: string) {
+  const lines = text.split('\n')
+  if (lines.length === 1) return text
+  return lines.map((line, i) => (
+    <span key={i}>
+      {i > 0 && <br />}
+      {line.replace(' to stop.', ' to\u00A0stop.')}
+    </span>
+  ))
+}
+
 // Per-segment config: uc mockup key, colors, pull line, more-cases cards
 const SEG: Record<string, {
   ucKey: string
@@ -39,7 +50,7 @@ const SEG: Record<string, {
     seg: '#10B981',
     pull: "The competitor across town isn't better. They're just more present.",
     more: [
-      { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs. The brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
+      { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs.\nThe brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H5.5"/></svg> },
       { slug: 'coaches-creators', seg: '#F5349B', bg: '#FDE5F1', eyebrow: 'Creators & founders', headline: 'Finally in two places at once.', tagline: 'You are the product and the marketing department. Maya carries the half you never have time for.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg> },
@@ -52,7 +63,7 @@ const SEG: Record<string, {
     seg: '#F5349B',
     pull: "You can't scale yourself. That's the real ceiling.",
     more: [
-      { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs. The brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
+      { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs.\nThe brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H5.5"/></svg> },
       { slug: 'local-service', seg: '#10B981', bg: '#E3F9F0', eyebrow: 'Local service', headline: 'Good at the work. Now visible for it.', tagline: 'Stay visible without staying up late — the slow week filled, competitive reports on your desk.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg> },
@@ -65,7 +76,7 @@ const SEG: Record<string, {
     seg: '#3286FE',
     pull: "Your best people get pulled into work that just has to get done.",
     more: [
-      { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs. The brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
+      { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs.\nThe brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H5.5"/></svg> },
       { slug: 'local-service', seg: '#10B981', bg: '#E3F9F0', eyebrow: 'Local service', headline: 'Good at the work. Now visible for it.', tagline: 'Stay visible without staying up late — the slow week filled, competitive reports on your desk.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg> },
@@ -127,7 +138,7 @@ export default function UseCaseDetailPage() {
         {/* HERO */}
         <header className="uc-hero">
           <span className="seg-eyebrow"><span className="sd" />{uc.label}</span>
-          <h1 className="t-display">{uc.hero.headline}</h1>
+          <h1 className="t-display">{headlineLines(uc.hero.headline)}</h1>
           <p className="t-lead">{uc.hero.subhead}</p>
           <div className="uc-stage reveal">
             <div data-uc={cfg.ucKey}></div>
@@ -223,7 +234,7 @@ export default function UseCaseDetailPage() {
                 </div>
                 <div className="mbody">
                   <span className="seg-eyebrow"><span className="sd" />{m.eyebrow}</span>
-                  <h3>{m.headline}</h3>
+                  <h3>{headlineLines(m.headline)}</h3>
                   <p>{m.tagline}</p>
                   <span className="go">Read more <ArrowRight /></span>
                 </div>

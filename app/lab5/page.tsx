@@ -77,28 +77,13 @@ export default function Lab5Page() {
       <header className="hero">
         <div className="wrap hero-grid">
           <div className="hero-copy">
-            <h1 className="hero-title">
-              <span className="hero-title-name">
-                Marketing gets done.
-              </span>
-              <span className="hero-title-deck">
-                <span className="hero-title-deck-line">Without becoming your job.</span>
-              </span>
-            </h1>
-            <p className="hero-subhead" style={{ fontSize: '1.125rem', lineHeight: 1.5, color: 'var(--ink-2)', margin: '0 0 1rem', maxWidth: '36rem' }}>
-              Meet <em style={{ color: '#F5349B', fontStyle: 'normal' }}>Maya</em> — the intelligence layer coordinating twelve specialist agents that plan, write, generate, and queue your marketing for approval.
+            <h1 className="hero-title">Marketing, managed.</h1>
+            <p className="hero-lead">
+              <span className="hero-lead-line"><em>Maya</em> plans campaigns, creates content, schedules publishing,</span>
+              <span className="hero-lead-line">and drafts customer replies, grounded in your brand voice.</span>
+              <span className="hero-lead-line">Nothing goes live without your&nbsp;approval.</span>
             </p>
-            <div className="hero-body">
-              <p>Campaigns planned, copy drafted, images and video generated — all in your voice, queued for your approval.</p>
-              <p>You run the business. The OS runs the marketing.</p>
-            </div>
-            <a
-              className="hero-link"
-              href="#how"
-              onClick={() => trackEvent('cta_click', { cta: 'see_how_it_works', location: 'hero' })}
-            >
-              See how the marketing OS works →
-            </a>
+            <p className="hero-tagline">The operating system for your marketing.</p>
             <div className="hero-cta">
               <div className="hero-primary-stack">
                 <a
@@ -108,7 +93,11 @@ export default function Lab5Page() {
                 >
                   Start your free trial
                 </a>
-                <p className="hero-note">3-day free trial. No charge until day 4.</p>
+                <p className="hero-note">
+                  3-day free trial.
+                  <br />
+                  No charge until day 4.
+                </p>
               </div>
               <a
                 className="btn btn-ghost btn-lg"
@@ -181,8 +170,16 @@ export default function Lab5Page() {
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">What the OS runs</span>
-            <h2 className="t-h2">A world-class marketing team, on call.</h2>
-            <p className="t-lead">Planned, drafted, and queued for your approval — while you run the business.</p>
+            <h2 className="t-h2">
+              A world-class marketing team,
+              <br />
+              on&nbsp;call.
+            </h2>
+            <p className="t-lead">
+              Planned, drafted, and queued for your approval —
+              <br />
+              while you run the&nbsp;business.
+            </p>
           </div>
 
           <div className="feat reveal">
@@ -255,7 +252,11 @@ export default function Lab5Page() {
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">Always on</span>
-            <h2 className="t-h2">The marketing layer that never sleeps.</h2>
+            <h2 className="t-h2">
+              The marketing layer
+              <br />
+              that never&nbsp;sleeps.
+            </h2>
           </div>
           <div className="cards">
             <div className="lcard reveal">
