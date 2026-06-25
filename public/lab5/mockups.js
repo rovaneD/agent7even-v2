@@ -150,11 +150,11 @@
         <div class="mk-main">
           <div class="mk-main-hd"><div><div class="ttl">Content calendar</div><div class="sub">This week · queued for approval</div></div><span class="tag tag-green">6 queued</span></div>
           <div class="mk-pad" style="gap:10px">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-              <div style="background:#F4F8FF;border:1px solid #DCE9FF;border-radius:11px;padding:11px 13px"><div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--blue);margin-bottom:4px">MON</div><div style="font-size:12.5px;color:var(--ink-2)">Instagram — new roast drop</div></div>
-              <div style="background:#E9FBF3;border:1px solid #BFEFDB;border-radius:11px;padding:11px 13px"><div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--green);margin-bottom:4px">WED</div><div style="font-size:12.5px;color:var(--ink-2)">Email — loyalty members</div></div>
-              <div style="background:#FFF3E2;border:1px solid #FBDFB4;border-radius:11px;padding:11px 13px"><div style="font-family:var(--mono);font-size:10px;font-weight:500;color:#B26B00;margin-bottom:4px">FRI</div><div style="font-size:12.5px;color:var(--ink-2)">Story — slow-day promo</div></div>
-              <div style="background:#F4F4F6;border:1px solid var(--line);border-radius:11px;padding:11px 13px;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:12.5px">+ 3 more queued</div>
+            <div class="mk-cal-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="background:#F4F8FF;border:1px solid #DCE9FF;border-radius:11px;padding:11px 13px"><div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--blue);margin-bottom:4px">MON</div><div style="font-size:12px;color:var(--ink-2);line-height:1.4">IG — new roast drop</div></div>
+              <div style="background:#E9FBF3;border:1px solid #BFEFDB;border-radius:11px;padding:11px 13px"><div style="font-family:var(--mono);font-size:10px;font-weight:500;color:var(--green);margin-bottom:4px">WED</div><div style="font-size:12px;color:var(--ink-2);line-height:1.4">Email — loyalty offer</div></div>
+              <div style="background:#FFF3E2;border:1px solid #FBDFB4;border-radius:11px;padding:11px 13px"><div style="font-family:var(--mono);font-size:10px;font-weight:500;color:#B26B00;margin-bottom:4px">FRI</div><div style="font-size:12px;color:var(--ink-2);line-height:1.4">Story — slow-day promo</div></div>
+              <div style="background:#F4F4F6;border:1px solid var(--line);border-radius:11px;padding:11px 13px;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:12px;text-align:center;line-height:1.35">+ 3 more queued</div>
             </div>
             <div class="mk-note accent-pink"><div class="nl">Maya suggestion</div><div class="nt">Tuesday looks quiet. Want a behind-the-scenes post of the morning bake? I can have it ready in your voice.</div></div>
           </div>
