@@ -82,6 +82,7 @@ export async function POST(req: Request) {
     const result = await generateImageOptions({
       profileId: profile.id,
       companyName: (profile.company_name as string | null) ?? 'your business',
+      plan: profile.plan as string | null,
       sceneDirection: body.sceneDirection,
       useBrandKit: body.useBrandKit === true,
       includeLogo: body.includeLogo === true,
@@ -100,6 +101,15 @@ export async function POST(req: Request) {
           message: 'Choose a Post goal in the setup form before generating images.',
         },
         { status: 422 },
+      )
+    }
+    if (msg === 'premium_image_plan_required') {
+      return NextResponse.json(
+        {
+          error: 'premium_plan_required',
+          message: 'Premium image models are available on ProAgent.',
+        },
+        { status: 403 },
       )
     }
     console.error('[posts/generate-images]', err)

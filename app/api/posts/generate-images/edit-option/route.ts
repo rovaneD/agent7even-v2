@@ -75,6 +75,7 @@ export async function POST(req: Request) {
     const option = await editImageOption({
       profileId: profile.id,
       companyName: (profile.company_name as string | null) ?? 'your business',
+      plan: profile.plan as string | null,
       briefId,
       optionIndex,
       brief: brief.trim(),
@@ -92,6 +93,15 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('[generate-images/edit-option]', err)
     const msg = err instanceof Error ? err.message : 'edit_failed'
+    if (msg === 'premium_image_plan_required') {
+      return NextResponse.json(
+        {
+          error: 'premium_plan_required',
+          message: 'Premium image models are available on ProAgent.',
+        },
+        { status: 403 },
+      )
+    }
     const friendly =
       msg === 'image_too_large_for_api'
         ? 'Image is too large for the edit API. Try Fix text only mode.'
