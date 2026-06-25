@@ -101,26 +101,26 @@
       <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/campaigns</div></div>
       <div class="mk-body" style="height:392px">
         ${rail([['grid', false], ['mega', true], ['cal', false]])}
-        <div class="mk-side" style="width:156px;flex-shrink:0;border-right:1px solid var(--line-2);background:#fff">
-          <div style="padding:11px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Campaigns</div>
-          <div style="padding:11px 14px;background:#F4F8FF;border-left:2px solid var(--blue)"><div style="font-size:12.5px;font-weight:600">Friday Slow-Day</div><div style="font-size:11px;color:var(--faint);margin-top:2px">Draft · Week 1</div></div>
-          <div style="padding:11px 14px;border-bottom:1px solid var(--line-2)"><div style="font-size:12.5px;font-weight:500">Summer Launch</div><div style="font-size:11px;color:var(--faint);margin-top:2px">Live · Week 2</div></div>
-          <div style="padding:11px 14px"><div style="font-size:12.5px;font-weight:500">Win-back email</div><div style="font-size:11px;color:var(--faint);margin-top:2px">Draft</div></div>
+        <div class="mk-side" style="width:124px;flex-shrink:0;border-right:1px solid var(--line-2);background:#fff;min-width:0">
+          <div style="padding:10px 12px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Campaigns</div>
+          <div style="padding:10px 12px;background:#F4F8FF;border-left:2px solid var(--blue)"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Friday Slow-Day</div><div style="font-size:10.5px;color:var(--faint);margin-top:2px">Draft · Week 1</div></div>
+          <div style="padding:10px 12px;border-bottom:1px solid var(--line-2)"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Summer Launch</div><div style="font-size:10.5px;color:var(--faint);margin-top:2px">Live · Week 2</div></div>
+          <div style="padding:10px 12px"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Win-back email</div><div style="font-size:10.5px;color:var(--faint);margin-top:2px">Draft</div></div>
         </div>
-        <div class="mk-main" style="border-right:1px solid var(--line-2)">
-          <div class="mk-main-hd"><div><div class="ttl">Friday Slow-Day Promo</div><div class="sub">20% off · this week only</div></div><span class="tag tag-amber">Draft</span></div>
-          <div class="mk-pad" style="gap:10px">
-            <div class="mk-note accent-blue"><div class="nl">Strategy</div><div class="nt">Drive Friday traffic with 20% off all drinks — Instagram + an email to regulars. Run this week only.</div></div>
-            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500">Promo announcement</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Do this ${chev}</span></div>
-            <div class="mk-row" style="padding:9px 12px;border-color:#DCE9FF"><span class="tag tag-blue">IG</span><div class="grow"><div class="rt" style="font-weight:500">Post 1 — lead visual</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
-            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-blue">IG</span><div class="grow"><div class="rt" style="font-weight:500">Post 2 — offer close</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Do this ${chev}</span></div>
+        <div class="mk-main" style="border-right:1px solid var(--line-2);min-width:0">
+          <div class="mk-main-hd" style="padding:12px 14px"><div><div class="ttl">Friday Slow-Day Promo</div><div class="sub">20% off · this week only</div></div><span class="tag tag-amber">Draft</span></div>
+          <div class="mk-pad" style="gap:8px;padding:12px 14px">
+            <div class="mk-note accent-blue" style="padding:10px 12px"><div class="nl">Strategy</div><div class="nt" style="font-size:12px;line-height:1.45">Drive Friday traffic with 20% off all drinks — Instagram + an email to regulars. Run this week only.</div></div>
+            <div class="mk-row" style="padding:8px 10px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500">Promo announcement</div></div><span style="font-size:11px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap;flex-shrink:0">Do this ${chev}</span></div>
+            <div class="mk-row" style="padding:8px 10px;border-color:#DCE9FF"><span class="tag tag-blue">IG</span><div class="grow"><div class="rt" style="font-weight:500">Post 1 — lead visual</div></div><span style="font-size:10.5px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap;flex-shrink:0">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:8px 10px"><span class="tag tag-blue">IG</span><div class="grow"><div class="rt" style="font-weight:500">Post 2 — offer close</div></div><span style="font-size:11px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap;flex-shrink:0">Do this ${chev}</span></div>
           </div>
         </div>
-        <div class="mk-side" style="width:158px;flex-shrink:0;background:#FCFCFD">
-          <div style="padding:11px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Copy options</div>
-          <div style="padding:12px 13px;display:flex;flex-direction:column;gap:9px">
-            <div style="background:#fff;border:1.5px solid var(--blue);border-radius:10px;padding:10px 12px"><div style="font-family:var(--mono);font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Option A</div><div style="font-size:12px;color:var(--ink-2);line-height:1.45">Fridays just got better. 20% off every drink — this Friday only.</div></div>
-            <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px"><div style="font-family:var(--mono);font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Option B</div><div style="font-size:12px;color:var(--ink-2);line-height:1.45">Your Friday deserves a proper sit-down. 20% off, all day.</div></div>
+        <div class="mk-side" style="width:132px;flex-shrink:0;background:#FCFCFD;min-width:0">
+          <div style="padding:10px 12px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Copy options</div>
+          <div style="padding:10px 11px;display:flex;flex-direction:column;gap:8px">
+            <div style="background:#fff;border:1.5px solid var(--blue);border-radius:10px;padding:9px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Option A</div><div style="font-size:11px;color:var(--ink-2);line-height:1.45">Fridays just got better. 20% off every drink — this Friday only.</div></div>
+            <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Option B</div><div style="font-size:11px;color:var(--ink-2);line-height:1.45">Your Friday deserves a proper sit-down. 20% off, all day.</div></div>
           </div>
         </div>
       </div>`,

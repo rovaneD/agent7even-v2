@@ -597,19 +597,21 @@
 .lab5 .mk-compose .field { height: 36px; border-radius: 9px; background: #F4F4F6; border: 1px solid var(--line-2); display: flex; align-items: center; padding: 0 12px; font-size: 12.5px; color: var(--faint); justify-content: space-between; }
 .lab5 .mk-compose .field b { width: 24px; height: 24px; border-radius: 7px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; }
 .lab5 .mk-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.lab5 .mk-main-hd { padding: 14px 18px; border-bottom: 1px solid var(--line-2); display: flex; align-items: center; justify-content: space-between; }
-.lab5 .mk-main-hd .ttl { font-size: 14px; font-weight: 600; white-space: nowrap; }
-.lab5 .mk-main-hd .sub { font-size: 12px; color: var(--faint); margin-top: 1px; white-space: nowrap; }
-.lab5 .mk-main-hd > div:first-child { min-width: 0; }
+.lab5 .mk-main-hd { padding: 14px 18px; border-bottom: 1px solid var(--line-2); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.lab5 .mk-main-hd .ttl { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab5 .mk-main-hd .sub { font-size: 12px; color: var(--faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab5 .mk-main-hd > div:first-child { min-width: 0; flex: 1; overflow: hidden; }
+.lab5 .mk-main-hd > .tag, .lab5 .mk-main-hd > .pill { flex-shrink: 0; }
 .lab5 .mk-pad { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
 .lab5 .mk-stats { display: flex; gap: 10px; }
 .lab5 .mk-stat { flex: 1; border: 1px solid var(--line-2); border-radius: 10px; padding: 11px 13px; background: #FCFCFD; }
 .lab5 .mk-stat .n { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
 .lab5 .mk-stat .l { font-size: 11px; color: var(--faint); margin-top: 2px; }
-.lab5 .mk-row { display: flex; align-items: center; gap: 11px; border: 1px solid var(--line-2); border-radius: 11px; padding: 11px 13px; background: #fff; }
+.lab5 .mk-row { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line-2); border-radius: 11px; padding: 11px 13px; background: #fff; min-width: 0; }
 .lab5 .mk-row .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.lab5 .mk-row .grow { flex: 1; min-width: 0; }
-.lab5 .mk-row .rt { font-size: 13px; font-weight: 500; color: var(--ink); }
+.lab5 .mk-row .grow { flex: 1; min-width: 0; overflow: hidden; }
+.lab5 .mk-row .rt { font-size: 13px; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab5 .mk-row .grow + span, .lab5 .mk-row > div:last-child { flex-shrink: 0; }
 .lab5 .mk-row .rs { font-size: 11.5px; color: var(--faint); margin-top: 1px; }
 .lab5 .tag { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 7px; flex-shrink: 0; }
 .lab5 .tag-blue { background: #EAF1FF; color: #1F6FEB; }
