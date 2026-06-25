@@ -121,3 +121,11 @@ Checkpoint script (isolation, still valid): `scripts/verify-creative-direction.t
 | Server load | `page.tsx` reads `profiles.creative_direction` |
 
 Client hub imports `hubPreview.ts` / `types.ts` directly — not the barrel (avoids `after()` in client bundle).
+
+---
+
+## Critical Generation Gate Fix (June 25, 2026)
+
+- Premium image model access is enforced before any OpenRouter image call in `lib/agents/imageGeneration/generateOptions.ts`; image API routes return `premium_plan_required` for non-ProAgent Recraft requests.
+- Video generation creates the task and reserves credits before submitting the OpenRouter job. Submit/attach failures refund the reservation and fail the task.
+- `app/api/webhooks/openrouter-video/route.ts` ignores non-running tasks so failed/unpaid jobs cannot become approval outputs.
