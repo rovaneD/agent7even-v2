@@ -495,7 +495,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
         <div className="mb-5 rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Suggested palette</p>
-            <span className="text-xs text-gray-400">2 credits used</span>
+            <span className="text-xs text-gray-400">1 credit used</span>
           </div>
 
           <div className="flex gap-2 mb-4">
@@ -737,7 +737,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
         <div className="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Suggested pairings</p>
-            <span className="text-xs text-gray-400">2 credits used</span>
+            <span className="text-xs text-gray-400">1 credit used</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {pairings.map((pairing, i) => (

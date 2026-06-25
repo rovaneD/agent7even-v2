@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { VIDEO_MODEL_OPTIONS, DEFAULT_VIDEO_MODEL_ID } from '@/lib/agents/videoGeneration/videoModelCatalog'
+import { videoCreditCost } from '@/lib/credits/actionCosts'
 
 export type VideoGenerateState =
   | { phase: 'idle' }
@@ -144,12 +145,20 @@ export default function PostVideoGenerate({
 
   const isLoading = state.phase === 'composing'
   const noGoal    = !postContext?.postGoal?.trim()
+  const creditCost = videoCreditCost(modelId, undefined)
+  const creditLabel =
+    creditCost === -1
+      ? 'ProAgent only'
+      : `${creditCost} credit${creditCost === 1 ? '' : 's'}`
 
   return (
     <div className="rounded-xl border border-border bg-surface px-4 py-3">
       <p className="mb-2 text-sm font-medium text-text-primary">Generate a short video</p>
       <p className="mb-3 text-xs text-text-sec">
-        Maya writes a 9:16 video brief from your Foundation Creative Direction and generates a Reels/TikTok-ready clip in the background. 40 credits are deducted when submitted.
+        Maya writes a 9:16 video brief from your Foundation Creative Direction and generates a Reels/TikTok-ready clip in the background.{' '}
+        {creditCost === -1
+          ? 'Premium models require ProAgent.'
+          : `${creditCost} credits are deducted when submitted.`}
       </p>
 
       {/* Model selector */}
@@ -186,7 +195,7 @@ export default function PostVideoGenerate({
             Composing brief…
           </>
         ) : (
-          'Generate video (40 credits)'
+          `Generate video (${creditLabel})`
         )}
       </button>
     </div>

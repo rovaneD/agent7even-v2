@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { deductCredits, refundCredits } from '@/lib/credits'
+import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
   const model = body.model ?? 'anthropic/claude-sonnet-4'
-  const credits = body.credits ?? 8
+  const credits = ACTION_CREDIT_COST.text_run
 
   const prompt = body.mode === 'guided'
     ? buildGuidedPrompt(body, profile)

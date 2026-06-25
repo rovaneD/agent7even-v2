@@ -123,7 +123,7 @@ const VIDEO_MODEL_CATALOG: Record<VideoModelId, VideoModelEntry> = {
   },
 }
 
-export const DEFAULT_VIDEO_MODEL_ID: VideoModelId = 'kling-v3-std'
+export const DEFAULT_VIDEO_MODEL_ID: VideoModelId = 'veo-3-1-lite'
 
 export function resolveVideoModel(id: string | null | undefined): VideoModelEntry {
   const envOverride = process.env.VIDEO_GENERATION_MODEL?.trim()

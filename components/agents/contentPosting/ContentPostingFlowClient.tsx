@@ -856,7 +856,7 @@ export default function ContentPostingFlowClient({
               ?? 'Could not compose and queue this post.'
             setTaskCreateError(
               msg === 'INSUFFICIENT_CREDITS'
-                ? 'Not enough credits for image generation (25 credits).'
+                ? 'Not enough credits for image generation (3 credits).'
                 : msg,
             )
             return

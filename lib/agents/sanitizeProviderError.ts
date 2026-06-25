@@ -54,7 +54,7 @@ const ALLOWLIST_SUBSTRINGS = [
   'video is generating',
   'ready to review',
   'top up your credits',
-  'costs 40 credits',
+  'requires more credits',
 ]
 
 function looksLikeProviderLeak(raw: string): boolean {

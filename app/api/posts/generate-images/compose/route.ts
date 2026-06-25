@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import { queueGeneratedPost, GENERATION_BUNDLE_CREDIT_COST } from '@/lib/agents/imageGeneration/queueGeneratedPost'
+import { queueGeneratedPost, generationBundleCreditCost } from '@/lib/agents/imageGeneration/queueGeneratedPost'
 import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 import { createServiceClient } from '@/lib/supabase/server'
 import type { TextQaResult } from '@/lib/agents/imageGeneration/types'
@@ -132,6 +132,6 @@ export async function POST(req: Request) {
     taskId: result.taskId,
     outputId: result.outputId,
     caption: result.caption,
-    creditsCharged: GENERATION_BUNDLE_CREDIT_COST,
+    creditsCharged: generationBundleCreditCost(imageModel?.trim() ?? null, profile.plan as string | null),
   })
 }

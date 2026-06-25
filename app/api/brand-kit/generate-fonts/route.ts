@@ -3,8 +3,9 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { deductCredits, refundCredits } from '@/lib/credits'
+import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 
-const COST = 2
+const COST = ACTION_CREDIT_COST.brandkit_gen
 
 interface FontDef { family: string; weight: string; size_guide: string }
 interface Pairing { name: string; rationale: string; heading: FontDef; body: FontDef }

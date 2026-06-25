@@ -5,7 +5,7 @@ export {
   assertPostAssetOwnedByProfile,
 } from './generateOptions'
 export { composeImageCaption } from './composeCaption'
-export { queueGeneratedPost, GENERATION_BUNDLE_CREDIT_COST } from './queueGeneratedPost'
+export { queueGeneratedPost, generationBundleCreditCost } from './queueGeneratedPost'
 export { runTextQaGate } from './textQaGate'
 export { defaultImageModel, imageOptionCount } from './briefCompose'
 export { listImageModelsForClient, type ImageGenerationModelId } from './imageModelCatalog'

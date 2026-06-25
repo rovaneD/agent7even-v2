@@ -1468,7 +1468,7 @@ function MayaBriefingCard({ isMock }: { isMock: boolean }) {
                 <p className="text-[13px] text-text-sec">
                   Maya hasn&apos;t analyzed this period yet.
                 </p>
-                <p className="text-[11px] text-text-soft mt-1">~15 seconds · 2 credits</p>
+                <p className="text-[11px] text-text-soft mt-1">~15 seconds · included</p>
               </div>
               <button
                 onClick={() => !isMock && setGenerated(true)}

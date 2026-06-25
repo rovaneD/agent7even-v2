@@ -9,24 +9,36 @@ import { trackEvent } from '@/lib/gtag'
 
 const FAQS = [
   {
-    q: "What's a credit, and what uses them?",
-    a: "Credits are the fuel for Maya's AI work. Maya chat uses 2 credits per message, and agent runs, campaign generation, or Generate with Maya actions typically cost 2–25 credits depending on the task. Your credits reset on the 1st of every month. Starter gets 100, Growth gets 350, ProAgent gets 1,000.",
+    q: 'What does Maya actually create?',
+    a: "Campaign plans, social posts, email copy, ad variations to test, on-brand images, short video, SEO and competitor reports, and performance digests — all drafted for your approval queue. Twelve specialist agents handle specific jobs; Maya coordinates them. Nothing publishes until you sign off.",
+  },
+  {
+    q: 'Are campaigns, chat, and text agents unlimited?',
+    a: "Yes. Maya chat, agent runs, and campaign generation do not consume media credits on any plan. Credits meter image and video generation only.",
+  },
+  {
+    q: 'What are media credits?',
+    a: "Media credits pay for generated images and videos. Standard images cost 3 credits, standard videos 10. Starter (100 credits) ≈ 33 images or 10 videos per month — plus unlimited text work.",
+  },
+  {
+    q: "What's a service request?",
+    a: "Human-delivered work (design, photography, ad management) you request and track in your dashboard, fulfilled by our team. Not AI — managed services. Starter gets 1 active request, Growth 3, ProAgent unlimited.",
+  },
+  {
+    q: 'What does ProAgent unlock beyond more credits?',
+    a: 'Premium image (Recraft) and premium video (Kling) models — higher-quality media on ProAgent. Standard models on every plan.',
   },
   {
     q: "How does the 3-day free trial work?",
-    a: "Starter only. Your card is collected at sign-up but not charged for 3 days. If you cancel before day 4, you pay nothing. After 3 days your card is charged and the subscription begins. Growth and ProAgent are charged immediately — no trial.",
+    a: "Starter only. Your card is collected at sign-up but not charged for 3 days. If you cancel before day 4, you pay nothing. Growth and ProAgent are charged immediately — no trial.",
   },
   {
     q: "Can I cancel or change plans anytime?",
     a: "Yes, always. You can upgrade, downgrade, or cancel from your billing page or through the Stripe customer portal. Cancellations take effect at the end of your current billing period — you keep full access until then.",
   },
   {
-    q: "What's a service request?",
-    a: "Service requests are how you engage the Agent7even team for done-for-you work — design, content production, ad strategy, and more. Starter gets 1 active request at a time, Growth gets 3, ProAgent gets unlimited. Add-on services (like photography or custom builds) are scoped separately.",
-  },
-  {
     q: "Do unused credits roll over?",
-    a: "No — credits reset on the 1st of each month and don't roll over. If you consistently hit your limit, it's a good signal to upgrade. You can also top up with additional credit packs from the billing page.",
+    a: "No — media credits reset on your monthly billing date and don't roll over. If you consistently hit your limit, upgrade or top up from billing.",
   },
   {
     q: "What's included in annual billing?",
@@ -55,14 +67,12 @@ const PLANS = [
     billingNote: '3 days free — cancel anytime before being charged',
     cta: 'Start your free trial',
     popular: false,
-    description: 'Everything you need to start building your brand and running your first campaigns.',
+    description: 'Unlimited text work plus media credits for images and video.',
     features: [
-      'Maya chat',
-      'Foundation',
-      'Brand Kit',
-      '3 active campaigns',
-      '100 credits / month',
-      'All 9 agents',
+      'Unlimited campaigns, content, chat & agents',
+      '100 media credits / month',
+      'Maya + all 12 agents',
+      'Foundation + Brand Kit',
       'Morning digest',
       'Basic analytics',
       '1 service request',
@@ -80,17 +90,15 @@ const PLANS = [
     billingNote: 'Billed immediately — cancel anytime',
     cta: 'Get started',
     popular: true,
-    description: 'Unlimited campaigns, more credits, and priority support for growing businesses.',
+    description: 'More media volume for businesses posting every week.',
     features: [
       'Everything in Starter',
-      'Unlimited campaigns',
-      '350 credits / month',
+      '350 media credits / month',
       'Full analytics',
       '3 service requests',
       '3 team seats',
       'Priority support',
       '10% add-on discount',
-      'Early access to new features',
     ],
   },
   {
@@ -103,17 +111,16 @@ const PLANS = [
     billingNote: 'Billed immediately — cancel anytime',
     cta: 'Get started',
     popular: false,
-    description: 'Maximum credits, dedicated support, and white-glove onboarding for serious operators.',
+    description: 'Maximum media allowance plus premium Recraft & Kling models.',
     features: [
       'Everything in Growth',
-      '1,000 credits / month',
+      '1,000 media credits / month',
+      'Premium image & video models',
       'Unlimited service requests',
       '5 team seats (+$15/mo per extra)',
       'Dedicated support',
       '15% add-on discount',
       'Quarterly strategy review',
-      'White-glove onboarding',
-      'First access to beta features',
     ],
   },
 ]
@@ -126,9 +133,12 @@ const COMPARE_ROWS: { feature: string; starter: CellVal; growth: CellVal; proage
   { feature: 'Maya chat',               starter: true,          growth: true,          proagent: true          },
   { feature: 'Foundation',              starter: true,          growth: true,          proagent: true          },
   { feature: 'Brand Kit',               starter: true,          growth: true,          proagent: true          },
-  { feature: 'Campaigns',               starter: '3 active',    growth: 'Unlimited',   proagent: 'Unlimited'   },
-  { feature: 'Credits / month',         starter: '100',         growth: '350',         proagent: '1,000'       },
-  { feature: 'Agents',                  starter: 'All 9',       growth: 'All 9',       proagent: 'All 9'       },
+  { feature: 'Campaigns & content',     starter: 'Unlimited',   growth: 'Unlimited',   proagent: 'Unlimited'   },
+  { feature: 'Maya chat & agents',      starter: 'Unlimited',   growth: 'Unlimited',   proagent: 'Unlimited'   },
+  { feature: 'Media credits / month',   starter: '100',         growth: '350',         proagent: '1,000'       },
+  { feature: 'Media allowance',         starter: '≈33 img / 10 vid', growth: '≈116 img / 35 vid', proagent: '≈333 img / 100 vid' },
+  { feature: 'Premium media models',    starter: false,         growth: false,         proagent: true          },
+  { feature: 'Agents',                  starter: 'All 12',      growth: 'All 12',      proagent: 'All 12'      },
   { feature: 'Morning digest',          starter: true,          growth: true,          proagent: true          },
   { feature: 'Analytics',               starter: 'Basic',       growth: 'Full',        proagent: 'Full'        },
   { feature: 'Service requests',        starter: '1',           growth: '3',           proagent: 'Unlimited'   },
@@ -237,11 +247,10 @@ export default function PricingPage() {
           Pricing
         </p>
         <h1 className="text-4xl md:text-5xl font-semibold tracking-tight mb-5">
-          Simple, transparent pricing
+          Choose your marketing team size
         </h1>
         <p className="text-lg text-gray-500 max-w-xl mx-auto mb-10">
-          One platform for your marketing dashboard, AI tools, and managed
-          services. No contracts. Cancel anytime.
+          Unlimited campaigns, content, and Maya chat on every plan. Media credits meter images and video only — so daily marketing work never stalls mid-week.
         </p>
 
         {/* Monthly / Annual toggle */}

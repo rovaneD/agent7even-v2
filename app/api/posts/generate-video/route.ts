@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { isVideoGenerationEnabled } from '@/lib/posts/videoGenerationFlag'
 import { assertGenerationFloor } from '@/lib/foundation/sectionStrength'
 import { deductCredits } from '@/lib/credits'
+import { videoCreditCost } from '@/lib/credits/actionCosts'
 import { logProviderError, sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
@@ -16,8 +17,6 @@ import { resolveVideoModel } from '@/lib/agents/videoGeneration/videoModelCatalo
 import { submitVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
 
 export const maxDuration = 60
-
-export const GENERATION_VIDEO_CREDIT_COST = 40
 
 type Body = {
   postGoal?: string
@@ -92,6 +91,16 @@ export async function POST(req: Request) {
   const profileId = profile.id as string
   const companyName = (profile.company_name as string | null) ?? 'your business'
   const modelEntry = resolveVideoModel(body.videoModelId)
+  const videoCost = videoCreditCost(modelEntry.id, profile.plan as string | null)
+  if (videoCost < 0) {
+    return NextResponse.json(
+      {
+        error: 'premium_plan_required',
+        message: 'Premium video models are available on ProAgent.',
+      },
+      { status: 403 },
+    )
+  }
 
   const postForm: Record<string, string> = {
     postGoal: body.postGoal ?? '',
@@ -203,7 +212,7 @@ export async function POST(req: Request) {
   try {
     await deductCredits(
       profileId,
-      GENERATION_VIDEO_CREDIT_COST,
+      videoCost,
       `Video generation — ${modelEntry.label}`,
       taskId,
     )
@@ -218,7 +227,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error: 'insufficient_credits',
-          message: `Video generation costs ${GENERATION_VIDEO_CREDIT_COST} credits. Top up your credits to continue.`,
+          message: `Video generation costs ${videoCost} media credits. Top up your credits to continue.`,
         },
         { status: 402 },
       )

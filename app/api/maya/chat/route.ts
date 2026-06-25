@@ -10,9 +10,10 @@ import { calculateCost, CREDIT_COST } from '@/lib/agents/cost'
 import { loadFoundationContext } from '@/lib/agents/loadFoundationContext'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { buildImageContextCapabilityPrompt } from '@/lib/posts/imageContextCapabilities'
+import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { MAYA_NO_FAKE_ACTIONS } from '@/lib/maya/voiceRules'
 
-const CHAT_CREDITS = CREDIT_COST.light  // 2 credits per turn
+const CHAT_CREDITS = ACTION_CREDIT_COST.maya_chat_turn
 const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
 
 export async function POST(req: Request) {
@@ -217,7 +218,7 @@ NAVIGATION SECTIONS:
 - Settings: Company name, website, Instagram handle, notification preferences.
 
 HOW CREDITS WORK:
-Credits are the currency for running agents and chatting with Maya. Your plan includes a monthly allowance: Starter 100cr, Growth 350cr, ProAgent 1,000cr. Maya chat costs 2 credits per message. Agent runs cost 2–25 credits based on complexity. Top up mid-month from the Billing page. A low-balance modal appears when you drop below 20%.
+Credits are media units for images, video, publishing, and Brand Kit generation — not for chat or most text agents. Your plan includes a monthly media allowance: Starter 100cr, Growth 350cr, ProAgent 1,000cr. Maya chat and standard agent runs are unlimited (0 credits). Standard images cost 3 credits; standard video costs 10 credits. Premium models (Recraft, Kling) are ProAgent-only. Top up mid-month from the Billing page. A low-balance modal appears when you drop below 20%.
 
 HOW FOUNDATION WORKS:
 Foundation is a 5-step setup that collects deep business context — description, customer profile, positioning, brand voice, 30-day goals. When complete, it generates 5 documents that Maya uses for every agent run and campaign. A higher Foundation score means better, more specific output. You can always edit answers and re-score at /dashboard/foundation.

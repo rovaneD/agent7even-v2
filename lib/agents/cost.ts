@@ -152,12 +152,15 @@ export function calculateCostSync(
 
 // ── Credit tiers ───────────────────────────────
 
+import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
+
 export type RunTier = 'light' | 'standard' | 'deep'
 
+/** @deprecated Use ACTION_CREDIT_COST — kept for tier classification only */
 export const CREDIT_COST: Record<RunTier, number> = {
-  light:    2,
-  standard: 8,
-  deep:     25,
+  light:    ACTION_CREDIT_COST.text_run,
+  standard: ACTION_CREDIT_COST.text_run,
+  deep:     ACTION_CREDIT_COST.image_standard,
 }
 
 export function classifyRunTier(subagentCount: number): RunTier {

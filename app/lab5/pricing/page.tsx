@@ -12,54 +12,58 @@ function CheckIcon() {
   )
 }
 
+const SERVICE_REQUEST_DEF =
+  'Human-delivered work (design, photography, ad management) you request and track in your dashboard, fulfilled by our team. Not AI — managed services.'
+
 const FAQ_ITEMS = [
   {
-    q: 'What happens after the 3-day trial?',
-    a: 'Your card is collected at sign-up but not charged for the first 3 days. At the end of the trial, Starter billing begins at $49/month. You can cancel before day 4 and pay nothing.',
+    q: 'What does Maya actually create?',
+    a: 'Campaign plans, social posts, email copy, ad variations to test, on-brand images, short video, SEO and competitor reports, and performance digests — all drafted for your approval queue. Twelve specialist agents handle specific jobs; Maya coordinates them. Nothing publishes until you sign off.',
+  },
+  {
+    q: 'Are campaigns, chat, and text agents really unlimited?',
+    a: 'Yes. Maya chat, agent runs, and campaign generation do not consume media credits on any plan. Credits meter image and video generation only — the creative assets that cost real compute.',
+  },
+  {
+    q: 'What are media credits?',
+    a: 'Media credits pay for generated images and videos only. Standard images cost 3 credits, standard videos 10. A typical month on Starter (100 credits) is about 33 images or 10 videos — plus unlimited text work on top.',
+  },
+  {
+    q: 'What are service requests?',
+    a: SERVICE_REQUEST_DEF + ' Starter includes 1 active request, Growth 3, ProAgent unlimited.',
+  },
+  {
+    q: 'What does ProAgent unlock beyond more credits?',
+    a: 'Premium image (Recraft) and premium video (Kling) models — higher-quality media generation gated to ProAgent. Standard Gemini/Veo models are on every plan.',
+  },
+  {
+    q: 'How does the 3-day free trial work?',
+    a: 'Starter only. Your card is collected at sign-up but not charged for 3 days. Cancel before day 4 and pay nothing. Growth and ProAgent are charged immediately on sign-up.',
   },
   {
     q: 'Can I cancel anytime?',
-    a: 'Yes. Cancel from your account settings at any time — no cancellation fees, no questions asked. Cancellations take effect at the end of your current billing period.',
-  },
-  {
-    q: "Does Growth or ProAgent have a free trial?",
-    a: "No. Growth and ProAgent are charged immediately on sign-up. The 3-day free trial is exclusive to the Starter plan.",
+    a: 'Yes. Cancel from your account settings — no fees, no contract. Access continues through the end of your billing period.',
   },
   {
     q: "What's included in annual billing?",
-    a: "Annual billing gives you 2 months free — you pay for 10 months and get 12. Starter is $490/yr, Growth is $890/yr, ProAgent is $1,490/yr. Annual plans are billed upfront.",
-  },
-  {
-    q: 'What are team seats?',
-    a: "Seats let you invite team members — a VA, social media manager, or anyone who needs platform access. Starter includes 1 seat, Growth includes 3, ProAgent includes 5. Extra seats are $15/mo each on ProAgent.",
-  },
-  {
-    q: 'Can I upgrade or downgrade anytime?',
-    a: 'Yes. Upgrades take effect immediately; downgrades apply at the start of your next billing cycle. You keep full access until your current period ends.',
-  },
-  {
-    q: 'What is the Brand Kit?',
-    a: "The Brand Kit is where Maya learns your business. You tell her your tone, audience, and key details — she uses that foundation for everything she creates. The Brand Kit is locked during the Starter trial and unlocks once your subscription begins.",
-  },
-  {
-    q: 'What channels does Maya cover?',
-    a: 'Email, Instagram, and Facebook on all plans. Scheduling across additional channels is available on Growth and ProAgent.',
+    a: 'Annual billing saves 2 months — billed upfront. Starter $490/yr, Growth $890/yr, ProAgent $1,490/yr.',
   },
 ]
 
 const TIERS = [
   {
     name: 'Starter',
-    desc: 'For getting your first campaigns out the door.',
+    desc: 'Your first marketing OS — unlimited text work, media for steady posting.',
     monthlyPrice: 49,
     annualPrice: 490,
     trial: '3-day free trial · Card required, no charge for 3 days',
+    mediaNote: '100 media credits/mo · ≈ 33 images or 10 videos',
     features: [
-      '1 active campaign at a time',
-      'Maya chat + Brand Kit',
+      'Unlimited campaigns, content, chat & agent runs',
+      '100 media credits / month',
+      'Maya + all 12 specialist agents',
       'Approval queue',
-      'All 9 agents',
-      '100 credits / month',
+      '1 service request',
       '1 seat included',
     ],
     cta: 'Start your free trial',
@@ -69,18 +73,17 @@ const TIERS = [
   },
   {
     name: 'Growth',
-    desc: 'For businesses that want the marketing fully run.',
+    desc: 'More media volume for businesses posting across channels every week.',
     monthlyPrice: 89,
     annualPrice: 890,
     trial: null,
+    mediaNote: '350 media credits/mo · ≈ 116 images or 35 videos',
     features: [
       'Everything in Starter',
-      'Unlimited campaigns & content',
-      'Competitor watch + follow-ups',
-      'Scheduling across every channel',
-      'Full analytics',
-      '350 credits / month',
+      '350 media credits / month',
+      '3 service requests',
       '3 seats included',
+      'Priority support',
     ],
     cta: 'Get started',
     ctaHref: '/pricing',
@@ -89,17 +92,18 @@ const TIERS = [
   },
   {
     name: 'ProAgent',
-    desc: 'For growing businesses that want every advantage.',
+    desc: 'Maximum media allowance plus premium Recraft & Kling models.',
     monthlyPrice: 149,
     annualPrice: 1490,
     trial: null,
+    mediaNote: '1,000 media credits/mo · ≈ 333 images or 100 videos',
     features: [
       'Everything in Growth',
-      '1,000 credits / month',
-      'Multiple brand workspaces',
-      'Team roles & approvals',
-      'Priority support',
+      '1,000 media credits / month',
+      'Premium image & video models',
+      'Unlimited service requests',
       '5 seats included (+$15/mo per extra)',
+      'Dedicated support',
     ],
     cta: 'Get started',
     ctaHref: '/pricing',
@@ -130,31 +134,29 @@ export default function PricingPage() {
 
   return (
     <div className="lab5">
-      {/* NAV */}
       <MarketingNav active="pricing" />
 
-      {/* PRICING HEADER */}
       <section id="pricing">
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">Pricing</span>
-            <h2 className="t-h2">Less than a freelancer.<br />More than a team.</h2>
-            <p className="t-lead">Try Starter free for 3 days. Upgrade when you&rsquo;re ready — most users see the return in week one.</p>
+            <h2 className="t-h2">Choose your marketing<br />team size.</h2>
+            <p className="t-lead">
+              Unlimited campaigns, content, and Maya chat on every plan. Media credits meter images and video only — so the work you do every day never runs out mid-week.
+            </p>
           </div>
 
-          {/* Monthly / Annual toggle */}
+          <div className="pricing-anchor reveal">
+            <p>
+              A part-time social coordinator runs <b>$2,000–4,000/mo</b>. A freelance retainer often starts at <b>$3,000/mo</b>.
+              Agent7even gives you twelve specialist agents plus Maya for a fraction of that — with you approving everything before it goes live.
+            </p>
+          </div>
+
           <div className="billing-toggle-wrap">
             <div className="billing-toggle">
-              <button
-                className={!annual ? 'active' : ''}
-                onClick={() => setAnnual(false)}
-              >
-                Monthly
-              </button>
-              <button
-                className={annual ? 'active' : ''}
-                onClick={() => setAnnual(true)}
-              >
+              <button className={!annual ? 'active' : ''} onClick={() => setAnnual(false)}>Monthly</button>
+              <button className={annual ? 'active' : ''} onClick={() => setAnnual(true)}>
                 Annual <span className="save-badge">2 months free</span>
               </button>
             </div>
@@ -162,24 +164,18 @@ export default function PricingPage() {
 
           <div className="price-grid">
             {TIERS.map((tier) => {
-              const displayPrice = annual
-                ? Math.round(tier.annualPrice / 12)
-                : tier.monthlyPrice
-
+              const displayPrice = annual ? Math.round(tier.annualPrice / 12) : tier.monthlyPrice
               return (
                 <div key={tier.name} className={`tier reveal${tier.featured ? ' featured' : ''}`}>
                   {tier.featured && <div className="badge">Most popular</div>}
                   <div className="tname">{tier.name}</div>
                   <div className="tdesc">{tier.desc}</div>
-                  <div className="tprice">
-                    ${displayPrice}<span> / mo</span>
+                  <div className="tprice">${displayPrice}<span> / mo</span></div>
+                  {annual && <div className="tprice-note">${tier.annualPrice} billed annually</div>}
+                  {tier.trial && !annual && <div className="trial-tag">{tier.trial}</div>}
+                  <div className="trial-tag" style={{ marginTop: tier.trial && !annual ? 8 : 0, background: '#F4F8FF', color: 'var(--l5-blue)', border: '1px solid #DCE9FF' }}>
+                    {tier.mediaNote}
                   </div>
-                  {annual && (
-                    <div className="tprice-note">${tier.annualPrice} billed annually</div>
-                  )}
-                  {tier.trial && !annual && (
-                    <div className="trial-tag">{tier.trial}</div>
-                  )}
                   <ul className="tlist">
                     {tier.features.map((f) => (
                       <li key={f}><CheckIcon />{f}</li>
@@ -191,14 +187,14 @@ export default function PricingPage() {
             })}
           </div>
 
-          <p className="tier-note">
-            All plans billed monthly. Annual billing saves 2 months — billed upfront.<br />
-            Growth &amp; ProAgent charged immediately on sign-up. Starter includes a 3-day free trial.
+          <p className="tier-note reveal">
+            <b>Service requests:</b> {SERVICE_REQUEST_DEF}<br />
+            Growth and ProAgent charged immediately on sign-up. Starter includes a 3-day free trial.<br />
+            <span style={{ color: 'var(--l5-faint)' }}>Open decisions flagged: ProAgent naming · trial on all tiers · Starter→Growth is primarily volume — see FAQ.</span>
           </p>
         </div>
       </section>
 
-      {/* FAQ */}
       <section id="faq">
         <div className="wrap">
           <div className="sec-head reveal">
@@ -219,7 +215,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* DARK CTA */}
       <div className="cta-section">
         <div className="cta-orb">
           <Metaballs
@@ -242,7 +237,6 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* FOOTER */}
       <footer className="footer">
         <div className="footer-in">
           <div className="footer-top">
@@ -250,7 +244,7 @@ export default function PricingPage() {
               <a className="brand" href="/">
                 <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
               </a>
-              <p>The AI-first marketing platform for small business. Meet Maya.</p>
+              <p>The AI marketing operating system for small business. Meet Maya.</p>
             </div>
             <div className="fcol">
               <h5>Product</h5>

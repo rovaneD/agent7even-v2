@@ -1,5 +1,7 @@
+import { createServiceClient } from '@/lib/supabase/server'
 import { deductCredits, refundCredits } from '@/lib/credits'
-import { CREDIT_COST, type RunTier } from '@/lib/agents/cost'
+import { imageCreditCost } from '@/lib/credits/actionCosts'
+import type { RunTier } from '@/lib/agents/cost'
 import {
   chargeAgentRun,
   createTask,
@@ -11,8 +13,11 @@ import { composeImageCaption } from './composeCaption'
 import { assertPostAssetOwnedByProfile } from './generateOptions'
 import type { TextQaResult } from './types'
 
-/** One bundled charge for brief + options + QA + caption (handoff §2f / §9 step 7). */
-export const GENERATION_BUNDLE_CREDIT_COST = CREDIT_COST.deep
+/** One bundled charge for brief + options + QA + caption — debits by image model tier. */
+export function generationBundleCreditCost(modelId: string | null | undefined, plan: string | null | undefined): number {
+  return imageCreditCost(modelId, plan)
+}
+
 const BUNDLE_TIER: RunTier = 'deep'
 
 export type QueueGeneratedPostInput = {
@@ -65,6 +70,24 @@ export async function queueGeneratedPost(
 
   let taskId: string | null = null
   let creditsReserved = false
+  let bundleCost = 0
+
+  const supabase = createServiceClient()
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', profileId)
+    .single()
+
+  bundleCost = generationBundleCreditCost(picked.imageModel, profileRow?.plan ?? null)
+  if (bundleCost < 0) {
+    return {
+      ok: false,
+      code: 'premium_plan_required',
+      message: 'Premium image models are available on ProAgent.',
+      status: 403,
+    }
+  }
 
   try {
     const task = await createTask({
@@ -79,7 +102,7 @@ export async function queueGeneratedPost(
 
     await deductCredits(
       profileId,
-      GENERATION_BUNDLE_CREDIT_COST,
+      bundleCost,
       'image_generation_bundle — reserved',
       taskId,
     )
@@ -148,7 +171,7 @@ export async function queueGeneratedPost(
     if (creditsReserved && taskId) {
       await refundCredits(
         profileId,
-        GENERATION_BUNDLE_CREDIT_COST,
+        bundleCost,
         'image_generation_bundle — failed refund',
         taskId,
       ).catch(() => {})
