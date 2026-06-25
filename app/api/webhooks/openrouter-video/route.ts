@@ -131,7 +131,7 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
   // Find the agent_task with this job_id stored in input jsonb
   const { data: tasks, error: taskError } = await supabase
     .from('agent_tasks')
-    .select('id, user_id, input')
+    .select('id, user_id, input, status')
     .eq('input->>video_job_id', jobId)
     .limit(1)
 
@@ -143,10 +143,16 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
   const task = tasks[0]!
   const taskId = task.id as string
   const userId = task.user_id as string
+  const taskStatus = task.status as string | null
   const input = (task.input ?? {}) as Record<string, unknown>
   const profileId = input.profileId as string | undefined
   const videoModel = (input.video_model as string | undefined) ?? 'unknown'
   const briefExcerpt = (input.brief_excerpt as string | undefined) ?? ''
+
+  if (taskStatus !== 'running') {
+    console.log('[openrouter-video] Ignoring webhook for non-running task:', taskId, taskStatus)
+    return
+  }
 
   if (!profileId) {
     console.error('[openrouter-video] Task missing profileId, task:', taskId)

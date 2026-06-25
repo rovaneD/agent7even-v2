@@ -69,6 +69,7 @@ export async function POST(req: Request) {
   try {
     const option = await regenerateImageOption({
       profileId: profile.id,
+      plan: profile.plan as string | null,
       briefId,
       optionIndex,
       brief: brief.trim(),
@@ -83,6 +84,15 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('[generate-images/regenerate-option]', err)
     const msg = err instanceof Error ? err.message : 'regenerate_failed'
+    if (msg === 'premium_image_plan_required') {
+      return NextResponse.json(
+        {
+          error: 'premium_plan_required',
+          message: 'Premium image models are available on ProAgent.',
+        },
+        { status: 403 },
+      )
+    }
     return NextResponse.json(
       {
         error: 'regenerate_failed',

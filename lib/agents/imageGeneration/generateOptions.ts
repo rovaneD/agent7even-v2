@@ -20,6 +20,7 @@ import { buildTextOnlyRegenBrief, detectImageEditMode, extractExpectedHeadline, 
 import { generateImageEditFromSource, generateImageFromBrief, isGoogleImageModel, type ImageAspectRatio } from './openRouterImage'
 import { runTextQaGate } from './textQaGate'
 import { GENERATION_OPTION_QA_MAX_RETRIES, type GenerateImageOptionsResult } from './types'
+import { imageCreditCost } from '@/lib/credits/actionCosts'
 
 function detectImageMime(buf: Buffer): string {
   if (buf[0] === 0xff && buf[1] === 0xd8) return 'image/jpeg'
@@ -41,6 +42,7 @@ function extForMime(mime: string): string {
 export async function generateImageOptions(opts: {
   profileId: string
   companyName: string
+  plan: string | null
   sceneDirection?: string
   useBrandKit?: boolean
   includeLogo?: boolean
@@ -50,6 +52,9 @@ export async function generateImageOptions(opts: {
 }): Promise<GenerateImageOptionsResult> {
   const briefId = randomUUID()
   const modelEntry = resolveImageGenerationModel(opts.imageModelId)
+  if (imageCreditCost(modelEntry.id, opts.plan) < 0) {
+    throw new Error('premium_image_plan_required')
+  }
   const imageModel = modelEntry.openRouterModel
   const count = imageOptionCount()
 
@@ -222,12 +227,16 @@ async function ensureOptionPassesQa(opts: {
 /** Regenerate one option after QA fail (bounded retries in UI). */
 export async function regenerateImageOption(opts: {
   profileId: string
+  plan: string | null
   briefId: string
   optionIndex: number
   brief: string
   imageModel?: string
 }): Promise<GenerateImageOptionsResult['options'][number]> {
   const imageModel = opts.imageModel?.trim() || defaultImageModel()
+  if (imageCreditCost(imageModel, opts.plan) < 0) {
+    throw new Error('premium_image_plan_required')
+  }
   const bytes = await generateImageFromBrief(imageModel, opts.brief, '4:5')
   return uploadRegeneratedOption({
     ...opts,
@@ -241,6 +250,7 @@ export async function regenerateImageOption(opts: {
 export async function editImageOption(opts: {
   profileId: string
   companyName: string
+  plan: string | null
   briefId: string
   optionIndex: number
   brief: string
@@ -259,6 +269,9 @@ export async function editImageOption(opts: {
       : `${opts.brief.trim()}\n\nREVISION (apply exactly; keep everything else the same):\n${opts.editInstruction.trim()}`
 
   const visualModel = opts.imageModel?.trim() || defaultImageModel()
+  if (imageCreditCost(visualModel, opts.plan) < 0) {
+    throw new Error('premium_image_plan_required')
+  }
   const img2imgModel = isGoogleImageModel(visualModel)
     ? visualModel
     : resolveImageGenerationModel('balanced').openRouterModel

@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { isVideoGenerationEnabled } from '@/lib/posts/videoGenerationFlag'
 import { assertGenerationFloor } from '@/lib/foundation/sectionStrength'
-import { deductCredits } from '@/lib/credits'
+import { deductCredits, refundCredits } from '@/lib/credits'
 import { videoCreditCost } from '@/lib/credits/actionCosts'
 import { logProviderError, sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -143,30 +143,7 @@ export async function POST(req: Request) {
     )
   }
 
-  // ── Step 2: Submit OpenRouter job (before task creation or credit deduction) ──
-  let jobResult: { id: string; status: string }
-  try {
-    jobResult = await submitVideoJob({
-      model: modelEntry.openRouterModel,
-      prompt: brief,
-      aspectRatio: modelEntry.aspectRatio,
-      duration: modelEntry.durationSeconds,
-    })
-  } catch (err) {
-    logProviderError('generate-video submit', err)
-    return NextResponse.json(
-      {
-        error: 'submit_failed',
-        message: sanitizeUserFacingError(
-          err instanceof Error ? err.message : 'video_submit_failed',
-          'video_generation',
-        ),
-      },
-      { status: 502 },
-    )
-  }
-
-  // ── Step 3: Create agent_task record (job already submitted) ─────────────
+  // ── Step 2: Create task before any paid provider side effect ────────────
   const taskInput = {
     profileId,
     postGoal: body.postGoal,
@@ -175,7 +152,6 @@ export async function POST(req: Request) {
     audience: body.audience ?? null,
     brief_excerpt: brief.slice(0, 200),
     video_model: modelEntry.openRouterModel,
-    video_job_id: jobResult.id,
   }
 
   const { data: task, error: taskError } = await supabase
@@ -196,7 +172,6 @@ export async function POST(req: Request) {
 
   if (taskError || !task) {
     logProviderError('generate-video task-create', taskError)
-    // Job was submitted — log for manual reconciliation but don't surface internals
     return NextResponse.json(
       {
         error: 'task_create_failed',
@@ -208,7 +183,7 @@ export async function POST(req: Request) {
 
   const taskId = task.id as string
 
-  // ── Step 4: Deduct credits (after task exists so ledger row is linked) ───
+  // ── Step 3: Reserve credits before submitting the paid OpenRouter job ───
   try {
     await deductCredits(
       profileId,
@@ -218,12 +193,12 @@ export async function POST(req: Request) {
     )
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'deduct_failed'
+    await supabase
+      .from('agent_tasks')
+      .update({ status: 'failed', completed_at: new Date().toISOString() })
+      .eq('id', taskId)
+
     if (msg === 'INSUFFICIENT_CREDITS') {
-      // Mark task failed and surface a clear error
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'failed', completed_at: new Date().toISOString() })
-        .eq('id', taskId)
       return NextResponse.json(
         {
           error: 'insufficient_credits',
@@ -233,7 +208,77 @@ export async function POST(req: Request) {
       )
     }
     logProviderError('generate-video deduct-credits', err)
-    // Non-credit error — task running, video job submitted; credit issue logged
+    return NextResponse.json(
+      {
+        error: 'credit_reservation_failed',
+        message: 'We could not reserve credits for this video. Please try again in a few minutes.',
+      },
+      { status: 500 },
+    )
+  }
+
+  // ── Step 4: Submit OpenRouter job only after the ledger reservation ──────
+  let jobResult: { id: string; status: string }
+  try {
+    jobResult = await submitVideoJob({
+      model: modelEntry.openRouterModel,
+      prompt: brief,
+      aspectRatio: modelEntry.aspectRatio,
+      duration: modelEntry.durationSeconds,
+    })
+  } catch (err) {
+    logProviderError('generate-video submit', err)
+    await refundCredits(
+      profileId,
+      videoCost,
+      `Video generation — ${modelEntry.label} submit failed refund`,
+      taskId,
+    ).catch(refundErr => logProviderError('generate-video submit-refund', refundErr))
+    await supabase
+      .from('agent_tasks')
+      .update({ status: 'failed', completed_at: new Date().toISOString() })
+      .eq('id', taskId)
+    return NextResponse.json(
+      {
+        error: 'submit_failed',
+        message: sanitizeUserFacingError(
+          err instanceof Error ? err.message : 'video_submit_failed',
+          'video_generation',
+        ),
+      },
+      { status: 502 },
+    )
+  }
+
+  const { error: jobAttachError } = await supabase
+    .from('agent_tasks')
+    .update({
+      input: {
+        ...taskInput,
+        video_job_id: jobResult.id,
+      },
+    })
+    .eq('id', taskId)
+
+  if (jobAttachError) {
+    logProviderError('generate-video attach-job', jobAttachError)
+    await refundCredits(
+      profileId,
+      videoCost,
+      `Video generation — ${modelEntry.label} attach failed refund`,
+      taskId,
+    ).catch(refundErr => logProviderError('generate-video attach-refund', refundErr))
+    await supabase
+      .from('agent_tasks')
+      .update({ status: 'failed', completed_at: new Date().toISOString() })
+      .eq('id', taskId)
+    return NextResponse.json(
+      {
+        error: 'task_update_failed',
+        message: 'We could not save your video job right now. Please try again in a few minutes.',
+      },
+      { status: 500 },
+    )
   }
 
   return NextResponse.json({
