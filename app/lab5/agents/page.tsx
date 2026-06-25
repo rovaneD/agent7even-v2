@@ -61,6 +61,8 @@ export default function AgentsPage() {
             <div className="source"><span className="sd" style={{ background: 'var(--l5-brand)' }}></span><span>Instagram</span></div>
             <div className="source"><span className="sd" style={{ background: 'var(--l5-blue)' }}></span><span>Facebook</span></div>
             <div className="source"><span className="sd" style={{ background: 'var(--l5-ink)' }}></span><span>LinkedIn</span></div>
+            <div className="source"><span className="sd" style={{ background: '#111' }}></span><span>X</span></div>
+            <div className="source"><span className="sd" style={{ background: '#FF0000' }}></span><span>YouTube</span></div>
             <div className="source"><span className="sd" style={{ background: 'var(--l5-green)' }}></span><span>Google Analytics</span></div>
           </div>
 

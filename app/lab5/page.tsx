@@ -27,7 +27,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'What channels does Agent7even cover?',
-    a: 'Social publishing supports Instagram, Facebook, LinkedIn, and X when you connect accounts. Email sequences are drafted for you to paste into your ESP (Mailchimp, Klaviyo, etc.). Google Analytics connects for marketing intelligence reporting.',
+    a: 'Social publishing supports Instagram, Facebook, LinkedIn, X, and YouTube when you connect accounts. Email sequences are drafted for you to paste into your ESP (Mailchimp, Klaviyo, etc.). Google Analytics connects for marketing intelligence reporting.',
   },
   {
     q: 'What happens after the 3-day trial?',
