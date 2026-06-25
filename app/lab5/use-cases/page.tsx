@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import Metaballs from '../SafeMetaballs'
 import MarketingNav from '../MarketingNav'
+import { cases } from '../../lab-use-cases/_data'
 
 const CARD_IMAGES: Record<string, string> = {
   ecommerce: '/lab5/uc-ecommerce.jpg',
@@ -12,60 +13,8 @@ const CARD_IMAGES: Record<string, string> = {
   agencies: '/lab5/uc-agencies.jpg',
 }
 
-const CARDS = [
-  {
-    slug: 'ecommerce',
-    ic: '#EE533B',
-    label: 'E-commerce brands',
-    h2: "The brand goes quiet between launches.",
-    lead: "Tell Maya about the drop. Get the launch sequence back — teasers, emails, posts — in your voice, ready to approve.",
-    pts: [
-      "A drop becomes a campaign in an afternoon.",
-      "You're never undercut blind.",
-      "The list stays warm.",
-      "One voice, every channel.",
-    ],
-  },
-  {
-    slug: 'local-service',
-    ic: '#10B981',
-    label: 'Local service businesses',
-    h2: "The competitor across town isn't better. They're just more present.",
-    lead: "Tell Maya to fill next week. Get the offer and the posts to push it — in your voice, ready to approve.",
-    pts: [
-      "A slow week becomes a promotion overnight.",
-      "You're never the last to know.",
-      "No review goes unanswered.",
-      "One voice, everywhere you show up.",
-    ],
-  },
-  {
-    slug: 'coaches-creators',
-    ic: '#F5349B',
-    label: 'Coaches, creators & solo founders',
-    h2: "You can't scale yourself. That's the real ceiling.",
-    lead: "Tell Maya about the offer. Get the full launch sequence in your voice — review, approve, ship.",
-    pts: [
-      "A launch runs itself.",
-      "You're never late to the conversation.",
-      "The momentum doesn't leak.",
-      "It still sounds like you.",
-    ],
-  },
-  {
-    slug: 'agencies',
-    ic: '#3286FE',
-    label: 'Agencies',
-    h2: "Your best people get pulled into work that just has to get done.",
-    lead: "Brief Maya on a client. Your team reviews and refines instead of building from zero.",
-    pts: [
-      "Campaigns drafted per account, in each client's voice.",
-      "Competitive intel without the manual research.",
-      "The routine output runs itself.",
-      "Voice held per client, automatically.",
-    ],
-  },
-]
+/** Local service leads — strongest vertical per A1 §5 */
+const CARD_ORDER = ['local-service', 'ecommerce', 'coaches-creators', 'agencies'] as const
 
 const ArrowRight = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -85,53 +34,54 @@ export default function UseCasesPage() {
     return () => io.disconnect()
   }, [])
 
+  const ordered = CARD_ORDER.map((slug) => cases.find((c) => c.slug === slug)).filter(Boolean)
+
   return (
     <div className="lab5">
-      {/* NAV */}
       <MarketingNav active="use-cases" />
 
-      {/* HERO */}
       <header className="idx-hero">
         <div className="wrap">
           <span className="eyebrow">Use cases</span>
-          <h1 className="t-display">Maya works for your world,<br />whatever that looks like.</h1>
-          <p className="t-lead">Different business, same problem — the marketing never gets done. Here&rsquo;s how Maya solves it for each one.</p>
+          <h1 className="t-display">Which business looks<br />most like yours?</h1>
+          <p className="t-lead">Same marketing OS — different agents matter most depending on how you work. Pick your world and see the stack that fits.</p>
         </div>
       </header>
 
-      {/* GRID */}
       <section className="wrap" style={{ paddingBottom: '108px' }}>
         <div className="idx-grid">
-          {CARDS.map((c) => (
+          {ordered.map((c) => (
             <Link
-              key={c.slug}
-              href={`/use-cases/${c.slug}`}
+              key={c!.slug}
+              href={`/use-cases/${c!.slug}`}
               className="idx-card reveal"
-              style={{ '--ic': c.ic } as React.CSSProperties}
+              style={{ '--ic': c!.accent } as React.CSSProperties}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={CARD_IMAGES[c.slug]} alt="" className="idx-card-img" />
+              <img src={CARD_IMAGES[c!.slug]} alt="" className="idx-card-img" />
               <div className="pad">
                 <span className="seg-eyebrow">
                   <span className="sd" />
-                  {c.label}
+                  {c!.label}
                 </span>
-                <h2>{c.h2}</h2>
-                <p className="lead">{c.lead}</p>
-                <ul className="pts">
-                  {c.pts.map((pt) => (
-                    <li key={pt}><span className="d" />{pt}</li>
-                  ))}
-                </ul>
-                <span className="go">Read more <ArrowRight /></span>
+                <h2>{c!.painLine}</h2>
+                <p className="lead">{c!.hero.subhead.split('. ')[0]}.</p>
+                <div className="uc-card-stack">
+                  <span className="uc-card-stack-label">Lead agents</span>
+                  <ul className="uc-card-stack-list">
+                    {c!.agentStack.map((a) => (
+                      <li key={a.name}><b>{a.name}</b> — {a.role}</li>
+                    ))}
+                  </ul>
+                </div>
+                <span className="go">See this stack <ArrowRight /></span>
               </div>
             </Link>
           ))}
         </div>
-        <p className="idx-foot-note">Same Maya. Four different jobs to be done.</p>
+        <p className="idx-foot-note">Different pain. Different agents. One approval-first OS.</p>
       </section>
 
-      {/* DARK CTA */}
       <div className="cta-section">
         <div className="cta-orb">
           <Metaballs
@@ -151,7 +101,6 @@ export default function UseCasesPage() {
         </div>
       </div>
 
-      {/* FOOTER */}
       <footer className="footer">
         <div className="footer-in">
           <div className="footer-top">
@@ -159,7 +108,7 @@ export default function UseCasesPage() {
               <a className="brand" href="/">
                 <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
               </a>
-              <p>The AI-first marketing platform for small business. Meet Maya.</p>
+              <p>The AI marketing operating system for small business. Meet Maya.</p>
             </div>
             <div className="fcol">
               <h5>Product</h5>

@@ -14,25 +14,23 @@ declare global {
   }
 }
 
-// Per-segment config: uc mockup key, colors, pull line, proof labels, more-cases cards
+// Per-segment config: uc mockup key, colors, pull line, more-cases cards
 const SEG: Record<string, {
   ucKey: string
   seg: string
   pull: string
-  proofLabels: string[]
   more: { slug: string; seg: string; bg: string; eyebrow: string; headline: string; tagline: string; icon: React.ReactNode }[]
 }> = {
   ecommerce: {
     ucKey: 'ecommerce',
     seg: '#EE533B',
-    pull: "Marketing never screams. It just quietly underperforms.",
-    proofLabels: ['In an afternoon', 'Never blindsided', 'Revenue loops', 'Held everywhere'],
+    pull: 'The brand goes quiet between launches — and quiet trains customers to forget.',
     more: [
-      { slug: 'local-service', seg: '#10B981', bg: '#E3F9F0', eyebrow: 'Local service', headline: 'Good at the work. Now visible for it.', tagline: 'Stay visible without staying up late — the slow week filled, every review answered.',
+      { slug: 'local-service', seg: '#10B981', bg: '#E3F9F0', eyebrow: 'Local service', headline: 'Good at the work. Now visible for it.', tagline: 'Stay visible without staying up late — the slow week filled, competitive reports on your desk.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg> },
       { slug: 'coaches-creators', seg: '#F5349B', bg: '#FDE5F1', eyebrow: 'Creators & founders', headline: 'Finally in two places at once.', tagline: 'You are the product and the marketing department. Maya carries the half you never have time for.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg> },
-      { slug: 'agencies', seg: '#3286FE', bg: '#EAF1FF', eyebrow: 'Agencies', headline: 'Your team back on the work that justifies the rate.', tagline: 'Maya runs the production layer per account, in each client\'s voice — your people stay on the thinking.',
+      { slug: 'agencies', seg: '#3286FE', bg: '#EAF1FF', eyebrow: 'Agencies', headline: 'Your team back on the work that justifies the rate.', tagline: 'Production capacity for drafts and variations — your team stays on strategy, not assembly.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg> },
     ],
   },
@@ -40,13 +38,12 @@ const SEG: Record<string, {
     ucKey: 'local',
     seg: '#10B981',
     pull: "The competitor across town isn't better. They're just more present.",
-    proofLabels: ['Overnight', 'Never last to know', 'No missed replies', 'One voice'],
     more: [
       { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs. The brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H5.5"/></svg> },
       { slug: 'coaches-creators', seg: '#F5349B', bg: '#FDE5F1', eyebrow: 'Creators & founders', headline: 'Finally in two places at once.', tagline: 'You are the product and the marketing department. Maya carries the half you never have time for.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg> },
-      { slug: 'agencies', seg: '#3286FE', bg: '#EAF1FF', eyebrow: 'Agencies', headline: 'Your team back on the work that justifies the rate.', tagline: 'Maya runs the production layer per account, in each client\'s voice.',
+      { slug: 'agencies', seg: '#3286FE', bg: '#EAF1FF', eyebrow: 'Agencies', headline: 'Your team back on the work that justifies the rate.', tagline: 'Production capacity for drafts and variations — your team stays on strategy.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg> },
     ],
   },
@@ -54,13 +51,12 @@ const SEG: Record<string, {
     ucKey: 'creators',
     seg: '#F5349B',
     pull: "You can't scale yourself. That's the real ceiling.",
-    proofLabels: ['Runs itself', 'Never late', 'Momentum held', 'Still sounds like you'],
     more: [
       { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs. The brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H5.5"/></svg> },
-      { slug: 'local-service', seg: '#10B981', bg: '#E3F9F0', eyebrow: 'Local service', headline: 'Good at the work. Now visible for it.', tagline: 'Stay visible without staying up late — the slow week filled, every review answered.',
+      { slug: 'local-service', seg: '#10B981', bg: '#E3F9F0', eyebrow: 'Local service', headline: 'Good at the work. Now visible for it.', tagline: 'Stay visible without staying up late — the slow week filled, competitive reports on your desk.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg> },
-      { slug: 'agencies', seg: '#3286FE', bg: '#EAF1FF', eyebrow: 'Agencies', headline: 'Your team back on the work that justifies the rate.', tagline: 'Maya runs the production layer per account, in each client\'s voice.',
+      { slug: 'agencies', seg: '#3286FE', bg: '#EAF1FF', eyebrow: 'Agencies', headline: 'Your team back on the work that justifies the rate.', tagline: 'Production capacity for drafts and variations — your team stays on strategy.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg> },
     ],
   },
@@ -68,11 +64,10 @@ const SEG: Record<string, {
     ucKey: 'agencies',
     seg: '#3286FE',
     pull: "Your best people get pulled into work that just has to get done.",
-    proofLabels: ['Per account', 'No manual research', 'Routine handled', 'Voice per client'],
     more: [
       { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs. The brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H5.5"/></svg> },
-      { slug: 'local-service', seg: '#10B981', bg: '#E3F9F0', eyebrow: 'Local service', headline: 'Good at the work. Now visible for it.', tagline: 'Stay visible without staying up late — the slow week filled, every review answered.',
+      { slug: 'local-service', seg: '#10B981', bg: '#E3F9F0', eyebrow: 'Local service', headline: 'Good at the work. Now visible for it.', tagline: 'Stay visible without staying up late — the slow week filled, competitive reports on your desk.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg> },
       { slug: 'coaches-creators', seg: '#F5349B', bg: '#FDE5F1', eyebrow: 'Creators & founders', headline: 'Finally in two places at once.', tagline: 'You are the product and the marketing department. Maya carries the half you never have time for.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg> },
@@ -139,6 +134,19 @@ export default function UseCaseDetailPage() {
           </div>
         </header>
 
+        {/* AGENT STACK */}
+        <section className="uc-agents measure reveal">
+          <h2>{uc.agentStackHeadline}</h2>
+          <ul className="agent-stack">
+            {uc.agentStack.map((a) => (
+              <li key={a.name}>
+                <span className="agent-stack-name">{a.name}</span>
+                <span className="agent-stack-role">{a.role}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {/* LEDE */}
         <section className="uc-lede measure reveal">
           {uc.setup.split('\n\n').slice(0, 1).map((p, i) => (
@@ -177,7 +185,7 @@ export default function UseCaseDetailPage() {
           <div className="proof">
             {uc.bullets.map((b, i) => (
               <div key={b.heading} className="proof-item">
-                <span className="pn"><b>0{i + 1}</b>{cfg.proofLabels[i]}</span>
+                <span className="pn"><b>0{i + 1}</b>{uc.proofLabels[i]}</span>
                 <h3>{b.heading}</h3>
                 <p>{b.body}</p>
               </div>

@@ -100,24 +100,24 @@
       </div>`,
 
     /* ---------------- LOCAL SERVICE ---------------- *
-       "Cedar Lane" — fill the slow week, answer every review, watch the street. */
+       Fill the slow week, competitive reports, approval-first workflow. */
     local: () => `
       <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/approvals</div></div>
       <div class="mk-body" style="height:430px">
         ${rail([['grid', false], ['inbox', true], ['star', false], ['eye', false]])}
-        ${chat('Cedar Lane', 'Marketing for Cedar Lane', `
+        ${chat('Your business', 'Marketing for your business', `
           <div class="bub bub-u">Next week's looking slow. Fill it.</div>
           <div class="bub bub-m">On it. A midweek offer plus two posts to push it — booked-by-Friday angle, in your voice. Ready to approve.<span class="lnk">View the promo ${arrowUp}</span></div>
-          <div class="bub bub-m">Also: a new 5★ review came in this morning. I drafted a reply — want to send it?</div>
+          <div class="bub bub-m">Also: this week's competitive report is ready — a rival posted a spring offer. Want a counter-draft?</div>
         `, 'Tell Maya the gap…')}
         <div class="mk-main">
-          <div class="mk-main-hd"><div><div class="ttl">Ready for you</div><div class="sub">Cedar Lane · 3 items waiting</div></div><span class="pill" style="font-size:11px;padding:5px 11px">3 waiting</span></div>
+          <div class="mk-main-hd"><div><div class="ttl">Ready for you</div><div class="sub">3 items waiting</div></div><span class="pill" style="font-size:11px;padding:5px 11px">3 waiting</span></div>
           <div class="mk-pad" style="gap:9px">
             <div class="mk-row" style="border-color:#BFEFDB;background:#F4FCF8;align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:5px"></span><div class="grow"><div class="rt">Midweek promo — "Book by Friday"</div><div class="rs">Offer + 2 posts · fills Tue–Thu</div></div>
               <div style="display:flex;gap:6px"><span style="font-size:12px;padding:6px 13px;border-radius:8px;background:var(--green);color:#fff;font-weight:500">Approve</span><span class="tag tag-ghost" style="padding:6px 11px">Edit</span></div></div>
-            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--amber);margin-top:5px"></span><div class="grow"><div class="rt">New 5★ review — Google</div><div class="rs">"Best in town." · reply drafted</div></div><span class="tag tag-green" style="padding:6px 12px">Reply</span></div>
-            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--orange);margin-top:5px"></span><div class="grow"><div class="rt">Lead gone quiet — Dana R.</div><div class="rs">Quoted 11 days ago · follow-up ready</div></div><span class="tag tag-amber" style="padding:6px 12px">Send</span></div>
-            <div class="mk-note accent-red"><div class="nl">Maya · watching the street</div><div class="nt">A competitor down the road just posted a spring offer. Want me to draft something that beats it?</div></div>
+            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--blue);margin-top:5px"></span><div class="grow"><div class="rt">Competitive report — weekly</div><div class="rs">Rival spring offer flagged · counter-draft ready</div></div><span class="tag tag-blue" style="padding:6px 12px">Review</span></div>
+            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--amber);margin-top:5px"></span><div class="grow"><div class="rt">SEO scan notes</div><div class="rs">3 quick wins flagged from your site</div></div><span class="tag tag-amber" style="padding:6px 12px">View</span></div>
+            <div class="mk-note accent-red"><div class="nl">Maya · from your Foundation</div><div class="nt">Competitive reports use what you&rsquo;ve told us — not live feeds. Drafts wait in your queue until you approve.</div></div>
           </div>
         </div>
       </div>`,
@@ -150,28 +150,22 @@
       </div>`,
 
     /* ---------------- AGENCIES ---------------- *
-       The production layer, per client, in each client's voice, routed to the team. */
+       Production capacity — drafts at volume, team approval-first. */
     agencies: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/studio</div></div>
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/approvals</div></div>
       <div class="mk-body" style="height:430px">
-        ${rail([['layers', true], ['mega', false], ['grid', false], ['eye', false]])}
-        <div class="mk-side" style="width:172px;flex-shrink:0;border-right:1px solid var(--line-2);background:#fff">
-          <div style="padding:11px 14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line-2)">Client workspaces</div>
-          <div style="padding:11px 14px;background:#F4F8FF;border-left:2px solid var(--blue)"><div style="display:flex;align-items:center;gap:8px"><span style="width:18px;height:18px;border-radius:6px;background:var(--orange);flex-shrink:0"></span><div><div style="font-size:12.5px;font-weight:600">Vela Skincare</div><div style="font-size:10.5px;color:var(--faint)">3 drafts to review</div></div></div></div>
-          <div style="padding:11px 14px;border-bottom:1px solid var(--line-2)"><div style="display:flex;align-items:center;gap:8px"><span style="width:18px;height:18px;border-radius:6px;background:var(--green);flex-shrink:0"></span><div><div style="font-size:12.5px;font-weight:500">Northwind Gear</div><div style="font-size:10.5px;color:var(--faint)">Live · week 3</div></div></div></div>
-          <div style="padding:11px 14px"><div style="display:flex;align-items:center;gap:8px"><span style="width:18px;height:18px;border-radius:6px;background:var(--brand);flex-shrink:0"></span><div><div style="font-size:12.5px;font-weight:500">Juno Studio</div><div style="font-size:10.5px;color:var(--faint)">2 drafts to review</div></div></div></div>
-        </div>
+        ${rail([['layers', true], ['mega', false], ['grid', false], ['inbox', true]])}
         <div class="mk-main">
-          <div class="mk-main-hd"><div><div class="ttl">Vela Skincare</div><div class="sub">Drafted by Maya · awaiting your team</div></div><span class="tag tag-blue">In each client's voice</span></div>
+          <div class="mk-main-hd"><div><div class="ttl">Approval queue</div><div class="sub">Client brief · 8 drafts this week</div></div><span class="tag tag-blue">Team review</span></div>
           <div class="mk-pad" style="gap:9px">
-            <div class="mk-note accent-blue"><div class="nl">Routed to review</div><div class="nt">Maya built this week's run for Vela in their voice. Nothing reaches the client until your team signs off.</div></div>
-            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500">Restock announcement</div><div class="rs">Vela voice · senior review</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Review ${chev}</span></div>
-            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Social</span><div class="grow"><div class="rt" style="font-weight:500">3 posts — ingredient story</div><div class="rs">Vela voice · ready</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
-            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Report</span><div class="grow"><div class="rt" style="font-weight:500">Monthly performance recap</div><div class="rs">Auto-compiled · client-ready</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
+            <div class="mk-note accent-blue"><div class="nl">Production capacity</div><div class="nt">Maya drafted campaigns, emails, and ad variations from your brief. Your team approves before anything goes to the client.</div></div>
+            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500">Restock announcement</div><div class="rs">3-email sequence · client voice</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Review ${chev}</span></div>
+            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Social</span><div class="grow"><div class="rt" style="font-weight:500">5 posts — ingredient story</div><div class="rs">Captions + image drafts</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Ads</span><div class="grow"><div class="rt" style="font-weight:500">4 ad variations to test</div><div class="rs">Headlines + body copy</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
             <div class="mk-stats" style="margin-top:2px">
-              <div class="mk-stat"><div class="n">3</div><div class="l">Accounts running</div></div>
-              <div class="mk-stat"><div class="n" style="color:var(--green)">31</div><div class="l">Assets this week</div></div>
-              <div class="mk-stat"><div class="n">100%</div><div class="l">Team-approved</div></div>
+              <div class="mk-stat"><div class="n">8</div><div class="l">Drafts this week</div></div>
+              <div class="mk-stat"><div class="n" style="color:var(--green)">100%</div><div class="l">Team-approved</div></div>
+              <div class="mk-stat"><div class="n">0</div><div class="l">Built from zero</div></div>
             </div>
           </div>
         </div>

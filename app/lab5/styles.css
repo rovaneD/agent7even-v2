@@ -485,6 +485,8 @@
 .lab5 .idx-hero .eyebrow { display: block; margin-bottom: 20px; }
 .lab5 .idx-hero h1 { max-width: 18ch; margin: 0 auto; }
 .lab5 .idx-hero .t-lead { max-width: 54ch; margin: 24px auto 0; }
+.lab5 .pricing-anchor { max-width: 58ch; margin: 28px auto 0; text-align: center; font-size: 15px; line-height: 1.65; color: var(--l5-muted); }
+.lab5 .pricing-anchor b { color: var(--l5-ink-2); font-weight: 600; }
 .lab5 .idx-foot-note { text-align: center; font-family: var(--l5-mono); font-size: 12px; color: var(--l5-faint); letter-spacing: .04em; padding: 64px 0 0; }
 .lab5 .idx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 64px 0 0; }
 .lab5 a.idx-card { --ic: var(--l5-blue); position: relative; border: 1px solid var(--l5-line); border-radius: 18px; background: var(--l5-surface); overflow: hidden; display: flex; flex-direction: column; text-align: left; transition: transform .25s ease, box-shadow .25s ease, border-color .25s; text-decoration: none; }
@@ -502,6 +504,19 @@
 .lab5 a.idx-card:hover .go { color: var(--ic); }
 .lab5 .idx-card .go svg { transition: transform .2s ease; display: block; }
 .lab5 a.idx-card:hover .go svg { transform: translateX(3px); }
+
+.lab5 .uc-card-stack { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--l5-line-2); }
+.lab5 .uc-card-stack-label { font-family: var(--l5-mono); font-size: 10px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--l5-faint); display: block; margin-bottom: 10px; }
+.lab5 .uc-card-stack-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.lab5 .uc-card-stack-list li { font-size: 13px; line-height: 1.45; color: var(--l5-muted); }
+.lab5 .uc-card-stack-list b { color: var(--l5-ink-2); font-weight: 600; }
+
+.lab5 .uc-agents { padding: 56px 0 0; }
+.lab5 .uc-agents h2 { font-size: clamp(22px, 2.5vw, 28px); letter-spacing: -.02em; margin-bottom: 22px; }
+.lab5 .agent-stack { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.lab5 .agent-stack li { border: 1px solid var(--l5-line-2); border-radius: 14px; padding: 16px 18px; background: var(--l5-surface); }
+.lab5 .agent-stack-name { display: block; font-size: 15px; font-weight: 600; color: var(--l5-ink); letter-spacing: -.01em; }
+.lab5 .agent-stack-role { display: block; font-size: 14px; line-height: 1.5; color: var(--l5-muted); margin-top: 4px; }
 
 /* measure helpers */
 .lab5 .measure { max-width: 760px; margin: 0 auto; }
