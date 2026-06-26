@@ -79,7 +79,7 @@ export default function Lab5Page() {
           <div className="hero-copy">
             <h1 className="hero-title">Marketing, managed.</h1>
             <p className="hero-lead">
-              <span className="hero-lead-line"><em>Maya</em> plans campaigns, creates content, schedules publishing,</span>
+              <span className="hero-lead-line"><em>Maya</em> plans campaigns, writes the content, and queues it for your approval,</span>
               <span className="hero-lead-line">and drafts customer replies, grounded in your brand voice.</span>
               <span className="hero-lead-line">Nothing goes live without your&nbsp;approval.</span>
             </p>
