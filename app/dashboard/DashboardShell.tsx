@@ -354,8 +354,22 @@ export default function DashboardShell({
       setActiveMode(null)
       setPanelKey(k => k + 1)
     }
+    function onOpenPanel() {
+      setHelpMode(false)
+      setMayaOpen(true)
+      setMobileOpen(false)
+      setActiveSessionId(null)
+      setActiveMessages([])
+      setActiveMode(null)
+      setMayaPendingTask(null)
+      setPanelKey(k => k + 1)
+    }
     window.addEventListener('maya:open-task', onOpenTask)
-    return () => window.removeEventListener('maya:open-task', onOpenTask)
+    window.addEventListener('maya:open-panel', onOpenPanel)
+    return () => {
+      window.removeEventListener('maya:open-task', onOpenTask)
+      window.removeEventListener('maya:open-panel', onOpenPanel)
+    }
   }, [])
 
   const canvasContext = NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label

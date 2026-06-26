@@ -5,18 +5,36 @@ export function buildDashboardOverviewMayaContext(input: {
   displayName: string
   plan: string | null | undefined
   hasPlan: boolean
+  pendingApprovals?: number
+  activeCampaigns?: number
+  agentsRun?: number
+  topGoal?: string | null
 }): MayaPageContext {
+  const metrics = [
+    `Plan: ${input.plan ?? 'none'}`,
+    input.hasPlan
+      ? `Plan active: ${input.plan}`
+      : 'No active plan — user needs a plan to unlock agents and campaigns',
+  ]
+  if (typeof input.pendingApprovals === 'number') {
+    metrics.push(`Pending approvals: ${input.pendingApprovals}`)
+  }
+  if (typeof input.activeCampaigns === 'number') {
+    metrics.push(`Active campaigns: ${input.activeCampaigns}`)
+  }
+  if (typeof input.agentsRun === 'number') {
+    metrics.push(`Completed agent runs: ${input.agentsRun}`)
+  }
+  if (input.topGoal) {
+    metrics.push(`Top goal: ${input.topGoal}`)
+  }
+
   return {
     page: 'DASHBOARD PAGE',
     dataSource: 'live',
     company: input.displayName,
-    metrics: [
-      `Plan: ${input.plan ?? 'none'}`,
-      input.hasPlan
-        ? `Plan active: ${input.plan}`
-        : 'No active plan — user needs a plan to unlock agents and campaigns',
-    ],
-    affordance: `${MAYA_VOICE_RULE} User is on the main dashboard overview — suggest next marketing moves from visible cards.`,
+    metrics,
+    affordance: `${MAYA_VOICE_RULE} User landed on the dashboard morning brief — summarize what needs attention (approvals, today's plan, next move). Do not recite all metrics. One practical next step only.`,
   }
 }
 
