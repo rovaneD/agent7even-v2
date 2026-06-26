@@ -1,5 +1,11 @@
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
 import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
+import {
+  displayFieldValue,
+  formatActiveFormState,
+  hasDisplayValue,
+  truncateForMaya,
+} from '@/lib/maya/formStateContext'
 
 export function buildFoundationEditorMayaContext(input: {
   score: number
@@ -7,28 +13,28 @@ export function buildFoundationEditorMayaContext(input: {
   answers: Record<string, unknown>
   weakFields: string[]
 }): MayaPageContext {
-  const display = (v: unknown): string => {
-    if (Array.isArray(v)) {
-      const filled = v.filter(Boolean)
-      return filled.length ? filled.map(String).join(', ') : '(not filled in)'
-    }
-    if (typeof v === 'string') return v.trim() ? v.trim() : '(not filled in)'
-    return '(not filled in)'
-  }
+  const filled = Object.entries(input.fieldLabels)
+    .filter(([key]) => hasDisplayValue(input.answers[key]))
+    .map(([key, label]) => `${label}: ${truncateForMaya(displayFieldValue(input.answers[key]))}`)
 
-  const answerLines = Object.entries(input.fieldLabels).map(
-    ([k, label]) => `${label}: ${display(input.answers[k])}`,
-  )
+  const empty = Object.entries(input.fieldLabels)
+    .filter(([key]) => !hasDisplayValue(input.answers[key]))
+    .map(([, label]) => label)
+
   const weakLines = input.weakFields.map(f => input.fieldLabels[f] ?? f)
 
   return {
     page: 'FOUNDATION PAGE',
     dataSource: 'live',
+    activeView: {
+      label: 'Foundation editor',
+      state: formatActiveFormState(filled, empty),
+    },
     metrics: [
       `Score: ${input.score}%`,
-      ...answerLines.slice(0, 18),
       ...(weakLines.length ? [`Weak areas (below 70%): ${weakLines.join('; ')}`] : []),
     ],
-    affordance: `${MAYA_VOICE_RULE} User is editing Foundation answers. Help improve weak fields and explain how Foundation feeds agents.`,
+    affordance:
+      `${MAYA_VOICE_RULE} User is editing Foundation answers on screen. Use visible field values — do not ask for information already filled in the form. Help improve weak fields and explain how Foundation feeds agents.`,
   }
 }

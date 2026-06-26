@@ -1,5 +1,6 @@
 import type { MayaDataSource, MayaPageContext } from '@/lib/maya/contextTypes'
 import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
+import { formatActiveFormState, truncateForMaya } from '@/lib/maya/formStateContext'
 
 type PostsDataState = 'mock' | 'live' | 'empty'
 
@@ -24,6 +25,15 @@ export function buildPostsMayaContext(input: {
   drawerOpen: boolean
   publishMode: string
   selectedAccountCount: number
+  isEditing?: boolean
+  caption?: string
+  captionLimit?: number | null
+  mediaCount?: number
+  videoCount?: number
+  selectedTargets?: string
+  scheduledLocal?: string
+  timezone?: string
+  queueSelected?: boolean
 }): MayaPageContext {
   const counts = input.posts.reduce<Record<string, number>>((acc, p) => {
     acc[p.status] = (acc[p.status] ?? 0) + 1
@@ -39,11 +49,58 @@ export function buildPostsMayaContext(input: {
     ? input.accounts.map(a => `${a.platform} (@${a.username})`).join('; ')
     : 'no accounts'
 
+  const composeStateParts: string[] = []
+  if (input.isEditing) composeStateParts.push('Editing existing post')
+
+  const caption = input.caption?.trim() ?? ''
+  if (caption) {
+    const limit = input.captionLimit ? `/${input.captionLimit}` : ''
+    composeStateParts.push(
+      `Caption (${caption.length}${limit} chars): ${truncateForMaya(caption)}`,
+    )
+  } else {
+    composeStateParts.push('Caption: empty')
+  }
+
+  const mediaCount = input.mediaCount ?? 0
+  const videoCount = input.videoCount ?? 0
+  composeStateParts.push(
+    mediaCount
+      ? `Media: ${mediaCount} item(s)${videoCount ? ` (${videoCount} video)` : ''}`
+      : 'Media: none attached',
+  )
+
+  composeStateParts.push(
+    input.selectedTargets
+      ? `Targets: ${input.selectedTargets}`
+      : 'Targets: none selected',
+  )
+  composeStateParts.push(`Publish mode: ${input.publishMode}`)
+
+  if (input.publishMode === 'schedule') {
+    composeStateParts.push(
+      input.scheduledLocal
+        ? `Scheduled: ${input.scheduledLocal}${input.timezone ? ` (${input.timezone})` : ''}`
+        : 'Scheduled: date/time not set',
+    )
+  }
+  if (input.publishMode === 'queue') {
+    composeStateParts.push(input.queueSelected ? 'Queue: selected' : 'Queue: not selected')
+  }
+
+  const composeAffordance =
+    ' The compose drawer is open. Use visible caption, media, account, and schedule values — do not ask for information already shown in the form.'
+
   return {
     page: 'POSTS PAGE',
     dataSource: postsDataSource(input.dataState),
     company: input.companyName || undefined,
-    activeView: input.drawerOpen ? `compose (${input.publishMode})` : 'post list',
+    activeView: input.drawerOpen
+      ? {
+          label: input.isEditing ? 'Post compose (edit)' : 'Post compose',
+          state: composeStateParts.join(' · '),
+        }
+      : 'post list',
     connections: [
       `Plan: ${input.plan || 'none'}`,
       `Connected platforms: ${platformLabels}`,
@@ -53,10 +110,12 @@ export function buildPostsMayaContext(input: {
       `Posts on screen (${input.posts.length}): ${countSummary}`,
       `Filters: status=${input.statusFilter}, platform=${input.platformFilter}`,
       input.drawerOpen
-        ? `Composer: ${input.selectedAccountCount} account(s) selected, mode=${input.publishMode}`
+        ? `Composer open: ${input.selectedAccountCount} account(s) selected`
         : 'Composer closed',
     ],
-    affordance: POSTS_AFFORDANCE,
+    affordance: input.drawerOpen
+      ? `${POSTS_AFFORDANCE}${composeAffordance}`
+      : POSTS_AFFORDANCE,
   }
 }
 

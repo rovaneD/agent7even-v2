@@ -3,6 +3,7 @@ import { AGENTS } from '@/lib/agents/registry'
 import { formatVisualFieldsForMaya, FOUNDATION_VISUAL_FIELDS } from '@/lib/foundation/visualFields'
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
 import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
+import { formatActiveFormState, truncateForMaya } from '@/lib/maya/formStateContext'
 
 export type FoundationHubTabId = 'intelligence' | 'knowledge' | 'memory' | 'connections'
 
@@ -120,6 +121,7 @@ export function buildFoundationHubMayaContext(input: {
   score: number
   sectionHealth: Record<string, string>
   editingSection: string | null
+  editingSectionForm?: { sectionTitle: string; fields: { label: string; value: string }[] } | null
   regenProgress: string | null
   knowledgeItems: KnowledgeItem[]
   memoryData: FoundationMemoryResponse | null | undefined
@@ -165,6 +167,28 @@ export function buildFoundationHubMayaContext(input: {
   if (input.editingSection === 'visual') {
     affordance +=
       ' User is editing Your Look now — suggest copy for the next empty field only, using the exact field label shown above.'
+  }
+
+  if (input.editingSectionForm) {
+    const filled = input.editingSectionForm.fields
+      .filter(f => f.value.trim())
+      .map(f => `${f.label}: ${truncateForMaya(f.value)}`)
+    const empty = input.editingSectionForm.fields
+      .filter(f => !f.value.trim())
+      .map(f => f.label)
+
+    return {
+      page: 'FOUNDATION PAGE',
+      dataSource: 'live',
+      company: input.companyName || undefined,
+      activeView: {
+        label: `${input.editingSectionForm.sectionTitle} edit form`,
+        state: formatActiveFormState(filled, empty),
+      },
+      metrics,
+      affordance:
+        `${affordance} The user has a section edit form on screen. Use visible field values — do not re-ask for fields already shown in the form.`,
+    }
   }
 
   return {

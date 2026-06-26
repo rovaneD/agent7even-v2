@@ -37,10 +37,6 @@ export default async function DashboardPage() {
     .limit(1)
   const profile = profileRows?.[0] ?? null
 
-  if (!profile?.foundation_complete) {
-    redirect('/foundation')
-  }
-
   const today = new Date().toISOString().split('T')[0]
 
   const [digestResult, campaignResult, agentResult, brandKitResult, creditResult, approvalResult, orderResult] = await Promise.all([

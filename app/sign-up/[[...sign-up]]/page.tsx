@@ -1,12 +1,7 @@
 import AuthMarketingShell from '@/components/auth/AuthMarketingShell'
 import AuthSignUpForm from '@/components/auth/AuthSignUpForm'
 
-type Props = { searchParams: Promise<{ plan?: string }> }
-
-export default async function SignUpPage({ searchParams }: Props) {
-  const { plan } = await searchParams
-  const postSignUpRedirect = plan ? `/foundation?plan=${encodeURIComponent(plan)}` : '/foundation'
-
+export default function SignUpPage() {
   return (
     <AuthMarketingShell
       variant="sign-up"
@@ -24,7 +19,7 @@ export default async function SignUpPage({ searchParams }: Props) {
         </>
       }
     >
-      <AuthSignUpForm redirectUrl={postSignUpRedirect} />
+      <AuthSignUpForm redirectUrl="/dashboard" />
     </AuthMarketingShell>
   )
 }

@@ -182,6 +182,45 @@ export default function PostsClient({
 
   const isLive = dataState === 'live'
 
+  const selectedAccounts = useMemo(
+    () => accounts.filter(a => selectedAccountIds.includes(a.id)),
+    [accounts, selectedAccountIds],
+  )
+
+  const captionLimit = useMemo(() => {
+    const targets = selectedAccounts.map(acct => ({
+      platform: acct.platform,
+      accountId: acct.id,
+      postType: postTypeByAccount[acct.id] ?? 'feed',
+    }))
+    return tightestCaptionLimit(targets)
+  }, [selectedAccounts, postTypeByAccount])
+
+  const composeTargets = useMemo(() => {
+    if (!drawerOpen || selectedAccountIds.length === 0) return ''
+    return selectedAccounts.map(acct => {
+      const postType = postTypeByAccount[acct.id] ?? 'feed'
+      let line = `${platformLabel(acct.platform)} @${acct.username} [${postType}]`
+      if (customCaptionOpen[acct.id]) {
+        const custom = customContentByAccount[acct.id]?.trim()
+        if (custom) line += ` custom: ${custom.slice(0, 60)}${custom.length > 60 ? '…' : ''}`
+      }
+      return line
+    }).join('; ')
+  }, [
+    drawerOpen,
+    selectedAccountIds.length,
+    selectedAccounts,
+    postTypeByAccount,
+    customCaptionOpen,
+    customContentByAccount,
+  ])
+
+  const mediaSummary = useMemo(() => ({
+    count: mediaItems.length,
+    videoCount: mediaItems.filter(m => m.type === 'video').length,
+  }), [mediaItems])
+
   const mayaContext = useMemo(
     () =>
       buildPostsMayaContext({
@@ -196,6 +235,15 @@ export default function PostsClient({
         drawerOpen,
         publishMode,
         selectedAccountCount: selectedAccountIds.length,
+        isEditing: Boolean(editingPostId),
+        caption: content,
+        captionLimit,
+        mediaCount: mediaSummary.count,
+        videoCount: mediaSummary.videoCount,
+        selectedTargets: composeTargets,
+        scheduledLocal,
+        timezone,
+        queueSelected: Boolean(selectedQueueId),
       }),
     [
       companyName,
@@ -209,23 +257,18 @@ export default function PostsClient({
       drawerOpen,
       publishMode,
       selectedAccountIds.length,
+      editingPostId,
+      content,
+      captionLimit,
+      mediaSummary.count,
+      mediaSummary.videoCount,
+      composeTargets,
+      scheduledLocal,
+      timezone,
+      selectedQueueId,
     ],
   )
   useMayaContext(mayaContext)
-
-  const selectedAccounts = useMemo(
-    () => accounts.filter(a => selectedAccountIds.includes(a.id)),
-    [accounts, selectedAccountIds],
-  )
-
-  const captionLimit = useMemo(() => {
-    const targets = selectedAccounts.map(acct => ({
-      platform: acct.platform,
-      accountId: acct.id,
-      postType: postTypeByAccount[acct.id] ?? 'feed',
-    }))
-    return tightestCaptionLimit(targets)
-  }, [selectedAccounts, postTypeByAccount])
 
   const buildPlatformPayload = useCallback(() => {
     return selectedAccountIds.map(id => {

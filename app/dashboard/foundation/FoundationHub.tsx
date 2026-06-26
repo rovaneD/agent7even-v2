@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildFoundationHubMayaContext } from '@/lib/maya/summaries/foundationHubContext'
+import { displayFieldValue } from '@/lib/maya/formStateContext'
 import type { FoundationMemoryResponse, AgentMemoryStat } from '@/lib/foundation/memory'
 
 // Client-side extraction types (mirrored from lib/foundation/extract.ts)
@@ -1438,6 +1439,20 @@ export default function FoundationHub({
   const suggestions = useMemo(() => deriveSuggestions(localAnswers, healthMap), [localAnswers, healthMap])
 
   const weakSections = SECTIONS.filter(s => s.key !== 'memory' && healthMap[s.key] !== 'strong')
+
+  const editingSectionForm = useMemo(() => {
+    if (!editingSection) return null
+    const section = SECTIONS.find(s => s.key === editingSection)
+    if (!section) return null
+    return {
+      sectionTitle: section.title,
+      fields: section.editFields.map(field => ({
+        label: field.label,
+        value: displayFieldValue(editDraft[field.key]),
+      })),
+    }
+  }, [editingSection, editDraft])
+
   const mayaContext = useMemo(
     () =>
       buildFoundationHubMayaContext({
@@ -1448,6 +1463,7 @@ export default function FoundationHub({
           Object.entries(healthMap).map(([k, v]) => [k, v]),
         ),
         editingSection,
+        editingSectionForm,
         regenProgress,
         knowledgeItems,
         memoryData,
@@ -1461,6 +1477,7 @@ export default function FoundationHub({
       currentScore,
       healthMap,
       editingSection,
+      editingSectionForm,
       regenProgress,
       knowledgeItems,
       memoryData,
