@@ -32,6 +32,7 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Trash2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -227,24 +228,66 @@ function ContextMenu({ pageName }: { pageName: string }) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function groupSessionsByDate(sessions: Session[]): { label: string; sessions: Session[] }[] {
+const SESSION_RECENT_DAYS = 7
+
+type SessionGroup = {
+  label: string
+  sortKey: number
+  sessions: Session[]
+  showSessionDates?: boolean
+}
+
+function groupSessionsByDate(sessions: Session[]): SessionGroup[] {
   const todayStart     = new Date(); todayStart.setHours(0, 0, 0, 0)
   const yesterdayStart = new Date(todayStart.getTime() - 86_400_000)
+  const recentCutoff   = new Date(todayStart.getTime() - (SESSION_RECENT_DAYS - 1) * 86_400_000)
 
-  const buckets: Record<string, Session[]> = {}
+  const recentBuckets = new Map<string, { sortKey: number; sessions: Session[] }>()
+  const olderSessions: Session[] = []
 
   sessions.forEach(s => {
     const d = new Date(s.updated_at); d.setHours(0, 0, 0, 0)
+
+    if (d.getTime() < recentCutoff.getTime()) {
+      olderSessions.push(s)
+      return
+    }
+
     let label: string
-    if (d.getTime() === todayStart.getTime())          label = 'Today'
-    else if (d.getTime() === yesterdayStart.getTime()) label = 'Yesterday'
-    else label = new Date(s.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    if (!buckets[label]) buckets[label] = []
-    buckets[label].push(s)
+    let sortKey: number
+    if (d.getTime() === todayStart.getTime()) {
+      label = 'Today'
+      sortKey = Number.MAX_SAFE_INTEGER
+    } else if (d.getTime() === yesterdayStart.getTime()) {
+      label = 'Yesterday'
+      sortKey = Number.MAX_SAFE_INTEGER - 1
+    } else {
+      label = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+      sortKey = d.getTime()
+    }
+    const bucket = recentBuckets.get(label)
+    if (bucket) bucket.sessions.push(s)
+    else recentBuckets.set(label, { sortKey, sessions: [s] })
   })
 
-  const order = ['Today', 'Yesterday', ...Object.keys(buckets).filter(k => k !== 'Today' && k !== 'Yesterday')]
-  return order.filter(l => buckets[l]).map(label => ({ label, sessions: buckets[label] }))
+  const groups: SessionGroup[] = [...recentBuckets.entries()]
+    .map(([label, { sortKey, sessions: groupSessions }]) => ({ label, sortKey, sessions: groupSessions }))
+    .sort((a, b) => b.sortKey - a.sortKey)
+
+  if (olderSessions.length > 0) {
+    olderSessions.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    groups.push({ label: 'Older', sortKey: 0, sessions: olderSessions, showSessionDates: true })
+  }
+
+  return groups
+}
+
+function formatSessionGroupLabel(label: string, count: number): string {
+  return `${label} (${count})`
+}
+
+function formatSessionShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -285,6 +328,8 @@ export default function DashboardShell({
   const [loadingSession, setLoadingSession]     = useState<string | null>(null)
   const [deletingSession, setDeletingSession]   = useState<string | null>(null)
   const [hoveredSession, setHoveredSession]     = useState<string | null>(null)
+  const [collapsedSessionGroups, setCollapsedSessionGroups] = useState<Set<string>>(new Set())
+  const sessionGroupsInitialized = useRef(false)
 
   function toggleSidebar() {
     const next = !sidebarCollapsed
@@ -491,6 +536,27 @@ export default function DashboardShell({
 
   const sessionGroups = groupSessionsByDate(sessions)
 
+  useEffect(() => {
+    if (!mayaOpen || sessionGroups.length === 0) {
+      if (!mayaOpen) sessionGroupsInitialized.current = false
+      return
+    }
+    if (sessionGroupsInitialized.current) return
+    sessionGroupsInitialized.current = true
+    setCollapsedSessionGroups(
+      new Set(sessionGroups.filter(g => g.label !== 'Today' && g.label !== 'Yesterday').map(g => g.label)),
+    )
+  }, [mayaOpen, sessionGroups])
+
+  function toggleSessionGroup(label: string) {
+    setCollapsedSessionGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
+  }
+
   // ── Foundation bar color ──────────────────────────────────────────────────
   function foundationBarColor(score: number): string {
     if (score >= 71) return 'var(--color-status-success)'
@@ -682,13 +748,40 @@ export default function DashboardShell({
 
         {/* Session history — visible while Maya panel is open */}
         {mayaOpen && sessionGroups.length > 0 && (
-          <div style={{ marginTop: 2, marginLeft: 2, marginBottom: 2 }}>
-            {sessionGroups.map(group => (
-              <div key={group.label} style={{ marginBottom: 6 }}>
-                <p style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-menu-muted)', padding: '0 4px', marginBottom: 2 }}>
-                  {group.label}
-                </p>
-                {group.sessions.map(session => {
+          <div style={{ marginTop: 2, marginLeft: 2, marginBottom: 2, maxHeight: 220, overflowY: 'auto' }}>
+            {sessionGroups.map(group => {
+              const collapsed = collapsedSessionGroups.has(group.label)
+              return (
+              <div key={group.label} style={{ marginBottom: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => toggleSessionGroup(group.label)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '3px 4px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                    background: 'transparent', fontFamily: 'inherit', textAlign: 'left',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-2)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                >
+                  <ChevronDown
+                    size={12}
+                    strokeWidth={2}
+                    style={{
+                      flexShrink: 0,
+                      color: 'var(--color-menu-muted)',
+                      transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.15s ease',
+                    }}
+                  />
+                  <span style={{
+                    fontSize: 10.5, fontWeight: 600, letterSpacing: '0.02em',
+                    color: 'var(--color-menu-muted)',
+                  }}>
+                    {formatSessionGroupLabel(group.label, group.sessions.length)}
+                  </span>
+                </button>
+                {!collapsed && group.sessions.map(session => {
                   const isActive  = session.id === activeSessionId
                   const isLoading = session.id === loadingSession
                   const isDeleting = session.id === deletingSession
@@ -725,6 +818,11 @@ export default function DashboardShell({
                         title={session.title ?? 'Untitled'}
                       >
                         <span style={{ color: 'var(--color-border-strong)', marginRight: 5, fontSize: 10 }}>›</span>
+                        {group.showSessionDates && (
+                          <span style={{ fontSize: 9.5, color: 'var(--color-menu-muted)', marginRight: 4 }}>
+                            {formatSessionShortDate(session.updated_at)} ·{' '}
+                          </span>
+                        )}
                         {session.canvas_context && (
                           <span style={{ fontSize: 9.5, color: 'var(--color-brand-primary)', marginRight: 4, fontWeight: 500 }}>
                             {session.canvas_context} ·{' '}
@@ -754,7 +852,8 @@ export default function DashboardShell({
                   )
                 })}
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
