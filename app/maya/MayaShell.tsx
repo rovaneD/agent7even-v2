@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
 import { Rocket, PenLine, BarChart2, MessageCircle, AlertCircle } from 'lucide-react'
+import { messagesForPersist } from '@/lib/maya/dedupeMessages'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -344,7 +345,7 @@ export default function MayaShell({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: profile.id,
-            messages: [...messagesRef.current, message],
+            messages: messagesForPersist(messagesRef.current, message),
             mode: modeRef.current,
           }),
         }).catch(err => console.error('[session] save failed:', err))

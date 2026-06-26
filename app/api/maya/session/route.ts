@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import { dedupeMessagesById } from '@/lib/maya/dedupeMessages'
 
 // GET /api/maya/session?id=<sessionId>
 export async function GET(req: Request) {
@@ -30,7 +31,11 @@ export async function GET(req: Request) {
     .eq('user_id', profile.id)
     .single()
 
-  return NextResponse.json({ session: session ?? null })
+  return NextResponse.json({
+    session: session
+      ? { ...session, messages: dedupeMessagesById(session.messages ?? []) }
+      : null,
+  })
 }
 
 // DELETE /api/maya/session?id=<sessionId>
@@ -89,13 +94,14 @@ export async function POST(req: Request) {
   const profileId = profile.id
 
   const { sessionId, messages, mode, canvasContext } = await req.json()
+  const normalizedMessages = dedupeMessagesById(messages ?? [])
 
   // ── Update existing session ────────────────────────────────────────────────
   if (sessionId) {
     const { error } = await supabase
       .from('maya_sessions')
       .update({
-        messages:   messages ?? [],
+        messages:   normalizedMessages,
         mode:       mode ?? null,
         updated_at: new Date().toISOString(),
       })
@@ -111,7 +117,7 @@ export async function POST(req: Request) {
   }
 
   // ── Create new session ─────────────────────────────────────────────────────
-  const firstUserText = extractFirstUserText(messages ?? [])
+  const firstUserText = extractFirstUserText(normalizedMessages)
   let title = 'New conversation'
 
   if (mode === 'page' && canvasContext) {
@@ -139,7 +145,7 @@ Return only the title, nothing else.`,
     .from('maya_sessions')
     .insert({
       user_id:        profileId,
-      messages:       messages ?? [],
+      messages:       normalizedMessages,
       mode:           mode ?? null,
       title,
       canvas_context: canvasContext ?? null,

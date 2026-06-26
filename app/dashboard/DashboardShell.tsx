@@ -36,6 +36,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { dedupeMessagesById } from '@/lib/maya/dedupeMessages'
 import NotificationBell from '@/components/NotificationBell'
 import MayChatPanel, { type Profile } from '@/components/maya/MayChatPanel'
 import MayaOrb from '@/components/maya/MayaOrb'
@@ -489,7 +490,7 @@ export default function DashboardShell({
     try {
       const res = await fetch(`/api/maya/session?id=${sessionId}`)
       const { session } = await res.json()
-      setActiveMessages(session?.messages ?? [])
+      setActiveMessages(dedupeMessagesById(session?.messages ?? []))
       setActiveMode(session?.mode ?? null)
       setActiveSessionId(sessionId)
       setMayaOpen(true)

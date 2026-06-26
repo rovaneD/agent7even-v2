@@ -6,6 +6,7 @@ import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, UIMessage } from 'ai'
 import { Rocket, PenLine, BarChart2, MessageCircle, X, ArrowUp, Paperclip, FileText, Loader2, AlertCircle } from 'lucide-react'
 import MayaOrb from '@/components/maya/MayaOrb'
+import { dedupeMessagesById, messagesForPersist } from '@/lib/maya/dedupeMessages'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -171,7 +172,7 @@ export default function MayChatPanel({
 
   const { messages, sendMessage, status } = useChat({
     transport,
-    messages: initialMessages.length ? (initialMessages as UIMessage[]) : undefined,
+    messages: initialMessages.length ? dedupeMessagesById(initialMessages as UIMessage[]) : undefined,
     onError: (error: Error) => {
       const message = error.message || 'Maya could not respond. Please try again.'
       if (message.includes('credits') || message === 'INSUFFICIENT_CREDITS') {
@@ -183,7 +184,7 @@ export default function MayChatPanel({
     },
     onFinish: async ({ message }: { message: UIMessage }) => {
       if (!profile?.id) return
-      const allMessages = [...messagesRef.current, message]
+      const allMessages = messagesForPersist(messagesRef.current, message)
       try {
         const res = await fetch('/api/maya/session', {
           method:  'POST',
@@ -216,10 +217,10 @@ export default function MayChatPanel({
       .join('')
   }
 
-  const visibleMessages = messages.filter(msg => {
+  const visibleMessages = dedupeMessagesById(messages.filter(msg => {
     const t = getMsgText(msg)
     return !t.startsWith('__SYSTEM_INIT__') && !t.startsWith('__MODE__') && !t.startsWith('__TASK__') && !t.startsWith('__PAGE_CONTEXT__') && t !== '__HELP__'
-  })
+  }))
 
   const chatStarted    = visibleMessages.length > 0 || mode !== null
   const showModePicker = mode === null && !chatStarted && !isHelpMode
