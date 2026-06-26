@@ -83,20 +83,6 @@ const NAV = [
     ],
   },
   {
-    section: 'Campaigns',
-    items: [
-      { href: '/dashboard/campaigns', label: 'Campaigns', icon: Megaphone },
-    ],
-  },
-  {
-    section: 'Content',
-    items: [
-      { href: '/dashboard/calendar',     label: 'Content Calendar', icon: Calendar  },
-      { href: '/dashboard/posts',        label: 'Posts',            icon: PenLine   },
-      { href: '/dashboard/assets',       label: 'Assets',           icon: Images    },
-    ],
-  },
-  {
     section: 'Intelligence',
     items: [
       { href: '/dashboard/agents',    label: 'Agents',    icon: Bot         },
@@ -112,11 +98,25 @@ const NAV = [
     ],
   },
   {
+    section: 'Campaigns',
+    items: [
+      { href: '/dashboard/campaigns', label: 'Campaigns', icon: Megaphone },
+    ],
+  },
+  {
+    section: 'Content',
+    items: [
+      { href: '/dashboard/calendar', label: 'Content Calendar', icon: Calendar  },
+      { href: '/dashboard/posts',    label: 'Posts',            icon: PenLine   },
+      { href: '/dashboard/assets',   label: 'Assets',           icon: Images    },
+    ],
+  },
+  {
     section: 'Services',
     items: [
-      { href: '/dashboard/services',     label: 'Services',      icon: ShoppingBag },
-      { href: '/dashboard/deliverables', label: 'Deliverables',  icon: FileText    },
-      { href: '/dashboard/support',      label: 'Support',       icon: Headphones  },
+      { href: '/dashboard/services',     label: 'Services',     icon: ShoppingBag },
+      { href: '/dashboard/deliverables', label: 'Deliverables', icon: FileText    },
+      { href: '/dashboard/support',      label: 'Support',      icon: Headphones  },
     ],
   },
   {

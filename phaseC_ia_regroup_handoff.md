@@ -14,15 +14,15 @@
 
 ## Shipped grouping (`app/dashboard/DashboardShell.tsx`)
 
-| Section | Items |
-|---------|--------|
-| **Maya** | Dashboard |
-| **Campaigns** | Campaigns |
-| **Content** | Content Calendar, Posts, Assets |
-| **Intelligence** | Agents (+ nested Approvals when pending), Analytics, Inbox |
-| **Brand** | Foundation, Brand Kit |
-| **Services** | Services, Deliverables, Support |
-| **Settings** | Notifications, Team, Billing, Settings |
+| Section | Items | Order rationale |
+|---------|--------|-----------------|
+| **Maya** | Dashboard | Cold-open / daily brief — always first |
+| **Intelligence** | Agents (+ Approvals), Analytics, Inbox | Agents + signals before you plan or publish |
+| **Brand** | Foundation, Brand Kit | Context everything else runs on |
+| **Campaigns** | Campaigns | Plans built on brand + agent output |
+| **Content** | Content Calendar, Posts, Assets | Execute and publish from plans |
+| **Services** | Services, Deliverables, Support | Human-delivered work + support |
+| **Settings** | Notifications, Team, Billing, Settings | Account — always last |
 
 - Approvals remain nested under Agents (badge + child link) — not a top-level duplicate.
 - `canvasContext` for `/dashboard/agents/approvals` → **Approvals** (not generic Agents).
