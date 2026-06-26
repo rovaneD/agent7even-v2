@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import PostsClient from './PostsClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import { approvalQueueKind } from '@/lib/agents/contentPosting'
+import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import * as publisher from '@/lib/social/publisher'
 
 export type PostsDataState = 'mock' | 'live' | 'empty'
@@ -83,6 +84,10 @@ export default async function PostsPage() {
     ).length
   }
 
+  const lifecycleCounts = profile?.id
+    ? await getContentLifecycleCounts(profile.id, primaryProfileId)
+    : undefined
+
   return (
     <Suspense>
       <PostsClient
@@ -94,6 +99,7 @@ export default async function PostsPage() {
         zernioConnectedPlatforms={zernioConnectedPlatforms}
         accounts={accounts}
         pendingPostApprovalCount={pendingPostApprovalCount}
+        lifecycleCounts={lifecycleCounts}
       />
     </Suspense>
   )

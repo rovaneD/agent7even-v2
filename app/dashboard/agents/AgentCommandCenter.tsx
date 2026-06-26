@@ -598,16 +598,45 @@ export default function AgentCommandCenter({
     { label: 'No sensitive topics', text: 'Never engage with political, religious, or controversial social topics.' },
   ]
 
-  const mayaContext = useMemo(
-    () =>
-      buildAgentCommandCenterMayaContext({
-        companyName,
-        activeTaskCount: activeTasks.length,
-        pendingApprovalCount: pendingApprovals.length,
-        scorecard,
-      }),
-    [companyName, activeTasks.length, pendingApprovals.length, scorecard],
-  )
+  const mayaContext = useMemo(() => {
+    const base = buildAgentCommandCenterMayaContext({
+      companyName,
+      activeTaskCount: activeTasks.length,
+      pendingApprovalCount: pendingApprovals.length,
+      scorecard,
+    })
+
+    if (!selectedAgent || !selectedAgentConfig) return base
+
+    const filled = selectedAgentConfig.fields
+      .filter(field => selectedAgentForm[field.key]?.trim())
+      .map(field => `${field.label}: ${selectedAgentForm[field.key].trim()}`)
+
+    const empty = selectedAgentConfig.fields
+      .filter(field => !selectedAgentForm[field.key]?.trim())
+      .map(field => field.label)
+
+    const agentName = AGENTS[selectedAgent].name
+
+    return {
+      ...base,
+      activeView: {
+        label: `${agentName} setup form`,
+        state: filled.length
+          ? `${filled.join(' · ')}${empty.length ? ` · Empty on screen: ${empty.join(', ')}` : ''}`
+          : `Form open — nothing filled yet (${empty.join(', ')})`,
+      },
+      affordance: `${base.affordance ?? ''} The user has the ${agentName} setup form on screen. Use visible field values — do not ask for information already shown in the form (e.g. website URL in the URL field).`,
+    }
+  }, [
+    companyName,
+    activeTasks.length,
+    pendingApprovals.length,
+    scorecard,
+    selectedAgent,
+    selectedAgentConfig,
+    selectedAgentForm,
+  ])
   useMayaContext(mayaContext)
 
   // Fetch active + recent orchestrations on mount

@@ -19,7 +19,9 @@ import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 import { AGENTS } from '@/lib/agents/registry'
 import { buildDashboardOverviewMayaContext } from '@/lib/maya/summaries/pageOverviewContext'
 import MorningDigest from '@/components/dashboard/MorningDigest'
+import ContentLifecycleBar from '@/components/dashboard/ContentLifecycleBar'
 import GettingStarted from '@/components/dashboard/GettingStarted'
+import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -206,6 +208,13 @@ export default async function DashboardPage() {
     primaryAction: { href: primaryAction.href, label: primaryAction.label },
   }
 
+  const lifecycleCounts = profile
+    ? await getContentLifecycleCounts(
+        profile.id,
+        (profile as Record<string, unknown>).zernio_profile_id as string | null ?? null,
+      )
+    : null
+
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
       <CanvasContextDispatcher payload={mayaPayload} />
@@ -217,6 +226,10 @@ export default async function DashboardPage() {
           firstName={firstName}
           coldOpen={coldOpen}
         />
+      )}
+
+      {lifecycleCounts && (
+        <ContentLifecycleBar counts={lifecycleCounts} />
       )}
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">

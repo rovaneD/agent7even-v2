@@ -77,31 +77,51 @@ interface Props {
 
 const NAV = [
   {
-    section: 'Overview',
+    section: 'Maya',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     ],
   },
   {
-    section: 'Your workspace',
+    section: 'Campaigns',
     items: [
-      { href: '/dashboard/agents',       label: 'Agents',           icon: Bot       },
-      { href: '/dashboard/campaigns',    label: 'Campaigns',        icon: Megaphone },
-      { href: '/dashboard/services',     label: 'Services',         icon: ShoppingBag },
-      { href: '/dashboard/calendar',     label: 'Content Calendar', icon: Calendar  },
-      { href: '/dashboard/posts',        label: 'Posts',            icon: PenLine   },
-      { href: '/dashboard/assets',       label: 'Assets',           icon: Images    },
-      { href: '/dashboard/foundation',   label: 'Foundation',       icon: Layers    },
-      { href: '/dashboard/brand-kit',    label: 'Brand Kit',        icon: BookOpen  },
-      { href: '/dashboard/analytics',    label: 'Analytics',        icon: BarChart2 },
-      { href: '/dashboard/inbox',        label: 'Inbox',            icon: MessageCircle },
-      { href: '/dashboard/deliverables', label: 'Deliverables',     icon: FileText  },
+      { href: '/dashboard/campaigns', label: 'Campaigns', icon: Megaphone },
     ],
   },
   {
-    section: 'Account',
+    section: 'Content',
     items: [
-      { href: '/dashboard/support',       label: 'Support',       icon: Headphones },
+      { href: '/dashboard/calendar',     label: 'Content Calendar', icon: Calendar  },
+      { href: '/dashboard/posts',        label: 'Posts',            icon: PenLine   },
+      { href: '/dashboard/assets',       label: 'Assets',           icon: Images    },
+    ],
+  },
+  {
+    section: 'Intelligence',
+    items: [
+      { href: '/dashboard/agents',    label: 'Agents',    icon: Bot         },
+      { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart2   },
+      { href: '/dashboard/inbox',     label: 'Inbox',     icon: MessageCircle },
+    ],
+  },
+  {
+    section: 'Brand',
+    items: [
+      { href: '/dashboard/foundation', label: 'Foundation', icon: Layers   },
+      { href: '/dashboard/brand-kit',  label: 'Brand Kit',  icon: BookOpen },
+    ],
+  },
+  {
+    section: 'Services',
+    items: [
+      { href: '/dashboard/services',     label: 'Services',      icon: ShoppingBag },
+      { href: '/dashboard/deliverables', label: 'Deliverables',  icon: FileText    },
+      { href: '/dashboard/support',      label: 'Support',       icon: Headphones  },
+    ],
+  },
+  {
+    section: 'Settings',
+    items: [
       { href: '/dashboard/notifications', label: 'Notifications', icon: Bell       },
       { href: '/dashboard/team',          label: 'Team',          icon: Users      },
       { href: '/dashboard/billing',       label: 'Billing',       icon: CreditCard },
@@ -372,13 +392,20 @@ export default function DashboardShell({
     }
   }, [])
 
-  const canvasContext = NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
-    ?? (pathname === '/dashboard' ? 'Dashboard' : undefined)
+  const canvasContext = pathname.startsWith('/dashboard/agents/approvals')
+    ? 'Approvals'
+    : NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
+      ?? (pathname === '/dashboard' ? 'Dashboard' : undefined)
 
   // Derive current page key for context menu
   const currentPageKey = pathname.startsWith('/dashboard/brand-kit') ? 'brand-kit'
     : pathname.startsWith('/dashboard/agents') ? 'agents'
     : pathname.startsWith('/dashboard/campaigns') ? 'campaigns'
+    : pathname.startsWith('/dashboard/calendar') ? 'calendar'
+    : pathname.startsWith('/dashboard/posts') ? 'posts'
+    : pathname.startsWith('/dashboard/assets') ? 'assets'
+    : pathname.startsWith('/dashboard/services') ? 'services'
+    : pathname.startsWith('/dashboard/deliverables') ? 'deliverables'
     : pathname.startsWith('/dashboard/analytics') ? 'analytics'
     : pathname.startsWith('/dashboard/inbox') ? 'inbox'
     : pathname.startsWith('/dashboard/foundation') ? 'foundation'

@@ -8,6 +8,8 @@ import {
   LayoutGrid, List, ChevronDown, CheckCircle, ImagePlus, Film,
 } from 'lucide-react'
 import DownloadImageButton from '@/components/media/DownloadImageButton'
+import ContentLifecycleBar from '@/components/dashboard/ContentLifecycleBar'
+import type { ContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import type { PostsDataState } from './page'
 import type { ZernioPostRow } from '@/lib/social/zernioPostsParse'
 import type { ZernioQueueRow } from '@/lib/social/zernioQueuesParse'
@@ -58,6 +60,7 @@ interface Props {
   zernioConnectedPlatforms: string[]
   accounts: Account[]
   pendingPostApprovalCount?: number
+  lifecycleCounts?: ContentLifecycleCounts
 }
 
 // ── Platform meta ─────────────────────────────────────────────────────────────
@@ -132,6 +135,7 @@ export default function PostsClient({
   zernioConnectedPlatforms,
   accounts: initialAccounts,
   pendingPostApprovalCount = 0,
+  lifecycleCounts,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -142,7 +146,13 @@ export default function PostsClient({
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
 
-  const [statusFilter, setStatusFilter] = useState<PostStatusFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<PostStatusFilter>(() => {
+    const fromUrl = searchParams.get('status')
+    const allowed: PostStatusFilter[] = ['all', 'draft', 'scheduled', 'published', 'failed', 'queued', 'partial']
+    return fromUrl && allowed.includes(fromUrl as PostStatusFilter)
+      ? (fromUrl as PostStatusFilter)
+      : 'all'
+  })
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all')
   const [sortBy, setSortBy] = useState<SortKey>('scheduled-desc')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
@@ -608,6 +618,10 @@ export default function PostsClient({
           </button>
         </div>
       </div>
+
+      {lifecycleCounts && (
+        <ContentLifecycleBar counts={lifecycleCounts} compact />
+      )}
 
       {toast && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
