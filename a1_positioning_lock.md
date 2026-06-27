@@ -50,13 +50,13 @@ The jobs-to-be-done frame both audits converged on: **"Marketing gets done witho
 The product serves two buyers; messaging must stop telling one story four times (Use Cases audit, scored 6.0).
 
 - **Primary ICP:** survival-driven solo / near-solo SMB (coffee shop, HVAC, dentist, salon, gym) — lacks time, marketing literacy, consistency, affordable options.
-- **Equally important:** developed-brand / agency / creator / operator — media-heavy, sophistication-tolerant.
+- **Equally important:** developed-brand / creator / startup operator — media-heavy, sophistication-tolerant.
 
 **Use Cases rebuild differentiates by which agents matter to whom, not by stock photo:**
 - Local service → reviews-roadmap aside, SEO scan, promotions, competitor reports.
 - Ecommerce → launches, content cadence, competitor reports, media generation (heavy).
 - Creators → content consistency, launches, audience.
-- Agencies → multi-client (note: tier/packaging gap flagged in pricing; not solved here).
+- Startups → GTM launch plans, idea angles, first-hire marketing gap (single Foundation today; multi-client agency tier is a separate future build + price package).
 
 **Tier alignment:** the ProAgent-only premium-media gate (from A3) maps to this split — survival-case SMB lives on Starter; media-heavy operator climbs to ProAgent for premium image/video. The upgrade path mirrors the ICP split.
 

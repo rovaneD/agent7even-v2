@@ -1,6 +1,5 @@
-import UseCaseDetail from '../_detail';
-import { cases } from '../_data';
+import { redirect } from 'next/navigation'
 
-export default function AgenciesPage() {
-  return <UseCaseDetail uc={cases.find((c) => c.slug === 'agencies')!} />;
+export default function LabAgenciesRedirect() {
+  redirect('/use-cases/startups')
 }

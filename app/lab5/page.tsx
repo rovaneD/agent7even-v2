@@ -327,13 +327,13 @@ export default function Lab5Page() {
               </div>
               <div className="card-widget"><div data-mk="widget-use-creators"></div></div>
             </a>
-            <a className="use reveal" href="/use-cases/agencies">
+            <a className="use reveal" href="/use-cases/startups">
               <div className="use-copy">
-                <h3>Agencies</h3>
-                <p>The production capacity you&rsquo;d otherwise hire.</p>
+                <h3>Startups</h3>
+                <p>Launch-ready GTM before you can hire marketing.</p>
                 <span className="use-link">See it →</span>
               </div>
-              <div className="card-widget"><div data-mk="widget-use-agencies"></div></div>
+              <div className="card-widget"><div data-mk="widget-use-startups"></div></div>
             </a>
           </div>
         </div>
@@ -411,7 +411,7 @@ export default function Lab5Page() {
               <a href="/use-cases/ecommerce">E-commerce</a>
               <a href="/use-cases/local-service">Local service</a>
               <a href="/use-cases/coaches-creators">Creators</a>
-              <a href="/use-cases/agencies">Agencies</a>
+              <a href="/use-cases/startups">Startups</a>
             </div>
             <div className="fcol">
               <h5>Company</h5>

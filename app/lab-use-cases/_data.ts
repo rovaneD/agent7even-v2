@@ -93,7 +93,7 @@ export const cases: UseCase[] = [
       "A brand that posts in bursts trains customers to forget it. The list you don't email is a list you're slowly losing. The launch you under-promote is visibility you'll never get back.\n\nConsistency isn't the boring part of e-commerce. It's the whole game. And it's the first thing to go when you're running the store.",
     whatHeadline: 'What Maya handles for e-commerce',
     what:
-      'Tell Maya about the drop — **Campaign Builder** returns the launch sequence: teasers, emails, posts, ad variations to test. **Content Posting** generates images in your brand style, short-form video, and captions that read what&rsquo;s in the frame. **Competitor Watcher** delivers competitive reports so you know what rivals are running.\n\nYou stay in control. Nothing goes live until you sign off — then you publish or schedule in a click.',
+      'Tell Maya about the drop — **Campaign Builder** returns the launch sequence: teasers, emails, posts, ad variations to test. **Content Posting** generates images in your brand style, short-form video, and captions that read what&rsquo;s in the frame. **Competitor Watcher** delivers competitive reports so you know what rivals are running. Media-heavy brands on **ProAgent** unlock premium image and video models when quality matters most.\n\nYou stay in control. Nothing goes live until you sign off — then you publish or schedule in a click.',
     bullets: [
       {
         heading: 'A drop becomes a campaign in an afternoon.',
@@ -164,50 +164,50 @@ export const cases: UseCase[] = [
       'In one conversation. You direct in plain language; specialist agents draft and generate — the marketing capacity you can\'t hire and can\'t skip. You stop trading the work for the marketing.',
   },
   {
-    slug: 'agencies',
-    label: 'Agencies',
-    accent: '#3286FE',
+    slug: 'startups',
+    label: 'Startups & early-stage teams',
+    accent: '#6366F1',
     hero: {
-      headline: 'Your team back on the work that justifies the rate.',
+      headline: 'Ship the story before\nyou ship the team.',
       subhead:
-        'Your team does creative work — strategy, content, campaigns that actually land. But a chunk of every week disappears into execution that doesn\'t touch the creative. How Maya adds production capacity — not another client portal.',
+        'You are product, sales, and the entire marketing department — often before you can hire any of them. How Maya turns one Foundation into launch-ready campaigns while you stay focused on building.',
     },
-    painLine: 'Your best people get pulled into work that just has to get done.',
-    agentStackHeadline: 'The agents agencies lean on most',
+    painLine: "You can't hire marketing yet — but you still have to look like you did.",
+    agentStackHeadline: 'The agents early-stage teams lean on most',
     agentStack: [
-      { name: 'Campaign Builder', role: 'Multi-asset campaign plans from one brief — ready for senior review' },
-      { name: 'Email Sequence Builder', role: 'Full email flows drafted to load into any ESP' },
-      { name: 'Ad Variations', role: 'Headlines, body, and CTAs to test — not live ad campaigns' },
-      { name: 'Approval queue', role: 'Nothing reaches a client until your team signs off' },
+      { name: 'Campaign Builder', role: 'Launch plans from one brief — positioning, emails, posts, ad variations to test' },
+      { name: 'Idea Analysis', role: 'Breaks one wedge into angles for hooks, landing copy, and GTM tests' },
+      { name: 'Content Posting', role: 'Launch posts, on-brand images, and short video — queued for approval' },
+      { name: 'Performance Digest', role: 'Plain-English read on reach and traffic once analytics connect' },
     ],
     setup:
-      "Agency work is creative work. The strategy, the concept, the campaign that moves a client's numbers. That's what you sell, and that's where your margin lives.\n\nThe production grind is not where your margin lives.\n\nEvery agency owner we talk to fights the same battle: the high-value thinking competes for hours against the high-volume doing — caption variants, email drafts, ad copy blocks. Your best people get pulled out of the work that matters to do the work that just has to get done.",
-    costHeadline: 'The cost of the production drag',
+      "Early-stage teams run on runway and focus. Every hour on a launch email is an hour not on the product, a pilot customer, or the deck that closes the next check. Marketing can't wait for a hire — but it also can't be wrong.\n\nSo founders patch it together: a post when they remember, a landing page that ages, a launch that under-promotes because the team ran out of steam.\n\nEvery startup we talk to hits the same wall: you need to look established before you are — without pretending you already have a marketing department.",
+    costHeadline: 'The cost of looking early',
     cost:
-      'Talent burns out on volume, not on hard problems. When senior creatives spend their week on rote execution, the strategic work gets thinner, clients feel it, and accounts get shaky. You\'re paying expert rates for assembly-line hours — and the math gets worse with every account you add.\n\nIt doesn\'t scale. Growth just means more volume crushing the same people.',
-    whatHeadline: 'What Maya handles for agencies',
+      "Investors, early customers, and partners judge momentum from the outside. A quiet month reads like a stalled company. A launch that lands in one channel and nowhere else reads like a side project.\n\nYou don't need a full team yet — you need a credible GTM motion. That's the gap between 'interesting idea' and 'company taking itself seriously.'",
+    whatHeadline: 'What Maya handles for startups',
     what:
-      'Brief Maya on a client — **Campaign Builder**, **Email Sequence Builder**, and **Ad Variations** return drafts in that client\'s voice, routed to your **approval queue**. Your team reviews, refines, and sends — Maya handles the volume of writing and variation, not client management or white-label workspaces.\n\nYour team stays in control. Everything routes through them before it reaches a client. Maya adds production capacity; your experts do the thinking.',
+      'Tell Maya the launch — **Campaign Builder** drafts the sequence: positioning, emails, social posts, ad variations to test. **Idea Analysis** pressure-tests angles from your Foundation before you commit. **Content Posting** generates launch posts, images, and short video in your voice. **Performance Digest** summarizes what moved once GA and social are connected.\n\nYou stay in control. Nothing publishes until you approve it. One Foundation, one brand — built for a team of one (or five) until multi-workspace agency tooling ships separately.',
     bullets: [
       {
-        heading: 'Campaigns drafted from a brief, not a blank page.',
-        body: 'Strategy, email flows, social copy, and ad variations — your team edits instead of building from zero.',
+        heading: 'A launch plan from one conversation.',
+        body: 'Brief Maya on the release; get emails, posts, and ad variations drafted — review, approve, then publish when you are ready.',
       },
       {
-        heading: 'Volume without the assembly line.',
-        body: 'More drafts per week from the same headcount — approval-first, so quality stays with your team.',
+        heading: 'GTM angles before you burn runway.',
+        body: 'Idea Analysis turns one wedge into structured hooks and campaign directions — not generic startup fluff.',
       },
       {
-        heading: 'Competitive intel without the manual research.',
-        body: 'Competitor Watcher reports you can fold into client strategy — grounded briefings, not live feeds.',
+        heading: 'Launch creative without a designer on payroll.',
+        body: 'On-brand images, short video, and captions — generated and queued, not auto-posted.',
       },
       {
-        heading: 'Voice held per brief.',
-        body: 'Maya matches each client\'s Brand Kit — your team approves before anything goes out.',
+        heading: 'Signal, not vanity metrics.',
+        body: 'Performance Digest reads connected analytics in plain English — engagement and traffic, not revenue attribution you do not have wired yet.',
       },
     ],
-    proofLabels: ['From a brief', 'Same headcount', 'No manual research', 'Team-approved'],
+    proofLabels: ['One brief', 'Before burn', 'No designer', 'Plain signal'],
     where:
-      'Behind your team as production capacity — not a multi-client platform you don\'t have yet. You stay the strategist and the face; Maya drafts at volume so your people get back to the work clients actually pay for.',
+      'In one conversation while the team is still small. You direct in plain language; specialist agents draft the GTM layer you cannot hire yet — without faking a multi-client agency workspace the product does not run today.',
   },
 ]

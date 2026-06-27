@@ -88,6 +88,7 @@
           <div class="mk-pad" style="gap:9px">
             <div class="mk-note accent-red"><div class="nl">Strategy</div><div class="nt">Build anticipation Wed–Thu, sell Fri–Sun. Tease the scent story, then convert with the list and recover carts Sunday night.</div></div>
             <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Wed</span><div class="grow"><div class="rt" style="font-weight:500">Teaser post — "something's coming"</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Fri</span><div class="grow"><div class="rt" style="font-weight:500">Drop post + product image</div><div class="rs">On-brand image + caption draft</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
             <div class="mk-row" style="padding:9px 12px;border-color:#FBD9D2"><span class="tag tag-ghost">Fri</span><div class="grow"><div class="rt" style="font-weight:500">Drop email — "It's here"</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
             <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Sun</span><div class="grow"><div class="rt" style="font-weight:500">Abandoned-cart catch</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Review ${chev}</span></div>
             <div class="mk-stats" style="margin-top:2px">
@@ -123,7 +124,7 @@
       </div>`,
 
     /* ---------------- CREATORS / SOLO ---------------- *
-       "Lena Ray" coach — a launch runs itself, in your voice, while you deliver. */
+       "Lena Ray" coach — launch drafted while she delivers, in her voice. */
     creators: () => `
       <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/campaigns</div></div>
       <div class="mk-body" style="height:430px">
@@ -138,34 +139,40 @@
           <div class="mk-pad" style="gap:9px">
             <div class="mk-note accent-pink"><div class="nl">Voice match</div><div class="nt">Warm, direct, no hype — matched to your last three newsletters. <b style="color:var(--brand)">98% on-voice.</b></div></div>
             <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500">Waitlist — "Doors open Monday"</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
-            <div class="mk-row" style="padding:9px 12px;border-color:#FBD9EC"><span class="tag tag-ghost">Post</span><div class="grow"><div class="rt" style="font-weight:500">Carousel — "Who it's for"</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:9px 12px;border-color:#FBD9EC"><span class="tag tag-ghost">Post</span><div class="grow"><div class="rt" style="font-weight:500">Carousel — "Who it's for"</div><div class="rs">Caption + on-brand image draft</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Video</span><div class="grow"><div class="rt" style="font-weight:500">Short reel — cohort teaser</div><div class="rs">10s draft · queued for approval</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Review ${chev}</span></div>
             <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500">Last-call — closes Friday</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Review ${chev}</span></div>
             <div class="mk-stats" style="margin-top:2px">
               <div class="mk-stat"><div class="n">5</div><div class="l">Emails ready</div></div>
-              <div class="mk-stat"><div class="n">7</div><div class="l">Posts queued</div></div>
+              <div class="mk-stat"><div class="n">7</div><div class="l">Drafts queued</div></div>
               <div class="mk-stat"><div class="n" style="color:var(--brand)">0</div><div class="l">Hours from you</div></div>
             </div>
           </div>
         </div>
       </div>`,
 
-    /* ---------------- AGENCIES ---------------- *
-       Production capacity — drafts at volume, team approval-first. */
-    agencies: () => `
-      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/approvals</div></div>
+    /* ---------------- STARTUPS ---------------- *
+       Early-stage GTM — launch plan drafted before the first marketing hire. */
+    startups: () => `
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/campaigns</div></div>
       <div class="mk-body" style="height:430px">
-        ${rail([['layers', true], ['mega', false], ['grid', false], ['inbox', true]])}
+        ${rail([['grid', false], ['mega', true], ['cal', false], ['spark', true]])}
+        ${chat('Northline', 'Marketing for Northline', `
+          <div class="bub bub-u">We ship v1 next week. No marketer on the team yet.</div>
+          <div class="bub bub-m">Then I&rsquo;ll draft the launch — waitlist email, three posts, and ad variations to test. All from your Foundation, queued for approval.<span class="lnk">Open launch plan ${arrowUp}</span></div>
+          <div class="bub bub-m">Want Idea Analysis on two positioning angles before you pick one?</div>
+        `, 'Brief Maya on the launch…')}
         <div class="mk-main">
-          <div class="mk-main-hd"><div><div class="ttl">Approval queue</div><div class="sub">Client brief · 8 drafts this week</div></div><span class="tag tag-blue">Team review</span></div>
+          <div class="mk-main-hd"><div><div class="ttl">v1 launch plan</div><div class="sub">Northline · ships Tue</div></div><span class="tag tag-blue">Draft · ready to review</span></div>
           <div class="mk-pad" style="gap:9px">
-            <div class="mk-note accent-blue"><div class="nl">Production capacity</div><div class="nt">Maya drafted campaigns, emails, and ad variations from your brief. Your team approves before anything goes to the client.</div></div>
-            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500">Restock announcement</div><div class="rs">3-email sequence · client voice</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Review ${chev}</span></div>
-            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Social</span><div class="grow"><div class="rt" style="font-weight:500">5 posts — ingredient story</div><div class="rs">Captions + image drafts</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
-            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Ads</span><div class="grow"><div class="rt" style="font-weight:500">4 ad variations to test</div><div class="rs">Headlines + body copy</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
+            <div class="mk-note accent-blue"><div class="nl">GTM from Foundation</div><div class="nt">One company profile — not multi-client agency workspaces. You approve before anything goes live.</div></div>
+            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500">Waitlist → launch</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Post</span><div class="grow"><div class="rt" style="font-weight:500">Launch thread — problem → wedge</div></div><span style="font-size:11px;color:var(--green);font-weight:500;display:inline-flex;gap:3px;align-items:center;white-space:nowrap">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:9px 12px"><span class="tag tag-ghost">Ads</span><div class="grow"><div class="rt" style="font-weight:500">3 variations to test</div></div><span style="font-size:12px;color:var(--blue);font-weight:500;display:inline-flex;gap:2px;align-items:center;white-space:nowrap">Review ${chev}</span></div>
             <div class="mk-stats" style="margin-top:2px">
-              <div class="mk-stat"><div class="n">8</div><div class="l">Drafts this week</div></div>
-              <div class="mk-stat"><div class="n" style="color:var(--green)">100%</div><div class="l">Team-approved</div></div>
-              <div class="mk-stat"><div class="n">0</div><div class="l">Built from zero</div></div>
+              <div class="mk-stat"><div class="n">6</div><div class="l">Launch assets</div></div>
+              <div class="mk-stat"><div class="n">0</div><div class="l">Marketing hires</div></div>
+              <div class="mk-stat"><div class="n">1</div><div class="l">Foundation</div></div>
             </div>
           </div>
         </div>

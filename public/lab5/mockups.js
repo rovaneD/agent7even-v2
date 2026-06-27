@@ -265,14 +265,14 @@
         </div>
       </div>`,
 
-    'widget-use-agencies': () => `
-      ${miniBar('agent7even.ai/approvals')}
+    'widget-use-startups': () => `
+      ${miniBar('agent7even.ai/campaigns')}
       <div class="mk-body" style="height:auto;background:#fff">
         <div class="mk-main">
-          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Approval queue</div><div class="sub" style="font-size:10px">8 drafts · team review</div></div></div>
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Product launch — v1</div><div class="sub" style="font-size:10px">Northline · ships next week</div></div><span class="tag tag-blue" style="font-size:10px;padding:3px 8px">Launch plan</span></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
-            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">3-email sequence</div></div><span style="font-size:10px;color:var(--blue);font-weight:500">Review ${chev}</span></div>
-            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Ads</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">4 ad variations</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Waitlist → launch sequence</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
+            <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Ads</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">3 ad variations to test</div></div><span style="font-size:10px;color:var(--blue);font-weight:500">Review ${chev}</span></div>
           </div>
         </div>
       </div>`,

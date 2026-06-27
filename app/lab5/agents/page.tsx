@@ -347,7 +347,7 @@ export default function AgentsPage() {
               <a href="/use-cases/ecommerce">E-commerce</a>
               <a href="/use-cases/local-service">Local service</a>
               <a href="/use-cases/coaches-creators">Creators</a>
-              <a href="/use-cases/agencies">Agencies</a>
+              <a href="/use-cases/startups">Startups</a>
             </div>
             <div className="fcol">
               <h5>Company</h5>

@@ -10,11 +10,11 @@ const CARD_IMAGES: Record<string, string> = {
   ecommerce: '/lab5/uc-ecommerce.jpg',
   'local-service': '/lab5/uc-local.jpg',
   'coaches-creators': '/lab5/uc-creators.jpg',
-  agencies: '/lab5/uc-agencies.jpg',
+  startups: '/lab5/uc-agencies.jpg',
 }
 
 /** Local service leads — strongest vertical per A1 §5 */
-const CARD_ORDER = ['local-service', 'ecommerce', 'coaches-creators', 'agencies'] as const
+const CARD_ORDER = ['local-service', 'ecommerce', 'coaches-creators', 'startups'] as const
 
 const ArrowRight = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -122,7 +122,7 @@ export default function UseCasesPage() {
               <a href="/use-cases/ecommerce">E-commerce</a>
               <a href="/use-cases/local-service">Local service</a>
               <a href="/use-cases/coaches-creators">Creators</a>
-              <a href="/use-cases/agencies">Agencies</a>
+              <a href="/use-cases/startups">Startups</a>
             </div>
             <div className="fcol">
               <h5>Company</h5>

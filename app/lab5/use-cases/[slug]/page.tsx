@@ -41,7 +41,7 @@ const SEG: Record<string, {
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg> },
       { slug: 'coaches-creators', seg: '#F5349B', bg: '#FDE5F1', eyebrow: 'Creators & founders', headline: 'Finally in two places at once.', tagline: 'You are the product and the marketing department. Maya carries the half you never have time for.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg> },
-      { slug: 'agencies', seg: '#3286FE', bg: '#EAF1FF', eyebrow: 'Agencies', headline: 'Your team back on the work that justifies the rate.', tagline: 'Production capacity for drafts and variations — your team stays on strategy, not assembly.',
+      { slug: 'startups', seg: '#6366F1', bg: '#EEF2FF', eyebrow: 'Startups', headline: 'Ship the story before you ship the team.', tagline: 'Launch-ready GTM from one Foundation — before you can hire marketing.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg> },
     ],
   },
@@ -54,7 +54,7 @@ const SEG: Record<string, {
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H5.5"/></svg> },
       { slug: 'coaches-creators', seg: '#F5349B', bg: '#FDE5F1', eyebrow: 'Creators & founders', headline: 'Finally in two places at once.', tagline: 'You are the product and the marketing department. Maya carries the half you never have time for.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg> },
-      { slug: 'agencies', seg: '#3286FE', bg: '#EAF1FF', eyebrow: 'Agencies', headline: 'Your team back on the work that justifies the rate.', tagline: 'Production capacity for drafts and variations — your team stays on strategy.',
+      { slug: 'startups', seg: '#6366F1', bg: '#EEF2FF', eyebrow: 'Startups', headline: 'Ship the story before you ship the team.', tagline: 'Launch-ready GTM from one Foundation — before you can hire marketing.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg> },
     ],
   },
@@ -67,14 +67,14 @@ const SEG: Record<string, {
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H5.5"/></svg> },
       { slug: 'local-service', seg: '#10B981', bg: '#E3F9F0', eyebrow: 'Local service', headline: 'Good at the work. Now visible for it.', tagline: 'Stay visible without staying up late — the slow week filled, competitive reports on your desk.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg> },
-      { slug: 'agencies', seg: '#3286FE', bg: '#EAF1FF', eyebrow: 'Agencies', headline: 'Your team back on the work that justifies the rate.', tagline: 'Production capacity for drafts and variations — your team stays on strategy.',
+      { slug: 'startups', seg: '#6366F1', bg: '#EEF2FF', eyebrow: 'Startups', headline: 'Ship the story before you ship the team.', tagline: 'Launch-ready GTM from one Foundation — before you can hire marketing.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg> },
     ],
   },
-  agencies: {
-    ucKey: 'agencies',
-    seg: '#3286FE',
-    pull: "Your best people get pulled into work that just has to get done.",
+  startups: {
+    ucKey: 'startups',
+    seg: '#6366F1',
+    pull: "You can't hire marketing yet — but you still have to look like you did.",
     more: [
       { slug: 'ecommerce', seg: '#EE533B', bg: '#FFEEE9', eyebrow: 'E-commerce brands', headline: 'The store runs.\nThe brand doesn\'t have to stop.', tagline: 'Consistent presence between drops — launches drafted, the list kept warm.',
         icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.2a1.5 1.5 0 0 0 1.5 1.3h8.3a1.5 1.5 0 0 0 1.5-1.2L21 7H5.5"/></svg> },
@@ -275,7 +275,7 @@ export default function UseCaseDetailPage() {
               <a className="brand" href="/">
                 <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
               </a>
-              <p>The AI-first marketing platform for small business. Meet Maya.</p>
+              <p>The AI marketing operating system for small business. Meet Maya.</p>
             </div>
             <div className="fcol">
               <h5>Product</h5>
@@ -289,7 +289,7 @@ export default function UseCaseDetailPage() {
               <a href="/use-cases/ecommerce">E-commerce</a>
               <a href="/use-cases/local-service">Local service</a>
               <a href="/use-cases/coaches-creators">Creators</a>
-              <a href="/use-cases/agencies">Agencies</a>
+              <a href="/use-cases/startups">Startups</a>
             </div>
             <div className="fcol">
               <h5>Company</h5>
