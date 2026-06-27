@@ -11,6 +11,7 @@ import { loadFoundationContext } from '@/lib/agents/loadFoundationContext'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { buildImageContextCapabilityPrompt } from '@/lib/posts/imageContextCapabilities'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
+import { assessTextFairUse } from '@/lib/credits/textFairUse'
 import { MAYA_NO_FAKE_ACTIONS } from '@/lib/maya/voiceRules'
 
 const CHAT_CREDITS = ACTION_CREDIT_COST.maya_chat_turn
@@ -296,6 +297,11 @@ Direct. Warm. A little energetic. Never say "Great!" or "Absolutely!" Just respo
 Never use markdown in conversation. Save structure for the plan.`
 
     // ── 5. Create task, stream, record cost ────────────────────────────────
+    const fairUse = await assessTextFairUse(profile.id)
+    if (fairUse.warn) {
+      console.warn('[maya/chat] text fair-use:', fairUse.message)
+    }
+
     const task = await createTask({
       userId:  profile.id,
       agent:   'maya',
@@ -312,7 +318,10 @@ Never use markdown in conversation. Save structure for the plan.`
       const msg = err instanceof Error ? err.message : ''
       if (msg === 'INSUFFICIENT_CREDITS') {
         return NextResponse.json(
-          { error: 'INSUFFICIENT_CREDITS', message: 'Maya needs credits to respond. Choose a plan or top up credits to continue.' },
+          {
+            error: 'INSUFFICIENT_CREDITS',
+            message: 'You are out of media credits. Maya chat is free — top up or upgrade if a media action blocked you.',
+          },
           { status: 402 },
         )
       }

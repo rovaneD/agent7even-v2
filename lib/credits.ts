@@ -60,6 +60,16 @@ export async function deductCredits(
   taskId?: string,
   orchestrationId?: string
 ): Promise<CreditMutationResult> {
+  if (credits <= 0) {
+    const supabase = createServiceClient()
+    const { data } = await supabase
+      .from('credit_balances')
+      .select('balance')
+      .eq('user_id', profileId)
+      .maybeSingle()
+    return { balance: Number(data?.balance ?? 0) }
+  }
+
   const supabase = createServiceClient()
 
   const { data, error } = await supabase.rpc('deduct_credits', {
@@ -84,6 +94,16 @@ export async function refundCredits(
   description: string,
   taskId?: string
 ): Promise<CreditMutationResult> {
+  if (credits <= 0) {
+    const supabase = createServiceClient()
+    const { data } = await supabase
+      .from('credit_balances')
+      .select('balance')
+      .eq('user_id', profileId)
+      .maybeSingle()
+    return { balance: Number(data?.balance ?? 0) }
+  }
+
   const supabase = createServiceClient()
 
   const { data, error } = await supabase.rpc('refund_credits', {

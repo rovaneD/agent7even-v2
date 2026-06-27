@@ -26,7 +26,7 @@ import {
   platformRequiresGrowthPlus,
   X_CONNECT_GROWTH_GATE_MESSAGE,
 } from '@/lib/social/platformGates'
-import type { ZernioConnectedAccountInfo } from '@/lib/social/publisher'
+import type { ZernioConnectedAccountInfo } from '@/lib/social/zernioShared'
 import {
   isMetaOAuthPlatform,
   MetaConnectDisclosureModal,

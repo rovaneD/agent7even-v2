@@ -422,7 +422,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
       const res  = await fetch('/api/brand-kit/generate-colors', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
-        setGenError(data.error === 'INSUFFICIENT_CREDITS' ? 'Not enough credits (2 required).' : (data.error ?? 'Generation failed'))
+        setGenError(data.error === 'INSUFFICIENT_CREDITS' ? 'Not enough media credits (1 required).' : (data.error ?? 'Generation failed'))
         return
       }
       setPreview(data.colors)
@@ -685,7 +685,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
       const res  = await fetch('/api/brand-kit/generate-fonts', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
-        setGenError(data.error === 'INSUFFICIENT_CREDITS' ? 'Not enough credits (2 required).' : (data.error ?? 'Generation failed'))
+        setGenError(data.error === 'INSUFFICIENT_CREDITS' ? 'Not enough media credits (1 required).' : (data.error ?? 'Generation failed'))
         return
       }
       setPairings(data.pairings)

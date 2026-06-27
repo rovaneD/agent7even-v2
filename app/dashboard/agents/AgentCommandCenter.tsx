@@ -316,7 +316,9 @@ function friendlyRunError(error: string | null | undefined): string {
   if (error.includes('Unknown agent: content-posting')) {
     return 'Content Posting handler was not reachable on this deployment. Wait for the latest deploy, then try again.'
   }
-  if (error.includes('INSUFFICIENT_CREDITS')) return 'Not enough credits to finish this run.'
+  if (error.includes('INSUFFICIENT_CREDITS')) {
+    return 'Not enough media credits to finish this run. Text agents stay free — top up or upgrade for images and video.'
+  }
   const match = error.match(/run-route error \d+: (.+)/)
   if (match) {
     try {

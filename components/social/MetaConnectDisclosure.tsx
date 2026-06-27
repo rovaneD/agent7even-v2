@@ -1,6 +1,6 @@
 'use client'
 
-import { ZERNIO_HEADLESS_PLATFORMS } from '@/lib/social/publisher'
+import { ZERNIO_HEADLESS_PLATFORMS } from '@/lib/social/zernioShared'
 
 const PLATFORM_LABELS: Record<string, string> = {
   facebook: 'Facebook',

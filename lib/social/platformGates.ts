@@ -3,7 +3,7 @@ import {
   X_CONNECT_MEASUREMENT_START,
   measurementDaysRemaining,
   measurementWindowEnd,
-} from '@/lib/social/zernioUsage'
+} from '@/lib/social/xConnectMeasurement'
 
 /** Platforms gated above Starter while we measure Zernio/X pass-through cost. */
 export const X_CONNECT_PLATFORM = 'x'

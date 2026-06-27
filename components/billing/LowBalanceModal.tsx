@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { X, Zap } from 'lucide-react'
 import CreditTopUp from './CreditTopUp'
 
@@ -10,7 +11,7 @@ interface Props {
 }
 
 export default function LowBalanceModal({ balance, planMax, onDismiss }: Props) {
-  const pct = Math.round((balance / planMax) * 100)
+  const pct = Math.max(0, Math.round((balance / planMax) * 100))
 
   return (
     <div
@@ -22,11 +23,11 @@ export default function LowBalanceModal({ balance, planMax, onDismiss }: Props) 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <Zap size={16} color="#f97316" />
-              <h2 style={{ fontSize: 15, fontWeight: 600, color: '#2D3748', margin: 0 }}>Running low on credits</h2>
+              <h2 style={{ fontSize: 15, fontWeight: 600, color: '#2D3748', margin: 0 }}>Running low on media credits</h2>
             </div>
-            <p style={{ fontSize: 13, color: '#888', margin: 0 }}>
-              You have {balance} credits left ({pct}% of your plan).
-              Top up to keep Maya and your agents running.
+            <p style={{ fontSize: 13, color: '#888', margin: 0, lineHeight: 1.5 }}>
+              You have {balance} media credits left ({pct}% of your plan allowance).
+              Maya chat and text agents stay unlimited — credits meter images and video only.
             </p>
           </div>
           <button
@@ -41,7 +42,25 @@ export default function LowBalanceModal({ balance, planMax, onDismiss }: Props) 
           <CreditTopUp currentBalance={balance} onSuccess={onDismiss} />
         </div>
 
-        <div style={{ padding: '0 24px 20px' }}>
+        <div style={{ padding: '0 24px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Link
+            href="/dashboard/billing"
+            onClick={onDismiss}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '10px 0',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#3B82F6',
+              textAlign: 'center',
+              textDecoration: 'none',
+              border: '1px solid #E5E7EB',
+              borderRadius: 12,
+            }}
+          >
+            Upgrade plan for more credits
+          </Link>
           <button
             onClick={onDismiss}
             style={{ width: '100%', padding: '8px 0', fontSize: 13, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}

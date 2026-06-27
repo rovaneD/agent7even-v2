@@ -5,7 +5,7 @@ import AnalyticsClient from './AnalyticsClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import * as publisher from '@/lib/social/publisher'
 import { collectZernioProfileIds, syncTenantConnectedPlatforms } from '@/lib/social/zernioProfileIds'
-import type { ZernioConnectedAccountInfo } from '@/lib/social/publisher'
+import type { ZernioConnectedAccountInfo } from '@/lib/social/zernioShared'
 
 export type AnalyticsDataState = 'mock' | 'live' | 'empty'
 

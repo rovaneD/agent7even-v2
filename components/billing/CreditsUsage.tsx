@@ -71,9 +71,14 @@ export default function CreditsUsage({ data }: Props) {
     <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
 
       {/* Header */}
-      <div className="flex items-center gap-2 mb-5">
-        <Zap className="w-4 h-4 text-[#3B82F6]" />
-        <h3 className="text-base font-semibold text-[#2D3748]">Credits &amp; Usage</h3>
+      <div className="mb-5">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-[#3B82F6]" />
+          <h3 className="text-base font-semibold text-[#2D3748]">Media credits &amp; usage</h3>
+        </div>
+        <p className="mt-1.5 text-xs text-[#64748B]">
+          Maya chat and text agents are unlimited. Credits meter images, video, and publishing only.
+        </p>
       </div>
 
       {/* ── Balance section ── */}

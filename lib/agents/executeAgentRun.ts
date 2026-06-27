@@ -11,6 +11,7 @@ import {
 import { isSinglePostRun, isWeeklyContentRun, resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
 import { CREDIT_COST, type RunTier } from '@/lib/agents/cost'
+import { assessTextFairUse } from '@/lib/credits/textFairUse'
 import { buildAgentFlowPrompt, buildAgentUserMessage } from '@/lib/agents/flows'
 import { parseAndValidateIdeaAnalysis } from '@/lib/agents/ideaAnalysis'
 import { readPostMediaRef } from '@/lib/postAssets'
@@ -77,9 +78,16 @@ export async function executeAgentRun(opts: {
     .single()
 
   await updateTaskStatus(taskId, 'running')
-  const tier: RunTier = hasImage || singlePostRun ? 'standard' : 'light'
+  const tier: RunTier = hasImage ? 'deep' : 'light'
   const creditsNeeded = CREDIT_COST[tier]
   let creditsReserved = false
+
+  if (creditsNeeded === 0) {
+    const fairUse = await assessTextFairUse(userId)
+    if (fairUse.warn) {
+      console.warn(`[executeAgentRun/${agentId}] text fair-use:`, fairUse.message)
+    }
+  }
 
   try {
     await deductCredits(userId, creditsNeeded, `agent_run — ${agentId} reserved`, taskId)

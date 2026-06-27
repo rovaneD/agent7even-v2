@@ -17,13 +17,13 @@ const MODEL_OPTIONS = [
     id:      'sonnet',
     model:   'anthropic/claude-sonnet-4',
     label:   'Claude Sonnet',
-    credits: 8,
+    credits: 0,
   },
   {
     id:      'opus',
     model:   'anthropic/claude-opus-4',
     label:   'Claude Opus',
-    credits: 25,
+    credits: 0,
   },
 ]
 

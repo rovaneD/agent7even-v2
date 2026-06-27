@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
+import { assessTextFairUse } from '@/lib/credits/textFairUse'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -22,6 +23,11 @@ export async function POST(req: Request) {
 
   const model = body.model ?? 'anthropic/claude-sonnet-4'
   const credits = ACTION_CREDIT_COST.text_run
+
+  const fairUse = await assessTextFairUse(profile.id)
+  if (fairUse.warn) {
+    console.warn('[campaigns/generate] text fair-use:', fairUse.message)
+  }
 
   const prompt = body.mode === 'guided'
     ? buildGuidedPrompt(body, profile)

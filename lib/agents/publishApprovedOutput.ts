@@ -4,10 +4,11 @@ import {
   readPostMediaRef,
 } from '@/lib/postAssets'
 import { deductCredits, refundCredits } from '@/lib/credits'
+import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { createServiceClient } from '@/lib/supabase/server'
 import { primaryPlatformFromInput } from '@/lib/agents/visionCaption'
 
-const PUBLISH_CREDIT_COST = 1
+const PUBLISH_CREDIT_COST = ACTION_CREDIT_COST.publish
 
 function normalizePlatform(value: string): string {
   const v = value.toLowerCase().trim()

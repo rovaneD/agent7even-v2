@@ -275,6 +275,14 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
       {/* Credits & Usage */}
       {creditsUsage && <CreditsUsage data={creditsUsage} />}
 
+      <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Service requests</p>
+        <p className="mt-2 text-sm leading-relaxed text-text-sec">
+          Human-delivered work (design, photography, ad management) you request and track in your dashboard,
+          fulfilled by our team. Not AI, not credits — managed services.
+        </p>
+      </div>
+
       {/* Credit top-up */}
       <CreditTopUp currentBalance={creditBalance} />
 

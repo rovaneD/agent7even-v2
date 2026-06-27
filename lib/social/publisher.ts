@@ -3,7 +3,13 @@
 // Fail soft: every exported function returns null/false/[] on error, never throws.
 
 import { recordZernioCall } from '@/lib/social/zernioUsage'
+import {
+  ZERNIO_HEADLESS_PLATFORMS,
+  type ZernioConnectedAccountInfo,
+} from '@/lib/social/zernioShared'
 
+export type { ZernioConnectedAccountInfo } from '@/lib/social/zernioShared'
+export { ZERNIO_HEADLESS_PLATFORMS } from '@/lib/social/zernioShared'
 export type { ZernioUsageContext } from '@/lib/social/zernioUsage'
 export { withZernioUsageContext } from '@/lib/social/zernioUsage'
 
@@ -247,8 +253,6 @@ export async function selectFacebookPage(opts: {
   }
 }
 
-/** Platforms that use Meta OAuth and should stay on our domain after auth (headless). */
-export const ZERNIO_HEADLESS_PLATFORMS = new Set(['facebook', 'instagram', 'threads'])
 
 /** Disconnect a single platform from a Zernio profile. Returns false on failure. */
 export async function disconnectAccount(profileId: string, platform: string): Promise<boolean> {
@@ -356,15 +360,6 @@ type ZernioAccountRow = {
   }
 }
 
-export type ZernioConnectedAccountInfo = {
-  id: string
-  platform: string
-  username: string
-  displayName: string
-  followersCount: number
-  connectedAt: string | null
-  profileId?: string
-}
 
 function parseConnectedAccountRow(row: ZernioAccountRow): ZernioConnectedAccountInfo | null {
   const id = String(row._id ?? row.id ?? '')
