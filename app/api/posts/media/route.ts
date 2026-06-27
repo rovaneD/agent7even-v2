@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan')
+    .select('id, plan')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -65,26 +65,32 @@ export async function POST(req: Request) {
   }
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'upload'
-  const presign = await publisher.presignMedia({
-    filename: safeName,
-    contentType,
-    size: file.size,
-  })
 
-  if (!presign) {
-    return NextResponse.json({ error: 'presign_failed' }, { status: 502 })
-  }
+  return publisher.withZernioUsageContext(
+    { userId: profile.id as string },
+    async () => {
+      const presign = await publisher.presignMedia({
+        filename: safeName,
+        contentType,
+        size: file.size,
+      })
 
-  const buffer = await file.arrayBuffer()
-  const uploaded = await publisher.uploadToPresignedUrl(presign.uploadUrl, buffer, contentType)
-  if (!uploaded) {
-    return NextResponse.json({ error: 'upload_failed' }, { status: 502 })
-  }
+      if (!presign) {
+        return NextResponse.json({ error: 'presign_failed' }, { status: 502 })
+      }
 
-  return NextResponse.json({
-    url: presign.publicUrl,
-    type: presign.mediaType,
-    title: safeName,
-    maxItems: MAX_ITEMS,
-  })
+      const buffer = await file.arrayBuffer()
+      const uploaded = await publisher.uploadToPresignedUrl(presign.uploadUrl, buffer, contentType)
+      if (!uploaded) {
+        return NextResponse.json({ error: 'upload_failed' }, { status: 502 })
+      }
+
+      return NextResponse.json({
+        url: presign.publicUrl,
+        type: presign.mediaType,
+        title: safeName,
+        maxItems: MAX_ITEMS,
+      })
+    },
+  )
 }

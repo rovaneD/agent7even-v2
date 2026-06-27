@@ -48,10 +48,15 @@ export default async function InboxPage() {
   }
 
   let zernioConnectedPlatforms = (profile?.zernio_connected_platforms as string[] | null) ?? []
-  if (primaryProfileId) {
+  if (primaryProfileId && profile?.id) {
     try {
-      const connectedPlatforms = await publisher.getConnectedPlatforms(primaryProfileId)
-      if (connectedPlatforms.length > 0) zernioConnectedPlatforms = connectedPlatforms
+      await publisher.withZernioUsageContext(
+        { userId: profile.id, zernioProfileId: primaryProfileId },
+        async () => {
+          const connectedPlatforms = await publisher.getConnectedPlatforms(primaryProfileId)
+          if (connectedPlatforms.length > 0) zernioConnectedPlatforms = connectedPlatforms
+        },
+      )
     } catch (err) {
       console.error('[inbox/page] connected platform fetch failed:', err)
     }

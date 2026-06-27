@@ -12,12 +12,18 @@ export type ContentLifecycleCounts = {
 
 async function countPostsByStatus(
   profileId: string,
+  userId: string,
   status: 'draft' | 'scheduled' | 'published',
 ): Promise<number> {
   if (!process.env.ZERNIO_API_KEY) return 0
-  const raw = await publisher.listPosts({ profileId, status, limit: 1, page: 1 })
-  if (!raw) return 0
-  return parsePostsList(raw).pagination.total
+  return publisher.withZernioUsageContext(
+    { userId, zernioProfileId: profileId },
+    async () => {
+      const raw = await publisher.listPosts({ profileId, status, limit: 1, page: 1 })
+      if (!raw) return 0
+      return parsePostsList(raw).pagination.total
+    },
+  )
 }
 
 /** Aggregate approval queue + Zernio post statuses for lifecycle surfacing. */
@@ -47,9 +53,9 @@ export async function getContentLifecycleCounts(
   }
 
   const [draft, scheduled, published] = await Promise.all([
-    countPostsByStatus(zernioProfileId, 'draft'),
-    countPostsByStatus(zernioProfileId, 'scheduled'),
-    countPostsByStatus(zernioProfileId, 'published'),
+    countPostsByStatus(zernioProfileId, profileId, 'draft'),
+    countPostsByStatus(zernioProfileId, profileId, 'scheduled'),
+    countPostsByStatus(zernioProfileId, profileId, 'published'),
   ])
 
   return {

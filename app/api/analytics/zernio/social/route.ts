@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan, zernio_profile_id, zernio_profile_ids')
+    .select('id, plan, zernio_profile_id, zernio_profile_ids')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -114,6 +114,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'not_connected' }, { status: 404 })
   }
 
+  return publisher.withZernioUsageContext(
+    { userId: profile.id as string, zernioProfileId: zernioProfileIds[0] },
+    async () => {
   const { fromDate, toDate } = publisher.dateRangeToWindow(dateRange)
   const analyticsPlatform = platform?.toLowerCase()
 
@@ -541,4 +544,6 @@ export async function GET(req: NextRequest) {
   }, {
     headers: { 'Cache-Control': 'no-store' },
   })
+    },
+  )
 }

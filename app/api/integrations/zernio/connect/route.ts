@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { logActivity } from '@/lib/activity'
 import * as publisher from '@/lib/social/publisher'
 import { createOAuthState } from '@/lib/oauth-state'
 import { oauthCallbackBase } from '@/lib/oauthCallbackBase'
@@ -9,6 +10,11 @@ import {
   disconnectPlatformFromTenant,
   syncTenantConnectedPlatforms,
 } from '@/lib/social/zernioProfileIds'
+import {
+  canConnectSocialPlatform,
+  platformRequiresGrowthPlus,
+  X_CONNECT_GROWTH_GATE_MESSAGE,
+} from '@/lib/social/platformGates'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -44,6 +50,26 @@ export async function POST(req: Request) {
       { status: 403 },
     )
   }
+
+  if (platformRequiresGrowthPlus(platform) && !canConnectSocialPlatform(profile.plan as string, platform)) {
+    const source = returnTo.includes('/posts') ? 'posts' : 'analytics'
+    void logActivity(profile.id as string, 'x_connect_blocked', {
+      plan: profile.plan,
+      platform,
+      source,
+    })
+    return NextResponse.json(
+      { error: 'growth_plan_required', message: X_CONNECT_GROWTH_GATE_MESSAGE },
+      { status: 403 },
+    )
+  }
+
+  return publisher.withZernioUsageContext(
+    {
+      userId: profile.id as string,
+      zernioProfileId: (profile.zernio_profile_id as string | null) ?? undefined,
+    },
+    async () => {
 
   if (reconnect === true && platform) {
     const profileIds = collectZernioProfileIds(profile)
@@ -137,4 +163,6 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ authUrl })
+    },
+  )
 }

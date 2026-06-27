@@ -52,11 +52,16 @@ export default async function PostsPage() {
   let zernioConnectedPlatforms = (profile?.zernio_connected_platforms as string[] | null) ?? []
   let accounts: Array<{ id: string; platform: string; username: string }> = []
 
-  if (primaryProfileId) {
+  if (primaryProfileId && profile?.id) {
     try {
-      accounts = await publisher.getProfileAccounts(primaryProfileId)
-      const connectedPlatforms = await publisher.getConnectedPlatforms(primaryProfileId)
-      if (connectedPlatforms.length > 0) zernioConnectedPlatforms = connectedPlatforms
+      await publisher.withZernioUsageContext(
+        { userId: profile.id, zernioProfileId: primaryProfileId },
+        async () => {
+          accounts = await publisher.getProfileAccounts(primaryProfileId)
+          const connectedPlatforms = await publisher.getConnectedPlatforms(primaryProfileId)
+          if (connectedPlatforms.length > 0) zernioConnectedPlatforms = connectedPlatforms
+        },
+      )
     } catch (err) {
       console.error('[posts/page] account fetch failed:', err)
     }

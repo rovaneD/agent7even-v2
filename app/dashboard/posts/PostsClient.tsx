@@ -28,6 +28,11 @@ import {
   MetaConnectDisclosureModal,
   SocialMetaConnectNotice,
 } from '@/components/social/MetaConnectDisclosure'
+import {
+  canConnectSocialPlatform,
+  platformRequiresGrowthPlus,
+  X_CONNECT_GROWTH_GATE_MESSAGE,
+} from '@/lib/social/platformGates'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -179,6 +184,7 @@ export default function PostsClient({
   const [selectedQueueId, setSelectedQueueId] = useState('')
   const [queues, setQueues] = useState<ZernioQueueRow[]>([])
   const [validationHints, setValidationHints] = useState<string[]>([])
+  const [xUpgradeModal, setXUpgradeModal] = useState(false)
 
   const isLive = dataState === 'live'
 
@@ -615,10 +621,22 @@ export default function PostsClient({
       body: JSON.stringify({ platform, returnTo: '/dashboard/posts' }),
     })
     const data = await res.json()
+    if (data.error === 'growth_plan_required') {
+      setXUpgradeModal(true)
+      setCreateError(data.message ?? X_CONNECT_GROWTH_GATE_MESSAGE)
+      return
+    }
     if (data.authUrl) window.location.href = data.authUrl
+    else if (data.message || data.error) {
+      setCreateError(data.message ?? data.error ?? 'Could not connect that account.')
+    }
   }
 
   const handleConnect = (platform: string) => {
+    if (platformRequiresGrowthPlus(platform) && !canConnectSocialPlatform(plan, platform)) {
+      setXUpgradeModal(true)
+      return
+    }
     if (isMetaOAuthPlatform(platform) && !pendingMetaConnect) {
       setMetaModalPlatform(platform)
       return
@@ -824,10 +842,37 @@ export default function PostsClient({
       />
       {connectOpen && (
         <ConnectPanel
+          plan={plan}
           connectedPlatforms={zernioConnectedPlatforms}
           onClose={() => setConnectOpen(false)}
           onConnect={handleConnect}
         />
+      )}
+
+      {xUpgradeModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <p className="text-[15px] font-semibold text-text mb-1">Upgrade to connect X</p>
+            <p className="text-[13px] text-text-sec mb-4 leading-relaxed">
+              {X_CONNECT_GROWTH_GATE_MESSAGE} Instagram, Facebook, TikTok, YouTube, and LinkedIn remain available on Starter.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setXUpgradeModal(false)}
+                className="flex-1 border border-gray-200 text-sm font-medium text-text-sec px-4 py-2 rounded-xl hover:border-gray-300 transition-colors"
+              >
+                Not now
+              </button>
+              <a
+                href="/dashboard/billing"
+                className="flex-1 bg-[#3B82F6] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#2563EB] transition-colors text-center"
+              >
+                View plans
+              </a>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -1391,8 +1436,9 @@ function CreatePostDrawer({
 }
 
 function ConnectPanel({
-  connectedPlatforms, onClose, onConnect,
+  plan, connectedPlatforms, onClose, onConnect,
 }: {
+  plan: string
   connectedPlatforms: string[]
   onClose: () => void
   onConnect: (platform: string) => void
@@ -1411,11 +1457,21 @@ function ConnectPanel({
           <SocialMetaConnectNotice className="mb-4" />
           {platforms.map(p => {
             const connected = connectedPlatforms.includes(p)
+            const xGrowthGated = p === 'x' && !connected && !canConnectSocialPlatform(plan, p)
             return (
               <div key={p} className="flex items-center justify-between rounded-xl border border-gray-100 px-4 py-3">
-                <span className="text-[13px] font-medium text-text">{platformLabel(p)}</span>
+                <div>
+                  <span className="text-[13px] font-medium text-text">{platformLabel(p)}</span>
+                  {xGrowthGated && (
+                    <p className="text-[11px] text-text-soft mt-0.5">Growth or ProAgent</p>
+                  )}
+                </div>
                 {connected ? (
                   <span className="text-[11px] font-semibold text-emerald-600">Connected</span>
+                ) : xGrowthGated ? (
+                  <a href="/dashboard/billing" className="text-[12px] font-semibold text-[#3B82F6] hover:underline">
+                    Upgrade
+                  </a>
                 ) : (
                   <button type="button" onClick={() => onConnect(p)} className="text-[12px] font-semibold text-[#3B82F6] hover:underline">
                     Connect

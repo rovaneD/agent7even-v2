@@ -53,17 +53,22 @@ export default async function AnalyticsPage() {
   let zernioConnectedPlatforms = (profile?.zernio_connected_platforms as string[] | null) ?? []
   let zernioConnectedAccounts: ZernioConnectedAccountInfo[] = []
 
-  if (zernioProfileIds.length > 0) {
+  if (zernioProfileIds.length > 0 && profile?.id) {
     try {
-      zernioConnectedAccounts = await publisher.getTenantConnectedAccounts(zernioProfileIds)
-      const syncedPlatforms = await syncTenantConnectedPlatforms(zernioProfileIds)
-      if (syncedPlatforms.length > 0) {
-        zernioConnectedPlatforms = syncedPlatforms
-      } else if (zernioConnectedAccounts.length > 0) {
-        zernioConnectedPlatforms = Array.from(
-          new Set(zernioConnectedAccounts.map((a) => a.platform.toLowerCase()).filter(Boolean)),
-        )
-      }
+      await publisher.withZernioUsageContext(
+        { userId: profile.id as string, zernioProfileId: zernioProfileId ?? undefined },
+        async () => {
+          zernioConnectedAccounts = await publisher.getTenantConnectedAccounts(zernioProfileIds)
+          const syncedPlatforms = await syncTenantConnectedPlatforms(zernioProfileIds)
+          if (syncedPlatforms.length > 0) {
+            zernioConnectedPlatforms = syncedPlatforms
+          } else if (zernioConnectedAccounts.length > 0) {
+            zernioConnectedPlatforms = Array.from(
+              new Set(zernioConnectedAccounts.map((a) => a.platform.toLowerCase()).filter(Boolean)),
+            )
+          }
+        },
+      )
     } catch (err) {
       console.error('[analytics/page] connected account fetch failed:', err)
     }

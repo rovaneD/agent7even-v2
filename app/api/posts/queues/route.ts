@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
     .from('profiles')
-    .select('plan, zernio_profile_id, zernio_profile_ids')
+    .select('id, plan, zernio_profile_id, zernio_profile_ids')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -37,13 +37,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_profile' }, { status: 400 })
   }
 
-  const raw = await publisher.listQueueSlots(profileId)
-  if (!raw) {
-    return NextResponse.json({ error: 'zernio_api_error' }, { status: 502 })
-  }
+  return publisher.withZernioUsageContext(
+    { userId: profile.id as string, zernioProfileId: profileId },
+    async () => {
+      const raw = await publisher.listQueueSlots(profileId)
+      if (!raw) {
+        return NextResponse.json({ error: 'zernio_api_error' }, { status: 502 })
+      }
 
-  return NextResponse.json({
-    profileId,
-    queues: parseQueueList(raw),
-  }, { headers: { 'Cache-Control': 'no-store' } })
+      return NextResponse.json({
+        profileId,
+        queues: parseQueueList(raw),
+      }, { headers: { 'Cache-Control': 'no-store' } })
+    },
+  )
 }

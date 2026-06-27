@@ -2,6 +2,11 @@
 // Never scatter Zernio calls across routes — import from here.
 // Fail soft: every exported function returns null/false/[] on error, never throws.
 
+import { recordZernioCall } from '@/lib/social/zernioUsage'
+
+export type { ZernioUsageContext } from '@/lib/social/zernioUsage'
+export { withZernioUsageContext } from '@/lib/social/zernioUsage'
+
 const ZERNIO_BASE = 'https://zernio.com/api/v1'
 
 function apiKey(): string {
@@ -40,7 +45,9 @@ function sleep(ms: number): Promise<void> {
 async function zCall<T = unknown>(path: string, init?: RequestInit, attempt = 0): Promise<T> {
   guardRate()
   const url = `${ZERNIO_BASE}${path}`
-  console.log(`[publisher] ${init?.method ?? 'GET'} ${url}${attempt > 0 ? ` (retry ${attempt})` : ''}`)
+  const method = init?.method ?? 'GET'
+  const requestBody = typeof init?.body === 'string' ? init.body : undefined
+  console.log(`[publisher] ${method} ${url}${attempt > 0 ? ` (retry ${attempt})` : ''}`)
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 12_000)
@@ -59,6 +66,9 @@ async function zCall<T = unknown>(path: string, init?: RequestInit, attempt = 0)
     clearTimeout(timer)
     const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
     console.error(`[publisher] fetch failed for ${url}: ${msg}`)
+    if (attempt === 0) {
+      recordZernioCall({ path, method, body: requestBody, statusCode: null })
+    }
     throw new Error(`[publisher] fetch failed: ${msg}`)
   }
   clearTimeout(timer)
@@ -74,6 +84,10 @@ async function zCall<T = unknown>(path: string, init?: RequestInit, attempt = 0)
     console.warn(`[publisher] 429 on ${path} — backing off ${delayMs}ms`)
     await sleep(delayMs)
     return zCall<T>(path, init, attempt + 1)
+  }
+
+  if (attempt === 0) {
+    recordZernioCall({ path, method, body: requestBody, statusCode: res.status })
   }
 
   if (!res.ok) {

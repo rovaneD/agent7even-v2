@@ -53,7 +53,10 @@ export async function publishApprovedImageCaption(opts: {
 
   const platformLabel = primaryPlatformFromInput(opts.taskInput)
   const platform = normalizePlatform(platformLabel)
-  const accounts = await publisher.getProfileAccounts(zernioProfileId)
+  const accounts = await publisher.withZernioUsageContext(
+    { userId: opts.profileId, zernioProfileId },
+    () => publisher.getProfileAccounts(zernioProfileId),
+  )
   const account = accounts.find(a => a.platform.toLowerCase() === platform)
     ?? accounts.find(a => platformLabel.toLowerCase().includes(a.platform.toLowerCase()))
     ?? accounts[0]
@@ -69,6 +72,10 @@ export async function publishApprovedImageCaption(opts: {
 
   const mime = media.media_mime ?? 'image/jpeg'
   const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg'
+
+  return publisher.withZernioUsageContext(
+    { userId: opts.profileId, zernioProfileId },
+    async () => {
   const presign = await publisher.presignMedia({
     filename: `approved-post.${ext}`,
     contentType: mime,
@@ -127,4 +134,6 @@ export async function publishApprovedImageCaption(opts: {
     })
     return { scheduled: false, detail }
   }
+    },
+  )
 }

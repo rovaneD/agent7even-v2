@@ -20,6 +20,12 @@ import {
 } from '@/lib/analytics/mockData'
 import { parseAnalyticsEnvelope, readBestPostUrl } from '@/lib/social/zernioAnalyticsParse'
 import { emptyAnalyticsInbox, type AnalyticsInboxData } from '@/lib/social/zernioInboxParse'
+import {
+  canConnectSocialPlatform,
+  isGrowthPlusPlan,
+  platformRequiresGrowthPlus,
+  X_CONNECT_GROWTH_GATE_MESSAGE,
+} from '@/lib/social/platformGates'
 import type { ZernioConnectedAccountInfo } from '@/lib/social/publisher'
 import {
   isMetaOAuthPlatform,
@@ -3136,12 +3142,13 @@ function PostingAnalyticsContent({
 // ── Connect Panel ─────────────────────────────────────────────────────────────
 
 function ConnectPanel({
-  open, onClose, dataState, connectedPlatforms, connectedAccounts, onAccountsChange, onDisconnect,
+  open, onClose, dataState, plan, connectedPlatforms, connectedAccounts, onAccountsChange, onDisconnect,
   gaPropertyId, gaOAuthEmail, onGAConnect, onGADisconnect,
 }: {
   open: boolean
   onClose: () => void
   dataState: AnalyticsDataState
+  plan: string
   connectedPlatforms: string[]
   connectedAccounts: ZernioConnectedAccountInfo[]
   onAccountsChange: (accounts: ZernioConnectedAccountInfo[]) => void
@@ -3155,6 +3162,7 @@ function ConnectPanel({
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
   const [connectError, setConnectError] = useState('')
   const [xCostModal, setXCostModal] = useState(false)
+  const [xUpgradeModal, setXUpgradeModal] = useState(false)
   const [pendingXConnect, setPendingXConnect] = useState(false)
   const [metaModalPlatform, setMetaModalPlatform] = useState<string | null>(null)
   const [metaModalMode, setMetaModalMode] = useState<'connect' | 'reconnect'>('connect')
@@ -3180,6 +3188,10 @@ function ConnectPanel({
   }, [open, dataState, onAccountsChange])
 
   const handleConnect = async (platform: string, opts?: { reconnect?: boolean }) => {
+    if (platformRequiresGrowthPlus(platform) && !canConnectSocialPlatform(plan, platform)) {
+      setXUpgradeModal(true)
+      return
+    }
     if (platform === 'x' && !pendingXConnect) {
       setXCostModal(true)
       return
@@ -3209,6 +3221,9 @@ function ConnectPanel({
       // API responded but no authUrl — surface the actual error
       if (data.error === 'payment_required') {
         setConnectError(data.message ?? 'Account connection limit reached. Please contact support to connect more accounts.')
+      } else if (data.error === 'growth_plan_required') {
+        setConnectError(data.message ?? X_CONNECT_GROWTH_GATE_MESSAGE)
+        setXUpgradeModal(true)
       } else {
         setConnectError(data.error ?? data.message ?? 'Could not open connect page. Try again.')
       }
@@ -3288,18 +3303,18 @@ function ConnectPanel({
         }}
       />
 
-      {/* X/Twitter cost disclosure modal */}
+      {/* X/Twitter connect disclosure (Growth+ only) */}
       {xCostModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <p className="text-[15px] font-semibold text-text mb-1">X / Twitter API costs</p>
-            <p className="text-[13px] text-text-sec mb-4">X charges per API call. Usage fees apply when reading posts, publishing, and pulling analytics:</p>
+            <p className="text-[15px] font-semibold text-text mb-1">Connect X / Twitter</p>
+            <p className="text-[13px] text-text-sec mb-4 leading-relaxed">
+              X is included on Growth and ProAgent plans. Agent7even covers platform API fees with fair-use limits while we measure usage.
+            </p>
             <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-1.5">
-              <p className="text-[13px] text-text-sec flex justify-between"><span>Read posts & analytics</span><span className="font-medium text-text">$0.005 / call</span></p>
-              <p className="text-[13px] text-text-sec flex justify-between"><span>Publish posts</span><span className="font-medium text-text">$0.015 / post</span></p>
-              <p className="text-[13px] text-text-sec flex justify-between"><span>Posts with URLs</span><span className="font-medium text-text">$0.200 / post</span></p>
+              <p className="text-[13px] text-text-sec">Analytics, publishing, and scheduling work like your other connected accounts.</p>
+              <p className="text-[12px] text-text-soft">Heavy automated usage may be throttled to protect your workspace.</p>
             </div>
-            <p className="text-[12px] text-text-soft mb-4">Contact support if you need help managing API usage costs.</p>
             <div className="flex gap-3">
               <button onClick={() => setXCostModal(false)}
                 className="flex-1 border border-gray-200 text-sm font-medium text-text-sec px-4 py-2 rounded-xl hover:border-gray-300 transition-colors">
@@ -3307,8 +3322,30 @@ function ConnectPanel({
               </button>
               <button onClick={() => { setXCostModal(false); setPendingXConnect(true); handleConnect('x') }}
                 className="flex-1 bg-[#3B82F6] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#2563EB] transition-colors">
-                Connect anyway
+                Connect X
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* X / Twitter Growth+ upgrade gate */}
+      {xUpgradeModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <p className="text-[15px] font-semibold text-text mb-1">Upgrade to connect X</p>
+            <p className="text-[13px] text-text-sec mb-4 leading-relaxed">
+              {X_CONNECT_GROWTH_GATE_MESSAGE} Instagram, Facebook, TikTok, YouTube, and LinkedIn remain available on Starter.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setXUpgradeModal(false)}
+                className="flex-1 border border-gray-200 text-sm font-medium text-text-sec px-4 py-2 rounded-xl hover:border-gray-300 transition-colors">
+                Not now
+              </button>
+              <a href="/dashboard/billing"
+                className="flex-1 bg-[#3B82F6] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#2563EB] transition-colors text-center">
+                View plans
+              </a>
             </div>
           </div>
         </div>
@@ -3400,12 +3437,16 @@ function ConnectPanel({
                   : connectedPlatforms.includes(id)
                 const isConnecting = connecting === id
                 const isDisconnecting = disconnecting === id
+                const xGrowthGated = id === 'x' && !isConnected && !canConnectSocialPlatform(plan, id)
                 return (
                   <div key={id} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                     <div className="flex items-center gap-2.5">
                       <PlatformAvatar id={id} size={28} />
                       <div>
                         <span className="text-[13px] font-medium text-text">{meta?.label ?? id}</span>
+                        {id === 'x' && !isGrowthPlusPlan(plan) && !isConnected && (
+                          <p className="text-[11px] text-text-soft">Growth or ProAgent</p>
+                        )}
                         {isConnected && (
                           <p className="text-[11px] text-[#10B981]">{formatConnectedAccountLabel(account)}</p>
                         )}
@@ -3413,7 +3454,7 @@ function ConnectPanel({
                     </div>
                     {isConnected ? (
                       <div className="flex items-center gap-2">
-                        {isMetaOAuthPlatform(id) && (
+                        {(isMetaOAuthPlatform(id) || id === 'x') && (
                           <button
                             type="button"
                             onClick={() => handleConnect(id, { reconnect: true })}
@@ -3432,6 +3473,13 @@ function ConnectPanel({
                           {isDisconnecting ? 'Removing…' : 'Disconnect'}
                         </button>
                       </div>
+                    ) : xGrowthGated ? (
+                      <a
+                        href="/dashboard/billing"
+                        className="text-[12px] font-semibold text-[#3B82F6] border border-[#BFDBFE] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        Upgrade
+                      </a>
                     ) : (
                       <button
                         onClick={() => handleConnect(id)}
@@ -3636,6 +3684,7 @@ function PropertySelectorModal({
 
 export default function AnalyticsClient({
   companyName,
+  plan,
   dataState,
   gaMeasurementId,
   gaOAuthConnected,
@@ -3913,6 +3962,7 @@ export default function AnalyticsClient({
         open={connectPanelOpen}
         onClose={() => setConnectPanelOpen(false)}
         dataState={dataState}
+        plan={plan}
         connectedPlatforms={connectedPlatforms}
         connectedAccounts={connectedAccounts}
         onAccountsChange={setConnectedAccounts}

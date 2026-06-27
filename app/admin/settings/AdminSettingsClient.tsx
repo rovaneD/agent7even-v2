@@ -9,6 +9,7 @@ import {
   Plus, Pencil, Trash2, Eye, EyeOff, ChevronDown, X, Plug
 } from 'lucide-react'
 import IntegrationsHealthSection from './IntegrationsHealthSection'
+import SocialPolicySection from './SocialPolicySection'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -187,7 +188,10 @@ export default function AdminSettingsClient({
         {/* Content */}
         <div className="flex-1 min-w-0">
           {activeTab === 'integrations' && (
-            <IntegrationsHealthSection />
+            <>
+              <IntegrationsHealthSection />
+              <SocialPolicySection />
+            </>
           )}
           {activeTab === 'notifications' && (
             <NotificationsSection initialEmail={initialEmail} initialLimit={initialLimit} />
