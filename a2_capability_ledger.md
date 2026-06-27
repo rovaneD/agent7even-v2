@@ -83,7 +83,7 @@ Two kinds of "later," kept distinct:
 
 | Integration | Status | Note |
 |-------------|--------|------|
-| Zernio (social publish) | live | IG/FB/LinkedIn/X/YouTube (+ TikTok, Pinterest, etc. in connect UI); draft→scheduled→published; YouTube not headless OAuth |
+| Zernio (social publish) | live | IG/FB/LinkedIn/YouTube (+ TikTok, Pinterest, etc. in connect UI) on all plans; **X / Twitter connect gated to Growth + ProAgent** (Starter blocked while usage is measured); draft→scheduled→published; YouTube not headless OAuth |
 | Google Analytics (GA4) | live when connected | real GA4 reports; trial users see mock data |
 | Meta | partial | read-only insights; no ad creation |
 | Stripe | live, billing only | no revenue attribution / commerce sync |

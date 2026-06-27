@@ -57,14 +57,17 @@ export default function AgentsPage() {
           </div>
 
           <div className="sources reveal">
-            <span className="lead-in">Connect</span>
+            <span className="lead-in">Connect via Agent7even</span>
             <div className="source"><span className="sd" style={{ background: 'var(--l5-brand)' }}></span><span>Instagram</span></div>
             <div className="source"><span className="sd" style={{ background: 'var(--l5-blue)' }}></span><span>Facebook</span></div>
             <div className="source"><span className="sd" style={{ background: 'var(--l5-ink)' }}></span><span>LinkedIn</span></div>
-            <div className="source"><span className="sd" style={{ background: '#111' }}></span><span>X</span></div>
+            <div className="source"><span className="sd" style={{ background: '#111' }}></span><span>X (Growth+)</span></div>
             <div className="source"><span className="sd" style={{ background: '#FF0000' }}></span><span>YouTube</span></div>
             <div className="source"><span className="sd" style={{ background: 'var(--l5-green)' }}></span><span>Google Analytics</span></div>
           </div>
+          <p className="t-body reveal" style={{ marginTop: '1rem', maxWidth: '42rem', color: 'var(--l5-muted, #64748B)', fontSize: '0.875rem' }}>
+            Instagram, Facebook, LinkedIn, and YouTube on every plan. X / Twitter connect requires Growth or ProAgent.
+          </p>
 
           <div className="feat reveal">
             <div className="feat-copy">

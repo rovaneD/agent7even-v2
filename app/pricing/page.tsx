@@ -25,6 +25,10 @@ const FAQS = [
     a: "Human-delivered work (design, photography, ad management) you request and track in your dashboard, fulfilled by our team. Not AI — managed services. Starter gets 1 active request, Growth 3, ProAgent unlimited.",
   },
   {
+    q: 'Which social platforms can I connect?',
+    a: 'Instagram, Facebook, LinkedIn, Threads, and YouTube on every plan. X / Twitter connect requires Growth or ProAgent while we measure platform usage — Starter can still draft posts for any platform.',
+  },
+  {
     q: 'What does ProAgent unlock beyond more credits?',
     a: 'Premium image (Recraft) and premium video (Kling) models — higher-quality media on ProAgent. Standard models on every plan.',
   },
@@ -94,6 +98,7 @@ const PLANS = [
     features: [
       'Everything in Starter',
       '350 media credits / month',
+      'X / Twitter connect',
       'Full analytics',
       '3 service requests',
       '3 team seats',
@@ -141,6 +146,7 @@ const COMPARE_ROWS: { feature: string; starter: CellVal; growth: CellVal; proage
   { feature: 'Agents',                  starter: 'All 12',      growth: 'All 12',      proagent: 'All 12'      },
   { feature: 'Morning digest',          starter: true,          growth: true,          proagent: true          },
   { feature: 'Analytics',               starter: 'Basic',       growth: 'Full',        proagent: 'Full'        },
+  { feature: 'X / Twitter connect',     starter: false,         growth: true,          proagent: true          },
   { feature: 'Service requests',        starter: '1',           growth: '3',           proagent: 'Unlimited'   },
   { feature: 'Team seats',              starter: '1',           growth: '3',           proagent: '5 (+$15/mo)' },
   { feature: 'Support',                 starter: 'Email',       growth: 'Priority',    proagent: 'Dedicated'   },

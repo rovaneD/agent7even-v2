@@ -27,7 +27,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'What channels does Agent7even cover?',
-    a: 'Social publishing supports Instagram, Facebook, LinkedIn, X, and YouTube when you connect accounts. Email sequences are drafted for you to paste into your ESP (Mailchimp, Klaviyo, etc.). Google Analytics connects for marketing intelligence reporting.',
+    a: 'Social publishing supports Instagram, Facebook, LinkedIn, Threads, and YouTube when you connect accounts. X / Twitter connect requires Growth or ProAgent — Starter can still draft posts for any platform. Email sequences are drafted for you to paste into your ESP (Mailchimp, Klaviyo, etc.). Google Analytics connects for marketing intelligence reporting.',
   },
   {
     q: 'What happens after the 3-day trial?',
@@ -80,7 +80,7 @@ export default function Lab5Page() {
             <h1 className="hero-title">Marketing, managed.</h1>
             <p className="hero-lead">
               <span className="hero-lead-line"><em>Maya</em> plans campaigns, writes the content, and queues it for your approval,</span>
-              <span className="hero-lead-line">and drafts customer replies, grounded in your brand voice.</span>
+              <span className="hero-lead-line">generates images, video, and captions in your brand voice.</span>
               <span className="hero-lead-line">Nothing goes live without your&nbsp;approval.</span>
             </p>
             <p className="hero-tagline">The operating system for your marketing.</p>
