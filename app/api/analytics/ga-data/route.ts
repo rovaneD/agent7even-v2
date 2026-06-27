@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
+import { refreshGoogleAccessToken } from '@/lib/googleOAuth'
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
@@ -12,21 +13,6 @@ function getServiceAccountClient() {
   return new BetaAnalyticsDataClient({
     credentials: { client_email: email, private_key: key },
   })
-}
-
-async function refreshAccessToken(refreshToken: string): Promise<string | null> {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
-  })
-  const data = await res.json()
-  return data.access_token ?? null
 }
 
 // ── Date ranges ───────────────────────────────────────────────────────────────
@@ -280,7 +266,7 @@ export async function GET(req: NextRequest) {
     // OAuth-connected tenants: never fall back to the service account — a stale refresh
     // token was previously misclassified as "access pending" when SA also lacked access.
     if (hasOAuth) {
-      const accessToken = await refreshAccessToken(profile!.ga_refresh_token!)
+      const accessToken = await refreshGoogleAccessToken(profile!.ga_refresh_token!)
       if (!accessToken) {
         return NextResponse.json({ connected: false, needsReconnect: true })
       }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { consumeOAuthState } from '@/lib/oauth-state'
+import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
 import { gaOAuthRedirectUri, oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
 
 export async function GET(req: NextRequest) {
@@ -21,14 +22,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=invalid_state`)
   }
 
+  const creds = getGoogleOAuthCredentials()
+  if (!creds) {
+    console.error('[ga-callback] GOOGLE_OAUTH_CLIENT_ID/SECRET missing or invalid on this deployment')
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=invalid_client`)
+  }
+
   // Exchange authorization code for tokens
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code,
-      client_id:     process.env.GOOGLE_OAUTH_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
+      client_id:     creds.clientId,
+      client_secret: creds.clientSecret,
       redirect_uri:  redirectUri,
       grant_type:    'authorization_code',
     }),

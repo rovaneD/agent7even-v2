@@ -1,7 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createOAuthState } from '@/lib/oauth-state'
-import { gaOAuthRedirectUri } from '@/lib/oauthCallbackBase'
+import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
+import { gaOAuthRedirectUri, oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
 import { createServiceClient } from '@/lib/supabase/server'
 
 async function revokeGoogleRefreshToken(token: string) {
@@ -32,11 +33,17 @@ export async function GET(req: Request) {
     await revokeGoogleRefreshToken(profile.ga_refresh_token)
   }
 
+  const creds = getGoogleOAuthCredentials()
+  if (!creds) {
+    const appBase = oauthCallbackBaseFromRequest(req)
+    return redirect(`${appBase}/dashboard/analytics?ga_error=invalid_client`)
+  }
+
   const nonce = await createOAuthState(userId, 'google')
   const redirectUri = gaOAuthRedirectUri(req)
 
   const params = new URLSearchParams({
-    client_id:     process.env.GOOGLE_OAUTH_CLIENT_ID!,
+    client_id:     creds.clientId,
     redirect_uri:  redirectUri,
     response_type: 'code',
     scope:         'https://www.googleapis.com/auth/analytics.readonly',

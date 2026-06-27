@@ -3665,6 +3665,7 @@ export default function AnalyticsClient({
   const [showGAModal, setShowGAModal]       = useState(false)
   const [showPropertySelector, setShowPropertySelector] = useState(false)
   const [oauthError, setOauthError]         = useState('')
+  const [oauthErrorScope, setOauthErrorScope] = useState<'ga' | 'zernio' | null>(null)
   const [gaId, setGaId]                     = useState(gaMeasurementId)
   const [oauthConnected, setOauthConnected] = useState(gaOAuthConnected)
   const [gaData, setGaData]                 = useState<GaData | null>(null)
@@ -3732,6 +3733,8 @@ export default function AnalyticsClient({
         save_failed:           'Failed to save connection. Please try again.',
       }
       setOauthError(msgs[gaError] ?? 'Something went wrong.')
+      setOauthErrorScope('ga')
+      setActiveTab('ga')
       router.replace('/dashboard/analytics')
     }
   }, [searchParams, router])
@@ -3771,6 +3774,7 @@ export default function AnalyticsClient({
         no_pages:           'No Facebook Pages found on this account. Connect a Page in Meta Business Suite first.',
       }
       setOauthError(msgs[zernioErr] ?? 'Something went wrong connecting your account.')
+      setOauthErrorScope('zernio')
       router.replace('/dashboard/analytics')
     }
   }, [searchParams, router])
@@ -3988,10 +3992,10 @@ export default function AnalyticsClient({
       {isMock && <AmberBanner />}
 
       {/* Error toast */}
-      {oauthError && (
+      {oauthError && (oauthErrorScope !== 'ga' || activeTab === 'ga') && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 mb-5">
           <p className="text-xs font-medium text-red-600">{oauthError}</p>
-          <button onClick={() => setOauthError('')} className="text-red-400"><X size={14} /></button>
+          <button onClick={() => { setOauthError(''); setOauthErrorScope(null) }} className="text-red-400"><X size={14} /></button>
         </div>
       )}
 

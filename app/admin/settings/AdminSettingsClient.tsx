@@ -6,8 +6,9 @@ import { buildAdminSettingsMayaContext } from '@/lib/maya/summaries/adminContext
 import {
   Bell, Zap, ShoppingBag, Users, Megaphone,
   CreditCard, Save, Loader2, CheckCircle, AlertCircle,
-  Plus, Pencil, Trash2, Eye, EyeOff, ChevronDown, X
+  Plus, Pencil, Trash2, Eye, EyeOff, ChevronDown, X, Plug
 } from 'lucide-react'
+import IntegrationsHealthSection from './IntegrationsHealthSection'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -144,6 +145,7 @@ export default function AdminSettingsClient({
   useMayaContext(mayaContext)
 
   const tabs = [
+    { id: 'integrations', label: 'Integrations', icon: Plug },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'banner', label: 'Platform Banner', icon: Megaphone },
     { id: 'users', label: 'User Management', icon: Users },
@@ -184,6 +186,9 @@ export default function AdminSettingsClient({
 
         {/* Content */}
         <div className="flex-1 min-w-0">
+          {activeTab === 'integrations' && (
+            <IntegrationsHealthSection />
+          )}
           {activeTab === 'notifications' && (
             <NotificationsSection initialEmail={initialEmail} initialLimit={initialLimit} />
           )}

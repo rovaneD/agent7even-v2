@@ -1,5 +1,6 @@
 // Env validation. Import from instrumentation.ts so this runs at server startup.
-import { getStripeSecretKey } from '@/lib/stripe'
+import { assessGoogleOAuthConfig } from '@/lib/googleOAuth'
+import { getStripeSecretKey, sanitizeSecretEnvValue } from '@/lib/stripe'
 // Production fails fast. Preview/development warn so branch deploys can boot with
 // feature-specific env gaps while the missing feature remains unavailable.
 // Usage: import { env } from '@/lib/env' — typed accessor, throws if var is missing.
@@ -116,6 +117,37 @@ function validateEnv() {
       '[env] STRIPE_SECRET_KEY contains extra whitespace, quotes, or newlines. ' +
         'Sanitized at runtime — re-save the key in Vercel without wrapping quotes or trailing newlines.',
     )
+  }
+
+  const rawGoogleSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? ''
+  const googleSecret = sanitizeSecretEnvValue(rawGoogleSecret)
+  const gaOAuthAssessment = assessGoogleOAuthConfig()
+  const hasAnyGaOAuthEnv = Boolean(
+    process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+  )
+
+  if (rawGoogleSecret && rawGoogleSecret !== googleSecret) {
+    console.warn(
+      '[env] GOOGLE_OAUTH_CLIENT_SECRET contains extra whitespace, quotes, or newlines. ' +
+        'Sanitized at runtime — re-save the full GOCSPX-… value in Vercel without wrapping quotes or trailing newlines.',
+    )
+  }
+  if (googleSecret === 'placeholder') {
+    console.warn(
+      '[env] GOOGLE_OAUTH_CLIENT_SECRET is the CI placeholder. ' +
+        'Google Analytics OAuth will fail until production credentials are set on Vercel.',
+    )
+  }
+  if (hasAnyGaOAuthEnv && !gaOAuthAssessment.ok) {
+    const detail = gaOAuthAssessment.issues.map(i => `  - ${i.message}`).join('\n')
+    const message =
+      `[env] Google Analytics OAuth misconfigured on this deployment:\n${detail}\n` +
+      'Fix Vercel env vars or remove partial GA OAuth vars. See Admin → Settings → Integrations.'
+
+    if (isProductionRuntime && appUrl.includes('agent7even.ai')) {
+      throw new Error(message)
+    }
+    console.warn(message)
   }
 
   if (/[\r\n]/.test(rawStripeKey)) {

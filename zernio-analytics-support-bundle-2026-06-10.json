@@ -1,0 +1,301 @@
+{
+  "meta": {
+    "purpose": "Support attachment for Zernio analytics API parity ticket (follow-up to Ana)",
+    "generatedAt": "2026-06-10",
+    "integrator": "Agent7even (white-label dashboard on Zernio API, Bearer auth)",
+    "dateRange": {
+      "label": "Last 30 days",
+      "fromDate": "2026-05-11",
+      "toDate": "2026-06-09"
+    },
+    "notes": [
+      "Payloads below are from our app's combined route GET /api/analytics/zernio/social, which fans out to Zernio GET /analytics, /analytics/daily-metrics, /accounts/follower-stats, /analytics/best-time, /analytics/posting-frequency, and /analytics/content-decay.",
+      "We scope secondary endpoints with profileId + accountId + source=all and omit platform= (platform=instagram was clearing slots on our side).",
+      "Zernio dashboard 'View' on best post (Alex goal) opens https://www.instagram.com/reels/DYbQyJxgkkk/ — we need confirmation this is stored as platformPostUrl or platformPostId=DYbQyJxgkkk.",
+      "Ana noted rovanedurso and luminaprophoto are on different Zernio profiles; aggregated dashboard view explains 812 followers / 2 posts vs single-profile API scope."
+    ]
+  },
+  "testAccount": {
+    "profileId": "6a26ee48ff84dc2d54c98d56",
+    "profileName": "Rovane Durso",
+    "accountId": "6a26efcf2b2567671a2d9923",
+    "platform": "instagram",
+    "username": "rovanedurso",
+    "currentFollowers": 480,
+    "expectedPost": {
+      "captionSnippet": "Alex scored a beautiful goal!",
+      "metricsDateInDailyMetrics": "2026-05-17",
+      "engagementInDashboard": 21,
+      "zernioDashboardPermalink": "https://www.instagram.com/reels/DYbQyJxgkkk/",
+      "inferredShortcode": "DYbQyJxgkkk"
+    }
+  },
+  "ourAppRequests": [
+    {
+      "id": "response-a-instagram-filter",
+      "description": "Platform filter = Instagram (empty best-time / posting-frequency / content-decay)",
+      "url": "https://agent7even-v2.vercel.app/api/analytics/zernio/social?dateRange=30d&platform=instagram",
+      "capturedAt": "2026-06-09T05:23:15.102Z",
+      "approximateUpstreamZernioCalls": [
+        "GET /api/v1/analytics?profileId=6a26ee48ff84dc2d54c98d56&fromDate=2026-05-11&toDate=2026-06-09&platform=instagram&accountId=6a26efcf2b2567671a2d9923",
+        "GET /api/v1/analytics/daily-metrics?profileId=6a26ee48ff84dc2d54c98d56&fromDate=2026-05-11&toDate=2026-06-09&platform=instagram&accountId=6a26efcf2b2567671a2d9923",
+        "GET /api/v1/accounts/follower-stats?profileId=6a26ee48ff84dc2d54c98d56&accountIds=6a26efcf2b2567671a2d9923&fromDate=2026-05-11&toDate=2026-06-09&granularity=daily",
+        "GET /api/v1/analytics/best-time?profileId=6a26ee48ff84dc2d54c98d56&source=all&accountId=6a26efcf2b2567671a2d9923",
+        "GET /api/v1/analytics/posting-frequency?profileId=6a26ee48ff84dc2d54c98d56&source=all&accountId=6a26efcf2b2567671a2d9923",
+        "GET /api/v1/analytics/content-decay?profileId=6a26ee48ff84dc2d54c98d56&source=all&accountId=6a26efcf2b2567671a2d9923"
+      ]
+    },
+    {
+      "id": "response-b-all-platforms",
+      "description": "Platform filter = All (best-time / posting-frequency / content-decay populated)",
+      "url": "https://agent7even-v2.vercel.app/api/analytics/zernio/social?dateRange=30d",
+      "capturedAt": "2026-06-09T05:23:14.905Z",
+      "approximateUpstreamZernioCalls": [
+        "GET /api/v1/analytics?profileId=6a26ee48ff84dc2d54c98d56&fromDate=2026-05-11&toDate=2026-06-09&accountId=6a26efcf2b2567671a2d9923",
+        "GET /api/v1/analytics/daily-metrics?profileId=6a26ee48ff84dc2d54c98d56&fromDate=2026-05-11&toDate=2026-06-09&accountId=6a26efcf2b2567671a2d9923",
+        "GET /api/v1/accounts/follower-stats?profileId=6a26ee48ff84dc2d54c98d56&accountIds=6a26efcf2b2567671a2d9923&fromDate=2026-05-11&toDate=2026-06-09&granularity=daily",
+        "GET /api/v1/analytics/best-time?profileId=6a26ee48ff84dc2d54c98d56&source=all&accountId=6a26efcf2b2567671a2d9923",
+        "GET /api/v1/analytics/posting-frequency?profileId=6a26ee48ff84dc2d54c98d56&source=all&accountId=6a26efcf2b2567671a2d9923",
+        "GET /api/v1/analytics/content-decay?profileId=6a26ee48ff84dc2d54c98d56&source=all&accountId=6a26efcf2b2567671a2d9923"
+      ]
+    }
+  ],
+  "vercelRequestIds": [
+    {
+      "requestId": "c9h58-1780981374503-80b7cd9b6ac4",
+      "path": "/api/analytics/zernio/social",
+      "status": 200,
+      "timestamp": "2026-06-09T04:43:00Z",
+      "deployment": "agent7even-v2 preview (feature/foundation-v2)",
+      "note": "No Zernio 4xx/5xx in logs for this window; only unrelated STRIPE_SEAT_PRICE_ID env warning"
+    }
+  ],
+  "responses": {
+    "response-a-instagram-filter": {
+      "posts": {
+        "overview": {
+          "totalPosts": 0,
+          "publishedPosts": 0,
+          "scheduledPosts": 0,
+          "lastSync": "2026-06-09T05:23:15.102Z"
+        },
+        "posts": [],
+        "accounts": [],
+        "pagination": {
+          "page": 1,
+          "limit": 100,
+          "total": 0,
+          "pages": 1
+        }
+      },
+      "daily": {
+        "stats": [
+          {
+            "date": "2026-05-17",
+            "postCount": 1,
+            "platforms": { "instagram": 1 },
+            "metrics": {
+              "impressions": 454,
+              "reach": 302,
+              "likes": 15,
+              "comments": 3,
+              "shares": 3,
+              "saves": 0,
+              "clicks": 0,
+              "views": 454
+            }
+          }
+        ],
+        "platformBreakdown": [
+          {
+            "platform": "instagram",
+            "postCount": 1,
+            "impressions": 454,
+            "reach": 302,
+            "likes": 15,
+            "comments": 3,
+            "shares": 3,
+            "saves": 0,
+            "clicks": 0,
+            "views": 454
+          }
+        ]
+      },
+      "followerStats": {
+        "accounts": [
+          {
+            "_id": "6a26efcf2b2567671a2d9923",
+            "platform": "instagram",
+            "username": "rovanedurso",
+            "displayName": "Rovane Durso",
+            "currentFollowers": 480,
+            "lastUpdated": "2026-06-08T22:04:22.576Z",
+            "growth": 0,
+            "growthPercentage": 0,
+            "dataPoints": 0
+          }
+        ],
+        "stats": {
+          "6a26efcf2b2567671a2d9923": []
+        }
+      },
+      "allAccounts": [
+        {
+          "id": "6a26efcf2b2567671a2d9923",
+          "platform": "instagram",
+          "username": "rovanedurso"
+        }
+      ],
+      "bestTimes": { "slots": [] },
+      "postingFrequency": { "frequency": [] },
+      "contentDecay": { "buckets": [] }
+    },
+    "response-b-all-platforms": {
+      "posts": {
+        "overview": {
+          "totalPosts": 0,
+          "publishedPosts": 0,
+          "scheduledPosts": 0,
+          "lastSync": "2026-06-09T05:23:14.905Z"
+        },
+        "posts": [],
+        "accounts": [
+          {
+            "_id": "6a26efcf2b2567671a2d9923",
+            "platform": "instagram",
+            "username": "rovanedurso",
+            "displayName": "Rovane Durso",
+            "profileId": "6a26ee48ff84dc2d54c98d56",
+            "followersCount": 480,
+            "followersLastUpdated": "2026-06-08T22:04:22.576Z"
+          }
+        ],
+        "pagination": {
+          "page": 1,
+          "limit": 100,
+          "total": 0,
+          "pages": 1
+        }
+      },
+      "daily": {
+        "stats": [
+          {
+            "date": "2026-05-17",
+            "postCount": 1,
+            "platforms": { "instagram": 1 },
+            "metrics": {
+              "impressions": 454,
+              "reach": 302,
+              "likes": 15,
+              "comments": 3,
+              "shares": 3,
+              "saves": 0,
+              "clicks": 0,
+              "views": 454
+            }
+          }
+        ],
+        "platformBreakdown": [
+          {
+            "platform": "instagram",
+            "postCount": 1,
+            "impressions": 454,
+            "reach": 302,
+            "likes": 15,
+            "comments": 3,
+            "shares": 3,
+            "saves": 0,
+            "clicks": 0,
+            "views": 454
+          }
+        ]
+      },
+      "followerStats": {
+        "accounts": [
+          {
+            "_id": "6a26efcf2b2567671a2d9923",
+            "platform": "instagram",
+            "username": "rovanedurso",
+            "displayName": "Rovane Durso",
+            "currentFollowers": 480,
+            "lastUpdated": "2026-06-08T22:04:22.576Z",
+            "growth": 0,
+            "growthPercentage": 0,
+            "dataPoints": 0
+          }
+        ],
+        "stats": {
+          "6a26efcf2b2567671a2d9923": []
+        },
+        "dateRange": {
+          "from": "2026-05-11T00:00:00.000Z",
+          "to": "2026-06-09T23:59:59.999Z"
+        },
+        "granularity": "daily"
+      },
+      "allAccounts": [
+        {
+          "id": "6a26efcf2b2567671a2d9923",
+          "platform": "instagram",
+          "username": "rovanedurso"
+        }
+      ],
+      "bestTimes": {
+        "slots": [
+          {
+            "day_of_week": 6,
+            "hour": 4,
+            "avg_engagement": 21,
+            "post_count": 1
+          }
+        ]
+      },
+      "postingFrequency": {
+        "frequency": [
+          {
+            "platform": "instagram",
+            "posts_per_week": 1,
+            "avg_engagement_rate": 4.63,
+            "avg_engagement": 21,
+            "weeks_count": 1
+          }
+        ]
+      },
+      "contentDecay": {
+        "buckets": [
+          {
+            "bucket_order": 5,
+            "bucket_label": "7-30d",
+            "avg_pct_of_final": 100,
+            "post_count": 1
+          }
+        ]
+      }
+    }
+  },
+  "paritySummary": {
+    "postsPostsLength": {
+      "response-a-instagram-filter": 0,
+      "response-b-all-platforms": 0
+    },
+    "dailyMetricsPostCountMay17": 1,
+    "followerStatsCurrentFollowers": 480,
+    "followerHistoryDataPoints": 0,
+    "bestTimesSlots": {
+      "response-a-instagram-filter": 0,
+      "response-b-all-platforms": 1
+    },
+    "blockingIssues": [
+      "GET /analytics post list empty (posts.posts=[]) while daily-metrics shows postCount=1 for same profile/account/date range",
+      "No platformPostUrl or post object returned — cannot build View link programmatically",
+      "Secondary endpoints empty in response-a when UI uses platform=instagram filter (response-b populated without platform on upstream calls)"
+    ]
+  },
+  "questionsForZernio": [
+    "For the Alex goal post on accountId 6a26efcf2b2567671a2d9923: is platformPostUrl exactly https://www.instagram.com/reels/DYbQyJxgkkk/ or platformPostId=DYbQyJxgkkk?",
+    "Which field is authoritative for public Instagram permalinks on every future post?",
+    "Why does GET /analytics return posts:[] while GET /analytics/daily-metrics returns postCount:1 for the same scoped request?",
+    "Should platform=instagram be passed to best-time, posting-frequency, and content-decay, or should we scope only via accountId?",
+    "What is the recommended endpoint + params for top posts and best post with permalink when posts[] is empty?"
+  ]
+}

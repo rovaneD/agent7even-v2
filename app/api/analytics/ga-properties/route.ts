@@ -1,21 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
-
-async function refreshAccessToken(refreshToken: string) {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
-  })
-  const data = await res.json()
-  return data.access_token as string | null
-}
+import { refreshGoogleAccessToken } from '@/lib/googleOAuth'
 
 export async function GET() {
   const { userId } = await auth()
@@ -32,7 +18,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Not connected' }, { status: 404 })
   }
 
-  const accessToken = await refreshAccessToken(profile.ga_refresh_token)
+  const accessToken = await refreshGoogleAccessToken(profile.ga_refresh_token)
   if (!accessToken) {
     return NextResponse.json({ error: 'Token refresh failed' }, { status: 401 })
   }
