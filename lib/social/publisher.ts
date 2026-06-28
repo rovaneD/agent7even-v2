@@ -674,6 +674,60 @@ export async function sendInboxReply(params: SendInboxReplyParams): Promise<unkn
   }
 }
 
+export interface InboxPostCommentsParams {
+  profileId: string
+  postId: string
+  accountId: string
+  limit?: number
+  cursor?: string
+}
+
+/** Fetch comments on a specific post. Returns null on failure. */
+export async function getInboxPostComments(params: InboxPostCommentsParams): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({
+      profileId: params.profileId,
+      accountId: params.accountId,
+    })
+    if (params.limit) q.set('limit', String(params.limit))
+    if (params.cursor) q.set('cursor', params.cursor)
+    return await zCall(`/inbox/comments/${encodeURIComponent(params.postId)}?${q}`)
+  } catch (err) {
+    console.error('[publisher] getInboxPostComments failed:', err)
+    return null
+  }
+}
+
+export interface SendInboxCommentReplyParams {
+  profileId: string
+  postId: string
+  accountId: string
+  message: string
+  commentId?: string
+}
+
+/** Reply to a post comment thread. Returns null on failure. */
+export async function sendInboxCommentReply(params: SendInboxCommentReplyParams): Promise<unknown> {
+  try {
+    const q = new URLSearchParams({ profileId: params.profileId })
+    const body: Record<string, string> = {
+      accountId: params.accountId,
+      message: params.message,
+    }
+    if (params.commentId) body.commentId = params.commentId
+    return await zCall(
+      `/inbox/comments/${encodeURIComponent(params.postId)}?${q}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+    )
+  } catch (err) {
+    console.error('[publisher] sendInboxCommentReply failed:', err)
+    return null
+  }
+}
+
 export function dateRangeToWindow(dateRange: string): { fromDate: string; toDate: string } {
   return getDateWindow(dateRange)
 }

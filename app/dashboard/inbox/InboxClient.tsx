@@ -1,15 +1,16 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
 import {
   ArrowLeft, ExternalLink, Hash, MessageCircle, Plus, RefreshCw, Send, User,
+  Sparkles, Loader2,
 } from 'lucide-react'
 import type { InboxDataState } from './page'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildInboxMayaContext } from '@/lib/maya/summaries/inboxContext'
 import {
   formatRelativeTime,
+  type InboxComment,
   type InboxCommentPost,
   type InboxConversation,
   type InboxMessage,
@@ -68,11 +69,16 @@ export default function InboxClient({
   const [conversations, setConversations] = useState<InboxConversation[]>([])
   const [comments, setComments] = useState<InboxCommentPost[]>([])
   const [selected, setSelected] = useState<InboxConversation | null>(null)
+  const [selectedPost, setSelectedPost] = useState<InboxCommentPost | null>(null)
+  const [selectedComment, setSelectedComment] = useState<InboxComment | null>(null)
   const [messages, setMessages] = useState<InboxMessage[]>([])
+  const [postComments, setPostComments] = useState<InboxComment[]>([])
   const [reply, setReply] = useState('')
   const [loadingList, setLoadingList] = useState(false)
   const [loadingThread, setLoadingThread] = useState(false)
   const [sending, setSending] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [draftError, setDraftError] = useState('')
   const [listError, setListError] = useState('')
   const [threadError, setThreadError] = useState('')
   const [sendError, setSendError] = useState('')
@@ -82,7 +88,9 @@ export default function InboxClient({
 
   const isMock = dataState === 'mock'
   const isLive = dataState === 'live'
-  const showMobileThread = activeTab === 'dms' && Boolean(selected)
+  const showMobileThread = activeTab === 'dms'
+    ? Boolean(selected)
+    : Boolean(selectedPost)
 
   const fetchConversations = useCallback(async () => {
     if (!isLive) return
@@ -126,6 +134,32 @@ export default function InboxClient({
     }
   }, [isLive])
 
+  const fetchPostComments = useCallback(async (post: InboxCommentPost) => {
+    if (!isLive) return
+    setLoadingThread(true)
+    setThreadError('')
+    setSendError('')
+    setDraftError('')
+    try {
+      const q = new URLSearchParams({ accountId: post.accountId })
+      const res = await fetch(`/api/inbox/comments/${encodeURIComponent(post.id)}?${q}`, {
+        cache: 'no-store',
+      })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        setThreadError("Couldn't load comments for this post.")
+        setPostComments([])
+        return
+      }
+      setPostComments(json.comments ?? [])
+    } catch {
+      setThreadError("Couldn't load comments for this post.")
+      setPostComments([])
+    } finally {
+      setLoadingThread(false)
+    }
+  }, [isLive])
+
   const fetchThread = useCallback(async (conv: InboxConversation) => {
     if (!isLive) return
     setLoadingThread(true)
@@ -166,9 +200,20 @@ export default function InboxClient({
   }, [selected, activeTab, fetchThread])
 
   useEffect(() => {
-    if (!selected || activeTab !== 'dms') return
+    if (selectedPost && activeTab === 'comments') {
+      setPostComments([])
+      setSelectedComment(null)
+      fetchPostComments(selectedPost)
+    } else {
+      setPostComments([])
+      setSelectedComment(null)
+    }
+  }, [selectedPost, activeTab, fetchPostComments])
+
+  useEffect(() => {
+    if ((!selected && activeTab === 'dms') || (!selectedPost && activeTab === 'comments')) return
     detailPaneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [selected?.id, activeTab])
+  }, [selected?.id, selectedPost?.id, activeTab])
 
   useEffect(() => {
     const el = messagesScrollRef.current
@@ -177,10 +222,11 @@ export default function InboxClient({
       el.scrollTo({ top: 0 })
       return
     }
-    if (messages.length > 0) {
+    const count = activeTab === 'dms' ? messages.length : postComments.length
+    if (count > 0) {
       el.scrollTop = el.scrollHeight
     }
-  }, [loadingThread, messages, selected?.id])
+  }, [loadingThread, messages, postComments, selected?.id, selectedPost?.id, activeTab])
 
   const handleSend = async () => {
     if (!selected || !reply.trim() || sending) return
@@ -210,17 +256,102 @@ export default function InboxClient({
     }
   }
 
+  const handleCommentSend = async () => {
+    if (!selectedPost || !reply.trim() || sending) return
+    setSending(true)
+    setSendError('')
+    try {
+      const res = await fetch(`/api/inbox/comments/${encodeURIComponent(selectedPost.id)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountId: selectedPost.accountId,
+          message: reply.trim(),
+          commentId: selectedComment?.id,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        setSendError("Couldn't send your reply. Try again.")
+        return
+      }
+      setReply('')
+      setSelectedComment(null)
+      await fetchPostComments(selectedPost)
+      await fetchComments()
+    } catch {
+      setSendError("Couldn't send your reply. Try again.")
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const handleDraftReply = async () => {
+    if (drafting) return
+    const isDm = activeTab === 'dms' && selected
+    const isComment = activeTab === 'comments' && selectedPost
+    if (!isDm && !isComment) return
+
+    const threadMessages = isDm
+      ? messages.map(msg => ({
+          direction: msg.direction,
+          text: msg.message || msg.attachmentPreview || '',
+          senderName: msg.senderName,
+        })).filter(msg => msg.text.trim())
+      : postComments.map(comment => ({
+          direction: comment.direction,
+          text: comment.message,
+          senderName: comment.authorName,
+        })).filter(msg => msg.text.trim())
+
+    if (threadMessages.length === 0) {
+      setDraftError('Need at least one message in the thread to draft a reply.')
+      return
+    }
+
+    setDrafting(true)
+    setDraftError('')
+    try {
+      const res = await fetch('/api/inbox/draft-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          channel: isDm ? 'dm' : 'comment',
+          platform: isDm ? selected!.platform : selectedPost!.platform,
+          participantName: isDm
+            ? selected!.participantName
+            : selectedComment?.authorName ?? null,
+          postPreview: isComment ? selectedPost!.content : null,
+          replyToComment: selectedComment?.message ?? null,
+          threadMessages,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || json.error || !json.draft) {
+        setDraftError("Couldn't draft a reply. Try again.")
+        return
+      }
+      setReply(json.draft)
+    } catch {
+      setDraftError("Couldn't draft a reply. Try again.")
+    } finally {
+      setDrafting(false)
+    }
+  }
+
   const mayaContext = useMemo(
     () => buildInboxMayaContext({
       companyName,
       dataState,
       activeTab,
       selectedConversation: selected,
+      selectedPost,
+      selectedComment,
       conversationCount: conversations.length,
       commentCount: comments.length,
       connectedPlatforms: zernioConnectedPlatforms,
     }),
-    [companyName, dataState, activeTab, selected, conversations.length, comments.length, zernioConnectedPlatforms],
+    [companyName, dataState, activeTab, selected, selectedPost, selectedComment, conversations.length, comments.length, zernioConnectedPlatforms],
   )
   useMayaContext(mayaContext)
 
@@ -234,7 +365,7 @@ export default function InboxClient({
         <div>
           <h1 className="text-[22px] font-[500] text-text">Inbox</h1>
           <p className="text-[13px] text-text-sec mt-0.5">
-            Read and reply to DMs and post comments from connected accounts
+            Read and reply to DMs and post comments from connected accounts — draft with Maya before you send.
           </p>
         </div>
         {isLive && (
@@ -268,7 +399,13 @@ export default function InboxClient({
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => { setActiveTab(tab.id); setSelected(null) }}
+                onClick={() => {
+                  setActiveTab(tab.id)
+                  setSelected(null)
+                  setSelectedPost(null)
+                  setSelectedComment(null)
+                  setReply('')
+                }}
                 className={`whitespace-nowrap px-4 py-3 text-[13px] font-medium border-b-2 transition-colors -mb-px ${
                   activeTab === tab.id
                     ? 'border-[#3B82F6] text-[#3B82F6] font-semibold'
@@ -338,7 +475,18 @@ export default function InboxClient({
                   </button>
                 ))}
                 {activeTab === 'comments' && comments.map(post => (
-                  <div key={post.id} className="px-4 py-3 border-b border-gray-50">
+                  <button
+                    key={post.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPost(post)
+                      setSelectedComment(null)
+                      setReply('')
+                    }}
+                    className={`w-full text-left px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
+                      selectedPost?.id === post.id ? 'bg-blue-50/60' : ''
+                    }`}
+                  >
                     <div className="flex gap-3">
                       {post.picture ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -360,6 +508,7 @@ export default function InboxClient({
                               href={post.permalink}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
                               className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#3B82F6] hover:underline"
                             >
                               View on platform <ExternalLink size={10} />
@@ -368,7 +517,7 @@ export default function InboxClient({
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -378,22 +527,146 @@ export default function InboxClient({
               ref={detailPaneRef}
               className={`rounded-2xl border border-gray-100 bg-white overflow-hidden flex flex-col min-h-[320px] lg:min-h-[560px] ${
                 showMobileThread ? 'min-h-[calc(100dvh-12rem)]' : ''
-              } ${!showMobileThread && activeTab === 'dms' ? 'hidden lg:flex' : 'flex'}`}
+              } ${!showMobileThread && activeTab === 'dms' ? 'hidden lg:flex' : !showMobileThread && activeTab === 'comments' ? 'hidden lg:flex' : 'flex'}`}
             >
-              {activeTab === 'comments' ? (
+              {activeTab === 'comments' && !selectedPost ? (
                 <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
                   <MessageCircle size={28} className="text-gray-300 mb-3" />
-                  <p className="text-[14px] font-semibold text-text mb-1">Reply on the platform</p>
+                  <p className="text-[14px] font-semibold text-text mb-1">Select a post</p>
                   <p className="text-[13px] text-text-sec max-w-sm">
-                    Post comments open on Instagram or Facebook. Use the link in the list to reply there — in-app comment replies are coming later.
+                    Choose a post with comments to read the thread and reply in-app.
                   </p>
-                  <Link
-                    href="/dashboard/analytics"
-                    className="mt-4 text-[12px] font-semibold text-[#3B82F6] hover:underline"
-                  >
-                    View inbox analytics →
-                  </Link>
                 </div>
+              ) : activeTab === 'comments' && selectedPost ? (
+                <>
+                  <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPost(null)
+                          setSelectedComment(null)
+                          setReply('')
+                        }}
+                        className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-text-sec hover:bg-gray-50 flex-shrink-0"
+                        aria-label="Back to posts"
+                      >
+                        <ArrowLeft size={16} />
+                      </button>
+                      <div className="min-w-0">
+                        <p className="text-[14px] font-semibold text-text truncate">Post comments</p>
+                        <p className="text-[11px] text-text-soft line-clamp-2">{selectedPost.content || 'Post'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <PlatformBadge platform={selectedPost.platform} />
+                      {selectedPost.permalink && (
+                        <a
+                          href={selectedPost.permalink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-semibold text-[#3B82F6] hover:underline inline-flex items-center gap-1"
+                        >
+                          Open <ExternalLink size={11} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    ref={messagesScrollRef}
+                    className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-gray-50/40"
+                  >
+                    {loadingThread && (
+                      <div className="sticky top-0 z-10 -mx-5 px-5 py-2 bg-gray-50/95 backdrop-blur-sm border-b border-gray-100">
+                        <p className="text-xs font-medium text-text-sec">Loading comments…</p>
+                      </div>
+                    )}
+                    {threadError && <p className="text-xs text-red-600">{threadError}</p>}
+                    {!loadingThread && postComments.length === 0 && (
+                      <p className="text-xs text-text-sec text-center py-8">No comments on this post yet.</p>
+                    )}
+                    {!loadingThread && postComments.map(comment => (
+                      <button
+                        key={comment.id}
+                        type="button"
+                        onClick={() => {
+                          if (comment.direction === 'incoming' && comment.canReply) {
+                            setSelectedComment(comment)
+                          }
+                        }}
+                        className={`w-full text-left rounded-2xl px-4 py-3 border transition-colors ${
+                          selectedComment?.id === comment.id
+                            ? 'border-[#3B82F6]/40 bg-blue-50/70'
+                            : comment.direction === 'outgoing'
+                              ? 'border-transparent bg-[#3B82F6]/10 ml-6'
+                              : 'border-gray-100 bg-white hover:border-gray-200'
+                        }`}
+                        style={{ marginLeft: comment.depth > 0 ? `${Math.min(comment.depth, 3) * 16}px` : undefined }}
+                      >
+                        <p className="text-[10px] font-semibold text-text-soft mb-1">
+                          {comment.authorName}
+                          {comment.authorUsername ? ` · @${comment.authorUsername}` : ''}
+                        </p>
+                        <p className="text-[13px] text-text whitespace-pre-wrap break-words">{comment.message}</p>
+                        <p className="text-[10px] text-text-soft mt-1">{formatRelativeTime(comment.createdTime)}</p>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-gray-100 p-4 bg-white">
+                    {selectedComment && (
+                      <p className="text-[11px] text-text-sec mb-2">
+                        Replying to <span className="font-semibold text-text">{selectedComment.authorName}</span>
+                        {' · '}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedComment(null)}
+                          className="text-[#3B82F6] font-semibold hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </p>
+                    )}
+                    {sendError && <p className="text-xs text-red-600 mb-2">{sendError}</p>}
+                    {draftError && <p className="text-xs text-red-600 mb-2">{draftError}</p>}
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={handleDraftReply}
+                        disabled={drafting || postComments.length === 0}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-text-sec hover:border-[#3B82F6]/30 hover:text-[#3B82F6] disabled:opacity-50 transition-colors"
+                      >
+                        {drafting ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                        {drafting ? 'Drafting…' : 'Draft with Maya'}
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <textarea
+                        value={reply}
+                        onChange={e => setReply(e.target.value)}
+                        placeholder={selectedComment ? 'Write a reply to this comment…' : 'Write a comment on this post…'}
+                        rows={2}
+                        className="flex-1 resize-none rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-text focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/30 focus:border-[#3B82F6]"
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            handleCommentSend()
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCommentSend}
+                        disabled={sending || !reply.trim()}
+                        className="self-end inline-flex items-center gap-1.5 bg-[#3B82F6] text-white text-[13px] font-semibold px-4 py-2.5 rounded-xl hover:bg-[#2563EB] disabled:opacity-50 transition-colors"
+                      >
+                        <Send size={14} />
+                        {sending ? 'Sending…' : 'Send'}
+                      </button>
+                    </div>
+                  </div>
+                </>
               ) : !selected ? (
                 <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
                   <User size={28} className="text-gray-300 mb-3" />
@@ -470,6 +743,18 @@ export default function InboxClient({
 
                   <div className="border-t border-gray-100 p-4 bg-white">
                     {sendError && <p className="text-xs text-red-600 mb-2">{sendError}</p>}
+                    {draftError && <p className="text-xs text-red-600 mb-2">{draftError}</p>}
+                    <div className="flex gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={handleDraftReply}
+                        disabled={drafting || messages.length === 0}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-[12px] font-semibold text-text-sec hover:border-[#3B82F6]/30 hover:text-[#3B82F6] disabled:opacity-50 transition-colors"
+                      >
+                        {drafting ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                        {drafting ? 'Drafting…' : 'Draft with Maya'}
+                      </button>
+                    </div>
                     <div className="flex gap-2">
                       <textarea
                         value={reply}

@@ -61,15 +61,25 @@
 
 - Lifecycle labels (In review / Approved / Rejected) with hints and deep links to Approvals or Posts drafts
 
+### Deliverables (`DeliverablesClient.tsx`)
+
+- Upload → agent context callout (Foundation, Brand Kit, Agents links)
+- Post-upload success note for Maya + brand context
+
+### Support (`SupportClient.tsx`, `page.tsx`)
+
+- Parses `Order ID` from ticket body; shows service-order badge and deep link to Services
+
+### Inbox (`InboxClient.tsx`, inbox API routes)
+
+- Post comment threads (read + reply in-app via Zernio)
+- Maya draft-reply for DMs and comments (composer insert, user sends)
+
 ---
 
 ## Backlog (registry remaining)
 
-| Screen | Next |
-|--------|------|
-| Inbox | Reply management (product gap) |
-| Deliverables | Upload → agent context loop |
-| Support | Ticket ↔ service order linking |
+_None — Phase C explainability pass complete for logged-in screens._
 
 ---
 

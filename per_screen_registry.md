@@ -47,8 +47,8 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 | Agents Command Center | `/dashboard/agents` | P0 | T4 T7 | Agent setup form grounding (Layer 1) | Layer 2 actuation — blocked on chat write-path |
 | Approvals | `/dashboard/agents/approvals` | P1 | T3 T7 | Maya context · lifecycle → Review link · draft-post banner | — |
 | Agent outputs archive | `/dashboard/agents/[id]/outputs` | P2 | T3 | Maya context · lifecycle stage labels | — |
-| Analytics | `/dashboard/analytics` | P1 | T7 | Tab activeView · connect panel/modal grounding | Inbox reply management (product gap) |
-| Inbox | `/dashboard/inbox` | P2 | T7 | Maya context | Zernio inbox depth / reply UX |
+| Analytics | `/dashboard/analytics` | P1 | T7 | Tab activeView · connect panel/modal grounding | — |
+| Inbox | `/dashboard/inbox` | P2 | T7 | Maya context · DM + comment reply · Maya draft-reply | — |
 
 ---
 
@@ -89,8 +89,8 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 |--------|-------|----------|---------|-----------------|-----------|
 | Services | `/dashboard/services` | P0 | T2 | Hero · plan callout · order status hints | Order ↔ support linking in UI |
 | Service inquiry (scoped) | `/dashboard/services/inquiry` | P1 | T2 T7 | Full 3-step form grounding (Layer 1) | — |
-| Deliverables | `/dashboard/deliverables` | P2 | T2 | Maya context | Upload → agent context loop |
-| Support | `/dashboard/support` | P2 | T2 | Maya context | Ticket ↔ service order linking in UI |
+| Deliverables | `/dashboard/deliverables` | P2 | T2 | Maya context · upload → agent context callout | — |
+| Support | `/dashboard/support` | P2 | T2 | Maya context · ticket ↔ service order linking | — |
 
 ---
 

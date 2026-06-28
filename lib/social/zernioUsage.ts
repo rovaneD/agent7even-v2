@@ -68,6 +68,9 @@ export function inferZernioOperation(pathname: string, method: string): ZernioOp
   if (pathname.startsWith('/inbox/conversations/') && pathname.endsWith('/messages') && m === 'POST') {
     return 'inbox_send'
   }
+  if (/^\/inbox\/comments\/[^/]+$/.test(pathname) && m === 'POST') {
+    return 'inbox_send'
+  }
   if (pathname.startsWith('/inbox/')) return 'inbox_read'
   if (pathname === '/posts' && m === 'POST') return 'publish'
   if (pathname.startsWith('/posts/') && (m === 'PATCH' || m === 'PUT')) return 'publish'

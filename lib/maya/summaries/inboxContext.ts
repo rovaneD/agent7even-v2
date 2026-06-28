@@ -1,12 +1,14 @@
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
 import type { InboxDataState } from '@/app/dashboard/inbox/page'
-import type { InboxConversation, InboxCommentPost } from '@/lib/social/zernioInboxWorkspace'
+import type { InboxComment, InboxCommentPost, InboxConversation } from '@/lib/social/zernioInboxWorkspace'
 
 export interface InboxMayaInput {
   companyName: string
   dataState: InboxDataState
   activeTab: 'dms' | 'comments'
   selectedConversation: InboxConversation | null
+  selectedPost?: InboxCommentPost | null
+  selectedComment?: InboxComment | null
   conversationCount: number
   commentCount: number
   connectedPlatforms: string[]
@@ -21,6 +23,8 @@ export function buildInboxMayaContext(input: InboxMayaInput): MayaPageContext {
     dataState,
     activeTab,
     selectedConversation,
+    selectedPost = null,
+    selectedComment = null,
     conversationCount,
     commentCount,
     connectedPlatforms,
@@ -42,13 +46,15 @@ export function buildInboxMayaContext(input: InboxMayaInput): MayaPageContext {
   if (dataState === 'mock') {
     activeState = 'SAMPLE / MOCK — demo inbox workspace'
   } else if (dataState === 'empty') {
-    activeState = 'No social accounts connected — connect to read and reply to DMs'
+    activeState = 'No social accounts connected — connect to read and reply to DMs and comments'
   } else if (activeTab === 'dms') {
     activeState = selectedConversation
       ? `DM thread with ${selectedConversation.participantName} on ${selectedConversation.platform} (${conversationCount} conversations)`
       : `${conversationCount} DM conversations — select one to read and reply`
   } else {
-    activeState = `${commentCount} posts with comments — view on platform to reply in-app`
+    activeState = selectedPost
+      ? `Post comments on ${selectedPost.platform}${selectedComment ? ` — replying to ${selectedComment.authorName}` : ''}`
+      : `${commentCount} posts with comments — select one to read and reply in-app`
   }
 
   const metrics: string[] = []
@@ -56,8 +62,11 @@ export function buildInboxMayaContext(input: InboxMayaInput): MayaPageContext {
     metrics.push(`Inbox: ${conversationCount} DM conversations, ${commentCount} posts with comments`)
     if (selectedConversation && activeTab === 'dms') {
       metrics.push(
-        `Selected: ${selectedConversation.participantName}${selectedConversation.participantUsername ? ` (@${selectedConversation.participantUsername})` : ''} — last message preview: "${selectedConversation.lastMessage.slice(0, 80)}"`,
+        `Selected DM: ${selectedConversation.participantName}${selectedConversation.participantUsername ? ` (@${selectedConversation.participantUsername})` : ''} — last message preview: "${selectedConversation.lastMessage.slice(0, 80)}"`,
       )
+    }
+    if (selectedPost && activeTab === 'comments') {
+      metrics.push(`Selected post: "${(selectedPost.content || 'Post').slice(0, 80)}" — ${selectedPost.commentCount} comments`)
     }
   } else if (dataState === 'mock') {
     metrics.push('INBOX DATA: SAMPLE / MOCK — demo inbox until social accounts are connected.')
@@ -76,6 +85,6 @@ export function buildInboxMayaContext(input: InboxMayaInput): MayaPageContext {
     connections,
     metrics,
     affordance:
-      `${VOICE_RULE} User is on the Inbox workspace. Tabs: Direct messages (read + reply in composer) and Post comments (read-only list with external links). Selecting a DM loads the thread in the detail pane; type a reply and click Send. Do not tell the user to click charts or filters that do not exist.`,
+      `${VOICE_RULE} User is on the Inbox workspace. Tabs: Direct messages and Post comments — both support read + reply in the composer. Draft with Maya inserts a suggested reply (user must click Send). For comments, user can select a specific comment to reply to. Do not tell the user to leave the app for replies unless send fails.`,
   }
 }

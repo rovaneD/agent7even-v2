@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useRef, useMemo } from 'react'
+import Link from 'next/link'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildDeliverablesMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import {
   Upload, Download, Folder, File, FileText, Image,
   Video, Archive, Loader2, AlertCircle, CheckCircle, X,
-  ChevronDown, ChevronRight, Trash2,
+  ChevronDown, ChevronRight, Trash2, Info,
 } from 'lucide-react'
 
 interface Deliverable {
@@ -193,7 +194,7 @@ export default function DeliverablesClient({ profileId: _profileId, companyName,
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Deliverables</p>
             <h1 className="text-[30px] font-semibold tracking-tight text-text">Files and assets</h1>
             <p className="mt-2 text-sm leading-6 text-text-sec">
-              {companyName ? `${companyName} — ` : ''}Project deliverables, briefs, and reusable marketing assets.
+              {companyName ? `${companyName} — ` : ''}Project deliverables from your team and files you upload for reference.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -212,12 +213,39 @@ export default function DeliverablesClient({ profileId: _profileId, companyName,
         </div>
       </section>
 
+      <div className="flex gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
+        <Info size={18} className="mt-0.5 flex-shrink-0 text-brand-primary" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-text">How uploads connect to agents</p>
+          <p className="mt-1 text-xs leading-relaxed text-text-sec">
+            Files here appear in Maya&apos;s workspace context — mention a project or filename in chat.
+            For AI-generated content, pair uploads with Foundation and Brand Kit so agents know your voice and visuals.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            <Link href="/dashboard/foundation" className="text-xs font-semibold text-brand-primary hover:text-[#2563EB]">
+              Foundation →
+            </Link>
+            <Link href="/dashboard/brand-kit" className="text-xs font-semibold text-brand-primary hover:text-[#2563EB]">
+              Brand Kit →
+            </Link>
+            <Link href="/dashboard/agents" className="text-xs font-semibold text-brand-primary hover:text-[#2563EB]">
+              Agents →
+            </Link>
+          </div>
+        </div>
+      </div>
+
       {/* Success / error banners */}
       {uploadSuccess && (
-        <div className="flex items-center gap-3 rounded-xl border border-status-success/20 bg-status-success/10 px-4 py-3">
-          <CheckCircle size={15} className="flex-shrink-0 text-status-success" />
-          <p className="text-sm text-status-success">{uploadSuccess}</p>
-          <button onClick={() => setUploadSuccess(null)} className="ml-auto">
+        <div className="flex items-start gap-3 rounded-xl border border-status-success/20 bg-status-success/10 px-4 py-3">
+          <CheckCircle size={15} className="mt-0.5 flex-shrink-0 text-status-success" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-status-success">{uploadSuccess}</p>
+            <p className="mt-1 text-xs leading-relaxed text-emerald-700/90">
+              Maya can reference this file in chat. Add brand context in Foundation or Brand Kit for richer agent output.
+            </p>
+          </div>
+          <button onClick={() => setUploadSuccess(null)} className="ml-auto flex-shrink-0">
             <X size={14} className="text-emerald-400" />
           </button>
         </div>

@@ -186,7 +186,8 @@ if Zernio exposes per-message status on fetch.
 - [x] Maya context describes inbox workspace affordances without naming Zernio.
 - [x] `npx tsc --noEmit` + `npm run build` pass.
 - [x] Manual test on `@rovanedurso` test account only until DPA gate clears.
-- [ ] B4.1 — Maya draft-reply in composer (optional follow-on).
+- [x] B4.1 — Maya draft-reply in composer (shipped June 10, 2026)
+- [x] Comment thread read + in-app reply via `GET/POST /inbox/comments/{postId}`
 
 ---
 

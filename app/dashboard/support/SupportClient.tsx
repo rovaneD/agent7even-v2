@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildSupportMayaContext } from '@/lib/maya/summaries/workspaceContext'
+import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
+import { isServiceOrderTicketSubject } from '@/lib/support/serviceOrderLink'
 import {
   MessageSquare, Plus, ChevronRight, ChevronLeft,
   Loader2, AlertCircle, X, CheckCircle,
@@ -25,6 +28,8 @@ interface Ticket {
   created_at: string
   updated_at: string
   support_messages: Message[]
+  linked_order_id?: string | null
+  linked_order_title?: string | null
 }
 
 interface Props {
@@ -63,6 +68,11 @@ function statusBadge(status: string) {
       Closed
     </span>
   )
+}
+
+function linkedOrderLabel(ticket: Ticket) {
+  if (!ticket.linked_order_id) return null
+  return ticket.linked_order_title ?? formatOrderNumber({ id: ticket.linked_order_id })
 }
 
 function formatDate(str: string) {
@@ -258,13 +268,28 @@ export default function SupportClient({
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-[30px] font-semibold tracking-[-0.03em] text-text">{activeTicket.subject}</h1>
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
               {statusBadge(activeTicket.status)}
               {priorityBadge(activeTicket.priority)}
               <span className="text-xs text-text-soft">Opened {formatDate(activeTicket.created_at)}</span>
             </div>
           </div>
         </div>
+
+        {activeTicket.linked_order_id && (
+          <div className="mb-6 flex flex-col gap-2 rounded-xl border border-brand-primary/15 bg-brand-primary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-text-sec">
+              Linked to service order:{' '}
+              <span className="font-semibold text-text">{linkedOrderLabel(activeTicket)}</span>
+            </p>
+            <Link
+              href={`/dashboard/services?order=${encodeURIComponent(activeTicket.linked_order_id)}`}
+              className="text-xs font-semibold text-brand-primary hover:text-[#2563EB] whitespace-nowrap"
+            >
+              View in Services →
+            </Link>
+          </div>
+        )}
 
         {/* Messages */}
         <div className="space-y-4 mb-6">
@@ -338,7 +363,7 @@ export default function SupportClient({
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Support</p>
           <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-text">Help desk</h1>
           <p className="mt-2 text-sm text-text-sec">
-            {companyName ? `${companyName} — ` : ''}Get help from the Agent7even team
+            {companyName ? `${companyName} — ` : ''}Get help from the Agent7even team. Service order conversations also live on Services.
           </p>
         </div>
         <button
@@ -381,8 +406,18 @@ export default function SupportClient({
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
                     {statusBadge(ticket.status)}
                     {priorityBadge(ticket.priority)}
+                    {(ticket.linked_order_id || isServiceOrderTicketSubject(ticket.subject)) && (
+                      <span className="rounded-full border border-brand-primary/20 bg-brand-primary/10 px-2 py-0.5 text-xs font-medium text-brand-primary">
+                        Service order
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm font-semibold text-text mb-1">{ticket.subject}</p>
+                  {ticket.linked_order_id && (
+                    <p className="mb-1 text-xs text-text-sec">
+                      Order: {linkedOrderLabel(ticket)}
+                    </p>
+                  )}
                   <p className="text-xs text-text-soft">
                     {ticket.support_messages.length} message{ticket.support_messages.length !== 1 ? 's' : ''}
                     {' · '}Last updated {formatDate(ticket.updated_at)}

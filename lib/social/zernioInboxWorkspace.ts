@@ -39,6 +39,20 @@ export type InboxCommentPost = {
   likeCount: number
 }
 
+export type InboxComment = {
+  id: string
+  message: string
+  createdTime: string
+  authorName: string
+  authorUsername: string | null
+  authorPicture: string | null
+  direction: 'incoming' | 'outgoing'
+  canReply: boolean
+  replyCount: number
+  parentId: string | null
+  depth: number
+}
+
 function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -164,6 +178,56 @@ export function parseInboxComments(raw: unknown): {
     commentCount: num(row.commentCount),
     likeCount: num(row.likeCount),
   })).filter(c => c.id)
+
+  return {
+    comments,
+    pagination: {
+      hasMore: Boolean(pagination.hasMore),
+      nextCursor: str(pagination.nextCursor) || null,
+    },
+  }
+}
+
+function mapInboxCommentRow(row: Record<string, unknown>, depth: number): InboxComment {
+  const from = asObject(row.from)
+  const isOwner = Boolean(from.isOwner)
+  return {
+    id: str(row.id),
+    message: str(row.message),
+    createdTime: str(row.createdTime),
+    authorName: str(from.name) || str(from.username) || 'Commenter',
+    authorUsername: str(from.username) || null,
+    authorPicture: str(from.picture) || null,
+    direction: isOwner ? 'outgoing' : 'incoming',
+    canReply: row.canReply !== false,
+    replyCount: num(row.replyCount),
+    parentId: str(row.parentId) || null,
+    depth,
+  }
+}
+
+function flattenInboxCommentRows(rows: Record<string, unknown>[], depth = 0): InboxComment[] {
+  const out: InboxComment[] = []
+  for (const row of rows) {
+    const mapped = mapInboxCommentRow(row, depth)
+    if (!mapped.id) continue
+    out.push(mapped)
+    const replies = asArray(row.replies) as Record<string, unknown>[]
+    if (replies.length > 0) {
+      out.push(...flattenInboxCommentRows(replies, depth + 1))
+    }
+  }
+  return out
+}
+
+export function parseInboxPostComments(raw: unknown): {
+  comments: InboxComment[]
+  pagination: { hasMore: boolean; nextCursor: string | null }
+} {
+  const root = asObject(raw)
+  const rows = extractList(raw, ['comments', 'data', 'items']) as Record<string, unknown>[]
+  const pagination = asObject(root.pagination)
+  const comments = flattenInboxCommentRows(rows)
 
   return {
     comments,
