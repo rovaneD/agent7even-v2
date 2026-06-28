@@ -25,6 +25,7 @@ type ClientProfile = {
   plan: string | null
   status: string | null
   role: string | null
+  billing_exempt?: boolean | null
   last_active_at: string | null
   engagement_score: number | null
   engagement_updated_at: string | null
@@ -48,8 +49,11 @@ const PLAN_LABELS: Record<string, string> = { starter: 'Starter', growth: 'Growt
 const PLAN_COLORS: Record<string, string> = {
   starter:  'bg-gray-100 text-gray-600',
   growth:   'bg-blue-50 text-blue-600',
-  proagent: 'bg-[#2D3748]/10 text-[#2D3748]',
+  proagent: 'bg-purple-50 text-purple-600',
 }
+
+type PaidPlan = 'starter' | 'growth' | 'proagent'
+
 const ACTIVITY_LABELS: Record<string, string> = {
   page_view:          'Viewed a page',
   maya_message:       'Sent a message to Maya',
@@ -182,6 +186,12 @@ export default function ClientDetail({
   const [sendingEmail, setSendingEmail] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState(profile.plan ?? 'starter')
   const [selectedRole, setSelectedRole] = useState(profile.role ?? 'client')
+  const [compTier, setCompTier] = useState<PaidPlan>(
+    (profile.plan === 'starter' || profile.plan === 'growth' || profile.plan === 'proagent'
+      ? profile.plan
+      : 'proagent') as PaidPlan,
+  )
+  const [compLoading, setCompLoading] = useState(false)
 
   // Toast
   const [toast, setToast] = useState<string | null>(null)
@@ -257,6 +267,58 @@ export default function ClientDetail({
     setProfile(p => ({ ...p, plan: selectedPlan }))
     setShowPlan(false)
     showToast('Plan updated')
+  }
+
+  async function handleGrantCompAccess() {
+    setCompLoading(true)
+    try {
+      const res = await fetch(`/api/admin/clients/${clientId}/comp-access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'grant', tier: compTier, allocateCredits: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Grant failed')
+      setProfile(p => ({
+        ...p,
+        plan: compTier,
+        status: 'active',
+        billing_exempt: true,
+      }))
+      showToast(
+        data.creditsGranted != null
+          ? `Complimentary ${PLAN_LABELS[compTier]} access granted`
+          : `Complimentary ${PLAN_LABELS[compTier]} access granted (credits unchanged)`,
+      )
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Grant failed')
+    } finally {
+      setCompLoading(false)
+    }
+  }
+
+  async function handleRevokeCompAccess() {
+    setCompLoading(true)
+    try {
+      const res = await fetch(`/api/admin/clients/${clientId}/comp-access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revoke' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Revoke failed')
+      setProfile(p => ({
+        ...p,
+        plan: null,
+        status: 'onboarding',
+        billing_exempt: false,
+      }))
+      showToast('Complimentary access revoked')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Revoke failed')
+    } finally {
+      setCompLoading(false)
+    }
   }
 
   async function handleChangeRole() {
@@ -427,6 +489,11 @@ export default function ClientDetail({
                   {PLAN_LABELS[profile.plan] ?? profile.plan}
                 </span>
               )}
+              {profile.billing_exempt && (
+                <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand-primary/10 text-brand-primary">
+                  Complimentary
+                </span>
+              )}
               {profile.role && (
                 <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-purple-50 text-purple-600">
                   {profile.role}
@@ -537,7 +604,11 @@ export default function ClientDetail({
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-xl p-4">
                         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Current plan</p>
-                        <p className="text-[17px] font-semibold text-[#2D3748] capitalize">{profile.plan ?? '—'}</p>
+                        <p className="text-[17px] font-semibold text-[#2D3748] capitalize">
+                          {profile.billing_exempt && profile.plan
+                            ? `Complimentary · ${PLAN_LABELS[profile.plan] ?? profile.plan}`
+                            : profile.plan ?? '—'}
+                        </p>
                         {billingData?.subscription?.current_period_end && (
                           <p className="text-xs text-gray-400 mt-1">
                             Renews {formatDate(new Date(billingData.subscription.current_period_end * 1000).toISOString())}
@@ -594,6 +665,57 @@ export default function ClientDetail({
                         </table>
                       </div>
                     )}
+
+                    {/* Complimentary access */}
+                    <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-4">
+                      <p className="text-[10px] font-semibold text-brand-primary uppercase tracking-widest mb-1">
+                        Complimentary access
+                      </p>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Grant full platform access without Stripe checkout or a credit card.
+                        Ideal for test users, partners, and internal accounts.
+                      </p>
+                      {profile.billing_exempt ? (
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium text-[#2D3748]">
+                            Active — {PLAN_LABELS[profile.plan ?? ''] ?? profile.plan ?? 'no tier'} tier, billing waived
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleRevokeCompAccess}
+                            disabled={compLoading}
+                            className="px-4 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-medium disabled:opacity-50"
+                          >
+                            {compLoading ? 'Working…' : 'Revoke complimentary access'}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                          <div className="flex-1">
+                            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5 block">
+                              Access tier
+                            </label>
+                            <select
+                              value={compTier}
+                              onChange={e => setCompTier(e.target.value as PaidPlan)}
+                              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#3B82F6]/40 bg-white"
+                            >
+                              <option value="starter">Starter</option>
+                              <option value="growth">Growth</option>
+                              <option value="proagent">ProAgent</option>
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleGrantCompAccess}
+                            disabled={compLoading}
+                            className="px-4 py-2.5 bg-[#2D3748] text-white rounded-xl text-sm font-medium disabled:opacity-50"
+                          >
+                            {compLoading ? 'Granting…' : 'Grant complimentary access'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Manual override */}
                     <div>

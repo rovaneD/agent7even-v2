@@ -21,6 +21,7 @@ interface Invoice {
 interface Props {
   plan: string | null
   status: string | null
+  billingExempt?: boolean
   subscriptionId: string | null
   invoices: Invoice[]
   portalUrl?: string | null
@@ -101,7 +102,7 @@ function formatAmount(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
 }
 
-function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, creditBalance = 0, creditsUsage }: Props) {
+function BillingInner({ plan, status, billingExempt = false, subscriptionId, invoices, portalUrl, creditBalance = 0, creditsUsage }: Props) {
   const searchParams   = useSearchParams()
   const topupStatus    = searchParams.get('topup')
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
@@ -109,7 +110,7 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
   const [billingAnnual, setBillingAnnual] = useState(false)
 
   const currentPlan = plan ? PLANS[plan as keyof typeof PLANS] : null
-  const upgradeTo = plan ? (UPGRADE_PATHS[plan] ?? []) : ['starter', 'growth', 'proagent']
+  const upgradeTo = billingExempt ? [] : plan ? (UPGRADE_PATHS[plan] ?? []) : ['starter', 'growth', 'proagent']
   const PlanIcon = currentPlan?.icon ?? Zap
 
   const mayaContext = useMemo(
@@ -170,7 +171,11 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
           <div className="grid grid-cols-2 gap-3 sm:flex">
             <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Current plan</p>
-              <p className="mt-1 text-lg font-semibold text-text">{currentPlan?.name ?? 'No plan'}</p>
+              <p className="mt-1 text-lg font-semibold text-text">
+                {billingExempt && currentPlan
+                  ? `Complimentary · ${currentPlan.name}`
+                  : currentPlan?.name ?? 'No plan'}
+              </p>
             </div>
             <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Credits</p>
@@ -196,7 +201,18 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
         </div>
       )}
 
-      {status === 'paused' && (
+      {billingExempt && currentPlan && (
+        <div className="flex items-start gap-3 bg-brand-primary/5 border border-brand-primary/20 rounded-2xl px-4 py-3">
+          <CheckCircle2 size={15} className="text-brand-primary mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-text-sec">
+            <span className="font-semibold text-text">Complimentary access.</span>{' '}
+            Your account has full {currentPlan.name} features without a Stripe subscription.
+            No credit card required.
+          </p>
+        </div>
+      )}
+
+      {status === 'paused' && !billingExempt && (
         <div className="flex items-start gap-3 bg-status-danger/10 border border-status-danger/20 rounded-2xl px-4 py-3">
           <AlertCircle size={15} className="text-status-danger mt-0.5 flex-shrink-0" />
           <p className="text-sm text-status-danger">
@@ -220,8 +236,14 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
                   <PlanIcon size={17} className="text-brand-primary" />
                 </div>
                 <div>
-                  <h2 className="text-[17px] font-semibold text-text">{currentPlan.name}</h2>
-                  <p className="text-sm text-text-sec">${currentPlan.monthlyPrice}/mo</p>
+                  <h2 className="text-[17px] font-semibold text-text">
+                    {billingExempt ? `Complimentary · ${currentPlan.name}` : currentPlan.name}
+                  </h2>
+                  <p className="text-sm text-text-sec">
+                    {billingExempt
+                      ? 'Full platform access — billing waived by Agent7even'
+                      : `$${currentPlan.monthlyPrice}/mo`}
+                  </p>
                 </div>
               </div>
             ) : (
@@ -233,13 +255,21 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
           </div>
 
           <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-            status === 'active'
+            billingExempt
+              ? 'bg-brand-primary/10 text-brand-primary'
+              : status === 'active'
               ? 'bg-status-success/10 text-status-success'
               : status === 'paused'
               ? 'bg-status-danger/10 text-status-danger'
               : 'bg-surface-muted text-text-sec'
           }`}>
-            {status === 'active' ? 'Active' : status === 'paused' ? 'Payment failed' : 'Inactive'}
+            {billingExempt
+              ? 'Complimentary'
+              : status === 'active'
+              ? 'Active'
+              : status === 'paused'
+              ? 'Payment failed'
+              : 'Inactive'}
           </span>
         </div>
 
@@ -287,7 +317,7 @@ function BillingInner({ plan, status, subscriptionId, invoices, portalUrl, credi
       <CreditTopUp currentBalance={creditBalance} />
 
       {/* Upgrade section */}
-      {upgradeTo.length > 0 && (
+      {!billingExempt && upgradeTo.length > 0 && (
         <div className="rounded-2xl border border-gray-100 bg-white p-6">
           <div className="flex items-center justify-between mb-5">
             <div>

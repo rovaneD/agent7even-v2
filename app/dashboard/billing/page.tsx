@@ -6,20 +6,14 @@ import { getStripeClient } from '@/lib/stripe'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import type { CreditsUsageData, BreakdownItem, CreditActivityItem } from '@/components/billing/CreditsUsage'
 import { PLAN_CREDITS } from '@/lib/credits'
+import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
 
 export default async function BillingPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id, plan, status, stripe_customer_id, stripe_subscription_id')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const profile = profileRows?.[0] ?? null
+  const profile = await getBillingProfileForClerkUser(supabase, userId)
 
   if (profile?.id) {
     const teamPerms = await getTeamPermissions(profile.id)
@@ -164,7 +158,7 @@ export default async function BillingPage() {
     }
   }
 
-  if (profile?.stripe_customer_id) {
+  if (profile?.stripe_customer_id && !profile.billing_exempt) {
     try {
       const stripe = getStripeClient()
       if (!stripe) throw new Error('Missing STRIPE_SECRET_KEY')
@@ -196,6 +190,7 @@ export default async function BillingPage() {
     <BillingClient
       plan={profile?.plan ?? null}
       status={profile?.status ?? null}
+      billingExempt={profile?.billing_exempt ?? false}
       subscriptionId={profile?.stripe_subscription_id ?? null}
       invoices={invoices}
       portalUrl={portalUrl}

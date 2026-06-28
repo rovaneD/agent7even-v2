@@ -28,11 +28,17 @@ export async function POST(
   const body = await req.json()
 
   const allowed = ['plan', 'role', 'status'] as const
-  const update: Record<string, string> = {}
+  const update: Record<string, unknown> = {}
 
   for (const key of allowed) {
     if (body[key] !== undefined) update[key] = body[key]
   }
+
+  if (body.billing_exempt !== undefined) {
+    update.billing_exempt = Boolean(body.billing_exempt)
+  }
+
+  update.updated_at = new Date().toISOString()
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
@@ -43,7 +49,7 @@ export async function POST(
     .from('profiles')
     .update(update)
     .eq('id', id)
-    .select('id, plan, role, status')
+    .select('id, plan, role, status, billing_exempt')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

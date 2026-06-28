@@ -15,7 +15,7 @@ const FOUNDATION_SELECT =
 const LINK_SELECT =
   'id, clerk_user_id, stripe_customer_id, stripe_subscription_id, plan, status, created_at, company_name, business_type, foundation_complete, foundation_step'
 
-function pickCanonicalProfile<
+export function pickCanonicalProfile<
   T extends {
     id: string
     stripe_customer_id: string | null
