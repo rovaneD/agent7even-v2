@@ -38,17 +38,35 @@
 - Orders tab intro (human-delivered, not credit-metered)
 - Plain-language `STATUS_HINT` under each order card
 
+### Foundation Hub (`FoundationHub.tsx`)
+
+- Website/file ingest success confirmation after saving Knowledge fields
+- URL ingest explainer (public page read → confirm before save)
+
+### Brand Kit (`BrandKitView.tsx`)
+
+- ProAgent premium model callout for non-ProAgent plans
+- Media credit note on AI palette/font generation
+
+### Calendar (`app/dashboard/calendar/page.tsx`)
+
+- Compact content lifecycle bar
+- Per-entry execution hint (Posts / agents / campaign)
+
+### Assets (`AssetsClient.tsx`, `AssetPreviewModal.tsx`)
+
+- Header link to Posts; modal adds schedule path alongside post workflow
+
 ---
 
 ## Backlog (registry remaining)
 
 | Screen | Next |
 |--------|------|
-| Foundation Hub | Exa pre-fill success messaging |
-| Brand Kit | Premium model gating copy (ProAgent) |
-| Calendar | Lifecycle deep links from events |
-| Assets | Link to Posts compose |
 | Agent outputs archive | Lifecycle stage labels |
+| Inbox | Reply management (product gap) |
+| Deliverables | Upload → agent context loop |
+| Support | Ticket ↔ service order linking |
 
 ---
 

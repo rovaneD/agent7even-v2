@@ -29,7 +29,7 @@ import {
   Upload, Sparkles, RefreshCw, Plus, Pencil, RotateCcw,
   Eye, Rocket, BarChart2, TrendingUp, Mail, Megaphone, Search, ShieldCheck,
   Loader2, CloudUpload, Link2, FileText, Brain, Info,
-  CheckSquare, Square, X, AlertCircle, Trash2, ChevronDown, Image,
+  CheckSquare, Square, X, AlertCircle, Trash2, ChevronDown, Image, CheckCircle,
 } from 'lucide-react'
 import { AGENTS, AGENT_COLORS } from '@/lib/agents/registry'
 import type { FoundationSectionKey } from '@/lib/agents/registry'
@@ -577,13 +577,14 @@ function UploadCard({
   onKnowledgeAdded: (item: KnowledgeItem) => void
   onKnowledgeConfirmed: (id: string, confirmedFields: Record<string, unknown>) => void
 }) {
-  const [phase, setPhase] = useState<'idle' | 'url-input' | 'processing' | 'confirm' | 'error'>('idle')
+  const [phase, setPhase] = useState<'idle' | 'url-input' | 'processing' | 'confirm' | 'success' | 'error'>('idle')
   const [dragOver, setDragOver] = useState(false)
   const [urlValue, setUrlValue] = useState('')
   const [ingestId, setIngestId] = useState<string | null>(null)
   const [result, setResult] = useState<ExtractionResult | null>(null)
   const [confirmSourceName, setConfirmSourceName] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [checked, setChecked] = useState<Record<number, boolean>>({})
   const [saving, setSaving] = useState(false)
   const [ingesting, setIngesting] = useState(false)
@@ -684,7 +685,21 @@ function UploadCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ confirmed_fields: confirmedFields }),
       }).catch(() => null)
-      if (res?.ok) onKnowledgeConfirmed(ingestId, confirmedFields)
+      if (res?.ok) {
+        onKnowledgeConfirmed(ingestId, confirmedFields)
+        const n = Object.keys(confirmedFields).length
+        setSuccessMessage(
+          `${n} field${n !== 1 ? 's' : ''} saved to Knowledge — agents will pull from this when generating content. Open Intelligence to edit your business profile directly.`,
+        )
+        setPhase('success')
+        setResult(null)
+        setConfirmSourceName(null)
+        setIngestId(null)
+        setUrlValue('')
+        setErrorMessage(null)
+        setSaving(false)
+        return
+      }
     }
     setSaving(false)
     setPhase('idle')
@@ -703,6 +718,25 @@ function UploadCard({
   }
 
   const confirmedCount = Object.values(checked).filter(Boolean).length
+
+  if (phase === 'success' && successMessage) {
+    return (
+      <div className="rounded-2xl border border-gray-100 bg-white p-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft mb-3">Uploaded Knowledge</p>
+        <div className="flex items-start gap-2 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-3 mb-3">
+          <CheckCircle size={15} className="text-[#16A34A] flex-shrink-0 mt-0.5" />
+          <p className="text-[12px] text-[#166534] leading-relaxed">{successMessage}</p>
+        </div>
+        <button
+          onClick={() => { setPhase('idle'); setSuccessMessage(null) }}
+          className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity"
+          style={{ backgroundColor: '#3B82F6' }}
+        >
+          Done
+        </button>
+      </div>
+    )
+  }
 
   if (phase === 'error') {
     return (
@@ -816,8 +850,11 @@ function UploadCard({
           onKeyDown={e => {
             if (e.key === 'Enter' && urlValue.trim() && !ingesting) runIngest('url', urlValue.trim())
           }}
-          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#3B82F6] mb-3"
+          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#3B82F6] mb-2"
         />
+        <p className="text-[11px] text-text-soft leading-relaxed mb-3">
+          We read public pages on your site and suggest Foundation fields — you confirm before anything is saved.
+        </p>
         <button
           onClick={() => urlValue.trim() && runIngest('url', urlValue.trim())}
           disabled={!urlValue.trim() || ingesting}

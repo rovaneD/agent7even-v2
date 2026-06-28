@@ -52,6 +52,7 @@ export default async function BrandKitPage() {
     <BrandKitView
       profileId={profile.id}
       companyName={profile.company_name ?? ''}
+      plan={profile.plan ?? null}
       initialSections={sections ?? []}
       initialColors={colors ?? []}
       initialFonts={fonts ?? []}

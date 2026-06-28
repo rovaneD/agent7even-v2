@@ -218,15 +218,24 @@ export default function AssetsClient({
         <div>
           <h1 className="text-2xl font-semibold text-text-primary">Assets</h1>
           <p className="mt-1 text-sm text-text-sec">
-            Saved generations for {companyName || 'your workspace'}. Organize in folders or use for posts.
+            Saved AI generations for {companyName || 'your workspace'}. Use in a post workflow or open Posts to schedule.
           </p>
         </div>
-        <Link
-          href="/dashboard/agents"
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white no-underline hover:bg-[#2563EB]"
-        >
-          Generate more
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard/posts"
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-text-primary no-underline hover:border-brand-primary/40"
+          >
+            <Send size={14} />
+            Open Posts
+          </Link>
+          <Link
+            href="/dashboard/agents"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white no-underline hover:bg-[#2563EB]"
+          >
+            Generate more
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row">

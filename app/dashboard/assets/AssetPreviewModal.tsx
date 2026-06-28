@@ -151,7 +151,13 @@ export default function AssetPreviewModal({
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white no-underline hover:bg-[#2563EB]"
             >
               <Send size={14} />
-              Use for post
+              Use in post workflow
+            </Link>
+            <Link
+              href="/dashboard/posts"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-text-primary no-underline hover:border-brand-primary/40"
+            >
+              Open Posts to schedule
             </Link>
           </div>
         </div>

@@ -56,9 +56,9 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
-| Foundation Hub | `/dashboard/foundation` | P0 | T7 | Tab + section edit form grounding | Exa pre-fill success messaging |
+| Foundation Hub | `/dashboard/foundation` | P0 | T7 | Tab + section edit form grounding · ingest success messaging | — |
 | Foundation Editor (legacy) | `/dashboard/foundation` (flag off) | P2 | T7 | Editor form grounding | Retire when V2 flag universal |
-| Brand Kit | `/dashboard/brand-kit` | P1 | T1 T7 | Tab activeView | Premium model gating copy (ProAgent) |
+| Brand Kit | `/dashboard/brand-kit` | P1 | T1 T7 | Tab activeView · media credit + ProAgent premium callout | — |
 
 ---
 
@@ -77,9 +77,9 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
-| Content Calendar | `/dashboard/calendar` | P2 | T3 | IA regroup | Lifecycle deep link from calendar events |
+| Content Calendar | `/dashboard/calendar` | P2 | T3 | IA regroup · lifecycle bar · execution hints on entries | — |
 | Posts | `/dashboard/posts` | P0 | T1 T3 T7 | Compose grounding · lifecycle bar · approval bridge copy | — |
-| Assets | `/dashboard/assets` | P2 | T3 | Maya context | Link assets to Posts compose |
+| Assets | `/dashboard/assets` | P2 | T3 | Maya context · Posts + workflow links | — |
 
 ---
 

@@ -23,6 +23,7 @@ interface FoundationDoc { id: string; type: string; title: string | null; markdo
 interface Props {
   profileId: string
   companyName: string
+  plan?: string | null
   initialSections: SectionCompletion[]
   initialColors: BrandColor[]
   initialFonts: BrandFont[]
@@ -93,6 +94,7 @@ function hexToRgb(hex: string): string {
 export default function BrandKitView({
   profileId,
   companyName,
+  plan = null,
   initialSections,
   initialColors,
   initialFonts,
@@ -177,6 +179,21 @@ export default function BrandKitView({
           </div>
         </div>
       </section>
+
+      {plan !== 'proagent' && (
+        <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <span className="font-semibold">Standard models on every plan.</span>{' '}
+          Premium Recraft image and Kling video quality are ProAgent-only — use Agents or Posts to generate media.
+          {' '}
+          <a href="/dashboard/billing" className="font-semibold text-[#3B82F6] hover:underline">
+            View plans
+          </a>
+        </div>
+      )}
+
+      <p className="mb-4 text-xs text-text-sec">
+        AI palette and font generation uses 1 media credit each. Uploads and voice docs do not use credits.
+      </p>
 
       {/* Section tabs */}
       <div className="mb-8 flex flex-wrap gap-2">
@@ -495,7 +512,7 @@ function ColorsSection({ profileId: _profileId, colors, onColorsChange, onMarkCo
         <div className="mb-5 rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Suggested palette</p>
-            <span className="text-xs text-gray-400">1 credit used</span>
+            <span className="text-xs text-gray-400">1 media credit</span>
           </div>
 
           <div className="flex gap-2 mb-4">
@@ -737,7 +754,7 @@ function TypographySection({ profileId: _profileId, fonts, onFontsChange, onMark
         <div className="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Suggested pairings</p>
-            <span className="text-xs text-gray-400">1 credit used</span>
+            <span className="text-xs text-gray-400">1 media credit</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             {pairings.map((pairing, i) => (

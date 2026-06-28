@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { CalendarDays, Hash, Mail, Megaphone, MousePointer, Plus, Clock } from 'lucide-react'
 import { createServiceClient } from '@/lib/supabase/server'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
+import ContentLifecycleBar from '@/components/dashboard/ContentLifecycleBar'
+import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { buildCalendarMayaContext } from '@/lib/maya/summaries/pageOverviewContext'
 import CalendarMayaButton from './CalendarMayaButton'
 
@@ -127,6 +129,17 @@ function statusLabel(status: string) {
   return status.replace(/_/g, ' ')
 }
 
+function executionLink(entry: CalendarEntry): { href: string; label: string } {
+  const ch = entry.channel.toLowerCase()
+  if (ch.includes('instagram') || ch.includes('social') || ch.includes('tiktok') || ch.includes('facebook') || ch.includes('linkedin')) {
+    return { href: '/dashboard/posts', label: 'Create on Posts' }
+  }
+  if (ch.includes('email')) {
+    return { href: '/dashboard/agents', label: 'Run email agent' }
+  }
+  return { href: `/dashboard/campaigns/${entry.campaignId}`, label: 'Open campaign plan' }
+}
+
 export default async function CalendarPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
@@ -135,11 +148,16 @@ export default async function CalendarPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, company_name, full_name')
+    .select('id, company_name, full_name, zernio_profile_id')
     .eq('clerk_user_id', userId)
     .single()
 
   if (!profile) redirect('/sign-in')
+
+  const lifecycleCounts = await getContentLifecycleCounts(
+    profile.id,
+    (profile.zernio_profile_id as string | null) ?? null,
+  )
 
   const { data: campaigns, error } = await supabase
     .from('campaigns')
@@ -178,7 +196,7 @@ export default async function CalendarPage() {
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Content Calendar</p>
             <h1 className="text-[30px] font-semibold tracking-tight text-text">Your content schedule</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-text-sec">
-              Planned campaign content organized by week, channel, and next action.
+              Planned campaign content organized by week and channel. Social items link to Posts; the pipeline bar shows Review → Draft → Scheduled → Published.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -193,6 +211,10 @@ export default async function CalendarPage() {
           </div>
         </div>
       </section>
+
+      <div className="mb-6">
+        <ContentLifecycleBar counts={lifecycleCounts} compact />
+      </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-gray-100 bg-white p-5">
@@ -259,11 +281,12 @@ export default async function CalendarPage() {
                         {dayEntries.length === 0 ? (
                           <div className="hidden h-20 rounded-xl border border-dashed border-border md:block" />
                         ) : (
-                          dayEntries.map(entry => (
-                            <Link
+                          dayEntries.map(entry => {
+                            const next = executionLink(entry)
+                            return (
+                            <div
                               key={entry.id}
-                              href={`/dashboard/campaigns/${entry.campaignId}`}
-                              className="block rounded-xl border border-gray-100 bg-white p-3 transition-all hover:border-brand-primary/40 hover:bg-surface-2"
+                              className="rounded-xl border border-gray-100 bg-white p-3"
                             >
                               <div className="mb-2 flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5 min-w-0">
@@ -274,12 +297,24 @@ export default async function CalendarPage() {
                               </div>
                               <p className="mb-1 text-xs font-semibold text-text">{entry.type}</p>
                               <p className="line-clamp-4 text-xs leading-relaxed text-text-sec">{entry.content}</p>
-                              <div className="mt-3 border-t border-border pt-3">
-                                <p className="truncate text-[10px] text-text-soft">{entry.campaignTitle}</p>
+                              <div className="mt-3 border-t border-border pt-3 space-y-1.5">
+                                <Link
+                                  href={`/dashboard/campaigns/${entry.campaignId}`}
+                                  className="block truncate text-[10px] font-medium text-text-soft hover:text-brand-primary"
+                                >
+                                  {entry.campaignTitle}
+                                </Link>
                                 <p className="text-[10px] capitalize text-text-soft">{statusLabel(entry.campaignStatus)}</p>
+                                <Link
+                                  href={next.href}
+                                  className="inline-block text-[10px] font-semibold text-brand-primary hover:underline"
+                                >
+                                  {next.label} →
+                                </Link>
                               </div>
-                            </Link>
-                          ))
+                            </div>
+                            )
+                          })
                         )}
                       </div>
                     </div>
