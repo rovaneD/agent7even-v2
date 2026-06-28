@@ -14,7 +14,7 @@ export interface CreditMutationResult {
 export async function allocatePlanCredits(
   profileId: string,
   plan: string,
-  opts?: { skipIfAllocated?: boolean; description?: string }
+  opts?: { skipIfAllocated?: boolean; description?: string; preserveExistingBalance?: boolean }
 ): Promise<number | null> {
   const credits = PLAN_CREDITS[plan]
   if (!credits) return null
@@ -33,12 +33,24 @@ export async function allocatePlanCredits(
 
   const now = new Date().toISOString()
   const description = opts?.description ?? `Monthly allocation — ${plan} plan`
+  let balanceAfter = credits
+
+  if (opts?.preserveExistingBalance) {
+    const { data } = await supabase
+      .from('credit_balances')
+      .select('balance')
+      .eq('user_id', profileId)
+      .maybeSingle()
+    const currentBalance = Number(data?.balance ?? 0)
+    if (currentBalance >= credits) return null
+    balanceAfter = credits
+  }
 
   await supabase
     .from('credit_balances')
     .upsert({
       user_id:    profileId,
-      balance:    credits,
+      balance:    balanceAfter,
       updated_at: now,
     })
 
@@ -46,7 +58,7 @@ export async function allocatePlanCredits(
     user_id:       profileId,
     type:          'allocation',
     credits,
-    balance_after: credits,
+    balance_after: balanceAfter,
     description,
   })
 

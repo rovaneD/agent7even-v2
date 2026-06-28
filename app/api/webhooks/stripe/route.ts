@@ -194,46 +194,58 @@ export async function POST(req: Request) {
     const subscription = event.data.object as Stripe.Subscription
     const clerkUserId = subscription.metadata?.clerk_user_id
 
-    // Look up the profile to find and disconnect any Zernio accounts before clearing plan
+    // Look up the exact stored subscription before disconnecting tenant resources.
     const profileQuery = clerkUserId
-      ? supabase.from('profiles').select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms').eq('clerk_user_id', clerkUserId).single()
-      : supabase.from('profiles').select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms').eq('stripe_subscription_id', subscription.id).single()
+      ? supabase
+        .from('profiles')
+        .select('id, billing_exempt, stripe_subscription_id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
+        .eq('clerk_user_id', clerkUserId)
+        .single()
+      : supabase
+        .from('profiles')
+        .select('id, billing_exempt, stripe_subscription_id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
+        .eq('stripe_subscription_id', subscription.id)
+        .single()
 
     const { data: cancelledProfile } = await profileQuery
 
-    if (cancelledProfile) {
-      const zernioProfileIds = collectZernioProfileIds(cancelledProfile)
-      if (zernioProfileIds.length > 0) {
-        const teardownResults = await disconnectAllZernioProfiles(zernioProfileIds)
-        for (const { id, ok } of teardownResults) {
-          if (ok) {
-            console.log(`[stripe/webhook] Disconnected Zernio profile ${id} on subscription cancellation`)
-          } else {
-            console.warn(`[stripe/webhook] Failed to disconnect Zernio profile ${id} on subscription cancellation`)
-          }
+    if (!cancelledProfile) return NextResponse.json({ received: true })
+
+    if (cancelledProfile.stripe_subscription_id !== subscription.id) {
+      return NextResponse.json({ received: true })
+    }
+
+    if (cancelledProfile.billing_exempt) {
+      await supabase
+        .from('profiles')
+        .update({
+          stripe_subscription_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', cancelledProfile.id)
+      return NextResponse.json({ received: true })
+    }
+
+    const zernioProfileIds = collectZernioProfileIds(cancelledProfile)
+    if (zernioProfileIds.length > 0) {
+      const teardownResults = await disconnectAllZernioProfiles(zernioProfileIds)
+      for (const { id, ok } of teardownResults) {
+        if (ok) {
+          console.log(`[stripe/webhook] Disconnected Zernio profile ${id} on subscription cancellation`)
+        } else {
+          console.warn(`[stripe/webhook] Failed to disconnect Zernio profile ${id} on subscription cancellation`)
         }
       }
     }
 
-    if (clerkUserId) {
-      await supabase
-        .from('profiles')
-        .update({
-          plan: null, status: 'churned', stripe_subscription_id: null,
-          zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('clerk_user_id', clerkUserId)
-    } else {
-      await supabase
-        .from('profiles')
-        .update({
-          plan: null, status: 'churned', stripe_subscription_id: null,
-          zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('stripe_subscription_id', subscription.id)
-    }
+    await supabase
+      .from('profiles')
+      .update({
+        plan: null, status: 'churned', stripe_subscription_id: null,
+        zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', cancelledProfile.id)
   }
 
   // ── invoice.payment_failed ──────────────────────────────────────────────────
@@ -247,10 +259,18 @@ export async function POST(req: Request) {
         : undefined
 
     if (subscriptionId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, billing_exempt')
+        .eq('stripe_subscription_id', subscriptionId)
+        .single()
+
+      if (profile?.billing_exempt) return NextResponse.json({ received: true })
+
       await supabase
         .from('profiles')
         .update({ status: 'paused', updated_at: new Date().toISOString() })
-        .eq('stripe_subscription_id', subscriptionId)
+        .eq('id', profile?.id ?? '')
     }
   }
 

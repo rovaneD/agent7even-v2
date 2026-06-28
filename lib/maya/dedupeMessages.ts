@@ -1,17 +1,15 @@
 import type { UIMessage } from 'ai'
 
-/** Keep first occurrence of each message id — fixes duplicate saves from onFinish races. */
+/** Keep the last occurrence of each message id so completed streamed content wins. */
 export function dedupeMessagesById<T extends { id: string }>(messages: T[]): T[] {
-  const seen = new Set<string>()
-  return messages.filter(m => {
-    if (seen.has(m.id)) return false
-    seen.add(m.id)
-    return true
-  })
+  const byId = new Map<string, T>()
+  for (const message of messages) byId.set(message.id, message)
+  return Array.from(byId.values())
 }
 
 /** Build the transcript to persist after a stream finishes. */
 export function messagesForPersist(messages: UIMessage[], finished: UIMessage): UIMessage[] {
-  const includesFinished = messages.some(m => m.id === finished.id)
-  return dedupeMessagesById(includesFinished ? messages : [...messages, finished])
+  const merged = messages.map(message => (message.id === finished.id ? finished : message))
+  if (!messages.some(message => message.id === finished.id)) merged.push(finished)
+  return dedupeMessagesById(merged)
 }

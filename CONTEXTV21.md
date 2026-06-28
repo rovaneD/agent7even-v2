@@ -19,6 +19,14 @@ Latest marketing commits: 1e9cfd9 … fcdfa65 (June 25, 2026)
 
 Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 
+### June 28 critical bug-fix note
+
+- Complimentary access must not be revoked by stale Stripe subscription events. Stripe cancellation/payment-failure webhooks now skip `billing_exempt` profiles and require the event subscription to match the stored `stripe_subscription_id` before clearing plan or disconnecting Zernio profiles.
+- Revoking complimentary access restores the live Stripe-backed plan/status when an active or past-due subscription still exists, so paying users are not locked out.
+- Admin complimentary credit allocation preserves an existing credit balance instead of resetting purchased/top-up credits downward.
+- Maya session persistence now prefers the completed streamed message for duplicate ids, preventing truncated assistant replies from being saved.
+- Dashboard layout ensures/links the Supabase profile on first load, and pricing sign-up preserves `plan` plus `annual=true` through Foundation into `/checkout-now`.
+
 ---
 
 ## Homepage hero (locked copy — June 25)

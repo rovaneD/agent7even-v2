@@ -1,7 +1,21 @@
 import AuthMarketingShell from '@/components/auth/AuthMarketingShell'
 import AuthSignUpForm from '@/components/auth/AuthSignUpForm'
 
-export default function SignUpPage() {
+const VALID_PLANS = new Set(['starter', 'growth', 'proagent'])
+
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string; annual?: string }>
+}) {
+  const { plan, annual } = await searchParams
+  const foundationParams = new URLSearchParams()
+  if (plan && VALID_PLANS.has(plan)) foundationParams.set('plan', plan)
+  if (annual === 'true') foundationParams.set('annual', 'true')
+  const redirectUrl = foundationParams.size > 0
+    ? `/foundation?${foundationParams.toString()}`
+    : '/dashboard'
+
   return (
     <AuthMarketingShell
       variant="sign-up"
@@ -19,7 +33,7 @@ export default function SignUpPage() {
         </>
       }
     >
-      <AuthSignUpForm redirectUrl="/dashboard" />
+      <AuthSignUpForm redirectUrl={redirectUrl} />
     </AuthMarketingShell>
   )
 }

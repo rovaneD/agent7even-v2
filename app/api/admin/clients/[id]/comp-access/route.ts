@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { allocatePlanCredits } from '@/lib/credits'
 import { isPaidPlan, type PaidPlan } from '@/lib/plans'
+import { getStripeClient } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 
 async function getAdminProfile(userId: string) {
@@ -12,6 +13,46 @@ async function getAdminProfile(userId: string) {
     .eq('clerk_user_id', userId)
     .single()
   return data
+}
+
+function getPlanFromPriceId(priceId: string): PaidPlan | null {
+  const map: Record<string, PaidPlan> = {
+    [process.env.STRIPE_STARTER_MONTHLY_PRICE_ID!]: 'starter',
+    [process.env.STRIPE_STARTER_ANNUAL_PRICE_ID!]: 'starter',
+    [process.env.STRIPE_GROWTH_MONTHLY_PRICE_ID!]: 'growth',
+    [process.env.STRIPE_GROWTH_ANNUAL_PRICE_ID!]: 'growth',
+    [process.env.STRIPE_PROAGENT_MONTHLY_PRICE_ID!]: 'proagent',
+    [process.env.STRIPE_PROAGENT_ANNUAL_PRICE_ID!]: 'proagent',
+  }
+  return map[priceId] ?? null
+}
+
+async function getStripeBackedProfileState(subscriptionId: string | null) {
+  if (!subscriptionId) return null
+  const stripe = getStripeClient()
+  if (!stripe) return null
+
+  try {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+    const plan = getPlanFromPriceId(subscription.items.data[0]?.price.id)
+    if (!plan) return null
+
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
+      return { plan, status: 'active' }
+    }
+
+    if (
+      subscription.status === 'past_due' ||
+      subscription.status === 'paused' ||
+      subscription.status === 'unpaid'
+    ) {
+      return { plan, status: 'paused' }
+    }
+  } catch (err) {
+    console.warn('[admin/comp-access] could not restore Stripe state:', err)
+  }
+
+  return null
 }
 
 type Body = {
@@ -60,6 +101,7 @@ export async function POST(
     if (body.allocateCredits !== false) {
       creditsGranted = await allocatePlanCredits(id, tier, {
         description: `Complimentary access — ${tier} plan`,
+        preserveExistingBalance: true,
       })
     }
 
@@ -67,12 +109,20 @@ export async function POST(
   }
 
   if (body.action === 'revoke') {
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('stripe_subscription_id')
+      .eq('id', id)
+      .single()
+
+    const stripeState = await getStripeBackedProfileState(existingProfile?.stripe_subscription_id ?? null)
     const { data: profile, error } = await supabase
       .from('profiles')
       .update({
         billing_exempt: false,
-        plan: null,
-        status: 'onboarding',
+        plan: stripeState?.plan ?? null,
+        status: stripeState?.status ?? 'onboarding',
+        stripe_subscription_id: stripeState ? existingProfile?.stripe_subscription_id ?? null : null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
