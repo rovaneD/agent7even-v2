@@ -34,6 +34,12 @@ Section edit forms bind live field values via `buildFoundationHubMayaContext` / 
 ### Analytics connect flows (June 10)
 `AnalyticsClient.tsx` + `buildAnalyticsConnectActiveView` — Connect panel, GA connect modal, and property selector override `activeView` when open.
 
+### Campaign creation (June 10)
+`GuidedCampaignFlow.tsx` + `OpenCanvasFlow.tsx` — step selections and open-canvas draft/chat bound via `buildGuidedCampaignMayaContext` / `buildOpenCanvasCampaignMayaContext`.
+
+### Service inquiry (June 10)
+`InquiryForm.tsx` — all three steps of scoped design/dev inquiry form bound via `buildServiceInquiryMayaContext`.
+
 ---
 
 ## Layer 2 backlog
@@ -44,4 +50,5 @@ Maya chat has no tool/actuation channel (`/api/maya/chat` = `streamText` only). 
 
 ## Follow-on (optional)
 
-- Bind form state on remaining canvases (campaign compose, inquiry forms) using same `activeView` pattern.
+- Explainability pass per `per_screen_registry.md` remaining column.
+- Bind form state on any new canvases using same `activeView` pattern.

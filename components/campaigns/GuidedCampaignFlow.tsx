@@ -110,9 +110,10 @@ export default function GuidedCampaignFlow() {
         goal,
         timeline,
         budget,
+        selectedModel,
         isGenerating,
       }),
-    [step, segment, goal, timeline, budget, isGenerating],
+    [step, segment, goal, timeline, budget, selectedModel, isGenerating],
   )
   useMayaContext(mayaContext)
 

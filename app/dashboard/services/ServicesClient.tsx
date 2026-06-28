@@ -130,6 +130,17 @@ const STATUS_CONFIG = {
   cancelled: { label: 'Cancelled', color: 'bg-surface-2 text-text-soft', icon: X },
 }
 
+const STATUS_HINT: Record<string, string> = {
+  submitted: 'We received your request — our team will review your brief.',
+  in_review: 'A specialist is reviewing your scope and timeline.',
+  in_progress: 'Work is underway — check messages for updates.',
+  delivered: 'Deliverables are ready for your review.',
+  completed: 'This order is closed — nothing else needed from you.',
+  revision_requested: 'You asked for changes — we will update and resend.',
+  approved: 'You approved the deliverable — order complete.',
+  cancelled: 'This request was cancelled.',
+}
+
 const CLOSED_STATUSES = ['approved', 'cancelled', 'completed']
 
 interface Message {
@@ -969,6 +980,12 @@ ${VIRAL_HOOKS_FRAMEWORK}`
         </div>
       )}
 
+      {activeTab === 'orders' && activeOrders.length > 0 && (
+        <p className="mb-4 text-xs leading-relaxed text-text-sec">
+          Human-delivered work from our team — not metered by media credits. Status updates appear here and in your order conversation.
+        </p>
+      )}
+
       {/* Browse tab */}
       {activeTab === 'browse' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1155,6 +1172,10 @@ function OrderCard({
     ? { label: 'Needs regenerate', color: 'bg-status-warning/10 text-status-warning', icon: AlertCircle }
     : status
   const StatusIcon = displayStatus.icon
+  const statusKey = isViralHooks && !hasGeneratedOutput ? 'needs_regenerate' : order.status
+  const statusHint = statusKey === 'needs_regenerate'
+    ? 'Run Viral Hooks again to generate a fresh set of hooks.'
+    : STATUS_HINT[order.status]
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-brand-primary/30 hover:bg-surface-2 sm:p-5">
@@ -1169,6 +1190,9 @@ function OrderCard({
           </p>
           {order.brief && (
             <p className="mt-1 line-clamp-2 text-xs text-text-sec">{displayServiceBrief(order.brief)}</p>
+          )}
+          {statusHint && (
+            <p className="mt-1 text-[11px] leading-snug text-text-muted">{statusHint}</p>
           )}
           <button
             type="button"

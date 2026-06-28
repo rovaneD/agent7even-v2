@@ -91,6 +91,16 @@ export default function OpenCanvasFlow() {
     return !t.startsWith('__')
   })
 
+  const lastUserMessage = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg.role !== 'user') continue
+      const text = getMsgText(msg).trim()
+      if (text && !text.startsWith('__')) return text
+    }
+    return ''
+  }, [messages])
+
   const mayaContext = useMemo(
     () =>
       buildOpenCanvasCampaignMayaContext({
@@ -98,8 +108,10 @@ export default function OpenCanvasFlow() {
         readyToGenerate,
         isCreating,
         selectedModel,
+        draftInput: input,
+        lastUserMessage,
       }),
-    [messages.length, readyToGenerate, isCreating, selectedModel],
+    [messages.length, readyToGenerate, isCreating, selectedModel, input, lastUserMessage],
   )
   useMayaContext(mayaContext)
 

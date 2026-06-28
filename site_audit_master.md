@@ -107,7 +107,7 @@ These recur in **both** audits — spine-level, not screen-level. Each carries a
 
 ## 4. Per-screen registry
 
-Full registry (all 42 screens: 38 logged-in + 4 marketing), score + P0/P1/P2 inline, lives in `per_screen_registry.md` (spawned with Phase C; marketing rows usable in Phase B). It is the durable reference Claude Code reads off per screen. Built from the 571-page logged-in audit + the four marketing-page scores.
+Full registry (all 42 screens: 38 logged-in + 4 marketing), score + P0/P1/P2 inline, lives in `per_screen_registry.md` (spawned with Phase C; marketing rows usable in Phase B). It is the durable reference Claude Code reads off per screen. Built from the 571-page logged-in audit + the four marketing-page scores. **Status: shipped June 10, 2026.**
 
 Marketing-page scores (for Phase B): Homepage 7.0–7.5 · Agents 8.5 (strongest) · Use Cases 6.0 · Pricing 5.2 (weakest, jumps ahead of Use Cases in priority).
 

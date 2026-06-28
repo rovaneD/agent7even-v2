@@ -46,10 +46,11 @@ Surfaces on:
 | Item | Status |
 |------|--------|
 | Thread 7 Layer 2 (Maya form actuation) | Deferred — needs product/API design |
-| Settings / Analytics connect grounding | Optional Layer 1 follow-on |
-| `per_screen_registry.md` | Not spawned |
+| Settings / Analytics connect grounding | **Shipped** — see `phaseC_situational_grounding_handoff.md` |
+| Campaign / inquiry form grounding | **Shipped** — guided, open canvas, service inquiry |
+| `per_screen_registry.md` | **Shipped** — June 10, 2026 |
 | Stale digest regenerate after approval-query fix | Optional ops |
-| Explainability pass (per-screen) | After registry |
+| Explainability pass (per-screen) | Next — use registry as checklist |
 
 ## Open product decisions (unchanged)
 

@@ -43,12 +43,12 @@ export default function CreditTopUp({ currentBalance, onSuccess }: Props) {
     <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
       <div className="flex items-center gap-2 mb-1">
         <Zap className="w-4 h-4 text-[#3B82F6]" />
-        <h3 className="text-base font-semibold text-[#2D3748]">Top up credits</h3>
+        <h3 className="text-base font-semibold text-[#2D3748]">Top up media credits</h3>
       </div>
       <p className="text-sm text-[#64748B] mb-5">
         Current balance:{' '}
-        <span className="font-medium text-[#2D3748]">{currentBalance} credits</span>
-        {' '}· Credits never expire
+        <span className="font-medium text-[#2D3748]">{currentBalance} media credits</span>
+        {' '}· Media credits never expire
       </p>
 
       <div className="space-y-2.5 mb-5">
@@ -115,7 +115,7 @@ export default function CreditTopUp({ currentBalance, onSuccess }: Props) {
       </button>
 
       <p style={{ fontSize: 11.5, color: '#CBD5E1', textAlign: 'center', marginTop: 10 }}>
-        Secured by Stripe · Credits added instantly after payment
+        Secured by Stripe · Media credits added instantly after payment
       </p>
     </div>
   )

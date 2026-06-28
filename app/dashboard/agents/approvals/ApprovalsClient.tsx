@@ -65,6 +65,8 @@ interface Props {
   profileId: string
   initialTasks: ApprovalTask[]
   runningVideoTasks?: RunningVideoTask[]
+  draftPostCount?: number
+  postsConnected?: boolean
   viralHooksHints?: ViralHooksDraftHints
 }
 
@@ -598,7 +600,14 @@ function VideoGeneratingCard({ task, onCheckReady }: {
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
-export default function ApprovalsClient({ profileId, initialTasks, runningVideoTasks = [], viralHooksHints }: Props) {
+export default function ApprovalsClient({
+  profileId,
+  initialTasks,
+  runningVideoTasks = [],
+  draftPostCount = 0,
+  postsConnected = false,
+  viralHooksHints,
+}: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const autoExpandId = searchParams.get('task')
@@ -829,9 +838,25 @@ export default function ApprovalsClient({ profileId, initialTasks, runningVideoT
           </button>
         </div>
         <p style={{ fontSize: 13.5, color: '#888', marginTop: 4 }}>
-          Review agent outputs before they go anywhere. Posts with images can become drafts on Posts after you approve.
+          Review agent outputs before they go anywhere. Approve posts with images to save them as drafts on Posts — then schedule or publish.
         </p>
       </div>
+
+      {postsConnected && draftPostCount > 0 && (
+        <div style={{
+          background: '#F0FDF4', border: '0.5px solid #BBF7D0', borderRadius: 10,
+          padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+        }}>
+          <p style={{ fontSize: 13, color: '#166534', margin: 0 }}>
+            {draftPostCount === 1
+              ? '1 approved post is saved as a draft on Posts — ready to schedule.'
+              : `${draftPostCount} approved posts are saved as drafts on Posts — ready to schedule.`}
+          </p>
+          <Link href="/dashboard/posts?status=draft" style={{ fontSize: 12, fontWeight: 600, color: '#15803D', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            Open drafts on Posts →
+          </Link>
+        </div>
+      )}
 
       {newItemsBanner && (
         <div style={{

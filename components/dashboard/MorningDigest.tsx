@@ -133,11 +133,12 @@ function DigestSkeleton() {
   )
 }
 
-function StatPill({ label, value }: { label: string; value: string | number }) {
+function StatPill({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-surface-2 px-4 py-3">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-menu-muted">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums text-text-primary">{value}</p>
+      {hint && <p className="mt-1.5 text-[10px] leading-snug text-text-muted">{hint}</p>}
     </div>
   )
 }
@@ -259,9 +260,13 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
         </div>
 
         <div className="mt-6 grid grid-cols-3 gap-3">
-          <StatPill label="Approvals" value={pendingCount} />
-          <StatPill label="Campaigns" value={coldOpen.activeCampaigns} />
-          <StatPill label="Media credits" value={coldOpen.creditBalance ?? '—'} />
+          <StatPill label="Approvals" value={pendingCount} hint="Outputs waiting for your review" />
+          <StatPill label="Campaigns" value={coldOpen.activeCampaigns} hint="Active marketing plans" />
+          <StatPill
+            label="Media credits"
+            value={coldOpen.creditBalance ?? '—'}
+            hint="Images, video & publishing"
+          />
         </div>
       </div>
 
@@ -269,9 +274,14 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
         {hasPending && (
           <div className="mb-6">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-menu-muted">
-                Needs review
-              </p>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-menu-muted">
+                  Needs review
+                </p>
+                <p className="mt-1 text-xs text-text-muted">
+                  Agent outputs waiting for sign-off before they move to Posts or your archive.
+                </p>
+              </div>
               {approvals.length > 0 && (
                 <Link
                   href="/dashboard/agents/approvals"
@@ -337,9 +347,14 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
 
         {hasActivity && (
           <div className="mb-6">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-menu-muted">
-              Since yesterday
-            </p>
+            <div className="mb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-menu-muted">
+                Since yesterday
+              </p>
+              <p className="mt-1 text-xs text-text-muted">
+                Specialist agents that finished a run since your last visit.
+              </p>
+            </div>
             <ul className="space-y-2">
               {agentRuns.slice(0, VISIBLE_RUNS).map((run, i) => (
                 <li key={i} className="flex gap-3 rounded-xl bg-surface-2 px-4 py-3">
@@ -362,9 +377,14 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
 
         {hasActions && digest && (
           <div>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-menu-muted">
-              Today&apos;s plan
-            </p>
+            <div className="mb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-menu-muted">
+                Today&apos;s plan
+              </p>
+              <p className="mt-1 text-xs text-text-muted">
+                First actions from your active campaign — tap Start to open Maya with that task loaded.
+              </p>
+            </div>
             <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-gray-100 bg-white">
               {digest.today_actions.map((action, i) => (
                 <li key={i} className="flex items-center justify-between gap-4 px-4 py-3.5">

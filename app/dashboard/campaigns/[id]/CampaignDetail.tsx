@@ -200,8 +200,11 @@ export default function CampaignDetail({ campaign }: Props) {
       {/* Do this today */}
       {campaign.do_this_today && campaign.do_this_today.length > 0 && (
         <div style={{ marginBottom: 32 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#bbb', marginBottom: 14 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#bbb', marginBottom: 6 }}>
             Do this today
+          </p>
+          <p style={{ fontSize: 12.5, color: '#888', lineHeight: 1.55, marginBottom: 14, maxWidth: 560 }}>
+            Action items from your campaign plan. Click below to open Maya in the sidebar — she already has the task context loaded.
           </p>
           <div style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 16, overflow: 'hidden' }}>
             {campaign.do_this_today.map((item, i) => (
@@ -232,6 +235,9 @@ export default function CampaignDetail({ campaign }: Props) {
               </div>
             ))}
           </div>
+          <p style={{ fontSize: 11.5, color: '#aaa', marginTop: 10 }}>
+            Maya chat and text agents are unlimited — no media credits used for planning help.
+          </p>
         </div>
       )}
 

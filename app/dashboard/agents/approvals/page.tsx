@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
+import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import ApprovalsClient from './ApprovalsClient'
 
 export default async function ApprovalsPage() {
@@ -13,12 +14,17 @@ export default async function ApprovalsPage() {
 
   const { data: profileRows } = await supabase
     .from('profiles')
-    .select('id, company_name, ideal_customer')
+    .select('id, company_name, ideal_customer, zernio_profile_id')
     .eq('clerk_user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
   const profile = profileRows?.[0] ?? null
   if (!profile) redirect('/foundation')
+
+  const lifecycleCounts = await getContentLifecycleCounts(
+    profile.id,
+    (profile.zernio_profile_id as string | null) ?? null,
+  )
 
   const [{ data: tasks }, { data: runningVideoRows }] = await Promise.all([
     supabase
@@ -66,6 +72,8 @@ export default async function ApprovalsPage() {
         profileId={profile.id}
         initialTasks={enrichedTasks}
         runningVideoTasks={runningVideoTasks}
+        draftPostCount={lifecycleCounts.draft}
+        postsConnected={lifecycleCounts.postsConnected}
         viralHooksHints={{
           audience: profile.ideal_customer ?? undefined,
         }}

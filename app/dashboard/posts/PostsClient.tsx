@@ -693,12 +693,17 @@ export default function PostsClient({
 
       {pendingPostApprovalCount > 0 && (
         <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-[13px] text-blue-900">
-          {pendingPostApprovalCount === 1
-            ? 'You have a new post waiting in Approvals. Approve it there first — this page only lists scheduled and published drafts after approval.'
-            : `You have ${pendingPostApprovalCount} posts waiting in Approvals. Approve them there first — this page only lists scheduled and published drafts after approval.`}{' '}
-          <Link href="/dashboard/agents/approvals?queue=post" className="font-semibold text-[#3B82F6] hover:underline">
-            Open Posts to review
-          </Link>
+          <p>
+            {pendingPostApprovalCount === 1
+              ? 'You have a post waiting in Approvals — review it there first.'
+              : `You have ${pendingPostApprovalCount} posts waiting in Approvals — review them there first.`}
+            {' '}This page lists drafts, scheduled, and published posts after approval only.
+          </p>
+          <p className="mt-1.5">
+            <Link href="/dashboard/agents/approvals?queue=post" className="font-semibold text-[#3B82F6] hover:underline">
+              Open Posts to review →
+            </Link>
+          </p>
         </div>
       )}
 

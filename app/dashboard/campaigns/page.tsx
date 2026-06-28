@@ -14,6 +14,9 @@ type Campaign = {
   plan?: { mode?: string | null; segment?: string | null } | null
   status: string
   created_at: string
+  strategy_summary?: string | null
+  do_this_today?: { task: string; channel?: string }[] | null
+  timeline_days?: number | null
 }
 
 const STATUS_BADGES: Record<string, string> = {
@@ -75,6 +78,7 @@ export default async function CampaignsPage() {
             <h1 className="text-[30px] font-semibold tracking-tight text-text">My campaigns</h1>
             <p className="mt-2 text-sm leading-6 text-text-sec">
               Build campaign plans, keep them organized, and turn strategy into weekly execution.
+              Each plan includes a &ldquo;Do this today&rdquo; list and a week-by-week schedule.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -121,7 +125,18 @@ export default async function CampaignsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {campaignRows.map(campaign => (
+          {campaignRows.map(campaign => {
+            const todayTask = campaign.do_this_today?.[0]?.task
+            const strategyPreview = campaign.strategy_summary?.trim()
+            const artifactLine = todayTask
+              ? `Today: ${todayTask.length > 72 ? `${todayTask.slice(0, 72)}…` : todayTask}`
+              : strategyPreview
+                ? strategyPreview.length > 88 ? `${strategyPreview.slice(0, 88)}…` : strategyPreview
+                : campaign.timeline_days
+                  ? `${campaign.timeline_days}-day plan with weekly schedule inside`
+                  : 'Open for week-by-week plan and today\'s actions'
+
+            return (
             <Link key={campaign.id} href={`/dashboard/campaigns/${campaign.id}`}>
               <div className="group rounded-2xl border border-gray-100 bg-white p-5 transition-all hover:border-brand-primary/40 hover:bg-surface-2">
                 <div className="mb-4 flex items-center justify-between gap-3">
@@ -132,13 +147,15 @@ export default async function CampaignsPage() {
                   <StatusBadge status={campaign.status} />
                 </div>
                 <h3 className="mb-2 text-base font-semibold leading-snug text-text">{campaign.title}</h3>
+                <p className="mb-3 text-xs leading-relaxed text-text-sec line-clamp-2">{artifactLine}</p>
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-text-sec">Created {formatDate(campaign.created_at)}</p>
                   <ArrowRight size={14} className="text-text-soft transition-colors group-hover:text-brand-primary" />
                 </div>
               </div>
             </Link>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
