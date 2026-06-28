@@ -309,9 +309,9 @@ export default function ClientDetail({
       if (!res.ok) throw new Error(data.error ?? 'Revoke failed')
       setProfile(p => ({
         ...p,
-        plan: null,
-        status: 'onboarding',
-        billing_exempt: false,
+        plan: data.profile?.plan ?? null,
+        status: data.profile?.status ?? 'onboarding',
+        billing_exempt: data.profile?.billing_exempt ?? false,
       }))
       showToast('Complimentary access revoked')
     } catch (err) {

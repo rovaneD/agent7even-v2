@@ -193,7 +193,7 @@ export default function PricingPage() {
 
     if (!isSignedIn) {
       trackEvent('sign_up_click', { location: 'pricing', plan: planKey, billing })
-      window.location.href = `/sign-up?plan=${planKey}`
+      window.location.href = `/sign-up?plan=${planKey}${annual ? '&annual=true' : ''}`
       return
     }
     setLoading(planKey)

@@ -1,6 +1,7 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
+import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
 import DashboardShell from './DashboardShell'
 
 export default async function DashboardLayout({
@@ -40,7 +41,24 @@ export default async function DashboardLayout({
       .order('created_at', { ascending: false })
       .limit(1)
 
-    const p = profileRows?.[0] ?? null
+    let p = profileRows?.[0] ?? null
+
+    if (!p) {
+      await ensureProfileForClerkUser(supabase, userId, await currentUser())
+      const { data: linkedRows } = await supabase
+        .from('profiles')
+        .select(`
+          id, company_name, full_name, business_type, plan, role,
+          website_url, instagram_handle, ideal_customer,
+          sell_locations, marketing_budget, competitors,
+          top_goals, marketing_challenge, content_comfort,
+          foundation_complete, foundation_score
+        `)
+        .eq('clerk_user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+      p = linkedRows?.[0] ?? null
+    }
 
     if (p?.id) {
       profile = p

@@ -7,12 +7,12 @@ import FoundationFlow from './FoundationFlow'
 export default async function FoundationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string }>
+  searchParams: Promise<{ plan?: string; annual?: string }>
 }) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const { plan } = await searchParams
+  const { plan, annual } = await searchParams
   const [user, supabase] = await Promise.all([
     currentUser(),
     Promise.resolve(createServiceClient()),
@@ -41,6 +41,7 @@ export default async function FoundationPage({
       companyName={profile.company_name ?? ''}
       initialStep={profile.foundation_step ?? 0}
       selectedPlan={plan}
+      selectedAnnual={annual === 'true'}
     />
   )
 }
