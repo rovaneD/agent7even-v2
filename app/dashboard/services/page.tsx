@@ -83,12 +83,23 @@ export default async function ServicesPage({
     support_messages: supportTicketByOrderId.get(order.id)?.support_messages ?? [],
   }))
 
+  const { data: creditRow } = profile?.id
+    ? await supabase
+        .from('credit_balances')
+        .select('balance')
+        .eq('user_id', profile.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : { data: null }
+
   return (
     <ServicesClient
       profile={profile}
       orders={ordersWithTickets}
       initialOrderId={initialOrderId ?? null}
       openViralHooksPrefill={openViralHooksPrefill}
+      creditBalance={creditRow?.balance ?? null}
     />
   )
 }

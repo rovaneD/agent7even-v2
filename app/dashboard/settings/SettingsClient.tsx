@@ -87,8 +87,6 @@ export default function SettingsClient({ profile }: Props) {
   const [emailApprovals, setEmailApprovals] = useState(profile.email_approvals ?? true)
   const [emailWeekly, setEmailWeekly]       = useState(profile.email_weekly    ?? true)
 
-  const mayaContext = useMemo(() => buildSettingsMayaContext(profile), [profile])
-  useMayaContext(mayaContext)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -100,6 +98,30 @@ export default function SettingsClient({ profile }: Props) {
     emailDigest    !== (profile.email_digest    ?? true) ||
     emailApprovals !== (profile.email_approvals ?? true) ||
     emailWeekly    !== (profile.email_weekly    ?? true)
+
+  const mayaContext = useMemo(
+    () =>
+      buildSettingsMayaContext(profile, {
+        companyName,
+        websiteUrl,
+        instagramHandle,
+        emailDigest,
+        emailApprovals,
+        emailWeekly,
+        isDirty,
+      }),
+    [
+      profile,
+      companyName,
+      websiteUrl,
+      instagramHandle,
+      emailDigest,
+      emailApprovals,
+      emailWeekly,
+      isDirty,
+    ],
+  )
+  useMayaContext(mayaContext)
 
   async function updateEmailPref(field: 'emailDigest' | 'emailApprovals' | 'emailWeekly', val: boolean) {
     const next = {

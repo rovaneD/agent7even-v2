@@ -3747,6 +3747,9 @@ export default function AnalyticsClient({
       connectedPlatforms,
       postingData,
       inboxData,
+      connectPanelOpen,
+      showGAModal,
+      showPropertySelector,
     }),
     [
       companyName,
@@ -3761,6 +3764,9 @@ export default function AnalyticsClient({
       connectedPlatforms,
       postingData,
       inboxData,
+      connectPanelOpen,
+      showGAModal,
+      showPropertySelector,
     ],
   )
   useMayaContext(mayaContext)

@@ -1,6 +1,7 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
 import Link from 'next/link'
 import {
   ArrowRight,
@@ -20,6 +21,7 @@ import { AGENTS } from '@/lib/agents/registry'
 import { buildDashboardOverviewMayaContext } from '@/lib/maya/summaries/pageOverviewContext'
 import MorningDigest from '@/components/dashboard/MorningDigest'
 import ContentLifecycleBar from '@/components/dashboard/ContentLifecycleBar'
+import PlanUsageCallout from '@/components/dashboard/PlanUsageCallout'
 import GettingStarted from '@/components/dashboard/GettingStarted'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 
@@ -28,14 +30,9 @@ export default async function DashboardPage() {
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const profile = profileRows?.[0] ?? null
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await getDashboardProfileForClerkUser(supabase, userId, email)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -226,6 +223,16 @@ export default async function DashboardPage() {
 
       {lifecycleCounts && (
         <ContentLifecycleBar counts={lifecycleCounts} />
+      )}
+
+      {profile && (
+        <div className="mb-6">
+          <PlanUsageCallout
+            plan={profile.plan ?? null}
+            creditBalance={creditBalance}
+            activeServiceRequests={activeOrders}
+          />
+        </div>
       )}
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">

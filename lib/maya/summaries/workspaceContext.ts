@@ -1,4 +1,5 @@
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
+import { formatActiveFormState, truncateForMaya } from '@/lib/maya/formStateContext'
 import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
 
 type Invoice = {
@@ -102,21 +103,72 @@ type ProfileSettings = {
   status?: string | null
 }
 
-export function buildSettingsMayaContext(profile: ProfileSettings): MayaPageContext {
+export type SettingsFormState = {
+  companyName: string
+  websiteUrl: string
+  instagramHandle: string
+  emailDigest: boolean
+  emailApprovals: boolean
+  emailWeekly: boolean
+  isDirty: boolean
+}
+
+export function buildSettingsMayaContext(
+  profile: ProfileSettings,
+  form?: SettingsFormState,
+): MayaPageContext {
+  const metrics = [
+    `Full name: ${profile.full_name ?? 'not set'}`,
+    `Email: ${profile.email ?? 'not set'}`,
+    `Company: ${profile.company_name ?? 'not set'}`,
+    `Website: ${profile.website_url ?? 'not set'}`,
+    `Instagram: ${profile.instagram_handle ? `@${profile.instagram_handle}` : 'not set'}`,
+    `Business type: ${profile.business_type ?? 'not set'}`,
+    `Plan: ${profile.plan ?? 'none'}`,
+    `Account status: ${profile.status ?? 'unknown'}`,
+  ]
+
+  const baseAffordance =
+    `${MAYA_VOICE_RULE} User can update company, website, and Instagram. Name and email are managed via Clerk.`
+
+  if (form) {
+    const businessFields = [
+      { label: 'Company name', value: form.companyName },
+      { label: 'Website URL', value: form.websiteUrl },
+      {
+        label: 'Instagram handle',
+        value: form.instagramHandle.trim() ? `@${form.instagramHandle.replace(/^@/, '')}` : '',
+      },
+    ]
+    const filled = businessFields
+      .filter(f => f.value.trim())
+      .map(f => `${f.label}: ${truncateForMaya(f.value)}`)
+    const empty = businessFields.filter(f => !f.value.trim()).map(f => f.label)
+    const prefs = [
+      `Morning digest: ${form.emailDigest ? 'on' : 'off'}`,
+      `Approval alerts: ${form.emailApprovals ? 'on' : 'off'}`,
+      `Weekly summary: ${form.emailWeekly ? 'on' : 'off'}`,
+    ]
+    const dirtyNote = form.isDirty ? ' · Unsaved changes on screen' : ''
+
+    return {
+      page: 'SETTINGS PAGE',
+      dataSource: 'live',
+      activeView: {
+        label: 'Account settings form',
+        state: `${formatActiveFormState(filled, empty)} · ${prefs.join(' · ')}${dirtyNote}`,
+      },
+      metrics,
+      affordance:
+        `${baseAffordance} The user has the settings form on screen. Use visible field values — do not re-ask for information already shown (e.g. website URL in the Website URL field).`,
+    }
+  }
+
   return {
     page: 'SETTINGS PAGE',
     dataSource: 'live',
-    metrics: [
-      `Full name: ${profile.full_name ?? 'not set'}`,
-      `Email: ${profile.email ?? 'not set'}`,
-      `Company: ${profile.company_name ?? 'not set'}`,
-      `Website: ${profile.website_url ?? 'not set'}`,
-      `Instagram: ${profile.instagram_handle ? `@${profile.instagram_handle}` : 'not set'}`,
-      `Business type: ${profile.business_type ?? 'not set'}`,
-      `Plan: ${profile.plan ?? 'none'}`,
-      `Account status: ${profile.status ?? 'unknown'}`,
-    ],
-    affordance: `${MAYA_VOICE_RULE} User can update company, website, and Instagram. Name and email are managed via Clerk.`,
+    metrics,
+    affordance: baseAffordance,
   }
 }
 

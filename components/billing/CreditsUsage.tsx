@@ -77,7 +77,7 @@ export default function CreditsUsage({ data }: Props) {
           <h3 className="text-base font-semibold text-[#2D3748]">Media credits &amp; usage</h3>
         </div>
         <p className="mt-1.5 text-xs text-[#64748B]">
-          Maya chat and text agents are unlimited. Credits meter images, video, and publishing only.
+          Maya chat and text agents are unlimited. Media credits meter images, video, and publishing only.
         </p>
       </div>
 

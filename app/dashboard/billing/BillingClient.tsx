@@ -38,9 +38,9 @@ const PLANS = {
     trial: true,
     highlight: 'Maya chat · Foundation · Brand Kit',
     features: [
-      '3 active campaigns',
-      '100 credits / month',
-      'All 9 agents',
+      'Unlimited campaigns, chat & agents',
+      '100 media credits / month',
+      'All 12 agents',
       'Morning digest',
       'Basic analytics',
       '1 service request',
@@ -56,14 +56,14 @@ const PLANS = {
     trial: false,
     highlight: 'Everything in Starter, plus:',
     features: [
-      'Unlimited campaigns',
-      '350 credits / month',
+      'Everything in Starter',
+      '350 media credits / month',
+      'X / Twitter connect',
       'Full analytics',
       '3 service requests',
       '3 team seats',
       'Priority support',
       '10% add-on discount',
-      'Early access to new features',
     ],
   },
   proagent: {
@@ -74,14 +74,14 @@ const PLANS = {
     trial: false,
     highlight: 'Everything in Growth, plus:',
     features: [
-      '1,000 credits / month',
+      'Everything in Growth',
+      '1,000 media credits / month',
+      'Premium image & video models',
       'Unlimited service requests',
       '5 team seats (+$15/mo extra)',
       'Dedicated support',
       '15% add-on discount',
       'Quarterly strategy review',
-      'White-glove onboarding',
-      'First access to beta features',
     ],
   },
 }
@@ -178,7 +178,7 @@ function BillingInner({ plan, status, billingExempt = false, subscriptionId, inv
               </p>
             </div>
             <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Credits</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Media credits</p>
               <p className="mt-1 text-lg font-semibold text-brand-primary">{creditBalance}</p>
             </div>
           </div>
@@ -189,8 +189,8 @@ function BillingInner({ plan, status, billingExempt = false, subscriptionId, inv
         <div className="flex items-start gap-3 bg-status-success/10 border border-status-success/20 rounded-2xl px-4 py-3">
           <CheckCircle2 size={15} className="text-status-success mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-status-success">Credits added successfully</p>
-            <p className="text-xs text-status-success mt-0.5">Your new credits are available immediately.</p>
+            <p className="text-sm font-semibold text-status-success">Media credits added successfully</p>
+            <p className="text-xs text-status-success mt-0.5">Your new media credits are available immediately.</p>
           </div>
         </div>
       )}

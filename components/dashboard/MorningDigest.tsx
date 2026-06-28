@@ -261,7 +261,7 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
         <div className="mt-6 grid grid-cols-3 gap-3">
           <StatPill label="Approvals" value={pendingCount} />
           <StatPill label="Campaigns" value={coldOpen.activeCampaigns} />
-          <StatPill label="Credits" value={coldOpen.creditBalance ?? '—'} />
+          <StatPill label="Media credits" value={coldOpen.creditBalance ?? '—'} />
         </div>
       </div>
 

@@ -53,6 +53,9 @@ export interface AnalyticsMayaInput {
   connectedPlatforms: string[]
   postingData: PostingSnapshot
   inboxData: AnalyticsInboxData
+  connectPanelOpen?: boolean
+  showGAModal?: boolean
+  showPropertySelector?: boolean
 }
 
 function fmtNum(n: number): string {
@@ -292,6 +295,53 @@ function buildAnalyticsActiveViewState(input: AnalyticsMayaInput): string {
   return dateRange
 }
 
+function buildAnalyticsConnectActiveView(
+  input: AnalyticsMayaInput,
+): { label: string; state: string; affordance: string } | null {
+  const { connectedPlatforms, oauthConnected, gaOAuthEmail, gaId } = input
+
+  if (input.showPropertySelector) {
+    return {
+      label: 'Google Analytics property selector',
+      state: oauthConnected
+        ? `OAuth connected${gaOAuthEmail ? ` as ${gaOAuthEmail}` : ''} — choosing a GA4 property`
+        : 'Choosing a GA4 property',
+      affordance:
+        `${VOICE_RULE} User is picking a Google Analytics property in a modal. Do not ask them to open analytics.google.com — guide them through the on-screen selector.`,
+    }
+  }
+
+  if (input.showGAModal) {
+    return {
+      label: 'Google Analytics connect',
+      state: gaId
+        ? `Current property ${gaId} — connect modal open (may replace via OAuth or measurement ID)`
+        : 'Connect modal open — OAuth or measurement ID entry',
+      affordance:
+        `${VOICE_RULE} User has the Google Analytics connect modal open. Guide them through the visible connect flow — do not send them off-platform.`,
+    }
+  }
+
+  if (input.connectPanelOpen) {
+    const social = connectedPlatforms.length
+      ? `Connected for posting: ${connectedPlatforms.join(', ')}`
+      : 'No social accounts connected yet'
+    const ga = oauthConnected && gaId
+      ? `GA property ${gaId}${gaOAuthEmail ? ` (${gaOAuthEmail})` : ''}`
+      : oauthConnected
+        ? 'GA OAuth connected, property not selected'
+        : 'GA not connected'
+    return {
+      label: 'Connect accounts panel',
+      state: `${social} · ${ga}`,
+      affordance:
+        `${VOICE_RULE} User has the Connect accounts panel open. Social posting connections and Google Analytics are separate — guide using what is visible in the panel.`,
+    }
+  }
+
+  return null
+}
+
 export function buildAnalyticsMayaContext(input: AnalyticsMayaInput): MayaPageContext {
   const {
     companyName,
@@ -381,16 +431,18 @@ export function buildAnalyticsMayaContext(input: AnalyticsMayaInput): MayaPageCo
     )
   }
 
+  const connectView = buildAnalyticsConnectActiveView(input)
+
   return {
     page: 'ANALYTICS PAGE',
     dataSource,
     company: companyName || undefined,
-    activeView: {
+    activeView: connectView ?? {
       label: TAB_LABELS[activeTab],
       state: buildAnalyticsActiveViewState(input),
     },
     connections,
     metrics,
-    affordance: TAB_AFFORDANCE[activeTab],
+    affordance: connectView?.affordance ?? TAB_AFFORDANCE[activeTab],
   }
 }

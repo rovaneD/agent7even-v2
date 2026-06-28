@@ -14,6 +14,7 @@ import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import ViralHooksOutputView from '@/components/agents/ViralHooksOutputView'
 import { displayServiceBrief, extractViralHooksGeneratedOutput, formatViralHooksBrief, readViralHooksPrefill, clearViralHooksPrefill, VIRAL_HOOKS_FRAMEWORK, type ViralHooksFormValues } from '@/lib/services/viralHooks'
 import { buildTextPdf } from '@/lib/pdf/textPdf'
+import PlanUsageCallout from '@/components/dashboard/PlanUsageCallout'
 
 const SERVICES = [
   {
@@ -469,11 +470,13 @@ export default function ServicesClient({
   orders,
   initialOrderId,
   openViralHooksPrefill = false,
+  creditBalance = null,
 }: {
   profile: Profile | null
   orders: Order[]
   initialOrderId?: string | null
   openViralHooksPrefill?: boolean
+  creditBalance?: number | null
 }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'browse' | 'orders'>(initialOrderId ? 'orders' : 'browse')
@@ -906,7 +909,8 @@ ${VIRAL_HOOKS_FRAMEWORK}`
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">Services</p>
             <h1 className="text-[30px] font-semibold tracking-tight text-text">Marketing services</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-text-sec">
-              Request support, generate self-serve assets, and track active service conversations.
+              Request human-delivered work from our team — design, photography, ad management, and more.
+              Self-serve tools like Viral Hooks run here too. Service requests use your plan slots, not media credits.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:flex">
@@ -940,6 +944,15 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           </div>
         )}
       </section>
+
+      <div className="mb-6">
+        <PlanUsageCallout
+          plan={profile?.plan ?? null}
+          creditBalance={creditBalance}
+          activeServiceRequests={activeOrders.length}
+          compact
+        />
+      </div>
 
       {/* Success message */}
       {successMsg && (
