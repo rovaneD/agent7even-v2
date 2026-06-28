@@ -46,7 +46,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 |--------|-------|----------|---------|-----------------|-----------|
 | Agents Command Center | `/dashboard/agents` | P0 | T4 T7 | Agent setup form grounding (Layer 1) | Layer 2 actuation — blocked on chat write-path |
 | Approvals | `/dashboard/agents/approvals` | P1 | T3 T7 | Maya context · lifecycle → Review link · draft-post banner | — |
-| Agent outputs archive | `/dashboard/agents/[id]/outputs` | P2 | T3 | Maya context | Tie outputs to lifecycle stages |
+| Agent outputs archive | `/dashboard/agents/[id]/outputs` | P2 | T3 | Maya context · lifecycle stage labels | — |
 | Analytics | `/dashboard/analytics` | P1 | T7 | Tab activeView · connect panel/modal grounding | Inbox reply management (product gap) |
 | Inbox | `/dashboard/inbox` | P2 | T7 | Maya context | Zernio inbox depth / reply UX |
 

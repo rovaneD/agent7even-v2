@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown'
 import EmailSequenceOutputView, { AgentOutputCopyButton } from '@/components/agents/EmailSequenceOutputView'
 import IdeaAnalysisOutputView from '@/components/agents/IdeaAnalysisOutputView'
 import { readIdeaAnalysisFromContent } from '@/lib/agents/ideaAnalysis'
+import { formatOutputLifecycle } from '@/lib/content/outputLifecycleLabel'
 import type { ViralHooksDraftHints } from '@/lib/services/viralHooks'
 
 type AgentOutputDetailProps = {
@@ -407,6 +408,10 @@ export default function AgentOutputDetail({
     : null
   const isPending = status === 'pending_approval'
   const badge = statusStyles(status)
+  const lifecycle = useMemo(
+    () => formatOutputLifecycle(status, agentId ?? '', taskId),
+    [status, agentId, taskId],
+  )
 
   async function approve() {
     setBusy(true)
@@ -485,11 +490,24 @@ export default function AgentOutputDetail({
               {isEditing ? 'Preview' : 'Edit'}
             </button>
           )}
-          <span style={{ fontSize: 11, borderRadius: 20, padding: '4px 10px', background: badge.background, color: badge.color, fontWeight: 700, whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
-            {status.replace(/_/g, ' ')}
+          <span style={{ fontSize: 11, borderRadius: 20, padding: '4px 10px', background: badge.background, color: badge.color, fontWeight: 700, whiteSpace: 'nowrap' }}>
+            {lifecycle.label}
           </span>
         </div>
       </div>
+
+      {(lifecycle.hint || lifecycle.href) && (
+        <div style={{ margin: '0 24px 18px', padding: '12px 14px', border: '1px solid #E2E8F0', borderRadius: 10, background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          {lifecycle.hint && (
+            <p style={{ fontSize: 12.5, color: '#64748B', margin: 0, lineHeight: 1.5 }}>{lifecycle.hint}</p>
+          )}
+          {lifecycle.href && (
+            <Link href={lifecycle.href} style={{ fontSize: 12, fontWeight: 600, color: '#3B82F6', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+              {isPending ? 'Open in Approvals →' : lifecycle.href.includes('/posts') ? 'Open Posts drafts →' : 'Open Approvals →'}
+            </Link>
+          )}
+        </div>
+      )}
 
       {asksForInput && isPending && (
         <div style={{ margin: '18px 24px 0', padding: 16, border: '1px solid #BFDBFE', background: '#EFF6FF', borderRadius: 12 }}>

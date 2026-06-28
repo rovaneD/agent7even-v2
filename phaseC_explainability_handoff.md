@@ -57,13 +57,16 @@
 
 - Header link to Posts; modal adds schedule path alongside post workflow
 
+### Agent outputs archive (`outputs/page.tsx`, `AgentOutputDetail.tsx`)
+
+- Lifecycle labels (In review / Approved / Rejected) with hints and deep links to Approvals or Posts drafts
+
 ---
 
 ## Backlog (registry remaining)
 
 | Screen | Next |
 |--------|------|
-| Agent outputs archive | Lifecycle stage labels |
 | Inbox | Reply management (product gap) |
 | Deliverables | Upload → agent context loop |
 | Support | Ticket ↔ service order linking |

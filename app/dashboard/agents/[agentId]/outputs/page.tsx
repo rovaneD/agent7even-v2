@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
+import { formatOutputLifecycle } from '@/lib/content/outputLifecycleLabel'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
 import { readIdeaAnalysisFromContent } from '@/lib/agents/ideaAnalysis'
 import AgentOutputDetail from './AgentOutputDetail'
@@ -132,8 +133,11 @@ export default async function AgentOutputsPage({
           <h1 style={{ fontSize: 24, fontWeight: 600, color: '#2D3748', margin: '0 0 4px' }}>
             {agent.name}
           </h1>
-          <p style={{ fontSize: 14, color: '#64748B', margin: 0 }}>
+          <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 8px' }}>
             {profile.company_name ?? 'Your business'} · {outputRows.length} saved output{outputRows.length !== 1 ? 's' : ''}
+          </p>
+          <p style={{ fontSize: 12.5, color: '#94A3B8', margin: 0, maxWidth: 520, lineHeight: 1.55 }}>
+            Review → approve in Approvals → post content becomes a draft on Posts. Other outputs stay here in your archive.
           </p>
         </div>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, borderRadius: 20, padding: '5px 10px', background: agent.autonomyLevel === 'autonomous' ? '#EFF6FF' : '#F8FAFC', color: agent.autonomyLevel === 'autonomous' ? '#3B82F6' : '#64748B', fontWeight: 600 }}>
@@ -151,6 +155,7 @@ export default async function AgentOutputsPage({
             <div className="max-h-[280px] overflow-y-auto lg:max-h-[620px]">
               {outputRows.map(output => {
                 const selected = output.id === selectedOutput.id
+                const lifecycle = formatOutputLifecycle(output.status, output.agent, output.task_id)
                 return (
                   <Link
                     key={output.id}
@@ -160,9 +165,17 @@ export default async function AgentOutputsPage({
                     <p style={{ fontSize: 13, fontWeight: 600, color: '#2D3748', margin: '0 0 4px', lineHeight: 1.35 }}>
                       {getOutputDescription(output, rawAgentId)}
                     </p>
-                    <p style={{ fontSize: 11.5, color: '#64748B', margin: 0 }}>
-                      {relativeTime(output.created_at)} · {output.status.replace(/_/g, ' ')}
+                    <p style={{ fontSize: 11.5, color: '#64748B', margin: '0 0 2px' }}>
+                      {relativeTime(output.created_at)} ·{' '}
+                      <span style={{ fontWeight: 600, color: lifecycle.label === 'In review' ? '#B45309' : lifecycle.label === 'Approved' ? '#16A34A' : '#64748B' }}>
+                        {lifecycle.label}
+                      </span>
                     </p>
+                    {lifecycle.hint && (
+                      <p style={{ fontSize: 10.5, color: '#94A3B8', margin: 0, lineHeight: 1.4 }}>
+                        {lifecycle.hint}
+                      </p>
+                    )}
                   </Link>
                 )
               })}
