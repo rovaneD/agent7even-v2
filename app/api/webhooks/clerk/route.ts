@@ -70,7 +70,7 @@ export async function POST(req: Request) {
           .update({
             clerk_user_id: id,
             full_name: fullName || undefined,
-            avatar_url: image_url ?? '',
+            ...(image_url ? { avatar_url: image_url } : {}),
             updated_at: new Date().toISOString(),
           })
           .eq('id', canonical.id)
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
       .update({
         email,
         full_name: fullName,
-        avatar_url: image_url ?? '',
+        ...(image_url ? { avatar_url: image_url } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('clerk_user_id', id)

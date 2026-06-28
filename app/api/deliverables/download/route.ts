@@ -1,6 +1,7 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -10,12 +11,9 @@ export async function POST(req: Request) {
   if (!deliverableId && !legacyFilePath) return NextResponse.json({ error: 'Deliverable ID required' }, { status: 400 })
 
   const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await getDashboardProfileForClerkUser(supabase, userId, email)
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 

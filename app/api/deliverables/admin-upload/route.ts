@@ -1,4 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/createNotification'
@@ -8,22 +7,14 @@ import {
   safeStorageSegment,
   uploadDeliverableFile,
 } from '@/lib/deliverables/projectDeliverables'
+import { requireAdminApi, adminApiError } from '@/lib/requireAdmin'
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authResult = await requireAdminApi()
+  if ('error' in authResult) return adminApiError(authResult)
+  const { admin: adminProfile } = authResult
 
   const supabase = createServiceClient()
-
-  const { data: adminProfile } = await supabase
-    .from('profiles')
-    .select('id, role')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!adminProfile || !['admin', 'owner'].includes(adminProfile.role)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-  }
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null

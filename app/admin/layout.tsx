@@ -1,27 +1,17 @@
 import { requireAdmin } from '@/lib/requireAdmin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
+import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
 import DashboardShell from '@/app/dashboard/DashboardShell'
 import type { Profile } from '@/components/maya/MayChatPanel'
+import { currentUser } from '@clerk/nextjs/server'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await requireAdmin()
   const supabase = createServiceClient()
-
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select(`
-      id, company_name, full_name, business_type, plan, role,
-      website_url, instagram_handle, ideal_customer,
-      sell_locations, marketing_budget, competitors,
-      top_goals, marketing_challenge, content_comfort,
-      foundation_complete, foundation_score
-    `)
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  const p = profileRows?.[0] ?? null
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const p = await getDashboardProfileForClerkUser(supabase, userId, email)
 
   let notifications: { id: string; title: string; body: string; type: string; link: string | null; read: boolean; created_at: string }[] = []
   let initialSessions: { id: string; title: string | null; canvas_context: string | null; updated_at: string }[] = []

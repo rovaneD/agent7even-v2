@@ -1,22 +1,12 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { requireAdminApi, adminApiError } from '@/lib/requireAdmin'
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authResult = await requireAdminApi()
+  if ('error' in authResult) return adminApiError(authResult)
 
   const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile || !['admin', 'owner'].includes(profile.role)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-  }
 
   const { userId: targetId, role, status, plan } = await req.json()
   if (!targetId) return NextResponse.json({ error: 'User ID required' }, { status: 400 })

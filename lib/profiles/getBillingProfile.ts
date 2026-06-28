@@ -18,14 +18,34 @@ export type BillingProfile = {
 export async function getBillingProfileForClerkUser(
   supabase: SupabaseClient,
   clerkUserId: string,
+  email?: string | null,
 ): Promise<BillingProfile | null> {
-  const { data: rows } = await supabase
+  const { data: byClerk } = await supabase
     .from('profiles')
     .select(BILLING_SELECT)
     .eq('clerk_user_id', clerkUserId)
 
-  if (!rows?.length) return null
-  const canonical = pickCanonicalProfile(rows as BillingProfile[])
+  if (byClerk?.length) {
+    const canonical = pickCanonicalProfile(byClerk as BillingProfile[])
+    return {
+      ...canonical,
+      billing_exempt: canonical.billing_exempt ?? false,
+    }
+  }
+
+  const normalizedEmail = email?.trim()
+  if (!normalizedEmail) return null
+
+  const { data: byEmail } = await supabase
+    .from('profiles')
+    .select(BILLING_SELECT)
+    .ilike('email', normalizedEmail)
+    .neq('status', 'churned')
+    .order('created_at', { ascending: true })
+
+  if (!byEmail?.length) return null
+
+  const canonical = pickCanonicalProfile(byEmail as BillingProfile[])
   return {
     ...canonical,
     billing_exempt: canonical.billing_exempt ?? false,

@@ -15,6 +15,12 @@ const FOUNDATION_SELECT =
 const LINK_SELECT =
   'id, clerk_user_id, stripe_customer_id, stripe_subscription_id, plan, status, created_at, company_name, business_type, foundation_complete, foundation_step'
 
+function roleRank(role?: string | null): number {
+  if (role === 'owner') return 0
+  if (role === 'admin') return 1
+  return 2
+}
+
 export function pickCanonicalProfile<
   T extends {
     id: string
@@ -22,9 +28,13 @@ export function pickCanonicalProfile<
     stripe_subscription_id: string | null
     plan: string | null
     created_at: string
+    role?: string | null
   },
 >(rows: T[]): T {
   return [...rows].sort((a, b) => {
+    const ar = roleRank(a.role)
+    const br = roleRank(b.role)
+    if (ar !== br) return ar - br
     if (a.stripe_customer_id && !b.stripe_customer_id) return -1
     if (!a.stripe_customer_id && b.stripe_customer_id) return 1
     if (a.plan && !b.plan) return -1
@@ -68,7 +78,7 @@ export async function ensureProfileForClerkUser(
         .update({
           clerk_user_id: userId,
           full_name: fullName || undefined,
-          avatar_url: avatarUrl,
+          ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq('id', canonical.id)

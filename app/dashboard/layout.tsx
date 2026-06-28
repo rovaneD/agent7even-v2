@@ -1,6 +1,7 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
+import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
 import DashboardShell from './DashboardShell'
 
 export default async function DashboardLayout({
@@ -27,20 +28,9 @@ export default async function DashboardLayout({
   let pendingApprovalsCount = 0
 
   if (userId) {
-    const { data: profileRows } = await supabase
-      .from('profiles')
-      .select(`
-        id, company_name, full_name, business_type, plan, role,
-        website_url, instagram_handle, ideal_customer,
-        sell_locations, marketing_budget, competitors,
-        top_goals, marketing_challenge, content_comfort,
-        foundation_complete, foundation_score
-      `)
-      .eq('clerk_user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    const p = profileRows?.[0] ?? null
+    const user = await currentUser()
+    const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+    const p = await getDashboardProfileForClerkUser(supabase, userId, email)
 
     if (p?.id) {
       profile = p
@@ -91,11 +81,11 @@ export default async function DashboardLayout({
       profileId={profileId}
       initialNotifications={notifications}
       initialSessions={initialSessions}
-      foundationScore={(profile as { foundation_score?: number | null } | null)?.foundation_score ?? null}
+      foundationScore={profile?.foundation_score ?? null}
       brandKitCompleted={brandKitCompleted}
       pendingApprovalsCount={pendingApprovalsCount}
-      role={(profile as any)?.role ?? null}
-      isAdmin={['admin', 'owner'].includes((profile as any)?.role ?? '')}
+      role={profile?.role ?? null}
+      isAdmin={['admin', 'owner'].includes(profile?.role ?? '')}
     >
       {children}
     </DashboardShell>

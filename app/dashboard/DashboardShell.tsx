@@ -984,7 +984,22 @@ export default function DashboardShell({
           justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
           gap: 9,
         }}>
-          <UserButton />
+          <div style={{ position: 'relative', width: 28, height: 28, flexShrink: 0 }}>
+            {(profile as { avatar_url?: string | null } | null)?.avatar_url ? (
+              <img
+                src={(profile as { avatar_url?: string | null }).avatar_url!}
+                alt=""
+                style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : null}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: (profile as { avatar_url?: string | null } | null)?.avatar_url ? 0 : 1,
+            }}>
+              <UserButton />
+            </div>
+          </div>
           {!sidebarCollapsed && (
             <span style={{ fontSize: 13, color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>My account</span>
           )}
