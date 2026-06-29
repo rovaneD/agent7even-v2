@@ -2,12 +2,17 @@ import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import Script from 'next/script'
 import { clerkLocalization } from '@/lib/auth/clerkLocalization'
+import { CANONICAL_SITE_URL } from '@/lib/siteUrls'
 import './globals.css'
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: 'Agent7even App',
-  description: 'Your marketing command center',
+  metadataBase: new URL(CANONICAL_SITE_URL),
+  title: {
+    default: 'Agent7even',
+    template: '%s',
+  },
+  description: 'AI marketing operating system for small business — powered by Maya and twelve specialist agents.',
 }
 
 export default function RootLayout({

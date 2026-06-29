@@ -58,7 +58,11 @@ export default function UseCasesPage() {
               style={{ '--ic': c!.accent } as React.CSSProperties}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={CARD_IMAGES[c!.slug]} alt="" className="idx-card-img" />
+              <img
+                src={CARD_IMAGES[c!.slug]}
+                alt={`${c!.label} — Agent7even AI marketing use case`}
+                className="idx-card-img"
+              />
               <div className="pad">
                 <span className="seg-eyebrow">
                   <span className="sd" />

@@ -105,6 +105,7 @@
   align-items: start;
 }
 .lab5 .hero-copy { position: relative; z-index: 2; width: 100%; max-width: 680px; padding-top: 28px; }
+.lab5 .hero-copy .eyebrow { display: block; margin-bottom: 14px; }
 .lab5 .hero-orb {
   position: relative;
   z-index: 1;

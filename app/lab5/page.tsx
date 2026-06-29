@@ -77,6 +77,7 @@ export default function Lab5Page() {
       <header className="hero">
         <div className="wrap hero-grid">
           <div className="hero-copy">
+            <p className="eyebrow">AI marketing platform for small business</p>
             <h1 className="hero-title">Marketing, managed.</h1>
             <p className="hero-lead">
               <span className="hero-lead-line"><em>Maya</em> plans campaigns, writes the content, and queues it for your approval,</span>
@@ -227,6 +228,21 @@ export default function Lab5Page() {
           </div>
           <hr className="feat-rule" />
 
+          <div className="feat reveal">
+            <div className="feat-copy">
+              <div className="feat-relief">SEO</div>
+              <h3 className="t-h3">Your site, audited.</h3>
+              <p className="t-body">The SEO Scanner reads your live pages and flags title, meta, and content gaps you can fix — grounded in your Foundation, not generic checklists.</p>
+              <div className="checks">
+                <div className="check"><i>✓</i>Live homepage and key page snapshot</div>
+                <div className="check"><i>✓</i>Prioritized fixes for small teams</div>
+                <div className="check"><i>✓</i>Runs on your saved website URL</div>
+              </div>
+            </div>
+            <div className="feat-visual"><div className="mk" data-mk="watch"></div></div>
+          </div>
+          <hr className="feat-rule" />
+
           <div className="feat flip reveal">
             <div className="feat-copy">
               <div className="feat-relief">Competitors</div>
@@ -242,7 +258,10 @@ export default function Lab5Page() {
           </div>
 
           <p className="agents-bridge reveal">
-            Plus marketing intelligence, SEO, and email — twelve specialist agents in all. <a href="/agents">See the team →</a>
+            Plus marketing intelligence, SEO, and email — twelve specialist agents in all.{' '}
+            <a href="/agents">Explore our AI marketing agents</a>
+            {' · '}
+            <a href="/pricing">View transparent pricing</a>
           </p>
         </div>
       </section>
@@ -401,9 +420,10 @@ export default function Lab5Page() {
             </div>
             <div className="fcol">
               <h5>Product</h5>
-              <a href="#how">How it works</a>
+              <a href="/agents">AI marketing agents</a>
               <a href="#features">Features</a>
-              <a href="/pricing">Pricing</a>
+              <a href="/pricing">AI marketing platform pricing</a>
+              <a href="/use-cases">Use cases</a>
               <a href="/sign-up" onClick={() => trackEvent('sign_up_click', { location: 'footer' })}>Sign up</a>
             </div>
             <div className="fcol">
