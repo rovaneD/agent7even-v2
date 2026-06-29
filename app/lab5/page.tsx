@@ -6,46 +6,15 @@ import { trackEvent } from '@/lib/gtag'
 import MarketingNav from './MarketingNav'
 import { useMockupScript } from './useMockupScript'
 
+import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
+
 declare global {
   interface Window {
     __initMockups?: () => void
   }
 }
 
-const FAQ_ITEMS = [
-  {
-    q: 'What exactly is Agent7even?',
-    a: 'Agent7even is an AI marketing operating system — twelve specialist agents for campaigns, content, creative, SEO, and more. Maya is the interface: she coordinates the agents, drafts in your brand voice, and routes everything through your approval queue. Nothing publishes until you approve it.',
-  },
-  {
-    q: 'Does the copy actually sound like me?',
-    a: 'Yes. When you sign up, you complete a Brand Kit session where Maya learns your business, tone, and audience. Everything she creates draws from that — so it reads like you wrote it, not like software.',
-  },
-  {
-    q: 'How does the approval flow work?',
-    a: "Every post, email, and campaign artifact lands in your queue first. You review, edit, approve, or send it back. Nothing goes live until you sign off — then you publish or schedule in a click.",
-  },
-  {
-    q: 'What channels does Agent7even cover?',
-    a: 'Social publishing supports Instagram, Facebook, LinkedIn, Threads, and YouTube when you connect accounts. X / Twitter connect requires Growth or ProAgent — Starter can still draft posts for any platform. Email sequences are drafted for you to paste into your ESP (Mailchimp, Klaviyo, etc.). Google Analytics connects for marketing intelligence reporting.',
-  },
-  {
-    q: 'What happens after the 3-day trial?',
-    a: 'Your card is collected at sign-up but not charged for the first 3 days. At the end of the trial, Starter billing begins at $49/month. You can cancel before day 4 and pay nothing.',
-  },
-  {
-    q: 'Can I cancel anytime?',
-    a: 'Yes. Cancel from your account settings at any time — no cancellation fees, no questions asked.',
-  },
-  {
-    q: 'Is this right for a solo operator or small team?',
-    a: "Yes — it's built for exactly that. Most users are single-person businesses or teams under five. You get the output of a marketing department without the overhead.",
-  },
-  {
-    q: 'How is this different from a social media scheduling tool?',
-    a: "Scheduling tools post what you give them. Agent7even plans, drafts, and generates — campaigns, captions, images, and video — then queues everything for your approval. You publish when you're ready.",
-  },
-]
+const FAQ_ITEMS = HOMEPAGE_FAQ_ITEMS
 
 export default function Lab5Page() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -122,7 +91,12 @@ export default function Lab5Page() {
           </div>
         </div>
         <div className="wrap showpiece reveal">
-          <div className="mk" data-mk="dashboard"></div>
+          <div
+            className="mk"
+            data-mk="dashboard"
+            role="img"
+            aria-label="AI marketing strategist dashboard showing campaign planning and approval queue"
+          />
         </div>
       </header>
 
@@ -321,6 +295,12 @@ export default function Lab5Page() {
           <div className="sec-head reveal">
             <span className="eyebrow">Built for the way you work</span>
             <h2 className="t-h2">Built for your kind of business.</h2>
+            <p className="t-lead">
+              See how our AI marketing strategist works for{' '}
+              <a href="/use-cases/local-service">local service businesses</a>,{' '}
+              <a href="/use-cases/coaches-creators">coaches and creators</a>, and{' '}
+              <a href="/use-cases/ecommerce">e-commerce brands</a>.
+            </p>
           </div>
           <div className="uses">
             <a className="use reveal" href="/use-cases/ecommerce">

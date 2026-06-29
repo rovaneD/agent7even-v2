@@ -1,4 +1,5 @@
 import { CANONICAL_SITE_URL } from '@/lib/siteUrls'
+import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
 
 export default function MarketingJsonLd() {
   const schema = {
@@ -37,6 +38,17 @@ export default function MarketingJsonLd() {
           offerCount: 3,
           url: `${CANONICAL_SITE_URL}/pricing`,
         },
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: HOMEPAGE_FAQ_ITEMS.map(item => ({
+          '@type': 'Question',
+          name: item.q,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.a,
+          },
+        })),
       },
     ],
   }

@@ -5,9 +5,9 @@ import { marketingPageMetadata } from '@/lib/marketing/seoMetadata'
 import Lab5HomePage from './lab5/page'
 
 export const metadata: Metadata = marketingPageMetadata({
-  title: 'AI Marketing Strategist & Automation | Agent7even',
+  title: 'AI Marketing Strategist & Automation Platform | Agent7even',
   description:
-    'Maya, your AI marketing strategist, drafts campaigns and content for your approval. Stop paying agencies $3K/month for reports — get an AI marketing OS in your voice.',
+    'Maya AI creates marketing campaigns you approve — not agencies charging $3K/month for reports. Try our AI marketing strategist free for 3 days on Starter.',
   path: '/',
 })
 

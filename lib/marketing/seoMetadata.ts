@@ -46,7 +46,7 @@ export const MARKETING_SITEMAP_PATHS = [
 /** Human-readable site map for SEO Scanner — only list URLs that actually exist. */
 export function marketingSiteStructureForSeo(): string {
   const pages = [
-    '/ — homepage (features section is /#features; no standalone /about page)',
+    '/ — homepage (how-it-works section at /#how; no standalone /how-it-works page yet)',
     '/agents — AI marketing agents & platform capabilities (use instead of /features)',
     '/pricing — plans from $49/mo Starter with 3-day trial',
     '/use-cases — industry landing pages (local service, ecommerce, creators, startups)',
