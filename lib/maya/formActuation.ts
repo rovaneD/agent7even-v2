@@ -1,5 +1,7 @@
 /** Thread 7 Layer 2 — Maya form fill proposals with user Apply gate. */
 
+import { normalizeWebsiteUrl, websiteHost } from '@/lib/maya/canonicalWebsite'
+
 export type FormFieldType = 'text' | 'textarea' | 'select'
 
 export type FormFieldSchema = {
@@ -13,6 +15,8 @@ export type FormSurfaceSnapshot = {
   id: string
   label: string
   fields: Array<FormFieldSchema & { value: string }>
+  /** Saved profile website — Maya must not swap TLDs (e.g. .ai → .com). */
+  canonicalWebsite?: string | null
 }
 
 export type FormPatchResult = {
@@ -49,6 +53,7 @@ export function extractFormPatch(text: string): FormPatchResult {
 export function validateFormPatch(
   patch: Record<string, string>,
   schema: FormFieldSchema[],
+  options?: { canonicalWebsite?: string | null },
 ): { patch: Record<string, string>; errors: string[] } {
   const allowed = new Map(schema.map(field => [field.key, field]))
   const valid: Record<string, string> = {}
@@ -61,8 +66,30 @@ export function validateFormPatch(
       continue
     }
 
-    const value = raw.trim()
+    let value = raw.trim()
     if (!value) continue
+
+    if (
+      key === 'websiteUrl' &&
+      options?.canonicalWebsite &&
+      schema.some(f => f.key === 'websiteUrl')
+    ) {
+      const canonical = normalizeWebsiteUrl(options.canonicalWebsite)
+      const normalizedValue = normalizeWebsiteUrl(value) ?? value
+      const canonicalHost = websiteHost(canonical)
+      const proposedHost = websiteHost(normalizedValue)
+      if (canonicalHost && proposedHost && canonicalHost !== proposedHost) {
+        errors.push(
+          `Website URL must stay ${canonical ?? options.canonicalWebsite} (saved on your profile)`,
+        )
+        continue
+      }
+      if (canonical && (!value || !proposedHost)) {
+        value = canonical
+      } else if (normalizedValue) {
+        value = normalizedValue
+      }
+    }
 
     const maxLen = field.type === 'textarea' ? 4000 : 500
     if (value.length > maxLen) {
@@ -97,11 +124,19 @@ export function buildFormActuationSystemSection(snapshot: FormSurfaceSnapshot): 
     return `- ${field.key} (${field.label}) [${field.type}${options}] — ${current}`
   })
 
+  const canonical = snapshot.canonicalWebsite
+    ? normalizeWebsiteUrl(snapshot.canonicalWebsite) ?? snapshot.canonicalWebsite.trim()
+    : null
+  const canonicalLine = canonical
+    ? `\nCANONICAL WEBSITE (profile — authoritative): ${canonical}
+For websiteUrl: use this exact domain/URL. Never substitute a different TLD (e.g. do not change .ai to .com). Leave websiteUrl out of the patch if the form already shows this URL.`
+    : ''
+
   return `
 FORM ACTUATION — open form on screen:
 Form: ${snapshot.label} (id: ${snapshot.id})
 Fields:
-${fieldLines.join('\n')}
+${fieldLines.join('\n')}${canonicalLine}
 
 When the user asks to fill, pre-fill, or complete this form (especially from Foundation):
 1. Give a brief plain-text reply (1-3 sentences). Do NOT say you already applied changes.

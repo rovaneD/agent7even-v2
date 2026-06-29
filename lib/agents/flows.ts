@@ -1,6 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { agentOutputContentText } from '@/lib/agents/agentOutputText'
+import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
+import { exaReadSite } from '@/lib/research/exa'
 import { AGENTS, type AgentId } from './registry'
 
 type AgentInput = Record<string, unknown>
@@ -95,6 +97,43 @@ ${providedSnapshot ? stringify(providedSnapshot) : 'No raw analytics snapshot wa
 ${campaigns}`
 }
 
+async function fetchWebsiteHtml(websiteUrl: string): Promise<{ status: number; finalUrl: string; html: string }> {
+  const res = await fetch(websiteUrl, {
+    signal: AbortSignal.timeout(12000),
+    redirect: 'follow',
+    headers: {
+      'User-Agent': 'Agent7even-SEO-Scanner/1.0 (+https://www.agent7even.ai)',
+      Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+    },
+  })
+  const html = await res.text()
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`)
+  }
+  if (!html.trim()) {
+    throw new Error('Empty response body')
+  }
+  return { status: res.status, finalUrl: res.url || websiteUrl, html }
+}
+
+function parseWebsiteHtmlSnapshot(websiteUrl: string, status: number, html: string, source: string): string {
+  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? ''
+  const description = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["'][^>]*>/i)?.[1]?.trim() ?? ''
+  const h1s = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map(m => m[1].replace(/<[^>]+>/g, '').trim()).filter(Boolean).slice(0, 5)
+  const h2s = [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)].map(m => m[1].replace(/<[^>]+>/g, '').trim()).filter(Boolean).slice(0, 10)
+  const canonical = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']*)["'][^>]*>/i)?.[1]?.trim() ?? ''
+
+  return `## Website Snapshot
+- URL: ${websiteUrl}
+- Source: ${source}
+- Fetch status: ${status}
+- Title: ${title || 'missing'}
+- Meta description: ${description || 'missing'}
+- Canonical: ${canonical || 'missing'}
+- H1s: ${h1s.length ? h1s.join(' | ') : 'none found'}
+- H2s: ${h2s.length ? h2s.join(' | ') : 'none found'}`
+}
+
 async function websiteSnapshotContext(userId: string, input: AgentInput): Promise<string> {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
@@ -103,30 +142,41 @@ async function websiteSnapshotContext(userId: string, input: AgentInput): Promis
     .eq('id', userId)
     .single()
 
-  const websiteUrl = inputText(input, 'websiteUrl') || profile?.website_url
-  if (!websiteUrl) return 'No website URL is saved on the profile.'
+  const overrideRaw = inputText(input, 'websiteUrl')
+  const websiteUrl =
+    normalizeWebsiteUrl(overrideRaw) ??
+    normalizeWebsiteUrl(profile?.website_url)
+
+  if (!websiteUrl) {
+    return overrideRaw
+      ? `No valid website URL — "${overrideRaw}" could not be parsed. Save a full URL like https://www.agent7even.ai in Settings or Foundation.`
+      : 'No website URL is saved on the profile.'
+  }
 
   try {
-    const res = await fetch(websiteUrl, { signal: AbortSignal.timeout(8000) })
-    const html = await res.text()
-    const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? ''
-    const description = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["'][^>]*>/i)?.[1]?.trim() ?? ''
-    const h1s = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map(m => m[1].replace(/<[^>]+>/g, '').trim()).filter(Boolean).slice(0, 5)
-    const h2s = [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)].map(m => m[1].replace(/<[^>]+>/g, '').trim()).filter(Boolean).slice(0, 10)
-    const canonical = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']*)["'][^>]*>/i)?.[1]?.trim() ?? ''
+    const { status, finalUrl, html } = await fetchWebsiteHtml(websiteUrl)
+    return parseWebsiteHtmlSnapshot(finalUrl, status, html, 'direct fetch')
+  } catch (directErr) {
+    const directMessage = directErr instanceof Error ? directErr.message : String(directErr)
+    try {
+      const exa = await exaReadSite(websiteUrl)
+      if (exa?.text?.trim()) {
+        const preview = exa.text.trim().slice(0, 3500)
+        return `## Website Snapshot
+- URL: ${websiteUrl}
+- Source: Exa read (direct fetch failed: ${directMessage})
+- Title: ${exa.title?.trim() || 'unknown'}
+- Page text preview:
+${preview}`
+      }
+    } catch {
+      // fall through to failure message
+    }
 
     return `## Website Snapshot
 - URL: ${websiteUrl}
-- Fetch status: ${res.status}
-- Title: ${title || 'missing'}
-- Meta description: ${description || 'missing'}
-- Canonical: ${canonical || 'missing'}
-- H1s: ${h1s.length ? h1s.join(' | ') : 'none found'}
-- H2s: ${h2s.length ? h2s.join(' | ') : 'none found'}`
-  } catch (err) {
-    return `## Website Snapshot
-- URL: ${websiteUrl}
-- Fetch failed: ${err instanceof Error ? err.message : String(err)}`
+- Fetch failed: ${directMessage}
+- Note: Verify the URL includes https:// and loads in a browser. Re-run after saving the correct website in Foundation → Your Business or Settings.`
   }
 }
 

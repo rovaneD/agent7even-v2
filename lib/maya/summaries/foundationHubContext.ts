@@ -117,6 +117,7 @@ function buildFoundationHubTabState(input: {
 
 export function buildFoundationHubMayaContext(input: {
   companyName: string
+  websiteUrl?: string | null
   activeTab: FoundationHubTabId
   score: number
   sectionHealth: Record<string, string>
@@ -139,6 +140,10 @@ export function buildFoundationHubMayaContext(input: {
     `Knowledge sources: ${input.knowledgeItems.length}`,
   ]
 
+  if (input.websiteUrl?.trim()) {
+    metrics.push(`Website: ${input.websiteUrl.trim()} (canonical — use this exact domain in forms and advice)`)
+  }
+
   if (input.memoryData?.totalOutputs != null) {
     metrics.push(`Agent memory outputs: ${input.memoryData.totalOutputs}`)
   }
@@ -159,6 +164,11 @@ export function buildFoundationHubMayaContext(input: {
 
   let affordance =
     `${MAYA_VOICE_RULE} User manages Foundation intelligence, knowledge uploads, agent memory, and connections. Lead with CURRENTLY VIEWING before page summary.`
+
+  if (input.websiteUrl?.trim()) {
+    affordance +=
+      ' Website URL is editable under Your Business (and in Settings). Never substitute a different TLD — use the saved website exactly.'
+  }
 
   if (coachingVisual) {
     affordance += ` ${YOUR_LOOK_MAYA_RULE}`

@@ -482,7 +482,9 @@ export default function MayChatPanel({
                 : { cleanText: text, patch: null }
               const snapshot = formActuation?.getSnapshot() ?? null
               const validation = patch && snapshot
-                ? validateFormPatch(patch, snapshot.fields)
+                ? validateFormPatch(patch, snapshot.fields, {
+                    canonicalWebsite: snapshot.canonicalWebsite,
+                  })
                 : null
               const patchState = patchUiState[msg.id]
               return (

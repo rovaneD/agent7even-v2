@@ -16,7 +16,7 @@ export default async function FoundationPage() {
   const { data: profile } = await supabase
     .from('profiles')
     .select(`
-      id, company_name, foundation_answers, foundation_score,
+      id, company_name, website_url, foundation_answers, foundation_score,
       foundation_updated_at, foundation_complete, foundation_answers_previous_at,
       creative_direction,
       ideal_customer, marketing_challenge, competitors,
@@ -98,6 +98,7 @@ export default async function FoundationPage() {
       <FoundationHub
         profileId={profile.id}
         companyName={profile.company_name ?? ''}
+        websiteUrl={profile.website_url ?? null}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         answers={hubAnswers as any}
         score={profile.foundation_score ?? 0}

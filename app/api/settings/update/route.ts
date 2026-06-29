@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
+import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -15,7 +16,9 @@ export async function POST(req: Request) {
     updated_at: new Date().toISOString(),
   }
   if (companyName      !== undefined) updatePayload.company_name      = companyName || null
-  if (websiteUrl       !== undefined) updatePayload.website_url       = websiteUrl || null
+  if (websiteUrl       !== undefined) {
+    updatePayload.website_url = websiteUrl ? normalizeWebsiteUrl(websiteUrl) : null
+  }
   if (instagramHandle  !== undefined) updatePayload.instagram_handle  = instagramHandle || null
   if (emailDigest      !== undefined) updatePayload.email_digest      = emailDigest
   if (emailApprovals   !== undefined) updatePayload.email_approvals   = emailApprovals
@@ -33,6 +36,7 @@ export async function POST(req: Request) {
 
   revalidatePath('/dashboard/settings')
   revalidatePath('/dashboard/analytics')
+  revalidatePath('/dashboard/foundation')
 
   return NextResponse.json({ success: true })
 }

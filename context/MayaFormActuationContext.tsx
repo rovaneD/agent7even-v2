@@ -16,6 +16,7 @@ type RegisteredSurface = {
   id: string
   label: string
   fields: FormFieldSchema[]
+  canonicalWebsite?: string | null
   getValues: () => Record<string, string>
   applyPatch: (patch: Record<string, string>) => void
 }
@@ -38,6 +39,7 @@ function buildSnapshot(surface: RegisteredSurface): FormSurfaceSnapshot {
   return {
     id: surface.id,
     label: surface.label,
+    canonicalWebsite: surface.canonicalWebsite ?? null,
     fields: surface.fields.map(field => ({
       ...field,
       value: values[field.key] ?? '',
@@ -96,7 +98,12 @@ export function useMayaFormActuation() {
 }
 
 export function useRegisterMayaFormSurface(
-  descriptor: { id: string; label: string; fields: FormFieldSchema[] } | null,
+  descriptor: {
+    id: string
+    label: string
+    fields: FormFieldSchema[]
+    canonicalWebsite?: string | null
+  } | null,
   getValues: () => Record<string, string>,
   applyPatchFn: (patch: Record<string, string>) => void,
 ) {
@@ -107,6 +114,7 @@ export function useRegisterMayaFormSurface(
   applyPatchRef.current = applyPatchFn
 
   const fieldsKey = descriptor ? JSON.stringify(descriptor.fields) : ''
+  const canonicalKey = descriptor?.canonicalWebsite ?? ''
 
   useEffect(() => {
     if (!api || !descriptor) return
@@ -116,5 +124,5 @@ export function useRegisterMayaFormSurface(
       applyPatch: patch => applyPatchRef.current(patch),
     })
     return () => api.unregister(descriptor.id)
-  }, [api, descriptor?.id, descriptor?.label, fieldsKey])
+  }, [api, descriptor?.id, descriptor?.label, fieldsKey, canonicalKey])
 }

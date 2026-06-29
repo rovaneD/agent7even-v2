@@ -66,6 +66,7 @@ interface ScorecardEntry {
 interface Props {
   profileId: string
   companyName: string
+  profileWebsiteUrl?: string | null
   brandKitAvailable?: boolean
   hasUploadedLogo?: boolean
   activeTasks: AgentTask[]
@@ -514,7 +515,7 @@ function AgentSetupShell({
 }
 
 export default function AgentCommandCenter({
-  profileId, companyName, brandKitAvailable = false, hasUploadedLogo = false,
+  profileId, companyName, profileWebsiteUrl = null, brandKitAvailable = false, hasUploadedLogo = false,
   activeTasks: initActiveTasks,
   pendingApprovals: initPendingApprovals, recentTasks: initRecent, recentOutputs: initRecentOutputs, scorecard,
 }: Props) {
@@ -629,10 +630,11 @@ export default function AgentCommandCenter({
           ? `${filled.join(' · ')}${empty.length ? ` · Empty on screen: ${empty.join(', ')}` : ''}`
           : `Form open — nothing filled yet (${empty.join(', ')})`,
       },
-      affordance: `${base.affordance ?? ''} The user has the ${agentName} setup form on screen. Use visible field values — do not ask for information already shown in the form (e.g. website URL in the URL field). They can ask you to fill empty fields — propose values and they will click Apply in chat.`,
+      affordance: `${base.affordance ?? ''} The user has the ${agentName} setup form on screen. Use visible field values — do not ask for information already shown in the form (e.g. website URL in the URL field). They can ask you to fill empty fields — propose values and they will click Apply in chat.${profileWebsiteUrl?.trim() ? ` Canonical website on profile: ${profileWebsiteUrl.trim()} — never change the domain or TLD in websiteUrl.` : ''}`,
     }
   }, [
     companyName,
+    profileWebsiteUrl,
     activeTasks.length,
     pendingApprovals.length,
     scorecard,
@@ -646,6 +648,7 @@ export default function AgentCommandCenter({
     return {
       id: `agent:${selectedAgent}`,
       label: `${AGENTS[selectedAgent].name} setup form`,
+      canonicalWebsite: profileWebsiteUrl,
       fields: selectedAgentConfig.fields.map(field => ({
         key: field.key,
         label: field.label,
@@ -657,7 +660,7 @@ export default function AgentCommandCenter({
         options: field.options,
       })),
     }
-  }, [selectedAgent, selectedAgentConfig])
+  }, [selectedAgent, selectedAgentConfig, profileWebsiteUrl])
 
   useRegisterMayaFormSurface(
     formSurfaceDescriptor,

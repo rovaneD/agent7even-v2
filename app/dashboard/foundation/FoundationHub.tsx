@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildFoundationHubMayaContext } from '@/lib/maya/summaries/foundationHubContext'
+import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
 import { displayFieldValue } from '@/lib/maya/formStateContext'
 import type { FoundationMemoryResponse, AgentMemoryStat } from '@/lib/foundation/memory'
 
@@ -96,6 +97,7 @@ interface FieldScore { score: number; feedback: string | null }
 export interface Props {
   profileId: string
   companyName: string
+  websiteUrl: string | null
   answers: Answers
   score: number
   fieldScores: Record<string, FieldScore>
@@ -273,12 +275,21 @@ function sectionPreview(
   answers: Answers,
   key: SectionKey,
   creativeDirection?: CreativeDirection | null,
+  websiteUrl?: string | null,
 ): string | null {
   const t = (s: string) => s.length > 130 ? s.slice(0, 130) + '…' : s
   if (key === 'visual') {
     return visualHubSectionPreview(answers, creativeDirection ?? null)
   }
-  if (key === 'business') return answers.businessDescription ? t(answers.businessDescription) : null
+  if (key === 'business') {
+    const parts = [
+      websiteUrl?.trim()
+        ? `Website: ${websiteUrl.replace(/^https?:\/\//, '').replace(/^www\./, '')}`
+        : '',
+      answers.businessDescription ? t(answers.businessDescription) : '',
+    ].filter(Boolean)
+    return parts.length > 0 ? parts.join(' · ') : null
+  }
   if (key === 'customer') return answers.customerWho ? t(answers.customerWho) : null
   if (key === 'position') {
     const comps = toArr(answers.competitors).filter(Boolean)
@@ -1215,6 +1226,7 @@ const DOC_LABELS: Record<string, string> = {
 
 function SectionEditCard({
   section, draft, onChange, onSave, onCancel, saving, regenProgress,
+  websiteUrl, onWebsiteUrlChange,
 }: {
   section: SectionDef
   draft: Partial<Answers>
@@ -1223,6 +1235,8 @@ function SectionEditCard({
   onCancel: () => void
   saving: boolean
   regenProgress: string | null
+  websiteUrl?: string
+  onWebsiteUrlChange?: (url: string) => void
 }) {
   const Icon = section.icon
   return (
@@ -1237,6 +1251,23 @@ function SectionEditCard({
 
       {/* Fields */}
       <div className="space-y-3 mb-4">
+        {section.key === 'business' && onWebsiteUrlChange && (
+          <div>
+            <label className="block text-[11px] font-semibold text-text-soft uppercase tracking-wide mb-1.5">
+              Website URL
+            </label>
+            <input
+              type="url"
+              value={websiteUrl ?? ''}
+              placeholder="https://www.yourbusiness.com"
+              onChange={e => onWebsiteUrlChange(e.target.value)}
+              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#3B82F6]"
+            />
+            <p className="text-[11px] text-text-soft mt-1.5">
+              Canonical website for agents and SEO scans. Also editable in Settings.
+            </p>
+          </div>
+        )}
         {section.editFields.map(field => {
           const val = draft[field.key]
 
@@ -1333,7 +1364,7 @@ function SectionEditCard({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function FoundationHub({
-  companyName, answers, score: initialScore, fieldScores: initialFieldScores, lastUpdated, answersPreviousAt: initialAnswersPreviousAt,
+  companyName, websiteUrl: initialWebsiteUrl, answers, score: initialScore, fieldScores: initialFieldScores, lastUpdated, answersPreviousAt: initialAnswersPreviousAt,
   creativeDirection,
 }: Props) {
   const router = useRouter()
@@ -1346,6 +1377,8 @@ export default function FoundationHub({
   const [answersPreviousAt, setAnswersPreviousAt] = useState<string | null>(initialAnswersPreviousAt)
   const [lastScored, setLastScored] = useState<string | null>(lastUpdated)
   const [localAnswers, setLocalAnswers] = useState<Answers>(answers)
+  const [localWebsiteUrl, setLocalWebsiteUrl] = useState(initialWebsiteUrl ?? '')
+  const [editWebsiteUrl, setEditWebsiteUrl] = useState('')
   const [editingSection, setEditingSection] = useState<SectionKey | null>(null)
   const [editDraft, setEditDraft] = useState<Partial<Answers>>({})
   const [editSaving, setEditSaving] = useState(false)
@@ -1393,6 +1426,7 @@ export default function FoundationHub({
 
   function startEdit(key: SectionKey) {
     setEditDraft({ ...localAnswers })
+    if (key === 'business') setEditWebsiteUrl(localWebsiteUrl)
     setEditingSection(key)
   }
 
@@ -1424,6 +1458,17 @@ export default function FoundationHub({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: editDraft }),
       })
+
+      if (section.key === 'business' && editWebsiteUrl !== localWebsiteUrl) {
+        const normalized = normalizeWebsiteUrl(editWebsiteUrl.trim()) ?? editWebsiteUrl.trim()
+        await fetch('/api/settings/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ websiteUrl: normalized || null }),
+        })
+        setLocalWebsiteUrl(normalized)
+      }
+
       setLocalAnswers(merged)
       setEditingSection(null)
       setAnswersPreviousAt(new Date().toISOString())
@@ -1481,19 +1526,24 @@ export default function FoundationHub({
     if (!editingSection) return null
     const section = SECTIONS.find(s => s.key === editingSection)
     if (!section) return null
+    const fields = section.editFields.map(field => ({
+      label: field.label,
+      value: displayFieldValue(editDraft[field.key]),
+    }))
+    if (editingSection === 'business') {
+      fields.unshift({ label: 'Website URL', value: editWebsiteUrl })
+    }
     return {
       sectionTitle: section.title,
-      fields: section.editFields.map(field => ({
-        label: field.label,
-        value: displayFieldValue(editDraft[field.key]),
-      })),
+      fields,
     }
-  }, [editingSection, editDraft])
+  }, [editingSection, editDraft, editWebsiteUrl])
 
   const mayaContext = useMemo(
     () =>
       buildFoundationHubMayaContext({
         companyName,
+        websiteUrl: localWebsiteUrl || null,
         activeTab,
         score: currentScore,
         sectionHealth: Object.fromEntries(
@@ -1510,6 +1560,7 @@ export default function FoundationHub({
       }),
     [
       companyName,
+      localWebsiteUrl,
       activeTab,
       currentScore,
       healthMap,
@@ -1679,7 +1730,7 @@ export default function FoundationHub({
                 {SECTIONS.map(section => {
                   const Icon = section.icon
                   const health = healthMap[section.key]
-                  const preview = sectionPreview(localAnswers, section.key, creativeDirection)
+                  const preview = sectionPreview(localAnswers, section.key, creativeDirection, localWebsiteUrl)
                   const isMemory = section.key === 'memory'
                   const isEditing = editingSection === section.key
 
@@ -1694,6 +1745,8 @@ export default function FoundationHub({
                         onCancel={() => setEditingSection(null)}
                         saving={editSaving}
                         regenProgress={regenProgress}
+                        websiteUrl={editWebsiteUrl}
+                        onWebsiteUrlChange={section.key === 'business' ? setEditWebsiteUrl : undefined}
                       />
                     )
                   }

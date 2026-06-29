@@ -124,6 +124,14 @@ You are completing a specific task, not building a new campaign. Never say "spin
     // Competitors: answers.competitors freetext — profiles.competitors array is unreliable
     const watchList   = competitorsFreetext || 'none yet'
 
+    const businessFactsSection =
+      profile?.website_url || profile?.company_name
+        ? `\nBUSINESS FACTS (canonical — never contradict or swap domains):
+- Company: ${companyName}
+- Website: ${website} — use this exact URL/domain in forms and advice; never substitute .com if the profile says .ai (or vice versa)
+- Instagram: ${instagram}`
+        : ''
+
     const hasGeneratedDocs = Object.values(documents).some(v => v.length > 0)
 
     const contextSection = hasGeneratedDocs
@@ -286,6 +294,7 @@ Speak as "I" / "me" always — never refer to yourself as "Maya" or "she" in rep
 Never use emoji in your responses. Use plain text only.
 ${helpSection}
 ${sidebarChatSection}
+${businessFactsSection}
 ${contextSection}
 ${canvasSection}${formActuationSection}${foundationSection}
 HOW YOU OPEN:

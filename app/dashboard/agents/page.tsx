@@ -15,7 +15,7 @@ export default async function AgentsPage() {
 
   const { data: profileRows } = await supabase
     .from('profiles')
-    .select('id, company_name, plan')
+    .select('id, company_name, website_url, plan')
     .eq('clerk_user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -141,6 +141,7 @@ export default async function AgentsPage() {
       <AgentCommandCenter
         profileId={profile.id}
         companyName={profile.company_name ?? 'Your business'}
+        profileWebsiteUrl={profile.website_url ?? null}
         brandKitAvailable={brandKitAvailable}
         hasUploadedLogo={hasUploadedLogo}
         activeTasks={activeTasks ?? []}
