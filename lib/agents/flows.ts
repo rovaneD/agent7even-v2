@@ -3,6 +3,7 @@ import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { agentOutputContentText } from '@/lib/agents/agentOutputText'
 import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
 import { exaReadSite } from '@/lib/research/exa'
+import { buildSeoScannerRunMetadata } from '@/lib/agents/runMetadata'
 import { AGENTS, type AgentId } from './registry'
 
 type AgentInput = Record<string, unknown>
@@ -324,7 +325,8 @@ export const AGENT_FLOWS: Record<AgentId, AgentFlow> = {
   seo_scanner: {
     role: 'SEO auditor. Prioritize fixes a small business can actually execute.',
     requires: ['website URL', 'business niche', 'prioritized fixes'],
-    outputContract: 'Return Critical issues, Quick wins, Content gaps, Technical notes, and exact fixes. Use fetched site snapshot when available.',
+    outputContract:
+      'Open with **Scan Date:** using the exact date from RUN METADATA (never invent a date). Then return Critical issues, Quick wins, Content gaps, Technical notes, and exact fixes. Use fetched site snapshot when available.',
     contextBuilder: websiteSnapshotContext,
     defaultUserMessage: input => inputText(input, 'instructions') || 'Run an SEO scan using the saved website URL and Foundation context.',
   },
@@ -358,6 +360,8 @@ export async function buildAgentFlowPrompt(userId: string, agentId: AgentId, inp
     ? (resolveContentPostingFlow(input) === 'weekly' ? 'Weekly content' : 'Single post')
     : null
 
+  const seoRunMetadata = agentId === 'seo_scanner' ? `\n\n${buildSeoScannerRunMetadata()}` : ''
+
   return `AGENT-SPECIFIC FLOW — ${agent.name}${flowLabel ? ` (${flowLabel})` : ''}
 
 Role:
@@ -375,7 +379,7 @@ Flow rules:
 - Do not pretend unavailable data was fetched or verified.
 - Do not ask broad setup questions when a reasonable assumption can be stated and used.
 
-${extraContext ? `Additional agent-specific context:\n${extraContext}` : ''}`
+${extraContext ? `Additional agent-specific context:\n${extraContext}` : ''}${seoRunMetadata}`
 }
 
 export function buildAgentUserMessage(agentId: AgentId, input: AgentInput): string {

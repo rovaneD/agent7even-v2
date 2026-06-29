@@ -13,6 +13,7 @@ import { AGENTS, type AgentId } from '@/lib/agents/registry'
 import { CREDIT_COST, type RunTier } from '@/lib/agents/cost'
 import { assessTextFairUse } from '@/lib/credits/textFairUse'
 import { buildAgentFlowPrompt, buildAgentUserMessage } from '@/lib/agents/flows'
+import { formatAgentRunDateLong, normalizeSeoScanReportDate } from '@/lib/agents/runMetadata'
 import { parseAndValidateIdeaAnalysis } from '@/lib/agents/ideaAnalysis'
 import { readPostMediaRef } from '@/lib/postAssets'
 import {
@@ -149,7 +150,13 @@ export async function executeAgentRun(opts: {
       usage = result.usage
     }
 
-    const trimmedText = text.trim()
+    let trimmedText = text.trim()
+
+    if (agentId === 'seo_scanner') {
+      const scanDate = formatAgentRunDateLong()
+      trimmedText = normalizeSeoScanReportDate(trimmedText, scanDate)
+    }
+
     const outputContent: Record<string, unknown> = { raw: trimmedText }
 
     if (agentId === 'idea_analysis') {
