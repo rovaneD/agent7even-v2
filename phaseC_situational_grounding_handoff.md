@@ -42,9 +42,22 @@ Section edit forms bind live field values via `buildFoundationHubMayaContext` / 
 
 ---
 
-## Layer 2 backlog
+## Layer 2 — form actuation (shipped June 10, 2026)
 
-Maya chat has no tool/actuation channel (`/api/maya/chat` = `streamText` only). Writing form fields from chat requires new API design + approval gate — see `phaseC_dashboard_cold_open_handoff.md` write-path recon.
+**Flow:** User asks to fill an open form → Maya replies with a ` ```maya-form-patch ` JSON block → **Apply** card in chat → user confirms → registered form surface updates.
+
+**Shell:** `MayaFormActuationProvider` in `DashboardShell` · `useRegisterMayaFormSurface` on agent setup + guided campaign steps · `FormPatchApplyCard` in `MayChatPanel`.
+
+**Surfaces v1:** Agents Command Center setup forms · Guided campaign builder (steps 1–3).
+
+**Still read-only:** Settings, Foundation section edits, Posts compose (register in follow-on if needed).
+
+---
+
+## Layer 2 backlog (follow-on)
+
+- Register additional canvases (Settings live form, Posts compose, Open Canvas campaign).
+- Optional: dedicated `/api/maya/propose-form-fill` if patch-block parsing proves fragile.
 
 ---
 

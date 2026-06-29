@@ -13,6 +13,7 @@ import { buildImageContextCapabilityPrompt } from '@/lib/posts/imageContextCapab
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { assessTextFairUse } from '@/lib/credits/textFairUse'
 import { MAYA_NO_FAKE_ACTIONS } from '@/lib/maya/voiceRules'
+import { buildFormActuationSystemSection, type FormSurfaceSnapshot } from '@/lib/maya/formActuation'
 
 const CHAT_CREDITS = ACTION_CREDIT_COST.maya_chat_turn
 const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas, isHelpMode, attachments, chatSurface } = await req.json()
+  const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas, isHelpMode, attachments, chatSurface, formSurface } = await req.json()
   const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
   if (!converted?.length) {
@@ -190,6 +191,14 @@ Reference these specifics. Ask one focused question to learn more about their bu
         ? `\nCANVAS CONTEXT:\nThe user is currently on the ${canvasContext} page. Tailor your responses to be relevant to what they're looking at.`
         : ''
 
+    const formActuationSection =
+      formSurface &&
+      typeof formSurface === 'object' &&
+      typeof formSurface.id === 'string' &&
+      Array.isArray(formSurface.fields)
+        ? buildFormActuationSystemSection(formSurface as FormSurfaceSnapshot)
+        : ''
+
     const foundationScore = (profile as { foundation_score?: number | null } | null)?.foundation_score ?? null
     const foundationSection = foundationScore !== null
       ? `\nFOUNDATION SCORE: ${foundationScore}%${
@@ -278,7 +287,7 @@ Never use emoji in your responses. Use plain text only.
 ${helpSection}
 ${sidebarChatSection}
 ${contextSection}
-${canvasSection}${foundationSection}
+${canvasSection}${formActuationSection}${foundationSection}
 HOW YOU OPEN:
 One sentence. Pick one specific thing you know — their goal, their main challenge, or their differentiator — and lead with it. Then ask one direct question OR give the next step. Do not summarize or recite their foundation back at them. Do not list everything you know.
 

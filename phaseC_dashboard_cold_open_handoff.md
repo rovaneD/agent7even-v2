@@ -49,16 +49,16 @@ Dashboard opened with a static “Command center” welcome block. `MorningDiges
 
 **Question:** Can Maya chat actuate canvas/form state, or is it output-only?
 
-**Answer: output-only today.** Layer 1 (read) exists; Layer 2 (write through approval gate) does not.
+**Answer: output-only for agents/runs; form fill via Apply gate (Layer 2 shipped June 10, 2026).** Layer 1 (read) exists; Layer 2 writes through user-confirmed patch apply — not auto-mutation.
 
 | Path | Read | Write |
 |------|------|-------|
-| Sidebar `MayChatPanel` | `canvasContext`, `canvasData`, `useMayaContext`, `CanvasContextDispatcher`, `__PAGE_CONTEXT__` | Text only via `streamText` — **no tools** in `/api/maya/chat` |
+| Sidebar `MayChatPanel` | `canvasContext`, `canvasData`, `useMayaContext`, `formSurface` snapshot | Text + optional `maya-form-patch` block → **Apply** card updates registered forms |
 | Full-page `MayaShell` | Same + campaign canvas states | Trigger phrase → Campaign Builder orchestration; task mode locks canvas text |
 | Cross-page events | N/A | `maya:open-task` → sends `__TASK__` (chat executes in text, does not mutate forms) |
 | Agents | N/A | Separate runner — not invoked from sidebar chat (`MAYA_NO_FAKE_ACTIONS`) |
 
-**Implication for Thread 7:** Layer 2 requires a new actuation channel (tool calls or approved mutation API), not wiring alone.
+**Layer 2 (shipped):** `MayaFormActuationProvider` + `useRegisterMayaFormSurface` on agent setup + guided campaign. Extend to Settings/Posts in follow-on.
 
 ---
 

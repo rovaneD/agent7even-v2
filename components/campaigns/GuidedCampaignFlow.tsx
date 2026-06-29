@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
+import { useRegisterMayaFormSurface } from '@/context/MayaFormActuationContext'
 import { buildGuidedCampaignMayaContext } from '@/lib/maya/summaries/phase3Context'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, Circle, ArrowLeft } from 'lucide-react'
@@ -116,6 +117,79 @@ export default function GuidedCampaignFlow() {
     [step, segment, goal, timeline, budget, selectedModel, isGenerating],
   )
   useMayaContext(mayaContext)
+
+  const formSurfaceDescriptor = useMemo(() => {
+    if (isGenerating) return null
+    if (step === 1) {
+      return {
+        id: 'campaign:guided:step1',
+        label: 'Guided campaign — choose audience',
+        fields: [{
+          key: 'segment',
+          label: 'Audience segment',
+          type: 'select' as const,
+          options: SEGMENTS.map(s => s.id),
+        }],
+      }
+    }
+    if (step === 2) {
+      return {
+        id: 'campaign:guided:step2',
+        label: 'Guided campaign — choose goal',
+        fields: [{
+          key: 'goal',
+          label: 'Campaign goal',
+          type: 'select' as const,
+          options: (GOALS_BY_SEGMENT[segment] ?? []).map(g => g.id),
+        }],
+      }
+    }
+    if (step === 3) {
+      return {
+        id: 'campaign:guided:step3',
+        label: 'Guided campaign — timeline & budget',
+        fields: [
+          {
+            key: 'timeline',
+            label: 'Timeline',
+            type: 'select' as const,
+            options: TIMELINES.map(t => String(t.id)),
+          },
+          {
+            key: 'budget',
+            label: 'Budget',
+            type: 'select' as const,
+            options: BUDGETS.map(b => b.id),
+          },
+          {
+            key: 'selectedModel',
+            label: 'AI model',
+            type: 'select' as const,
+            options: MODEL_OPTIONS.map(m => m.id),
+          },
+        ],
+      }
+    }
+    return null
+  }, [step, segment, isGenerating])
+
+  useRegisterMayaFormSurface(
+    formSurfaceDescriptor,
+    () => ({
+      segment,
+      goal,
+      timeline: String(timeline),
+      budget,
+      selectedModel,
+    }),
+    patch => {
+      if (patch.segment) setSegment(patch.segment)
+      if (patch.goal) setGoal(patch.goal)
+      if (patch.timeline) setTimeline(Number(patch.timeline) || timeline)
+      if (patch.budget) setBudget(patch.budget)
+      if (patch.selectedModel) setSelectedModel(patch.selectedModel)
+    },
+  )
 
   async function generate() {
     setIsGenerating(true)

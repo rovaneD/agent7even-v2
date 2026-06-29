@@ -7,6 +7,9 @@ import { DefaultChatTransport, UIMessage } from 'ai'
 import { Rocket, PenLine, BarChart2, MessageCircle, X, ArrowUp, Paperclip, FileText, Loader2, AlertCircle } from 'lucide-react'
 import MayaOrb from '@/components/maya/MayaOrb'
 import { dedupeMessagesById, messagesForPersist } from '@/lib/maya/dedupeMessages'
+import { useMayaFormActuation } from '@/context/MayaFormActuationContext'
+import FormPatchApplyCard from '@/components/maya/FormPatchApplyCard'
+import { extractFormPatch, validateFormPatch } from '@/lib/maya/formActuation'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -97,6 +100,10 @@ export default function MayChatPanel({
   isHelpMode = false,
 }: Props) {
   const companyName = profile?.company_name ?? profile?.full_name ?? 'there'
+  const formActuation = useMayaFormActuation()
+  const formSurfaceRef = useRef(formActuation?.getSnapshot() ?? null)
+
+  const [patchUiState, setPatchUiState] = useState<Record<string, 'applied' | 'dismissed'>>({})
 
   const [mode, setMode]         = useState<string | null>(initialMode)
   const [chatInput, setChatInput] = useState('')
@@ -156,6 +163,8 @@ export default function MayChatPanel({
     fetch: async (url, init) => {
       const body = JSON.parse((init?.body as string) ?? '{}')
       if (canvasDataRef.current) body.canvasData = canvasDataRef.current
+      formSurfaceRef.current = formActuation?.getSnapshot() ?? null
+      if (formSurfaceRef.current) body.formSurface = formSurfaceRef.current
       if (attachmentsRef.current.length) {
         body.attachments = attachmentsRef.current
         attachmentsRef.current = []
@@ -468,6 +477,14 @@ export default function MayChatPanel({
           <>
             {visibleMessages.map((msg) => {
               const text = getMsgText(msg)
+              const { cleanText, patch } = msg.role === 'assistant'
+                ? extractFormPatch(text)
+                : { cleanText: text, patch: null }
+              const snapshot = formActuation?.getSnapshot() ?? null
+              const validation = patch && snapshot
+                ? validateFormPatch(patch, snapshot.fields)
+                : null
+              const patchState = patchUiState[msg.id]
               return (
                 <div key={msg.id} style={{ marginBottom: msg.role === 'user' ? 16 : 20 }}>
                   {msg.role === 'user' ? (
@@ -480,7 +497,21 @@ export default function MayChatPanel({
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                       <MayaOrb size={24} className="mt-0.5" />
                       <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
-                        <ReactMarkdown components={PLAIN_MD as never}>{text}</ReactMarkdown>
+                        <ReactMarkdown components={PLAIN_MD as never}>{cleanText}</ReactMarkdown>
+                        {validation && patchState !== 'dismissed' && snapshot && (
+                          <FormPatchApplyCard
+                            snapshot={snapshot}
+                            patch={validation.patch}
+                            errors={validation.errors}
+                            applied={patchState === 'applied'}
+                            onApply={() => {
+                              if (validation.errors.length) return
+                              const ok = formActuation?.applyPatch(validation.patch)
+                              if (ok) setPatchUiState(prev => ({ ...prev, [msg.id]: 'applied' }))
+                            }}
+                            onDismiss={() => setPatchUiState(prev => ({ ...prev, [msg.id]: 'dismissed' }))}
+                          />
+                        )}
                       </div>
                     </div>
                   )}
@@ -562,6 +593,31 @@ export default function MayChatPanel({
               </div>
             ))}
           </div>
+        )}
+
+        {formActuation?.hasSurface && !isHelpMode && (
+          <button
+            type="button"
+            onClick={() => submitMessage('Fill the open form using my Foundation context. Propose values for empty fields only.')}
+            disabled={isLoading}
+            style={{
+              display: 'block',
+              width: '100%',
+              marginBottom: 8,
+              padding: '8px 10px',
+              borderRadius: 10,
+              border: '1px solid color-mix(in srgb, var(--color-brand-primary) 25%, var(--color-border))',
+              background: 'color-mix(in srgb, var(--color-brand-primary) 6%, var(--color-surface))',
+              color: 'var(--color-brand-primary)',
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              opacity: isLoading ? 0.5 : 1,
+              textAlign: 'left',
+            }}
+          >
+            Fill form from Foundation →
+          </button>
         )}
 
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'var(--color-surface-2)', borderRadius: 14, padding: '10px 14px', border: '1px solid var(--color-border)', transition: 'border-color 0.12s' }}>

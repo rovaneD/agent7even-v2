@@ -44,7 +44,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
-| Agents Command Center | `/dashboard/agents` | P0 | T4 T7 | Agent setup form grounding (Layer 1) | Layer 2 actuation — blocked on chat write-path |
+| Agents Command Center | `/dashboard/agents` | P0 | T4 T7 | Agent setup form grounding (Layer 1) · Layer 2 form actuation | Register more canvases |
 | Approvals | `/dashboard/agents/approvals` | P1 | T3 T7 | Maya context · lifecycle → Review link · draft-post banner | — |
 | Agent outputs archive | `/dashboard/agents/[id]/outputs` | P2 | T3 | Maya context · lifecycle stage labels | — |
 | Analytics | `/dashboard/analytics` | P1 | T7 | Tab activeView · connect panel/modal grounding | — |
@@ -67,7 +67,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
 | Campaigns list | `/dashboard/campaigns` | P1 | T3 | Maya list context · artifact preview on cards | — |
-| New campaign — guided | `/dashboard/campaigns/new` | P1 | T7 | Step form grounding (Layer 1) | Layer 2 actuation |
+| New campaign — guided | `/dashboard/campaigns/new` | P1 | T7 | Step form grounding (Layer 1) · Layer 2 form actuation | — |
 | New campaign — open canvas | `/dashboard/campaigns/new?mode=open` | P1 | T7 | Chat + draft input grounding | — |
 | Campaign detail | `/dashboard/campaigns/[id]` | P1 | T3 T7 | Detail Maya context · do-this-today explainer | — |
 
@@ -131,7 +131,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 - **Admin console** (`/admin/*`) — separate operator UX; not Phase C client retention work
 - **Flagged product decisions** — ProAgent rename, trial-on-all-plans, Starter→Growth non-volume lever
-- **Thread 7 Layer 2** — Maya form actuation via chat; requires new API design
+- **Thread 7 Layer 2** — form actuation via Apply gate shipped (agents + guided campaign); extend to more canvases
 
 ---
 

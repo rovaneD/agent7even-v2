@@ -41,6 +41,7 @@ import NotificationBell from '@/components/NotificationBell'
 import MayChatPanel, { type Profile } from '@/components/maya/MayChatPanel'
 import MayaOrb from '@/components/maya/MayaOrb'
 import NewCampaignModal from '@/components/campaigns/NewCampaignModal'
+import { MayaFormActuationProvider } from '@/context/MayaFormActuationContext'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -1011,6 +1012,7 @@ export default function DashboardShell({
   // ── Canvas header ──────────────────────────────────────────────────────────
 
   return (
+    <MayaFormActuationProvider>
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, sans-serif', background: 'var(--color-bg)' }}>
       <NewCampaignModal open={showNewCampaign} onClose={() => setShowNewCampaign(false)} />
 
@@ -1097,5 +1099,6 @@ export default function DashboardShell({
         </main>
       </div>
     </div>
+    </MayaFormActuationProvider>
   )
 }

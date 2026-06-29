@@ -2,6 +2,7 @@
 
 import { Fragment, useState, useEffect, useMemo, type ReactNode } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
+import { useRegisterMayaFormSurface } from '@/context/MayaFormActuationContext'
 import { buildAgentCommandCenterMayaContext } from '@/lib/maya/summaries/agentsContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -628,7 +629,7 @@ export default function AgentCommandCenter({
           ? `${filled.join(' · ')}${empty.length ? ` · Empty on screen: ${empty.join(', ')}` : ''}`
           : `Form open — nothing filled yet (${empty.join(', ')})`,
       },
-      affordance: `${base.affordance ?? ''} The user has the ${agentName} setup form on screen. Use visible field values — do not ask for information already shown in the form (e.g. website URL in the URL field).`,
+      affordance: `${base.affordance ?? ''} The user has the ${agentName} setup form on screen. Use visible field values — do not ask for information already shown in the form (e.g. website URL in the URL field). They can ask you to fill empty fields — propose values and they will click Apply in chat.`,
     }
   }, [
     companyName,
@@ -639,6 +640,37 @@ export default function AgentCommandCenter({
     selectedAgentConfig,
     selectedAgentForm,
   ])
+
+  const formSurfaceDescriptor = useMemo(() => {
+    if (!selectedAgent || !selectedAgentConfig) return null
+    return {
+      id: `agent:${selectedAgent}`,
+      label: `${AGENTS[selectedAgent].name} setup form`,
+      fields: selectedAgentConfig.fields.map(field => ({
+        key: field.key,
+        label: field.label,
+        type: (field.type === 'select'
+          ? 'select'
+          : field.type === 'textarea'
+            ? 'textarea'
+            : 'text') as 'text' | 'textarea' | 'select',
+        options: field.options,
+      })),
+    }
+  }, [selectedAgent, selectedAgentConfig])
+
+  useRegisterMayaFormSurface(
+    formSurfaceDescriptor,
+    () => (selectedAgent ? agentForms[selectedAgent] : {}),
+    patch => {
+      if (!selectedAgent) return
+      setAgentForms(prev => ({
+        ...prev,
+        [selectedAgent]: { ...prev[selectedAgent], ...patch },
+      }))
+    },
+  )
+
   useMayaContext(mayaContext)
 
   // Fetch active + recent orchestrations on mount
