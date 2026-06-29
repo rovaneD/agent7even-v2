@@ -11,11 +11,22 @@ export function formatAgentRunDateLong(date = new Date()): string {
   })
 }
 
+import { marketingSiteStructureForSeo } from '@/lib/marketing/seoMetadata'
+
 export function buildSeoScannerRunMetadata(scanDate = formatAgentRunDateLong()): string {
   return `RUN METADATA (authoritative — use exactly):
 - Scan date: ${scanDate}
 - The report MUST include a line: **Scan Date:** ${scanDate}
-- Never use training cutoff dates, December 2024, or any date other than ${scanDate}.`
+- Never use training cutoff dates, December 2024, or any date other than ${scanDate}.
+
+SITE STRUCTURE (only recommend URLs that exist):
+${marketingSiteStructureForSeo()}
+
+AUDIT RULES:
+- If Website Snapshot lists JSON-LD schema types, do NOT flag schema as missing.
+- There is no /features page (redirects to /agents) and no /about or /blog — do not recommend creating meta for those paths.
+- Use case pages exist under /use-cases/* — do not claim "/for-coaches" style URLs are missing without checking.
+- H1 "Marketing, managed." plus eyebrow "AI marketing platform for small business" is intentional — do not recommend replacing H1 with generic keyword stuffing.`
 }
 
 /** Force the report body to show the actual run date even if the model hallucinates. */

@@ -117,12 +117,33 @@ async function fetchWebsiteHtml(websiteUrl: string): Promise<{ status: number; f
   return { status: res.status, finalUrl: res.url || websiteUrl, html }
 }
 
+function extractJsonLdTypes(html: string): string[] {
+  const types = new Set<string>()
+  for (const block of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const parsed = JSON.parse(block[1]) as Record<string, unknown>
+      const nodes = Array.isArray(parsed['@graph'])
+        ? (parsed['@graph'] as Record<string, unknown>[])
+        : [parsed]
+      for (const node of nodes) {
+        const t = node['@type']
+        if (typeof t === 'string') types.add(t)
+        if (Array.isArray(t)) t.forEach(v => typeof v === 'string' && types.add(v))
+      }
+    } catch {
+      // ignore malformed blocks
+    }
+  }
+  return [...types]
+}
+
 function parseWebsiteHtmlSnapshot(websiteUrl: string, status: number, html: string, source: string): string {
   const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ?? ''
   const description = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["'][^>]*>/i)?.[1]?.trim() ?? ''
   const h1s = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map(m => m[1].replace(/<[^>]+>/g, '').trim()).filter(Boolean).slice(0, 5)
   const h2s = [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)].map(m => m[1].replace(/<[^>]+>/g, '').trim()).filter(Boolean).slice(0, 10)
   const canonical = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']*)["'][^>]*>/i)?.[1]?.trim() ?? ''
+  const schemaTypes = extractJsonLdTypes(html)
 
   return `## Website Snapshot
 - URL: ${websiteUrl}
@@ -131,6 +152,7 @@ function parseWebsiteHtmlSnapshot(websiteUrl: string, status: number, html: stri
 - Title: ${title || 'missing'}
 - Meta description: ${description || 'missing'}
 - Canonical: ${canonical || 'missing'}
+- JSON-LD schema types: ${schemaTypes.length ? schemaTypes.join(', ') : 'none detected'}
 - H1s: ${h1s.length ? h1s.join(' | ') : 'none found'}
 - H2s: ${h2s.length ? h2s.join(' | ') : 'none found'}`
 }

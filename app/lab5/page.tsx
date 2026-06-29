@@ -179,7 +179,8 @@ export default function Lab5Page() {
             <p className="t-lead">
               Planned, drafted, and queued for your approval —
               <br />
-              while you run the&nbsp;business.
+              while you run the&nbsp;business.{' '}
+              <a href="/agents">See our AI marketing automation features →</a>
             </p>
           </div>
 
