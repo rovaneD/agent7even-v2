@@ -31,7 +31,7 @@ export function marketingPageMetadata(input: {
 export const MARKETING_SITEMAP_PATHS = [
   '/',
   '/how-it-works',
-  '/ai-vs-agency',
+  '/vs-scheduling-tools',
   '/integrations',
   '/pricing',
   '/agents',
@@ -43,6 +43,7 @@ export const MARKETING_SITEMAP_PATHS = [
   '/for-coaches',
   '/for-consultants',
   '/blog',
+  '/case-studies',
   '/about',
   '/careers',
   '/contact',
@@ -55,9 +56,9 @@ export const MARKETING_SITEMAP_PATHS = [
 /** Human-readable site map for SEO Scanner — only list URLs that actually exist. */
 export function marketingSiteStructureForSeo(): string {
   const pages = [
-    '/ — homepage (includes AI vs agency comparison at /#compare; eyebrow targets small business)',
+    '/ — homepage (hero, stack compare /#why-os, how-it-works, agents/features)',
     '/how-it-works — dedicated page for AI marketing automation workflow',
-    '/ai-vs-agency — AI marketing vs traditional agency (cost, speed, approval control)',
+    '/vs-scheduling-tools — AI marketing OS vs social scheduling tools',
     '/integrations — social, GA4, and email stack connections',
     '/agents — AI marketing features & agents (/features redirects here intentionally)',
     '/pricing — plans from $49/mo Starter with 3-day trial',
@@ -65,6 +66,7 @@ export function marketingSiteStructureForSeo(): string {
     '/for-coaches — AI marketing for coaches (coaches-creators positioning)',
     '/for-consultants — AI marketing for consultants (solo expert positioning)',
     '/blog — AI marketing guides for small business (9 posts)',
+    '/case-studies — customer stories (verified metrics coming soon)',
     '/about — company and product mission',
     '/careers — team and hiring',
     '/contact — support and billing contact',

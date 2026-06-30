@@ -29,9 +29,10 @@ AUDIT RULES:
 - /features redirects to /agents by design — /agents title includes "Features"; do NOT flag /features redirect as a critical SEO error.
 - /blog exists with 9 posts at /blog and /blog/[slug] — do NOT flag /blog as missing or a 404.
 - /about, /careers, and /contact are standalone company pages — do NOT flag them as missing.
-- There is no /case-studies page yet — do not recommend creating meta for that path unless in SITE STRUCTURE.
+- /case-studies exists as a placeholder for verified customer stories — do NOT flag as missing; do NOT recommend fabricating ROI metrics.
 - Use case pages exist under /use-cases/* — /for-coaches and /for-consultants are dedicated industry landing URLs.
-- /how-it-works and /ai-vs-agency are standalone pages (homepage also has /#how and /#compare sections) — do not claim they are missing.
+- /how-it-works is a standalone page (homepage also has /#how section) — do not claim it is missing.
+- /ai-vs-agency permanently redirects to /how-it-works (legacy SEO URL).
 - H1 "Marketing, managed." plus eyebrow "AI marketing platform for small business" is intentional — do not recommend replacing H1 with generic keyword stuffing.
 - Do not use the word "autonomous" to mean auto-publishing — this product is approval-first.`
 }

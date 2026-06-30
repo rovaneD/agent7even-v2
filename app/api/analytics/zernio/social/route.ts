@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
 import { collectZernioProfileIds } from '@/lib/social/zernioProfileIds'
-import { filterPostsByPlatform, parseAnalyticsEnvelope, pickBestAnalyticsPost, postDedupeKey } from '@/lib/social/zernioAnalyticsParse'
+import { filterPostsByPlatform, parseAnalyticsEnvelope, pickBestAnalyticsPost, platformMatches, postDedupeKey } from '@/lib/social/zernioAnalyticsParse'
 
 /** Pull a list array from Zernio payloads that may nest under data/result. */
 function extractZernioList(raw: unknown, keys: string[]): any[] {
@@ -21,11 +21,6 @@ function extractZernioList(raw: unknown, keys: string[]): any[] {
     }
   }
   return []
-}
-
-function platformMatches(value: string | undefined, filter: string | undefined): boolean {
-  if (!filter) return true
-  return (value ?? '').toLowerCase() === filter.toLowerCase()
 }
 
 function sleep(ms: number): Promise<void> {
@@ -128,9 +123,10 @@ export async function GET(req: NextRequest) {
       try {
         const accounts = await publisher.getProfileAccounts(pId)
         const scopedAccounts = analyticsPlatform
-          ? accounts.filter(a => a.platform.toLowerCase() === analyticsPlatform)
+          ? accounts.filter(a => platformMatches(a.platform, analyticsPlatform))
           : accounts
-        const accountsToQuery = scopedAccounts.length > 0 ? scopedAccounts : accounts
+        // When a platform is selected, never fall back to all accounts — that mixes IG + YouTube data.
+        const accountsToQuery = analyticsPlatform ? scopedAccounts : accounts
 
         if (accountsToQuery.length === 0) {
           return [] as AccountFetchBundle[]
@@ -170,7 +166,22 @@ export async function GET(req: NextRequest) {
   const activeResults = profileBundles.flat()
 
   if (activeResults.length === 0) {
-    return NextResponse.json({ error: 'zernio_api_error', detail: 'All profile requests failed.' }, { status: 502 })
+    const connectedAccounts = await publisher.getTenantConnectedAccounts(zernioProfileIds)
+    return NextResponse.json({
+      posts: { overview: {}, posts: [], accounts: [] },
+      daily: { stats: [], platformBreakdown: [] },
+      followerStats: null,
+      allAccounts: [],
+      platform: analyticsPlatform ?? 'all',
+      connectedAccounts,
+      bestTimes: { slots: [] },
+      postingFrequency: { frequency: [] },
+      contentDecay: { buckets: [] },
+      bestPost: null,
+      analyticsSyncPending: false,
+    }, {
+      headers: { 'Cache-Control': 'no-store' },
+    })
   }
 
   // 1. Merge post analytics (rawPostData)
@@ -335,9 +346,10 @@ export async function GET(req: NextRequest) {
 
   const mergedDailyData = Array.from(dailyDataMap.values()).sort((a, b) => a.date.localeCompare(b.date))
   const mergedPlatformBreakdown = Array.from(platformBreakdownMap.values())
+    .filter(entry => platformMatches(entry.platform, analyticsPlatform))
   const finalDailyData = {
     stats: mergedDailyData,
-    platformBreakdown: mergedPlatformBreakdown
+    platformBreakdown: mergedPlatformBreakdown,
   }
 
   // 4. Merge follower stats
@@ -482,8 +494,8 @@ export async function GET(req: NextRequest) {
   }
 
   const accountIds = resolvedAccounts.map(a => a.id).filter(Boolean)
-  const platformAccountIds = platform
-    ? resolvedAccounts.filter(a => a.platform === platform).map(a => a.id).filter(Boolean)
+  const platformAccountIds = analyticsPlatform
+    ? resolvedAccounts.filter(a => platformMatches(a.platform, analyticsPlatform)).map(a => a.id).filter(Boolean)
     : accountIds
 
   // If follower stats did not return with the first pass, fall back to the known connected accounts.
@@ -530,11 +542,16 @@ export async function GET(req: NextRequest) {
     totalReach: dailyReachTotal,
   })
 
+  const responseAccounts = analyticsPlatform
+    ? resolvedAccounts.filter(a => platformMatches(a.platform, analyticsPlatform))
+    : resolvedAccounts
+
   return NextResponse.json({
     posts: finalRawPostData,
     daily: finalDailyData,
     followerStats: finalFollowerStats,
-    allAccounts: resolvedAccounts,
+    allAccounts: responseAccounts,
+    platform: analyticsPlatform ?? 'all',
     connectedAccounts,
     bestTimes: finalBestTimes,
     postingFrequency: finalPostingFrequency,

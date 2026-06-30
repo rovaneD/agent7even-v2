@@ -18,7 +18,7 @@ import type { AnalyticsDataState } from './page'
 import {
   MOCK_ANALYTICS_INBOX, MOCK_POSTING_ANALYTICS, MOCK_GA_DATA,
 } from '@/lib/analytics/mockData'
-import { parseAnalyticsEnvelope, readBestPostUrl } from '@/lib/social/zernioAnalyticsParse'
+import { parseAnalyticsEnvelope, platformMatches, readBestPostUrl } from '@/lib/social/zernioAnalyticsParse'
 import { emptyAnalyticsInbox, type AnalyticsInboxData } from '@/lib/social/zernioInboxParse'
 import {
   canConnectSocialPlatform,
@@ -353,6 +353,98 @@ function bucketDailyStats(dailyStats: unknown[], postsByDate: Map<string, number
   })
 }
 
+function bucketPostsForMonthly(postsArr: Record<string, unknown>[], dateRange: string) {
+  type Bucket = {
+    sortKey: number
+    posts: number
+    likes: number
+    comments: number
+    shares: number
+    saves: number
+    views: number
+    impressions: number
+    reach: number
+    clicks: number
+    erSum: number
+    erCount: number
+  }
+  const buckets = new Map<string, Bucket>()
+
+  for (const p of postsArr) {
+    const rawDate = _s(p.publishedAt ?? p.published_at ?? p.date ?? '')
+    if (!rawDate) continue
+    const d = new Date(rawDate)
+    if (isNaN(d.getTime())) continue
+
+    let label: string
+    let sortKey: number
+
+    if (dateRange === '7d') {
+      label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      sortKey = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    } else if (dateRange === '6m' || dateRange === '1y') {
+      label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+      sortKey = new Date(d.getFullYear(), d.getMonth(), 1).getTime()
+    } else {
+      const dow = (d.getDay() + 6) % 7
+      const mon = new Date(d)
+      mon.setDate(d.getDate() - dow)
+      mon.setHours(0, 0, 0, 0)
+      label = mon.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      sortKey = mon.getTime()
+    }
+
+    if (!buckets.has(label)) {
+      buckets.set(label, {
+        sortKey,
+        posts: 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        saves: 0,
+        views: 0,
+        impressions: 0,
+        reach: 0,
+        clicks: 0,
+        erSum: 0,
+        erCount: 0,
+      })
+    }
+    const b = buckets.get(label)!
+    const a = _o(p.analytics)
+    b.posts++
+    b.likes += _n(a.likes ?? 0)
+    b.comments += _n(a.comments ?? 0)
+    b.shares += _n(a.shares ?? 0)
+    b.saves += _n(a.saves ?? 0)
+    b.views += _n(a.views ?? 0)
+    b.impressions += _n(a.impressions ?? 0)
+    b.reach += _n(a.reach ?? 0)
+    b.clicks += _n(a.clicks ?? 0)
+    const er = _n(a.engagementRate ?? 0)
+    if (er > 0) {
+      b.erSum += er
+      b.erCount++
+    }
+  }
+
+  return Array.from(buckets.entries())
+    .sort(([, a], [, b]) => a.sortKey - b.sortKey)
+    .map(([month, b]) => ({
+      month,
+      posts: b.posts,
+      likes: b.likes,
+      comments: b.comments,
+      shares: b.shares,
+      saves: b.saves,
+      views: b.views,
+      impressions: b.impressions,
+      reach: b.reach,
+      clicks: b.clicks,
+      engRate: b.erCount > 0 ? b.erSum / b.erCount : 0,
+    }))
+}
+
 function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'all'): PostingAnalytics | null {
   if (!raw || typeof raw !== 'object') return null
   const r = _o(raw)
@@ -372,13 +464,15 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
     : parseAnalyticsEnvelope(r)
   const overview = parsedPosts.overview
   const postsArr = _a<Record<string, unknown>>(parsedPosts.posts)
+  const platformFilter = activePlatform !== 'all' ? activePlatform.toLowerCase() : ''
   const dailyEnvelope = hasCombined ? _o(r.daily) : {}
   const dailyStats = hasCombined
     ? _a<Record<string, unknown>>(dailyEnvelope.stats ?? dailyEnvelope.dailyData ?? dailyEnvelope.data ?? [])
     : []
-  const dailyPlatformBreakdown = hasCombined
+  const dailyPlatformBreakdown = (hasCombined
     ? _a<Record<string, unknown>>(dailyEnvelope.platformBreakdown ?? dailyEnvelope.platform_breakdown ?? [])
     : []
+  ).filter(entry => platformMatches(_s(entry.platform ?? entry.platformName), platformFilter || undefined))
   const bestTimesRaw = hasCombined ? _o(r.bestTimes) : {}
   const postingFrequencyRaw = hasCombined ? _o(r.postingFrequency) : {}
   const contentDecayRaw = hasCombined ? _o(r.contentDecay) : {}
@@ -472,6 +566,27 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
       for (const entry of accsRaw) {
         if (!entry) continue
         const acct    = _o(_o(entry).account ?? entry)
+        const acctPlatform = _s(acct.platform ?? _o(entry).platform)
+        if (platformFilter && !platformMatches(acctPlatform, platformFilter)) continue
+        const metrics = _o(acct.metrics ?? acct)
+        totalFollowers += _n(
+          metrics.currentFollowers ??
+          metrics.current_followers ??
+          metrics.followersCount ??
+          metrics.followers_count ??
+          metrics.followers ??
+          metrics.followerCount ??
+          0
+        ) || readFollowerCount(entry)
+      }
+    } else if (platformFilter && r.allAccounts) {
+      totalFollowers = 0
+      const accsRaw = Array.isArray(r.allAccounts) ? (r.allAccounts as unknown[]) : _a(r.allAccounts)
+      for (const entry of accsRaw) {
+        if (!entry) continue
+        const acct = _o(_o(entry).account ?? entry)
+        const acctPlatform = _s(acct.platform ?? _o(entry).platform)
+        if (!platformMatches(acctPlatform, platformFilter)) continue
         const metrics = _o(acct.metrics ?? acct)
         totalFollowers += _n(
           metrics.currentFollowers ??
@@ -498,19 +613,30 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
   })()
 
   // Prefer overview-level fields; fall back to aggregated per-post values
-  const liveEngRate = dailyTotals.reach > 0
-    ? Number(((dailyTotals.engagements / dailyTotals.reach) * 100).toFixed(1))
-    : 0
+  const postAggReach = postsArr.reduce((s, p) => s + _n(_o(p.analytics).reach ?? 0), 0)
+  const postAggEngagements = postsArr.reduce((s, p) => {
+    const a = _o(p.analytics)
+    return s + _n(a.likes ?? 0) + _n(a.comments ?? 0) + _n(a.shares ?? 0) + _n(a.saves ?? 0) + _n(a.clicks ?? 0)
+  }, 0)
+  const liveEngRate = platformFilter && postsArr.length
+    ? (postAggReach > 0 ? Number(((postAggEngagements / postAggReach) * 100).toFixed(1)) : 0)
+    : dailyTotals.reach > 0
+      ? Number(((dailyTotals.engagements / dailyTotals.reach) * 100).toFixed(1))
+      : 0
   const engRate   = liveEngRate
     || _n(overview.engagementRate ?? overview.engagement_rate ?? overview.er_pct ?? overview.er)
     || aggEngRate
-  const reach     = dailyTotals.reach
-    || _n(overview.totalReach ?? overview.total_reach ?? overview.reach)
-    || aggReach
+  const reach     = platformFilter && postsArr.length
+    ? postAggReach
+    : dailyTotals.reach
+      || _n(overview.totalReach ?? overview.total_reach ?? overview.reach)
+      || aggReach
   const followers = totalFollowers || _n(overview.totalFollowers ?? overview.total_followers ?? overview.followers)
-  const posts     = dailyTotals.posts
-    || _n(overview.totalPosts ?? overview.postsCount ?? overview.posts_count ?? overview.total_posts ?? overview.posts)
-    || postsArr.length
+  const posts     = platformFilter && postsArr.length
+    ? postsArr.length
+    : dailyTotals.posts
+      || _n(overview.totalPosts ?? overview.postsCount ?? overview.posts_count ?? overview.total_posts ?? overview.posts)
+      || postsArr.length
 
   // Live-only mapper — never seed from MOCK_POSTING_ANALYTICS; sparse/zero is honest truth.
   const result = emptyLivePostingAnalytics()
@@ -688,7 +814,9 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
   }
 
   if (dailyStats.length || hasCombined) {
-    result.monthly = bucketDailyStats(dailyStats, postsByDate, dateRange)
+    result.monthly = platformFilter && postsArr.length
+      ? bucketPostsForMonthly(postsArr, dateRange)
+      : bucketDailyStats(dailyStats, postsByDate, dateRange)
 
     // follower evolution — use daily stats if they carry followersCount per day
     const followersByDay = dailyStats
@@ -865,7 +993,7 @@ function mapZernioResponse(raw: unknown, dateRange = '30d', activePlatform = 'al
   // Posting frequency scatter and cadence summary.
   const postingFrequencyEntries = _a<Record<string, unknown>>(
     postingFrequencyRaw.points ?? postingFrequencyRaw.data ?? postingFrequencyRaw.results ?? postingFrequencyRaw.frequency ?? []
-  )
+  ).filter(entry => platformMatches(_s(entry.platform ?? entry.platformName), platformFilter || undefined))
   if (postingFrequencyEntries.length) {
     const scatter = postingFrequencyEntries.map(entry => {
       const platform = _s(entry.platform ?? entry.platformName ?? '')
@@ -3730,6 +3858,7 @@ export default function AnalyticsClient({
   const [inboxData, setInboxData]           = useState<AnalyticsInboxData>(() => initialInboxData(dataState))
   const [inboxFetchError, setInboxFetchError] = useState('')
   const [inboxLoading, setInboxLoading]     = useState(false)
+  const zernioFetchGen = useRef(0)
 
   const isMock = dataState === 'mock'
 
@@ -3858,9 +3987,18 @@ export default function AnalyticsClient({
 
   useEffect(() => { fetchGaData() }, [fetchGaData])
 
+  // Clear stale analytics immediately when platform or date range changes.
+  useEffect(() => {
+    if (dataState !== 'live') return
+    setPostingData(emptyLivePostingAnalytics())
+    setPostingFetchError('')
+    setAnalyticsSyncPending(false)
+  }, [platformFilter, dateRange, dataState])
+
   // Fetch Zernio social analytics (live state only)
   const fetchZernioData = useCallback(async () => {
     if (dataState !== 'live') return
+    const fetchGen = ++zernioFetchGen.current
     setPostingLoading(true)
     setPostingFetchError('')
     try {
@@ -3868,6 +4006,7 @@ export default function AnalyticsClient({
       if (platformFilter !== 'all') q.set('platform', platformFilter)
       const res  = await fetch(`/api/analytics/zernio/social?${q}`, { cache: 'no-store' })
       const json = await res.json()
+      if (fetchGen !== zernioFetchGen.current) return
       if (!res.ok || json.error) {
         const detail = typeof json.detail === 'string' ? json.detail : ''
         setPostingFetchError(
@@ -3880,14 +4019,16 @@ export default function AnalyticsClient({
         return
       }
       const mapped = mapZernioResponse(json, dateRange, platformFilter)
+      if (fetchGen !== zernioFetchGen.current) return
       setPostingData(mapped ?? emptyLivePostingAnalytics())
       setAnalyticsSyncPending(Boolean(json.analyticsSyncPending))
     } catch {
+      if (fetchGen !== zernioFetchGen.current) return
       setPostingFetchError("Couldn't load analytics. Check your connection and try again.")
       setPostingData(emptyLivePostingAnalytics())
       setAnalyticsSyncPending(false)
     } finally {
-      setPostingLoading(false)
+      if (fetchGen === zernioFetchGen.current) setPostingLoading(false)
     }
   }, [dataState, dateRange, platformFilter])
 
@@ -4060,6 +4201,7 @@ export default function AnalyticsClient({
         <PostingDataContext.Provider value={postingData}>
           {activeTab === 'posting' && (
             <PostingAnalyticsContent
+              key={`${platformFilter}-${dateRange}`}
               isMock={isMock}
               dataState={dataState}
               fetchError={postingFetchError}

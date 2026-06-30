@@ -204,6 +204,8 @@
 .lab5 .sec-head { text-align: center; max-width: 620px; margin: 0 auto 60px; min-width: 0; }
 .lab5 .sec-head .eyebrow { margin-bottom: 16px; display: block; }
 .lab5 .sec-head .t-lead { margin-top: 16px; }
+.lab5 .sec-head .t-lead a { color: #3B82F6; font-weight: 500; text-decoration: none; }
+.lab5 .sec-head .t-lead a:hover { text-decoration: underline; }
 
 /* ---- how it works ---- */
 .lab5 .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
@@ -300,6 +302,199 @@
   color: var(--l5-ink);
 }
 
+/* ---- stack compare (fragmented tools vs one OS) ---- */
+.lab5 .stack-compare-section {
+  background: #fff;
+  border-top: 1px solid var(--l5-line-2);
+}
+.lab5 .stack-compare-head {
+  max-width: 680px;
+}
+.lab5 .stack-panel {
+  border: 1px solid var(--l5-line);
+  border-radius: 24px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--l5-shadow-win);
+}
+.lab5 .stack-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 28px;
+  padding: 28px 40px;
+  border-bottom: 1px solid var(--l5-line-2);
+  background: linear-gradient(180deg, #FAFAFB 0%, #fff 100%);
+}
+.lab5 .stack-flow-side {
+  min-width: 0;
+}
+.lab5 .stack-flow-label {
+  display: block;
+  font-family: var(--l5-mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--l5-faint);
+  margin-bottom: 12px;
+}
+.lab5 .stack-flow-side-os .stack-flow-label { color: #3B82F6; }
+.lab5 .stack-flow-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lab5 .stack-flow-tool {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--l5-muted);
+  background: #fff;
+  border: 1px solid var(--l5-line);
+  white-space: nowrap;
+}
+.lab5 .stack-flow-tool-more {
+  color: var(--l5-faint);
+  background: transparent;
+  border-style: dashed;
+}
+.lab5 .stack-flow-os {
+  margin: 0;
+  font-size: clamp(17px, 1.6vw, 20px);
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -.022em;
+  color: var(--l5-ink);
+  max-width: 22rem;
+}
+.lab5 .stack-flow-bridge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  width: 72px;
+}
+.lab5 .stack-flow-bridge-line {
+  flex: 1;
+  height: 1px;
+  background: var(--l5-line);
+}
+.lab5 .stack-flow-bridge-icon {
+  font-size: 15px;
+  color: var(--l5-faint);
+  line-height: 1;
+}
+.lab5 .stack-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+}
+.lab5 .stack-rails {
+  padding: 12px 40px 36px;
+  min-width: 0;
+}
+.lab5 .stack-rail {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--l5-line-2);
+}
+.lab5 .stack-rail:last-child { border-bottom: none; padding-bottom: 8px; }
+.lab5 .stack-rail-dim {
+  font-family: var(--l5-mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--l5-faint);
+  padding-top: 5px;
+}
+.lab5 .stack-rail-before {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--l5-faint);
+}
+.lab5 .stack-rail-after {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.45;
+  font-weight: 600;
+  letter-spacing: -.018em;
+  color: var(--l5-ink);
+}
+.lab5 .stack-spine-wrap {
+  padding: 36px 40px;
+  background: #FAFAFB;
+  border-left: 1px solid var(--l5-line-2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.lab5 .stack-spine-title {
+  margin: 0 0 24px;
+  font-family: var(--l5-mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--l5-faint);
+}
+.lab5 .stack-spine {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.lab5 .stack-spine-step {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  position: relative;
+  padding: 11px 0;
+}
+.lab5 .stack-spine-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 28px;
+  bottom: -11px;
+  width: 2px;
+  background: linear-gradient(to bottom, #D8D8DE, rgba(216, 216, 222, 0.25));
+}
+.lab5 .stack-spine-node {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #CBD5E1;
+  position: relative;
+  z-index: 1;
+}
+.lab5 .stack-spine-step-1 .stack-spine-node { border-color: #94A3B8; background: #F1F5F9; }
+.lab5 .stack-spine-step-2 .stack-spine-node { border-color: #F5349B; background: #FCE7F3; }
+.lab5 .stack-spine-step-3 .stack-spine-node { border-color: #3B82F6; background: #DBEAFE; }
+.lab5 .stack-spine-step-4 .stack-spine-node {
+  border-color: #10B981;
+  background: #D1FAE5;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+.lab5 .stack-spine-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.015em;
+  color: var(--l5-ink);
+  line-height: 1.35;
+}
+.lab5 .stack-spine-step-4 .stack-spine-label { color: #0F766E; }
+
 .lab5 .integrations-block + .integrations-block {
   margin-top: 56px;
   padding-top: 56px;
@@ -331,7 +526,15 @@
   color: var(--l5-muted);
 }
 
-/* ---- workflow cards (how-it-works page) ---- */
+/* ---- workflow section (how-it-works page) ---- */
+.lab5 .workflow-section {
+  background: #fff;
+  border-top: 1px solid var(--l5-line-2);
+  padding: 96px 0 108px;
+}
+.lab5 .workflow-section .sec-head {
+  margin-bottom: 48px;
+}
 .lab5 .workflow-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -340,7 +543,7 @@
 .lab5 .workflow-card {
   border: 1px solid var(--l5-line-2);
   border-radius: 20px;
-  padding: 26px 26px 22px;
+  padding: 32px 32px 28px;
   background: #fff;
 }
 .lab5 .workflow-card h3 {
@@ -803,6 +1006,25 @@
   .lab5 .feat.flip .feat-copy, .lab5 .feat.flip .feat-visual { order: 0; }
   .lab5 .steps, .lab5 .cards, .lab5 .uses, .lab5 .price-grid { grid-template-columns: 1fr 1fr; }
   .lab5 .compare-grid, .lab5 .workflow-grid { grid-template-columns: 1fr; }
+  .lab5 .stack-flow {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 24px 28px;
+  }
+  .lab5 .stack-flow-bridge {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    justify-content: center;
+  }
+  .lab5 .stack-flow-bridge-icon { transform: rotate(90deg); }
+  .lab5 .stack-body { grid-template-columns: 1fr; }
+  .lab5 .stack-spine-wrap {
+    border-left: none;
+    border-top: 1px solid var(--l5-line-2);
+    padding: 28px;
+  }
+  .lab5 .stack-rails { padding: 8px 28px 28px; }
   .lab5 .hero-orb { height: 360px; margin: -20px -40px -48px; }
 }
 @media (max-width: 860px) {
@@ -820,6 +1042,7 @@
 @media (max-width: 720px) {
   .lab5 { --l5-pad: 20px; }
   .lab5 section { padding: 64px 0; }
+  .lab5 .workflow-section { padding: 64px 0; }
   .lab5 .sec-head { margin-bottom: 40px; }
   .lab5 .hero { padding: 40px 0 0; }
   .lab5 .hero-grid { min-height: 0; }
@@ -871,6 +1094,14 @@
 @media (max-width: 600px) {
   .lab5 .steps, .lab5 .cards, .lab5 .uses, .lab5 .price-grid { grid-template-columns: 1fr; }
   .lab5 .compare-grid, .lab5 .workflow-grid { grid-template-columns: 1fr; }
+  .lab5 .stack-flow { padding: 22px 20px; }
+  .lab5 .stack-rails { padding: 4px 20px 24px; }
+  .lab5 .stack-rail {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 22px 0;
+  }
+  .lab5 .stack-spine-wrap { padding: 24px 20px; }
   .lab5 .integrations-list li { grid-template-columns: 1fr; gap: 6px; }
   .lab5 .cta-section { margin: 0 16px; border-radius: 18px; }
 }
@@ -999,7 +1230,14 @@
   line-height: 1.65;
   color: var(--l5-ink-2);
 }
-.lab5 .blog-strong { font-weight: 600; color: var(--l5-ink); margin-top: 8px; }
+.lab5 .blog-p strong,
+.lab5 .blog-li strong,
+.lab5 .blog-quote strong,
+.lab5 .blog-strong strong {
+  font-weight: 600;
+  color: var(--l5-ink);
+}
+.lab5 .blog-strong { margin-top: 8px; }
 .lab5 .blog-li { margin-left: 18px; list-style: disc; }
 .lab5 .blog-quote {
   border-left: 3px solid var(--l5-blue);
@@ -1096,6 +1334,25 @@
 .lab5 .company-block .t-h2 { margin-bottom: 14px; }
 .lab5 .company-block .t-body + .t-body { margin-top: 14px; }
 .lab5 .company-block a { color: var(--l5-blue); text-decoration: underline; text-underline-offset: 3px; }
+.lab5 .company-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lab5 .company-list li {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--l5-ink-2);
+  padding-left: 22px;
+  position: relative;
+}
+.lab5 .company-list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--l5-faint);
+}
 
 .lab5 .contact-grid {
   display: grid;

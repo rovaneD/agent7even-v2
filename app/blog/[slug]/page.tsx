@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import '../../lab5/styles.css'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { marketingPageMetadata } from '@/lib/marketing/seoMetadata'
+import BlogPostJsonLd from '@/components/marketing/BlogPostJsonLd'
 import BlogPostClient from '../../lab5/blog/BlogPostClient'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -28,5 +29,15 @@ export default async function BlogPostPage({ params }: Props) {
   if (!post) notFound()
 
   const related = getAllPosts().filter((p) => p.slug !== slug).slice(0, 2)
-  return <BlogPostClient post={post} related={related} />
+  return (
+    <>
+      <BlogPostJsonLd
+        title={post.title}
+        description={post.excerpt}
+        slug={slug}
+        date={post.date}
+      />
+      <BlogPostClient post={post} related={related} />
+    </>
+  )
 }

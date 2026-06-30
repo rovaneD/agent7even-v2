@@ -9,6 +9,7 @@ import BlogImage from '@/components/marketing/BlogImage'
 import type { PostSummary } from '@/lib/blog'
 import type { BlogPostView } from '@/lib/marketing/renderBlogContent'
 import { formatPostDate, formatPostDateShort, renderBlogContent } from '@/lib/marketing/renderBlogContent'
+import { getBlogProductCta } from '@/lib/marketing/blogProductCta'
 
 export default function BlogPostClient({
   post,
@@ -32,6 +33,8 @@ export default function BlogPostClient({
     document.querySelectorAll('.lab5 .reveal').forEach((el) => io.observe(el))
     return () => io.disconnect()
   }, [])
+
+  const productCta = getBlogProductCta(post.service)
 
   return (
     <div className="lab5">
@@ -59,11 +62,9 @@ export default function BlogPostClient({
         <div className="blog-content">{renderBlogContent(post.content, post.inlineQueries)}</div>
 
         <div className="blog-post-cta">
-          <span className="eyebrow">Related capability</span>
-          <h2 className="t-h3">{post.service}</h2>
-          <p className="t-body">
-            Available inside Agent7even — Maya coordinates specialist agents so you draft, approve, and publish from one place.
-          </p>
+          <span className="eyebrow">Inside Agent7even</span>
+          <h2 className="t-h3">{productCta.headline}</h2>
+          <p className="t-body">{productCta.body}</p>
           <Link
             className="btn btn-primary"
             href="/pricing"

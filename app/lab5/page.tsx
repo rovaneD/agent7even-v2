@@ -9,7 +9,7 @@ import { useMockupScript } from './useMockupScript'
 
 import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
 import { HOW_IT_WORKS_STEPS } from '@/lib/marketing/howItWorksContent'
-import { AI_VS_AGENCY_COMPARE } from '@/lib/marketing/aiVsAgencyContent'
+import StackCompareSection from '@/components/marketing/StackCompareSection'
 
 declare global {
   interface Window {
@@ -57,11 +57,6 @@ export default function Lab5Page() {
               <span className="hero-lead-line">Nothing goes live without your&nbsp;approval.</span>
             </p>
             <p className="hero-tagline">The operating system for your marketing.</p>
-            <p className="hero-pricing-hook">
-              Not{' '}
-              <a href="/pricing">agencies charging $3K/month for reports</a>
-              {' '}— Starter from $49/mo with a 3-day trial.
-            </p>
             <div className="hero-cta">
               <div className="hero-primary-stack">
                 <a
@@ -120,37 +115,7 @@ export default function Lab5Page() {
         </div>
       </div>
 
-      {/* AI VS TRADITIONAL */}
-      <section id="compare" className="compare-section">
-        <div className="wrap">
-          <div className="sec-head reveal">
-            <span className="eyebrow">AI marketing vs traditional</span>
-            <h2 className="t-h2">Strategy and execution — without the agency invoice.</h2>
-            <p className="t-lead">
-              Traditional marketing stacks tools, freelancers, and retainers. Agent7even gives you an AI marketing strategist plus twelve specialist agents — with an approval queue so nothing publishes without you.{' '}
-              <a href="/ai-vs-agency">See the full AI vs agency comparison →</a>
-            </p>
-          </div>
-          <div className="compare-grid reveal">
-            <div className="compare-col compare-traditional">
-              <h3>{AI_VS_AGENCY_COMPARE.traditional.title}</h3>
-              <ul>
-                {AI_VS_AGENCY_COMPARE.traditional.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="compare-col compare-agent7even">
-              <h3>{AI_VS_AGENCY_COMPARE.agent7even.title}</h3>
-              <ul>
-                {AI_VS_AGENCY_COMPARE.agent7even.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+      <StackCompareSection />
 
       {/* HOW IT WORKS */}
       <section id="how">
@@ -380,6 +345,10 @@ export default function Lab5Page() {
           <div className="sec-head reveal">
             <span className="eyebrow">Questions</span>
             <h2 className="t-h2">Everything you need to know.</h2>
+            <p className="t-lead">
+              Prefer long-form guides? Read practical AI marketing tips on our{' '}
+              <a href="/blog">blog</a>.
+            </p>
           </div>
           <div className="faq reveal">
             {FAQ_ITEMS.map(({ q, a }, i) => (

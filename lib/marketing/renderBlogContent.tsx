@@ -1,6 +1,19 @@
 import type { ReactNode } from 'react'
 import BlogImage from '@/components/marketing/BlogImage'
 
+/** Parse `**bold**` segments within a line of blog markdown. */
+export function renderInlineMarkdown(text: string): ReactNode {
+  const parts = text.split(/(\*\*.+?\*\*)/g)
+  if (parts.length === 1) return text
+
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>
+    }
+    return part
+  })
+}
+
 export function renderBlogContent(content: string, inlineQueries: string[] = []) {
   const lines = content.split('\n')
   const elements: ReactNode[] = []
@@ -22,31 +35,31 @@ export function renderBlogContent(content: string, inlineQueries: string[] = [])
       }
       elements.push(
         <h2 key={i} className="blog-h2">
-          {line.replace('## ', '')}
+          {renderInlineMarkdown(line.replace('## ', ''))}
         </h2>
       )
     } else if (line.startsWith('### ')) {
       elements.push(
         <h3 key={i} className="blog-h3">
-          {line.replace('### ', '')}
+          {renderInlineMarkdown(line.replace('### ', ''))}
         </h3>
       )
-    } else if (line.startsWith('**') && line.endsWith('**')) {
+    } else if (line.startsWith('**') && line.endsWith('**') && !line.includes('**', 2)) {
       elements.push(
         <p key={i} className="blog-strong">
-          {line.replace(/\*\*/g, '')}
+          {renderInlineMarkdown(line)}
         </p>
       )
     } else if (line.startsWith('- ')) {
       elements.push(
         <li key={i} className="blog-li">
-          {line.replace('- ', '')}
+          {renderInlineMarkdown(line.replace('- ', ''))}
         </li>
       )
     } else if (line.startsWith('> ')) {
       elements.push(
         <blockquote key={i} className="blog-quote">
-          {line.replace('> ', '')}
+          {renderInlineMarkdown(line.replace('> ', ''))}
         </blockquote>
       )
     } else if (line.trim() === '') {
@@ -54,7 +67,7 @@ export function renderBlogContent(content: string, inlineQueries: string[] = [])
     } else {
       elements.push(
         <p key={i} className="blog-p">
-          {line}
+          {renderInlineMarkdown(line)}
         </p>
       )
     }

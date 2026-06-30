@@ -18,7 +18,7 @@ export default function MarketingFooter() {
             <a href="/how-it-works">How it works</a>
             <a href="/agents">AI marketing agents</a>
             <a href="/integrations">Integrations</a>
-            <a href="/ai-vs-agency">AI vs agency</a>
+            <a href="/vs-scheduling-tools">vs scheduling tools</a>
             <a href="/pricing">Pricing</a>
             <a href="/use-cases">Use cases</a>
             <a href="/sign-up" onClick={() => trackEvent('sign_up_click', { location: 'footer' })}>Sign up</a>
@@ -36,6 +36,7 @@ export default function MarketingFooter() {
             <h5>Company</h5>
             <a href="/about">About</a>
             <a href="/blog">Blog</a>
+            <a href="/case-studies">Customer stories</a>
             <a href="/careers">Careers</a>
             <a href="/contact">Contact</a>
           </div>

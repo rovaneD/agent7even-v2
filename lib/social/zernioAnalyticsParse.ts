@@ -399,6 +399,11 @@ export function pickBestAnalyticsPost(
   }
 }
 
+export function platformMatches(value: string | undefined, filter: string | undefined): boolean {
+  if (!filter || filter === 'all') return true
+  return (value ?? '').toLowerCase() === filter.toLowerCase()
+}
+
 /** Filter posts when UI platform filter is active */
 export function filterPostsByPlatform(posts: unknown[], platform?: string): unknown[] {
   if (!platform) return posts

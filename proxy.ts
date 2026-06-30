@@ -7,6 +7,8 @@ const isPublicRoute = createRouteMatcher([
   '/features',
   '/how-it-works',
   '/ai-vs-agency',
+  '/vs-scheduling-tools',
+  '/case-studies',
   '/integrations',
   '/for-coaches',
   '/for-consultants',

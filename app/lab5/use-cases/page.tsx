@@ -8,10 +8,10 @@ import MarketingFooter from '../MarketingFooter'
 import { cases } from '../../lab-use-cases/_data'
 
 const CARD_IMAGES: Record<string, string> = {
-  ecommerce: '/lab5/uc-ecommerce.jpg',
-  'local-service': '/lab5/uc-local.jpg',
-  'coaches-creators': '/lab5/uc-creators.jpg',
-  startups: '/lab5/uc-agencies.jpg',
+  ecommerce: '/lab5/uc-ecommerce.webp',
+  'local-service': '/lab5/uc-local.webp',
+  'coaches-creators': '/lab5/uc-creators.webp',
+  startups: '/lab5/uc-agencies.webp',
 }
 
 /** Local service leads — strongest vertical per A1 §5 */

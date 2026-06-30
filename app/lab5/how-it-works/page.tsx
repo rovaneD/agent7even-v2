@@ -47,7 +47,7 @@ export default function HowItWorksPage() {
             <span className="eyebrow">Three steps</span>
             <h2 className="t-h2">From idea to approval queue.</h2>
             <p className="t-lead">
-              No agency briefs. No tool-hopping. Tell Maya what you need and specialist agents draft the work — you stay in control.
+              No scattered briefs. No tool-hopping. Tell Maya what you need and specialist agents draft the work — you stay in control.
             </p>
           </div>
           <div className="steps">
@@ -62,7 +62,7 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="compare-section" style={{ paddingTop: 0 }}>
+      <section className="workflow-section">
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">The workflow</span>
@@ -85,7 +85,7 @@ export default function HowItWorksPage() {
       <div className="cta-section">
         <div className="cta-in">
           <h2>See it on your business.</h2>
-          <p>Maya learns your Foundation once — then drafts campaigns you approve, not reports you pay an agency to write.</p>
+          <p>Maya learns your Foundation once — then drafts campaigns you approve from one conversation.</p>
           <div className="cta-btns">
             <Link
               className="btn btn-white btn-lg"

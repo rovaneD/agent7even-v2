@@ -41,7 +41,7 @@ export default function AboutPage() {
           <div className="company-block reveal">
             <h2 className="t-h2">What we build</h2>
             <p className="t-body">
-              Most small businesses do not lack ideas — they lack time and a marketing department. Agent7even gives solo operators and small teams the output of a full marketing org: campaign planning, social content, email sequences, SEO audits, competitive reports, and on-brand creative — without a $3K/month agency retainer.
+              Most small businesses do not lack ideas — they lack time and a marketing department. Agent7even gives solo operators and small teams campaign planning, social content, email sequences, SEO guidance, competitive reports, and on-brand creative — drafted in your voice and queued for your approval.
             </p>
             <p className="t-body">
               Maya is the interface. Twelve specialist agents are the substance. You stay in control through an approval-first workflow — nothing publishes until you sign off.
