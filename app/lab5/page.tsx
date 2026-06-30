@@ -10,6 +10,7 @@ import { useMockupScript } from './useMockupScript'
 import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
 import { HOW_IT_WORKS_STEPS } from '@/lib/marketing/howItWorksContent'
 import StackCompareSection from '@/components/marketing/StackCompareSection'
+import CreativeShowcase from '@/components/marketing/CreativeShowcase'
 
 declare global {
   interface Window {
@@ -177,14 +178,14 @@ export default function Lab5Page() {
             <div className="feat-copy">
               <div className="feat-relief">Creative</div>
               <h3 className="t-h3">Images and video, on-brand.</h3>
-              <p className="t-body">Generate post images in your brand style, short-form video, and captions that match what&rsquo;s in the frame — not generic stock.</p>
+              <p className="t-body">Skip the stock search. Maya generates post images and Reels from your Foundation and Brand Kit — then writes the caption from what&rsquo;s actually in the frame.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>AI images from your Brand Kit and Foundation</div>
-                <div className="check"><i>✓</i>Reads your image and writes the caption</div>
-                <div className="check"><i>✓</i>Every asset waits in your approval queue</div>
+                <div className="check"><i>✓</i>Colors, style, and scene direction pulled from your brand</div>
+                <div className="check"><i>✓</i>Captions written after reading the image — not a blank template</div>
+                <div className="check"><i>✓</i>You approve every asset before it can publish</div>
               </div>
             </div>
-            <div className="feat-visual"><div className="mk" data-mk="calendar"></div></div>
+            <div className="feat-visual"><CreativeShowcase /></div>
           </div>
           <hr className="feat-rule" />
 
@@ -203,7 +204,7 @@ export default function Lab5Page() {
           </div>
           <hr className="feat-rule" />
 
-          <div className="feat reveal">
+          <div className="feat flip reveal">
             <div className="feat-copy">
               <div className="feat-relief">SEO</div>
               <h3 className="t-h3">Your site, audited.</h3>
@@ -214,11 +215,11 @@ export default function Lab5Page() {
                 <div className="check"><i>✓</i>Runs on your saved website URL</div>
               </div>
             </div>
-            <div className="feat-visual"><div className="mk" data-mk="watch"></div></div>
+            <div className="feat-visual"><div className="mk" data-mk="seo"></div></div>
           </div>
           <hr className="feat-rule" />
 
-          <div className="feat flip reveal">
+          <div className="feat reveal">
             <div className="feat-copy">
               <div className="feat-relief">Competitors</div>
               <h3 className="t-h3">The market, understood.</h3>

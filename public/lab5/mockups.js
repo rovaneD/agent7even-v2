@@ -50,6 +50,7 @@
       mega: '<path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1Z"/><path d="M14 8a4 4 0 0 1 0 8"/>',
       cal: '<rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5 9h17M8 3v3M16 3v3"/>',
       eye: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/>',
+      search: '<circle cx="11" cy="11" r="6.5"/><path d="m21 21-4.3-4.3"/>',
       inbox: '<path d="M4 13h4l1.5 2.5h5L16 13h4M4 13 6 5h12l2 8v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/>',
       user: '<circle cx="12" cy="8.5" r="3.3"/><path d="M5.5 19a6.5 6.5 0 0 1 13 0"/>',
     }[name] || '';
@@ -172,6 +173,22 @@
             <div class="mk-note accent-red"><div class="nl">Maya flagged</div><div style="font-size:13.5px;font-weight:600;color:var(--ink);margin:1px 0 3px">Rival Coffee Co. launched a 15% off promo</div><div class="nt">Running on Instagram since yesterday. Want a counter-offer drafted before the weekend?</div></div>
             <div class="mk-row"><span class="dot" style="background:var(--amber)"></span><div class="grow"><div class="rt">The Press Bar — new Instagram ad</div><div class="rs">Spotted 2 days ago</div></div><span class="tag tag-ghost">Watching</span></div>
             <div class="mk-row"><span class="dot" style="background:var(--blue)"></span><div class="grow"><div class="rt">Grounds Market — email campaign</div><div class="rs">Spotted 3 days ago</div></div><span class="tag tag-ghost">Watching</span></div>
+          </div>
+        </div>
+      </div>`,
+
+    /* SEO scanner */
+    seo: () => `
+      <div class="mk-bar"><div class="mk-traffic"><i></i><i></i><i></i></div><div class="mk-url">agent7even.ai/agents</div></div>
+      <div class="mk-body" style="height:392px">
+        ${rail([['search', true], ['mega', false], ['eye', false]])}
+        <div class="mk-main">
+          <div class="mk-main-hd"><div><div class="ttl">SEO Scanner</div><div class="sub">embercoffee.com · homepage + key pages</div></div><span class="pill" style="font-size:11px;padding:5px 11px;background:#E8F4FD;color:#075985">3 fixes</span></div>
+          <div class="mk-pad">
+            <div class="mk-note accent-blue"><div class="nl">Quick win</div><div style="font-size:13.5px;font-weight:600;color:var(--ink);margin:1px 0 3px">Homepage meta description is too generic</div><div class="nt">Add "specialty coffee" and your neighborhood — aligned with your Foundation positioning.</div></div>
+            <div class="mk-row"><span class="dot" style="background:var(--amber)"></span><div class="grow"><div class="rt">Title tag · /menu</div><div class="rs">Missing your primary offer keywords</div></div><span class="tag tag-amber">Fix</span></div>
+            <div class="mk-row"><span class="dot" style="background:var(--blue)"></span><div class="grow"><div class="rt">Content gap · brewing guides</div><div class="rs">Topic competitors rank for — you have no page yet</div></div><span class="tag tag-blue">Plan</span></div>
+            <div class="mk-row"><span class="dot" style="background:var(--green)"></span><div class="grow"><div class="rt">H1 · homepage</div><div class="rs">Clear and on-message — no change needed</div></div><span class="tag tag-green">OK</span></div>
           </div>
         </div>
       </div>`,

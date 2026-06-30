@@ -9,7 +9,7 @@ export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
   {
     n: '02',
     title: 'She drafts it in your voice',
-    body: 'Posts, emails, images, and captions — built from your Brand Kit. Campaign Builder, Weekly Content, and Content Posting coordinate behind one conversation.',
+    body: 'Campaign plans, post copy, emails, images, and Reels — grounded in your Foundation and Brand Kit. Maya coordinates the specialists behind one conversation.',
   },
   {
     n: '03',
