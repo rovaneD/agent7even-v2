@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { trackEvent } from '@/lib/gtag'
 
 const LINKS: { href: string; label: string; key?: string }[] = [
-  { href: '/#how', label: 'How it works' },
+  { href: '/how-it-works', label: 'How it works' },
   { href: '/#features', label: 'Features' },
   { href: '/agents', label: 'Agents', key: 'agents' },
   { href: '/pricing', label: 'Pricing', key: 'pricing' },

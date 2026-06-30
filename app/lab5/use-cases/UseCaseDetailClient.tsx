@@ -98,9 +98,19 @@ const ArrowRight = () => (
   </svg>
 )
 
-type Props = { slug: string }
+type Props = {
+  slug: string
+  labelOverride?: string
+  headlineOverride?: string
+  subheadOverride?: string
+}
 
-export default function UseCaseDetailClient({ slug }: Props) {
+export default function UseCaseDetailClient({
+  slug,
+  labelOverride,
+  headlineOverride,
+  subheadOverride,
+}: Props) {
   const cfg = SEG[slug]
   const uc = cases.find((c) => c.slug === slug)
   useMockupScript('/lab5/usecase-mockups.js', '__initUseCaseMockups')
@@ -135,9 +145,9 @@ export default function UseCaseDetailClient({ slug }: Props) {
 
         {/* HERO */}
         <header className="uc-hero">
-          <span className="seg-eyebrow"><span className="sd" />{uc.label}</span>
-          <h1 className="t-display">{headlineLines(uc.hero.headline)}</h1>
-          <p className="t-lead">{uc.hero.subhead}</p>
+          <span className="seg-eyebrow"><span className="sd" />{labelOverride ?? uc.label}</span>
+          <h1 className="t-display">{headlineLines(headlineOverride ?? uc.hero.headline)}</h1>
+          <p className="t-lead">{subheadOverride ?? uc.hero.subhead}</p>
           <div className="uc-stage reveal">
             <div data-uc={cfg.ucKey}></div>
           </div>

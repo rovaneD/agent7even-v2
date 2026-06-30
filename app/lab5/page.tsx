@@ -7,6 +7,7 @@ import MarketingNav from './MarketingNav'
 import { useMockupScript } from './useMockupScript'
 
 import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
+import { HOW_IT_WORKS_STEPS } from '@/lib/marketing/howItWorksContent'
 
 declare global {
   interface Window {
@@ -112,30 +113,58 @@ export default function Lab5Page() {
         </div>
       </div>
 
+      {/* AI VS TRADITIONAL */}
+      <section id="compare" className="compare-section">
+        <div className="wrap">
+          <div className="sec-head reveal">
+            <span className="eyebrow">AI marketing vs traditional</span>
+            <h2 className="t-h2">Strategy and execution — without the agency invoice.</h2>
+            <p className="t-lead">
+              Traditional marketing stacks tools, freelancers, and retainers. Agent7even gives you an AI marketing strategist plus twelve specialist agents — with an approval queue so nothing publishes without you.
+            </p>
+          </div>
+          <div className="compare-grid reveal">
+            <div className="compare-col compare-traditional">
+              <h3>Traditional marketing</h3>
+              <ul>
+                <li>Agency retainers ($3K+/mo) for strategy decks and reports</li>
+                <li>You write every post — or hire separately per channel</li>
+                <li>Scheduling tools post what you give them; they don&rsquo;t plan or draft</li>
+                <li>Campaigns, SEO, and content live in different tools and inboxes</li>
+              </ul>
+            </div>
+            <div className="compare-col compare-agent7even">
+              <h3>With Agent7even</h3>
+              <ul>
+                <li>Maya drafts full campaigns from one conversation — you approve before anything ships</li>
+                <li>Twelve agents for content, creative, SEO, ads, and competitive intel</li>
+                <li>Brand Kit keeps every draft in your voice — not generic AI copy</li>
+                <li>Starter from $49/mo with a 3-day trial — not a four-figure retainer</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* HOW IT WORKS */}
       <section id="how">
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">How it works</span>
             <h2 className="t-h2">One conversation. A week of marketing done.</h2>
-            <p className="t-lead">No briefs, no tool-hopping. Tell Maya what you want and she takes it from idea to your approval queue — you stay in control.</p>
+            <p className="t-lead">
+              No briefs, no tool-hopping. Tell Maya what you want and she takes it from idea to your approval queue — you stay in control.{' '}
+              <a href="/how-it-works">See the full AI marketing automation workflow →</a>
+            </p>
           </div>
           <div className="steps">
-            <div className="step reveal">
-              <div className="step-n">01</div>
-              <h3>Tell her what you want</h3>
-              <p>&ldquo;Promote the Friday slot.&rdquo; &ldquo;We&rsquo;ve gone quiet — fix it.&rdquo; Maya already knows your business and gets to work.</p>
-            </div>
-            <div className="step reveal">
-              <div className="step-n">02</div>
-              <h3>She drafts it in your voice</h3>
-              <p>Posts, emails, images, and captions — built from your Brand Kit. One voice, every channel.</p>
-            </div>
-            <div className="step reveal">
-              <div className="step-n">03</div>
-              <h3>You approve, you publish</h3>
-              <p>Nothing goes live until you sign off. Review the queue, approve what&rsquo;s right, then schedule or publish in a click.</p>
-            </div>
+            {HOW_IT_WORKS_STEPS.map((step) => (
+              <div key={step.n} className="step reveal">
+                <div className="step-n">{step.n}</div>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -401,6 +430,7 @@ export default function Lab5Page() {
             </div>
             <div className="fcol">
               <h5>Product</h5>
+              <a href="/how-it-works">How it works</a>
               <a href="/agents">AI marketing agents</a>
               <a href="#features">Features</a>
               <a href="/pricing">AI marketing platform pricing</a>
@@ -409,6 +439,8 @@ export default function Lab5Page() {
             </div>
             <div className="fcol">
               <h5>Use cases</h5>
+              <a href="/for-coaches">Coaches</a>
+              <a href="/for-consultants">Consultants</a>
               <a href="/use-cases/ecommerce">E-commerce</a>
               <a href="/use-cases/local-service">Local service</a>
               <a href="/use-cases/coaches-creators">Creators</a>

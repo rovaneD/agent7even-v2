@@ -26,7 +26,8 @@ AUDIT RULES:
 - If Website Snapshot lists JSON-LD schema types (Organization, SoftwareApplication, FAQPage), do NOT flag schema as missing.
 - If homepage title contains "AI Marketing Strategist" and "Automation", do NOT claim target keywords are missing from the title.
 - There is no /features page (redirects to /agents) and no /about or /blog — do not recommend creating meta for those paths.
-- Use case pages exist under /use-cases/* (including coaches-creators) — do not claim industry pages are missing without checking URLs.
+- Use case pages exist under /use-cases/* (including coaches-creators) — /for-coaches and /for-consultants are dedicated industry landing URLs.
+- /how-it-works is a standalone page (homepage also has /#how section) — do not claim it is missing.
 - H1 "Marketing, managed." plus eyebrow "AI marketing platform for small business" is intentional — do not recommend replacing H1 with generic keyword stuffing.
 - Do not use the word "autonomous" to mean auto-publishing — this product is approval-first.`
 }

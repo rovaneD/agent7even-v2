@@ -199,6 +199,78 @@
 .lab5 .step h3 { font-size: 19px; margin-bottom: 8px; }
 .lab5 .step p { font-size: 14.5px; color: var(--l5-muted); line-height: 1.55; }
 
+/* ---- compare (AI vs traditional) ---- */
+.lab5 .compare-section { background: #fff; border-top: 1px solid var(--l5-line-2); }
+.lab5 .compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.lab5 .compare-col {
+  border: 1px solid var(--l5-line-2);
+  border-radius: 20px;
+  padding: 28px 28px 24px;
+  background: #fff;
+}
+.lab5 .compare-col h3 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -.022em;
+  margin-bottom: 16px;
+  color: var(--l5-ink);
+}
+.lab5 .compare-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lab5 .compare-col li {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--l5-ink-2);
+  padding-left: 22px;
+  position: relative;
+}
+.lab5 .compare-col li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--l5-faint);
+}
+.lab5 .compare-traditional { background: #FAFAFB; }
+.lab5 .compare-agent7even {
+  border-color: #D8E6FD;
+  background: #F8FAFF;
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.06), 0 16px 40px -28px rgba(59, 130, 246, 0.18);
+}
+.lab5 .compare-agent7even h3 { color: #1D4ED8; }
+
+/* ---- workflow cards (how-it-works page) ---- */
+.lab5 .workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.lab5 .workflow-card {
+  border: 1px solid var(--l5-line-2);
+  border-radius: 20px;
+  padding: 26px 26px 22px;
+  background: #fff;
+}
+.lab5 .workflow-card h3 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  margin-bottom: 10px;
+  color: var(--l5-ink);
+}
+.lab5 .workflow-card p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--l5-muted);
+}
+
 /* ---- feature rows ---- */
 .lab5 .feat { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; padding: 46px 0; min-width: 0; }
 .lab5 .feat.flip .feat-copy { order: 2; }
@@ -645,6 +717,7 @@
   .lab5 .hero-grid, .lab5 .feat { grid-template-columns: 1fr; gap: 34px; }
   .lab5 .feat.flip .feat-copy, .lab5 .feat.flip .feat-visual { order: 0; }
   .lab5 .steps, .lab5 .cards, .lab5 .uses, .lab5 .price-grid { grid-template-columns: 1fr 1fr; }
+  .lab5 .compare-grid, .lab5 .workflow-grid { grid-template-columns: 1fr; }
   .lab5 .hero-orb { height: 360px; margin: -20px -40px -48px; }
 }
 @media (max-width: 860px) {
@@ -712,6 +785,7 @@
 }
 @media (max-width: 600px) {
   .lab5 .steps, .lab5 .cards, .lab5 .uses, .lab5 .price-grid { grid-template-columns: 1fr; }
+  .lab5 .compare-grid, .lab5 .workflow-grid { grid-template-columns: 1fr; }
   .lab5 .cta-section { margin: 0 16px; border-radius: 18px; }
 }
 @media (max-width: 480px) {

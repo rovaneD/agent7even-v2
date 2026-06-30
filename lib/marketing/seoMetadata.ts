@@ -30,6 +30,7 @@ export function marketingPageMetadata(input: {
 /** Public marketing routes included in sitemap.xml */
 export const MARKETING_SITEMAP_PATHS = [
   '/',
+  '/how-it-works',
   '/pricing',
   '/agents',
   '/use-cases',
@@ -37,6 +38,8 @@ export const MARKETING_SITEMAP_PATHS = [
   '/use-cases/ecommerce',
   '/use-cases/coaches-creators',
   '/use-cases/startups',
+  '/for-coaches',
+  '/for-consultants',
   '/privacy',
   '/terms',
   '/security',
@@ -46,10 +49,13 @@ export const MARKETING_SITEMAP_PATHS = [
 /** Human-readable site map for SEO Scanner — only list URLs that actually exist. */
 export function marketingSiteStructureForSeo(): string {
   const pages = [
-    '/ — homepage (how-it-works section at /#how; no standalone /how-it-works page yet)',
+    '/ — homepage (includes AI vs traditional comparison + how-it-works section at /#how)',
+    '/how-it-works — dedicated page for AI marketing automation workflow',
     '/agents — AI marketing agents & platform capabilities (use instead of /features)',
     '/pricing — plans from $49/mo Starter with 3-day trial',
     '/use-cases — industry landing pages (local service, ecommerce, creators, startups)',
+    '/for-coaches — AI marketing for coaches (coaches-creators positioning)',
+    '/for-consultants — AI marketing for consultants (solo expert positioning)',
     '/privacy, /terms, /security, /data-deletion — legal',
   ]
   return pages.map(p => `- ${p}`).join('\n')

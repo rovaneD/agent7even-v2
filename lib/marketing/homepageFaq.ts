@@ -2,6 +2,10 @@ export type HomepageFaqItem = { q: string; a: string }
 
 export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   {
+    q: 'How is AI marketing different from traditional marketing?',
+    a: 'Traditional marketing stacks agencies, freelancers, and scheduling tools — you still write the briefs and stitch the work together. Agent7even gives you an AI marketing strategist (Maya) plus twelve specialist agents that draft campaigns, content, and creative in your voice — everything lands in your approval queue before it publishes.',
+  },
+  {
     q: 'What is AI marketing automation?',
     a: 'AI marketing automation uses specialist agents to plan campaigns, draft content, and queue work for your approval — instead of you doing every post, email, and ad variation manually. Agent7even combines automation with an approval-first workflow so nothing publishes until you sign off.',
   },
