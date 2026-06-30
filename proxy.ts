@@ -6,8 +6,14 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/features',
   '/how-it-works',
+  '/ai-vs-agency',
+  '/integrations',
   '/for-coaches',
   '/for-consultants',
+  '/blog(.*)',
+  '/about',
+  '/careers',
+  '/contact',
   '/pricing',
   '/privacy',
   '/terms',
@@ -28,6 +34,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/team/accept(.*)',
   // Internal server-to-server dispatch — authenticated via taskId UUID + userId in body
   '/api/agents/run/(.*)',
+  '/api/unsplash/image',
   '/robots.txt',
   '/sitemap.xml',
 ])

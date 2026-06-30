@@ -2,6 +2,14 @@ export type HomepageFaqItem = { q: string; a: string }
 
 export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   {
+    q: 'How much does AI marketing cost?',
+    a: 'Agent7even Starter is $49/month ($490/year) with a 3-day free trial — card collected upfront, no charge until day 4. Growth is $89/mo and ProAgent is $149/mo, billed immediately with no trial. Credits apply only to premium image and video generation; Maya chat and agent runs are unlimited on every plan.',
+  },
+  {
+    q: 'Do I need marketing experience to use Maya?',
+    a: 'No. Maya is built for owners who are great at the work but not trained marketers. You complete Foundation and Brand Kit once, then tell Maya what you want in plain language — she drafts campaigns, posts, and emails for your approval. You stay in control without learning another complex tool stack.',
+  },
+  {
     q: 'How is AI marketing different from traditional marketing?',
     a: 'Traditional marketing stacks agencies, freelancers, and scheduling tools — you still write the briefs and stitch the work together. Agent7even gives you an AI marketing strategist (Maya) plus twelve specialist agents that draft campaigns, content, and creative in your voice — everything lands in your approval queue before it publishes.',
   },

@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/gtag'
 import MarketingNav from '../MarketingNav'
+import MarketingFooter from '../MarketingFooter'
 import {
   HOW_IT_WORKS_STEPS,
   HOW_IT_WORKS_WORKFLOW,
@@ -100,6 +101,8 @@ export default function HowItWorksPage() {
           <p className="cta-note">3-day free trial on Starter. No charge until day 4.</p>
         </div>
       </div>
+
+      <MarketingFooter />
     </div>
   )
 }

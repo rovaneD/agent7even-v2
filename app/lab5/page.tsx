@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import Metaballs from './SafeMetaballs'
 import { trackEvent } from '@/lib/gtag'
 import MarketingNav from './MarketingNav'
+import MarketingFooter from './MarketingFooter'
 import { useMockupScript } from './useMockupScript'
 
 import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
 import { HOW_IT_WORKS_STEPS } from '@/lib/marketing/howItWorksContent'
+import { AI_VS_AGENCY_COMPARE } from '@/lib/marketing/aiVsAgencyContent'
 
 declare global {
   interface Window {
@@ -55,6 +57,11 @@ export default function Lab5Page() {
               <span className="hero-lead-line">Nothing goes live without your&nbsp;approval.</span>
             </p>
             <p className="hero-tagline">The operating system for your marketing.</p>
+            <p className="hero-pricing-hook">
+              Not{' '}
+              <a href="/pricing">agencies charging $3K/month for reports</a>
+              {' '}— Starter from $49/mo with a 3-day trial.
+            </p>
             <div className="hero-cta">
               <div className="hero-primary-stack">
                 <a
@@ -120,26 +127,25 @@ export default function Lab5Page() {
             <span className="eyebrow">AI marketing vs traditional</span>
             <h2 className="t-h2">Strategy and execution — without the agency invoice.</h2>
             <p className="t-lead">
-              Traditional marketing stacks tools, freelancers, and retainers. Agent7even gives you an AI marketing strategist plus twelve specialist agents — with an approval queue so nothing publishes without you.
+              Traditional marketing stacks tools, freelancers, and retainers. Agent7even gives you an AI marketing strategist plus twelve specialist agents — with an approval queue so nothing publishes without you.{' '}
+              <a href="/ai-vs-agency">See the full AI vs agency comparison →</a>
             </p>
           </div>
           <div className="compare-grid reveal">
             <div className="compare-col compare-traditional">
-              <h3>Traditional marketing</h3>
+              <h3>{AI_VS_AGENCY_COMPARE.traditional.title}</h3>
               <ul>
-                <li>Agency retainers ($3K+/mo) for strategy decks and reports</li>
-                <li>You write every post — or hire separately per channel</li>
-                <li>Scheduling tools post what you give them; they don&rsquo;t plan or draft</li>
-                <li>Campaigns, SEO, and content live in different tools and inboxes</li>
+                {AI_VS_AGENCY_COMPARE.traditional.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
             </div>
             <div className="compare-col compare-agent7even">
-              <h3>With Agent7even</h3>
+              <h3>{AI_VS_AGENCY_COMPARE.agent7even.title}</h3>
               <ul>
-                <li>Maya drafts full campaigns from one conversation — you approve before anything ships</li>
-                <li>Twelve agents for content, creative, SEO, ads, and competitive intel</li>
-                <li>Brand Kit keeps every draft in your voice — not generic AI copy</li>
-                <li>Starter from $49/mo with a 3-day trial — not a four-figure retainer</li>
+                {AI_VS_AGENCY_COMPARE.agent7even.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
             </div>
           </div>
@@ -418,54 +424,7 @@ export default function Lab5Page() {
         </div>
       </div>
 
-      {/* FOOTER */}
-      <footer className="footer">
-        <div className="footer-in">
-          <div className="footer-top">
-            <div className="footer-brand">
-              <a className="brand" href="/">
-                <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
-              </a>
-              <p>The AI marketing operating system for small business. Meet Maya.</p>
-            </div>
-            <div className="fcol">
-              <h5>Product</h5>
-              <a href="/how-it-works">How it works</a>
-              <a href="/agents">AI marketing agents</a>
-              <a href="#features">Features</a>
-              <a href="/pricing">AI marketing platform pricing</a>
-              <a href="/use-cases">Use cases</a>
-              <a href="/sign-up" onClick={() => trackEvent('sign_up_click', { location: 'footer' })}>Sign up</a>
-            </div>
-            <div className="fcol">
-              <h5>Use cases</h5>
-              <a href="/for-coaches">Coaches</a>
-              <a href="/for-consultants">Consultants</a>
-              <a href="/use-cases/ecommerce">E-commerce</a>
-              <a href="/use-cases/local-service">Local service</a>
-              <a href="/use-cases/coaches-creators">Creators</a>
-              <a href="/use-cases/startups">Startups</a>
-            </div>
-            <div className="fcol">
-              <h5>Company</h5>
-              <a href="#">About</a>
-              <a href="#">Blog</a>
-              <a href="#">Careers</a>
-              <a href="mailto:support@agent7even.ai">Contact</a>
-            </div>
-            <div className="fcol">
-              <h5>Legal</h5>
-              <a href="/privacy">Privacy</a>
-              <a href="/terms">Terms</a>
-              <a href="/security">Security</a>
-            </div>
-          </div>
-          <div className="footer-btm">
-            <p>© 2026 Agent7even, Inc.</p>
-            <p>Built for people with better things to do.</p>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   )
 }

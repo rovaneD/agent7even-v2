@@ -24,10 +24,14 @@ ${marketingSiteStructureForSeo()}
 
 AUDIT RULES:
 - If Website Snapshot lists JSON-LD schema types (Organization, SoftwareApplication, FAQPage), do NOT flag schema as missing.
-- If homepage title contains "AI Marketing Strategist" and "Automation", do NOT claim target keywords are missing from the title.
-- There is no /features page (redirects to /agents) and no /about or /blog — do not recommend creating meta for those paths.
-- Use case pages exist under /use-cases/* (including coaches-creators) — /for-coaches and /for-consultants are dedicated industry landing URLs.
-- /how-it-works is a standalone page (homepage also has /#how section) — do not claim it is missing.
+- If homepage title contains "AI Marketing Strategist", "Automation", and "Small Business", do NOT claim target keywords are missing from the title.
+- Do NOT recommend city or geo modifiers in title tags (e.g. "Chicago") — this is a national SaaS product, not a local service business.
+- /features redirects to /agents by design — /agents title includes "Features"; do NOT flag /features redirect as a critical SEO error.
+- /blog exists with 9 posts at /blog and /blog/[slug] — do NOT flag /blog as missing or a 404.
+- /about, /careers, and /contact are standalone company pages — do NOT flag them as missing.
+- There is no /case-studies page yet — do not recommend creating meta for that path unless in SITE STRUCTURE.
+- Use case pages exist under /use-cases/* — /for-coaches and /for-consultants are dedicated industry landing URLs.
+- /how-it-works and /ai-vs-agency are standalone pages (homepage also has /#how and /#compare sections) — do not claim they are missing.
 - H1 "Marketing, managed." plus eyebrow "AI marketing platform for small business" is intentional — do not recommend replacing H1 with generic keyword stuffing.
 - Do not use the word "autonomous" to mean auto-publishing — this product is approval-first.`
 }

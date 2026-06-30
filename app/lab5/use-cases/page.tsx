@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import Metaballs from '../SafeMetaballs'
 import MarketingNav from '../MarketingNav'
+import MarketingFooter from '../MarketingFooter'
 import { cases } from '../../lab-use-cases/_data'
 
 const CARD_IMAGES: Record<string, string> = {
@@ -105,44 +106,7 @@ export default function UseCasesPage() {
         </div>
       </div>
 
-      <footer className="footer">
-        <div className="footer-in">
-          <div className="footer-top">
-            <div className="footer-brand">
-              <a className="brand" href="/">
-                <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
-              </a>
-              <p>The AI marketing operating system for small business. Meet Maya.</p>
-            </div>
-            <div className="fcol">
-              <h5>Product</h5>
-              <a href="/#how">How it works</a>
-              <a href="/#features">Features</a>
-              <a href="/agents">Agents</a>
-              <a href="/pricing">Pricing</a>
-            </div>
-            <div className="fcol">
-              <h5>Use cases</h5>
-              <a href="/use-cases/ecommerce">E-commerce</a>
-              <a href="/use-cases/local-service">Local service</a>
-              <a href="/use-cases/coaches-creators">Creators</a>
-              <a href="/use-cases/startups">Startups</a>
-            </div>
-            <div className="fcol">
-              <h5>Company</h5>
-              <a href="#">About</a><a href="#">Blog</a><a href="#">Careers</a><a href="mailto:support@agent7even.ai">Contact</a>
-            </div>
-            <div className="fcol">
-              <h5>Legal</h5>
-              <a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/security">Security</a>
-            </div>
-          </div>
-          <div className="footer-btm">
-            <p>© 2026 Agent7even, Inc.</p>
-            <p>Built for people with better things to do.</p>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   )
 }
