@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { agentOutputContentText } from '@/lib/agents/agentOutputText'
 import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
+import { validatePublicWebsiteUrl } from '@/lib/security/publicWebsiteUrl'
 import { exaReadSite } from '@/lib/research/exa'
 import { buildSeoScannerRunMetadata } from '@/lib/agents/runMetadata'
 import { AGENTS, type AgentId } from './registry'
@@ -24,6 +25,8 @@ type AgentOutputRow = {
   created_at: string
 }
 
+const MAX_WEBSITE_HTML_BYTES = 1_000_000
+
 function inputText(input: AgentInput, key: string): string {
   const value = input[key]
   return typeof value === 'string' ? value.trim() : ''
@@ -37,6 +40,44 @@ function stringify(value: unknown): string {
 
 function outputText(output: AgentOutputRow): string {
   return agentOutputContentText(output.content)
+}
+
+async function readResponseTextWithLimit(res: Response, maxBytes: number): Promise<string> {
+  if (!res.body) {
+    const text = await res.text()
+    if (new TextEncoder().encode(text).byteLength > maxBytes) {
+      throw new Error('Website response is too large')
+    }
+    return text
+  }
+
+  const reader = res.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (!value) continue
+      total += value.byteLength
+      if (total > maxBytes) {
+        await reader.cancel().catch(() => {})
+        throw new Error('Website response is too large')
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const merged = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    merged.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return new TextDecoder().decode(merged)
 }
 
 async function recentOutputsContext(userId: string, agents: string[], limit = 5): Promise<string> {
@@ -99,22 +140,46 @@ ${campaigns}`
 }
 
 async function fetchWebsiteHtml(websiteUrl: string): Promise<{ status: number; finalUrl: string; html: string }> {
-  const res = await fetch(websiteUrl, {
-    signal: AbortSignal.timeout(12000),
-    redirect: 'follow',
-    headers: {
-      'User-Agent': 'Agent7even-SEO-Scanner/1.0 (+https://www.agent7even.ai)',
-      Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-    },
-  })
-  const html = await res.text()
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`)
+  let currentUrl = websiteUrl
+  const redirectStatuses = new Set([301, 302, 303, 307, 308])
+
+  for (let redirectCount = 0; redirectCount <= 3; redirectCount += 1) {
+    const validated = await validatePublicWebsiteUrl(currentUrl)
+    if (!validated.ok) throw new Error(validated.reason)
+    currentUrl = validated.url
+
+    const res = await fetch(currentUrl, {
+      signal: AbortSignal.timeout(12000),
+      redirect: 'manual',
+      headers: {
+        'User-Agent': 'Agent7even-SEO-Scanner/1.0 (+https://www.agent7even.ai)',
+        Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+      },
+    })
+
+    if (redirectStatuses.has(res.status)) {
+      const location = res.headers.get('location')
+      if (!location) throw new Error(`HTTP ${res.status} redirect missing Location`)
+      if (redirectCount === 3) throw new Error('Too many redirects')
+      currentUrl = new URL(location, currentUrl).toString()
+      continue
+    }
+
+    const contentLength = Number(res.headers.get('content-length') ?? '0')
+    if (contentLength > MAX_WEBSITE_HTML_BYTES) {
+      throw new Error('Website response is too large')
+    }
+    const html = await readResponseTextWithLimit(res, MAX_WEBSITE_HTML_BYTES)
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`)
+    }
+    if (!html.trim()) {
+      throw new Error('Empty response body')
+    }
+    return { status: res.status, finalUrl: res.url || currentUrl, html }
   }
-  if (!html.trim()) {
-    throw new Error('Empty response body')
-  }
-  return { status: res.status, finalUrl: res.url || websiteUrl, html }
+
+  throw new Error('Too many redirects')
 }
 
 function extractJsonLdTypes(html: string): string[] {
@@ -176,17 +241,22 @@ async function websiteSnapshotContext(userId: string, input: AgentInput): Promis
       : 'No website URL is saved on the profile.'
   }
 
+  const publicUrl = await validatePublicWebsiteUrl(websiteUrl)
+  if (!publicUrl.ok) {
+    return `No valid website URL — ${publicUrl.reason} Save a public business website URL like https://www.agent7even.ai in Settings or Foundation.`
+  }
+
   try {
-    const { status, finalUrl, html } = await fetchWebsiteHtml(websiteUrl)
+    const { status, finalUrl, html } = await fetchWebsiteHtml(publicUrl.url)
     return parseWebsiteHtmlSnapshot(finalUrl, status, html, 'direct fetch')
   } catch (directErr) {
     const directMessage = directErr instanceof Error ? directErr.message : String(directErr)
     try {
-      const exa = await exaReadSite(websiteUrl)
+      const exa = await exaReadSite(publicUrl.url)
       if (exa?.text?.trim()) {
         const preview = exa.text.trim().slice(0, 3500)
         return `## Website Snapshot
-- URL: ${websiteUrl}
+- URL: ${publicUrl.url}
 - Source: Exa read (direct fetch failed: ${directMessage})
 - Title: ${exa.title?.trim() || 'unknown'}
 - Page text preview:
@@ -197,7 +267,7 @@ ${preview}`
     }
 
     return `## Website Snapshot
-- URL: ${websiteUrl}
+- URL: ${publicUrl.url}
 - Fetch failed: ${directMessage}
 - Note: Verify the URL includes https:// and loads in a browser. Re-run after saving the correct website in Foundation → Your Business or Settings.`
   }
