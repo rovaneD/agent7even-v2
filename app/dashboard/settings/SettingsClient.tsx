@@ -135,7 +135,7 @@ export default function SettingsClient({ profile }: Props) {
     await fetch('/api/settings/update', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ companyName, websiteUrl, instagramHandle, ...next }),
+      body:    JSON.stringify(next),
     })
   }
 
@@ -149,12 +149,15 @@ export default function SettingsClient({ profile }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyName, websiteUrl, instagramHandle, emailDigest, emailApprovals, emailWeekly }),
       })
-      if (!res.ok) throw new Error('Failed to save')
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null
+        throw new Error(data?.error ?? 'Failed to save')
+      }
       setSaved(true)
       router.refresh()
       setTimeout(() => setSaved(false), 3000)
-    } catch {
-      setError('Failed to save changes. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save changes. Please try again.')
     } finally {
       setSaving(false)
     }

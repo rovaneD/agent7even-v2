@@ -1461,11 +1461,12 @@ export default function FoundationHub({
 
       if (section.key === 'business' && editWebsiteUrl !== localWebsiteUrl) {
         const normalized = normalizeWebsiteUrl(editWebsiteUrl.trim()) ?? editWebsiteUrl.trim()
-        await fetch('/api/settings/update', {
+        const settingsRes = await fetch('/api/settings/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ websiteUrl: normalized || null }),
         })
+        if (!settingsRes.ok) throw new Error('Failed to save website URL')
         setLocalWebsiteUrl(normalized)
       }
 
