@@ -53,9 +53,9 @@ export default function Lab5Page() {
             <p className="eyebrow">From idea to approval queue, without switching tools.</p>
             <h1 className="hero-title">Marketing, managed.</h1>
             <p className="hero-lead">
-              <span className="hero-lead-line"><em>Maya</em> plans campaigns, writes the content, and queues it for your approval,</span>
-              <span className="hero-lead-line">every image, caption, and email pulls from your Brand Kit.</span>
-              <span className="hero-lead-line">Nothing goes live without your&nbsp;approval.</span>
+              <span className="hero-lead-line"><em>Maya</em> plans campaigns, writes the content, and routes every draft to one queue.</span>
+              <span className="hero-lead-line">Every image, caption, and email pulls from your Foundation.</span>
+              <span className="hero-lead-line">You decide what gets published.</span>
             </p>
             <p className="hero-tagline">One Foundation. Twelve specialist agents. One approval queue.</p>
             <div className="hero-cta">
@@ -256,7 +256,7 @@ export default function Lab5Page() {
             <div className="lcard reveal">
               <div className="lcard-copy">
                 <h3>Campaigns from Foundation</h3>
-                <p>Name the offer — Campaign Builder drafts emails, posts, and ad variations from your saved context, then routes them to your queue.</p>
+                <p>Name the offer — Campaign Builder drafts strategy, emails, posts, and ad variations from your saved context, then routes them to your queue.</p>
                 <a href="#features">See it →</a>
               </div>
               <div className="card-widget"><div data-mk="widget-campaign"></div></div>
@@ -382,7 +382,7 @@ export default function Lab5Page() {
         </div>
         <div className="cta-in">
           <h2>One Foundation.<br />Twelve specialist agents.<br />One approval queue.</h2>
-          <p className="cta-lead">Maya coordinates the agents, reads your Brand Kit before every draft, and routes nothing live until you approve.</p>
+          <p className="cta-lead">Maya reads your Foundation and Brand Kit before every draft. Every campaign lands in your approval queue before anything goes live.</p>
           <div className="cta-btns">
             <a className="btn btn-white btn-lg" href="/pricing"
               onClick={() => trackEvent('cta_click', { cta: 'start_trial', location: 'footer_cta' })}>Start your free trial</a>

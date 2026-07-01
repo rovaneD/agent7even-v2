@@ -30,7 +30,7 @@ export default function MarketingNav({ active }: { active?: 'agents' | 'pricing'
         <div className="nav-right">
           <a className="nav-signin" href="/sign-in">Sign in</a>
           <a
-            className="btn btn-primary btn-sm"
+            className="btn btn-hero-primary btn-sm"
             href="/sign-up"
             onClick={() => trackEvent('sign_up_click', { location: 'nav' })}
           >
@@ -62,7 +62,7 @@ export default function MarketingNav({ active }: { active?: 'agents' | 'pricing'
           <div className="nav-menu-auth">
             <a className="btn btn-ghost" href="/sign-in" onClick={() => setOpen(false)}>Sign in</a>
             <a
-              className="btn btn-primary"
+              className="btn btn-hero-primary"
               href="/sign-up"
               onClick={() => { trackEvent('sign_up_click', { location: 'nav_menu' }); setOpen(false) }}
             >

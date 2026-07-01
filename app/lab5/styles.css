@@ -58,7 +58,7 @@
 .lab5 .btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--l5-font); font-size: 15px; font-weight: 500; border-radius: 10px; padding: 12px 22px; border: 1px solid transparent; cursor: pointer; transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease; white-space: nowrap; }
 .lab5 .btn:active { transform: translateY(1px); }
 .lab5 .btn-primary { background: var(--l5-ink); color: #fff; }
-.lab5 .btn-primary:hover { box-shadow: 0 8px 22px -10px rgba(16,18,23,.5); }
+.lab5 .btn-primary:hover { background: var(--l5-ink); box-shadow: 0 8px 22px -10px rgba(16,18,23,.5); }
 .lab5 .btn-blue { background: var(--l5-blue); color: #fff; }
 .lab5 .btn-blue:hover { box-shadow: 0 10px 24px -10px rgba(50,134,254,.6); }
 .lab5 .btn-ghost { background: var(--l5-surface); color: var(--l5-ink-2); border-color: var(--l5-line); }
@@ -194,7 +194,7 @@
   white-space: nowrap;
 }
 .lab5 .btn-hero-primary { background: #3B82F6; color: #fff; }
-.lab5 .btn-hero-primary:hover { box-shadow: 0 10px 24px -10px rgba(59,130,246,.6); }
+.lab5 .btn-hero-primary:hover { background: #3B82F6; box-shadow: 0 10px 24px -10px rgba(59,130,246,.6); }
 .lab5 .agents-bridge { text-align: center; font-size: 17px; color: var(--muted); margin-top: 56px; }
 .lab5 .agents-bridge a { color: var(--blue); font-weight: 600; text-decoration: none; }
 .lab5 .agents-bridge a:hover { text-decoration: underline; }
