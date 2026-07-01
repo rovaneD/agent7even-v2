@@ -12,6 +12,7 @@ import {
   BUDGET_OPTIONS,
   GOAL_OPTIONS,
 } from '@/app/foundation/FoundationFlow'
+import { normalizeCompetitorSlots } from '@/lib/foundation/competitorsArray'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,14 +128,7 @@ function normalizeAnswers(raw: Record<string, unknown> | null): Answers {
     return []
   }
 
-  let competitors: [string, string, string] = ['', '', '']
-  const rawComp = raw.competitors
-  if (Array.isArray(rawComp)) {
-    competitors = [String(rawComp[0] ?? ''), String(rawComp[1] ?? ''), String(rawComp[2] ?? '')]
-  } else if (typeof rawComp === 'string' && rawComp) {
-    const parts = rawComp.split(',').map(x => x.trim())
-    competitors = [parts[0] ?? '', parts[1] ?? '', parts[2] ?? '']
-  }
+  const competitors: [string, string, string] = normalizeCompetitorSlots(raw.competitors)
 
   return {
     businessDescription:   str(raw.businessDescription),

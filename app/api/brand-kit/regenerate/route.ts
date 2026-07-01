@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
+import { formatCompetitorsForAgent } from '@/lib/foundation/competitorsArray'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
@@ -63,7 +64,7 @@ Ideal customer: ${answers.customerWho}
 Customer frustration: ${answers.customerFrustration}
 What customer tried before: ${answers.customerTriedBefore}
 Buying trigger: ${answers.customerBuyingTrigger}
-Competitors: ${Array.isArray(answers.competitors) ? (answers.competitors as string[]).filter(Boolean).join(', ') : answers.competitors}
+Competitors: ${formatCompetitorsForAgent(answers.competitors) || 'None specified'}
 Differentiator: ${answers.differentiator}
 In their words: ${answers.differentiatorOwn}
 Tone traits: ${Array.isArray(answers.toneTraits) ? (answers.toneTraits as string[]).join(', ') : answers.toneTraits}

@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { computeMemoryStats, type FoundationMemoryResponse } from '@/lib/foundation/memory'
+import { formatCompetitorsForAgent } from '@/lib/foundation/competitorsArray'
 
 export interface FoundationContext {
   // Raw Foundation answers from profiles.foundation_answers JSONB.
@@ -47,11 +48,14 @@ export async function loadFoundationContext(profileId: string): Promise<Foundati
   const rawAnswers = (profileRow?.foundation_answers ?? {}) as Record<string, unknown>
   const answers: Record<string, string> = {}
   for (const [k, v] of Object.entries(rawAnswers)) {
-    if (v != null) {
-      answers[k] = Array.isArray(v)
-        ? (v as unknown[]).filter(Boolean).join(', ')
-        : String(v).trim()
+    if (v == null) continue
+    if (k === 'competitors') {
+      answers[k] = formatCompetitorsForAgent(v)
+      continue
     }
+    answers[k] = Array.isArray(v)
+      ? (v as unknown[]).filter(Boolean).join(', ')
+      : String(v).trim()
   }
 
   // Documents are canonical — answers are the temporary fallback while generate is unfixed.
@@ -63,7 +67,7 @@ export async function loadFoundationContext(profileId: string): Promise<Foundati
     plan:        docRows?.find(d => d.type === 'plan')?.markdown        ?? '',
   }
 
-  const competitorsFreetext = (answers.competitors ?? '').trim()
+  const competitorsFreetext = formatCompetitorsForAgent(rawAnswers.competitors)
 
   const hasFoundation =
     Object.values(answers).some(v => v.length > 0) ||

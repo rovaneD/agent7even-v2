@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { CreativeDirectionSchema } from '@/lib/agents/foundationCreativeDirection/types'
+import { normalizeCompetitorSlots } from '@/lib/foundation/competitorsArray'
 import FoundationEditor from './FoundationEditor'
 import FoundationHub from './FoundationHub'
 
@@ -87,9 +88,8 @@ export default async function FoundationPage() {
     hubAnswers.toneTraits = toArray(hubAnswers.toneTraits)
     hubAnswers.channels   = toArray(hubAnswers.channels)
 
-    // Ensure competitors is always a 3-slot array
-    const comps = toArray(hubAnswers.competitors)
-    hubAnswers.competitors = [...comps, '', '', ''].slice(0, 3)
+    // Ensure competitors is always a 3-slot array — never comma-split prose.
+    hubAnswers.competitors = normalizeCompetitorSlots(hubAnswers.competitors)
 
     const creativeDirectionParsed = CreativeDirectionSchema.safeParse(profile.creative_direction)
     const creativeDirection = creativeDirectionParsed.success ? creativeDirectionParsed.data : null

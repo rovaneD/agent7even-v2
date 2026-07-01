@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { buildIdentityUpdateWithSnapshot, legacyColumnsFromAnswers } from '@/lib/foundation/answersSnapshot'
+import { serializeCompetitorSlots } from '@/lib/foundation/competitorsArray'
 import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
 
 // Hub editing route — merges updated answers into foundation_answers without
@@ -24,6 +25,9 @@ export async function POST(req: Request) {
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     const merged = { ...(profile.foundation_answers ?? {}), ...answers }
+    if (answers.competitors != null) {
+      merged.competitors = serializeCompetitorSlots(answers.competitors)
+    }
 
     await supabase
       .from('profiles')

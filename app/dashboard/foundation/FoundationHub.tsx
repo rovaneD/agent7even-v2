@@ -7,6 +7,7 @@ import { buildFoundationHubMayaContext } from '@/lib/maya/summaries/foundationHu
 import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
 import { displayFieldValue } from '@/lib/maya/formStateContext'
 import type { FoundationMemoryResponse, AgentMemoryStat } from '@/lib/foundation/memory'
+import { competitorEntries, normalizeCompetitorSlots } from '@/lib/foundation/competitorsArray'
 
 // Client-side extraction types (mirrored from lib/foundation/extract.ts)
 type ExtractionItem = {
@@ -292,9 +293,9 @@ function sectionPreview(
   }
   if (key === 'customer') return answers.customerWho ? t(answers.customerWho) : null
   if (key === 'position') {
-    const comps = toArr(answers.competitors).filter(Boolean)
+    const comps = competitorEntries(answers.competitors)
     const parts = [
-      comps.length > 0 ? `Competitors: ${comps.join(', ')}` : '',
+      comps.length > 0 ? `Competitors: ${comps.length} entered` : '',
       answers.differentiator ? answers.differentiator : '',
     ].filter(Boolean)
     return parts.length > 0 ? parts.join(' · ') : null
@@ -355,7 +356,7 @@ function formatSnapshotRelative(iso: string): string {
 function deriveSuggestions(answers: Answers, healthMap: Record<SectionKey, Health>): string[] {
   const s: string[] = []
   if (healthMap.position !== 'strong') {
-    const comps = toArr(answers.competitors).filter(Boolean)
+    const comps = competitorEntries(answers.competitors)
     if (comps.length < 2) s.push("Adding more competitors sharpens Competitor Watcher and Ad Variations — Maya needs context to differentiate you.")
   }
   if (healthMap.voice !== 'strong') s.push("Completing your Voice section ensures Weekly Content and Email Sequences match your actual tone, not a generic one.")
@@ -452,8 +453,7 @@ function coerceHubAnswers(raw: Record<string, unknown>): Answers {
   const merged = { ...emptyAnswers, ...raw } as Answers
   merged.toneTraits = toArray(merged.toneTraits)
   merged.channels = toArray(merged.channels)
-  const comps = toArray(merged.competitors)
-  merged.competitors = [...comps, '', '', ''].slice(0, 3)
+  merged.competitors = normalizeCompetitorSlots(merged.competitors)
   return merged
 }
 
@@ -1278,13 +1278,13 @@ function SectionEditCard({
                 <label className="block text-[11px] font-semibold text-text-soft uppercase tracking-wide mb-1.5">{field.label}</label>
                 <div className="space-y-1.5">
                   {[0, 1, 2].map(i => (
-                    <input key={i} type="text" value={comps[i] ?? ''} placeholder={`Competitor ${i + 1}`}
+                    <textarea key={i} rows={3} value={comps[i] ?? ''} placeholder={`Competitor ${i + 1}`}
                       onChange={e => {
                         const next = [...comps]
                         next[i] = e.target.value
                         onChange({ [field.key]: next } as Partial<Answers>)
                       }}
-                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#3B82F6]"
+                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#3B82F6] resize-none leading-relaxed"
                     />
                   ))}
                 </div>
@@ -1451,12 +1451,16 @@ export default function FoundationHub({
 
   async function saveEdit(section: SectionDef) {
     setEditSaving(true)
-    const merged = { ...localAnswers, ...editDraft }
+    const draft = { ...editDraft }
+    if (draft.competitors != null) {
+      draft.competitors = normalizeCompetitorSlots(draft.competitors)
+    }
+    const merged = { ...localAnswers, ...draft }
     try {
       await fetch('/api/foundation/save-answers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: editDraft }),
+        body: JSON.stringify({ answers: draft }),
       })
 
       if (section.key === 'business' && editWebsiteUrl !== localWebsiteUrl) {

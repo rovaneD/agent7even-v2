@@ -7,6 +7,7 @@ import {
   completeOrchestration,
 } from '@/lib/agents/runner'
 import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
+import { formatCompetitorsForAgent } from '@/lib/foundation/competitorsArray'
 
 const FOUNDATION_MODEL = 'anthropic/claude-sonnet-4'
 
@@ -47,7 +48,7 @@ Ideal customer: ${answers.customerWho}
 Customer frustration: ${answers.customerFrustration}
 What customer tried before: ${answers.customerTriedBefore}
 Buying trigger: ${answers.customerBuyingTrigger}
-Competitors: ${answers.competitors?.filter(Boolean).join(', ')}
+Competitors: ${formatCompetitorsForAgent(answers.competitors) || 'None specified'}
 Differentiator: ${answers.differentiator}
 In their words: ${answers.differentiatorOwn}
 Tone traits: ${answers.toneTraits?.join(', ')}
