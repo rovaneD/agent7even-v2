@@ -35,20 +35,14 @@ interface Profile {
   full_name?: string
 }
 
-// ── Plan config ───────────────────────────────────────────────────────────────
+import { type ToolkitPlanLimits } from '@/lib/ai/toolkitPlanLimits'
 
-const STARTER_LIMIT = 15
+// ── Plan config ───────────────────────────────────────────────────────────────
 
 const PLAN_META: Record<string, { label: string; color: string; bg: string }> = {
   starter:  { label: 'Starter',  color: 'text-text-sec',     bg: 'bg-surface-muted' },
   growth:   { label: 'Growth',   color: 'text-text-sec',    bg: 'bg-brand-primary/10' },
   proagent: { label: 'ProAgent', color: 'text-[#7C3AED]',   bg: 'bg-[#7C3AED]/10' },
-}
-
-function getPlanLimits(plan: string | null): { unlimited: boolean; limit: number } {
-  if (plan === 'growth' || plan === 'proagent') return { unlimited: true, limit: Infinity }
-  if (plan === 'starter') return { unlimited: false, limit: STARTER_LIMIT }
-  return { unlimited: false, limit: 0 }
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -110,7 +104,7 @@ const CATEGORY_TOOLTIP: Record<string, string> = {
 }
 
 const PLAN_TOOLTIP: Record<string, string> = {
-  starter:  'Starter — $49/mo\n15 AI runs/month · Social & Email tools · Full dashboard',
+  starter:  'Starter — $49/mo\n3-day trial: 5 AI Toolkit runs total · Brand Kit locked\nPaid Starter: monthly run limit from your plan · Social & Email tools',
   growth:   'Growth — $89/mo\nUnlimited runs · All tools including Ads, SEO & Ops · Priority support',
   proagent: 'ProAgent — $149/mo\nUnlimited runs · Every tool including Brand Strategy · Dedicated support',
 }
@@ -331,12 +325,11 @@ function PromptRunner({
 
 // ── Plan banner ───────────────────────────────────────────────────────────────
 
-function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: number }) {
-  const { unlimited, limit } = getPlanLimits(plan)
+function PlanBanner({ plan, limits }: { plan: string | null; limits: ToolkitPlanLimits }) {
+  const { unlimited, runsUsed, runLimit, runsRemaining, onTrial, starterMonthlyLimit } = limits
   const meta = plan ? PLAN_META[plan] : null
-  const runsLeft = Math.max(0, limit - monthlyRuns)
-  const pct = unlimited ? 100 : Math.min(100, (monthlyRuns / limit) * 100)
-  const nearLimit = !unlimited && monthlyRuns >= limit * 0.8
+  const pct = unlimited ? 100 : runLimit > 0 ? Math.min(100, (runsUsed / runLimit) * 100) : 100
+  const nearLimit = !unlimited && runLimit > 0 && runsUsed >= runLimit * 0.8
 
   if (!plan) {
     return (
@@ -372,28 +365,47 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
           </Tooltip>
           {unlimited ? (
             <p className="text-sm text-text-sec">
-              <span className="font-semibold text-text">Unlimited</span> AI runs this month
+              <span className="font-semibold text-text">Unlimited</span> AI Toolkit runs this month
+            </p>
+          ) : onTrial ? (
+            <p className="text-sm text-text-sec">
+              <span className={`font-semibold ${nearLimit ? 'text-status-warning' : 'text-text'}`}>
+                {runsUsed} of {runLimit}
+              </span>{' '}
+              trial runs used
+              {runsRemaining > 0 && (
+                <span className="text-text-soft ml-1">({runsRemaining} left during your 3-day trial)</span>
+              )}
             </p>
           ) : (
             <p className="text-sm text-text-sec">
               <span className={`font-semibold ${nearLimit ? 'text-status-warning' : 'text-text'}`}>
-                {monthlyRuns} of {limit}
+                {runsUsed} of {runLimit}
               </span>{' '}
               runs used this month
-              {runsLeft > 0 && (
-                <span className="text-text-soft ml-1">({runsLeft} left)</span>
+              {runsRemaining > 0 && (
+                <span className="text-text-soft ml-1">({runsRemaining} left)</span>
               )}
             </p>
           )}
         </div>
 
-        {plan === 'starter' && (
+        {plan === 'starter' && !onTrial && (
           <a
             href="/dashboard/billing"
             className="inline-flex items-center gap-2 text-sm font-semibold text-brand-primary hover:text-[#2563EB] transition-colors flex-shrink-0"
           >
             <TrendingUp size={14} />
             Upgrade to Growth — unlimited runs
+          </a>
+        )}
+        {onTrial && runsRemaining === 0 && (
+          <a
+            href="/dashboard/billing"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-brand-primary hover:text-[#2563EB] transition-colors flex-shrink-0"
+          >
+            <TrendingUp size={14} />
+            Trial limit reached — view billing
           </a>
         )}
       </div>
@@ -410,7 +422,17 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
           </div>
           {pct >= 100 && (
             <p className="text-xs text-status-danger font-medium mt-2">
-              Monthly limit reached. <a href="/dashboard/billing" className="underline">Upgrade to Growth</a> for unlimited runs.
+              {onTrial ? (
+                <>
+                  Trial limit reached ({runLimit} runs total).{' '}
+                  <a href="/dashboard/billing" className="underline">Convert to paid Starter</a> for {starterMonthlyLimit} runs/month, or upgrade to Growth for unlimited.
+                </>
+              ) : (
+                <>
+                  Monthly limit reached.{' '}
+                  <a href="/dashboard/billing" className="underline">Upgrade to Growth</a> for unlimited runs.
+                </>
+              )}
             </p>
           )}
         </div>
@@ -421,15 +443,17 @@ function PlanBanner({ plan, monthlyRuns }: { plan: string | null; monthlyRuns: n
 
 // ── Upgrade callout (shown below the grid when on starter) ────────────────────
 
-function UpgradeCallout() {
+function UpgradeCallout({ onTrial, starterMonthlyLimit }: { onTrial: boolean; starterMonthlyLimit: number }) {
   return (
     <div className="mt-8 rounded-[24px] bg-gradient-to-br from-brand-secondary to-[#1a2535] p-6 text-white">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-1">Growth &amp; ProAgent</p>
-          <h3 className="text-base font-semibold mb-1">Unlock unlimited AI runs</h3>
+          <h3 className="text-base font-semibold mb-1">Unlock unlimited AI Toolkit runs</h3>
           <p className="text-sm text-white/70">
-            Starter is limited to 15 runs/month. Upgrade to Growth ($89/mo) for unlimited access to every AI tool.
+            {onTrial
+              ? `Your trial includes 5 AI Toolkit runs total. Paid Starter includes ${starterMonthlyLimit}/month; Growth ($89/mo) is unlimited.`
+              : `Starter is limited to ${starterMonthlyLimit} runs/month. Upgrade to Growth ($89/mo) for unlimited access to every AI tool.`}
           </p>
         </div>
         <a
@@ -451,8 +475,7 @@ export default function AIToolkitClient({
   totalRuns,
   totalTimeSaved,
   plan,
-  monthlyRuns,
-  hasBrandKit: _hasBrandKit,
+  toolkitLimits,
   brandKitComplete,
 }: {
   prompts: Prompt[]
@@ -460,7 +483,7 @@ export default function AIToolkitClient({
   totalRuns: number
   totalTimeSaved: number
   plan: string | null
-  monthlyRuns: number
+  toolkitLimits: ToolkitPlanLimits
   companyName: string
   hasBrandKit: boolean
   brandKitComplete: boolean
@@ -471,8 +494,8 @@ export default function AIToolkitClient({
   const [search, setSearch] = useState('')
   const [runningPrompt, setRunningPrompt] = useState<Prompt | null>(null)
 
-  const { unlimited, limit } = getPlanLimits(plan)
-  const isAtLimit = !unlimited && monthlyRuns >= limit
+  const { unlimited, runsUsed, runLimit, onTrial } = toolkitLimits
+  const isAtLimit = !unlimited && runLimit > 0 && runsUsed >= runLimit
 
   // Tier filter: cumulative — each tier shows everything included at that level and below
   // Starter → starter tools only | Growth → starter + growth | ProAgent → all tools
@@ -490,9 +513,10 @@ export default function AIToolkitClient({
     () =>
       buildAiToolkitMayaContext({
         plan,
-        monthlyRuns,
+        onTrial,
+        runsUsed,
         unlimited,
-        limit: unlimited ? 0 : limit,
+        limit: unlimited ? 0 : runLimit,
         activeCategory,
         activeTab,
         visibleToolCount: filtered.length,
@@ -502,9 +526,10 @@ export default function AIToolkitClient({
       }),
     [
       plan,
-      monthlyRuns,
+      onTrial,
+      runsUsed,
       unlimited,
-      limit,
+      runLimit,
       activeCategory,
       activeTab,
       filtered.length,
@@ -539,6 +564,11 @@ export default function AIToolkitClient({
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-primary">AI Toolkit</p>
             <h1 className="text-[32px] font-semibold tracking-[-0.03em] text-text">Prompt library</h1>
             <p className="mt-2 text-sm text-text-sec">Generate content, copy, and strategy from reusable marketing prompts.</p>
+            {onTrial && (
+              <p className="mt-2 text-xs text-text-soft">
+                Trial: {runsUsed} of {runLimit} AI Toolkit runs used · Brand Kit locked until paid · Specialist agents are unlimited via Maya.
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-shrink-0">
             <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-center">
@@ -572,7 +602,7 @@ export default function AIToolkitClient({
       )}
 
       {/* Plan banner */}
-      <PlanBanner plan={plan} monthlyRuns={monthlyRuns} />
+      <PlanBanner plan={plan} limits={toolkitLimits} />
 
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-surface-muted rounded-xl p-1 w-fit mb-6">
@@ -749,7 +779,7 @@ export default function AIToolkitClient({
           </div>
 
           {/* Upgrade callout for starter */}
-          {plan === 'starter' && <UpgradeCallout />}
+          {plan === 'starter' && <UpgradeCallout onTrial={onTrial} starterMonthlyLimit={toolkitLimits.starterMonthlyLimit} />}
         </>
       )}
 

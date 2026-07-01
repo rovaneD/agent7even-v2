@@ -44,7 +44,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
-| Agents Command Center | `/dashboard/agents` | P0 | T4 T7 | Agent setup form grounding (Layer 1) · Layer 2 form actuation | Register more canvases |
+| Agents Command Center | `/dashboard/agents` | P0 | T4 T7 | Agent setup form grounding (Layer 1) · Layer 2 form actuation | — |
 | Approvals | `/dashboard/agents/approvals` | P1 | T3 T7 | Maya context · lifecycle → Review link · draft-post banner | — |
 | Agent outputs archive | `/dashboard/agents/[id]/outputs` | P2 | T3 | Maya context · lifecycle stage labels | — |
 | Analytics | `/dashboard/analytics` | P1 | T7 | Tab activeView · connect panel/modal grounding | — |
@@ -109,7 +109,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Notes |
 |--------|-------|----------|-------|
-| AI Toolkit | `/dashboard/ai-toolkit` | P2 | Route exists; removed from sidebar IA. Trial run limits vs unlimited agents messaging. |
+| AI Toolkit | `/dashboard/ai-toolkit` | P2 | Trial vs paid run limits in UI; removed from sidebar IA |
 | Content posting flows | `/dashboard/agents/content-posting/*` | P2 | Agent-specific posting subflows |
 
 ---
@@ -131,7 +131,8 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 - **Admin console** (`/admin/*`) — separate operator UX; not Phase C client retention work
 - **Flagged product decisions** — ProAgent rename, trial-on-all-plans, Starter→Growth non-volume lever
-- **Thread 7 Layer 2** — form actuation via Apply gate shipped (agents + guided campaign); extend to more canvases
+- **Thread 7 Layer 2** — form actuation via Apply gate shipped (Settings, Posts compose, Open canvas, agents, guided campaign)
+- **AI Toolkit** (`/dashboard/ai-toolkit`) — trial vs paid run limits surfaced in UI; route removed from sidebar IA
 
 ---
 

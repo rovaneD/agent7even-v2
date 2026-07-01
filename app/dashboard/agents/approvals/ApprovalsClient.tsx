@@ -8,8 +8,12 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, CheckCircle2, RotateCcw, ArrowLeft, Filter, SortDesc, Image as ImageIcon, CalendarDays, FileText } from 'lucide-react'
 import { AGENTS, AgentId } from '@/lib/agents/registry'
 import AgentIcon from '@/components/agents/AgentIcon'
+import AdVariationsOutputView from '@/components/agents/AdVariationsOutputView'
+import CampaignOutputView from '@/components/agents/CampaignOutputView'
 import EmailSequenceOutputView from '@/components/agents/EmailSequenceOutputView'
 import IdeaAnalysisOutputView from '@/components/agents/IdeaAnalysisOutputView'
+import { adVariationsPreview } from '@/lib/agents/adVariationsParse'
+import { campaignPreview } from '@/lib/agents/campaignParse'
 import { readIdeaAnalysisFromContent } from '@/lib/agents/ideaAnalysis'
 import type { ViralHooksDraftHints } from '@/lib/services/viralHooks'
 import {
@@ -144,6 +148,8 @@ function ApprovalItem({
     ? readIdeaAnalysisFromContent(output?.content)
     : null
   const raw       = ideaAnalysis ? '' : (output?.content?.raw ?? '')
+  const adPreview = task.agent === 'ad_variations' ? adVariationsPreview(raw) : null
+  const campaignPreviewText = task.agent === 'campaign_builder' ? campaignPreview(raw) : null
   const mediaPreviewUrl = output?.mediaPreviewUrl ?? null
   const queueKind = approvalQueueKind(task)
   const kindStyle = QUEUE_KIND_STYLES[queueKind]
@@ -267,9 +273,9 @@ function ApprovalItem({
             </div>
           )}
 
-          {!isExpanded && (ideaAnalysis?.topic || raw) && (
+          {!isExpanded && (ideaAnalysis?.topic || campaignPreviewText || adPreview || raw) && (
             <p style={{ fontSize: 13, color: '#666', lineHeight: 1.55, marginBottom: 10 }}>
-              {ideaAnalysis?.topic ?? (raw.length > 180 ? raw.slice(0, 180) + '…' : raw)}
+              {ideaAnalysis?.topic ?? campaignPreviewText ?? adPreview ?? (raw.length > 180 ? raw.slice(0, 180) + '…' : raw)}
             </p>
           )}
 
@@ -331,6 +337,10 @@ function ApprovalItem({
                 />
               ) : task.agent === 'email_sequence_builder' ? (
                 <EmailSequenceOutputView content={raw} showGuide={false} />
+              ) : task.agent === 'campaign_builder' ? (
+                <CampaignOutputView content={raw} showActions={false} compact />
+              ) : task.agent === 'ad_variations' ? (
+                <AdVariationsOutputView content={raw} showGuide={false} compact />
               ) : ideaAnalysis ? (
                 <IdeaAnalysisOutputView
                   analysis={ideaAnalysis}

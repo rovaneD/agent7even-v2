@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import AIToolkitClient from './AIToolkitClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
+import { getToolkitPlanLimits } from '@/lib/ai/toolkitPlanLimits'
 
 export default async function AIToolkitPage() {
   const { userId } = await auth()
@@ -12,7 +13,7 @@ export default async function AIToolkitPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, company_name, plan')
+    .select('id, company_name, plan, stripe_subscription_id')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -21,58 +22,49 @@ export default async function AIToolkitPage() {
   const teamPerms = await getTeamPermissions(profile.id)
   if (!hasPermission(teamPerms, 'ai_toolkit')) redirect('/dashboard')
 
-  // Fetch prompt library
-  const { data: prompts } = await supabase
-    .from('prompt_library')
-    .select('*')
-    .eq('is_active', true)
-    .order('sort_order')
+  const [promptsResult, savedPromptsResult, usageStatsResult, brandDocsResult, toolkitLimits] = await Promise.all([
+    supabase
+      .from('prompt_library')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order'),
+    supabase
+      .from('saved_prompts')
+      .select('*')
+      .eq('user_id', profile.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('ai_tool_usage')
+      .select('time_saved_mins')
+      .eq('user_id', profile.id),
+    supabase
+      .from('brand_documents')
+      .select('type, title')
+      .eq('user_id', profile.id),
+    getToolkitPlanLimits(supabase, profile),
+  ])
 
-  // Fetch saved prompts
-  const { data: savedPrompts } = await supabase
-    .from('saved_prompts')
-    .select('*')
-    .eq('user_id', profile.id)
-    .order('created_at', { ascending: false })
+  const prompts = promptsResult.data ?? []
+  const savedPrompts = savedPromptsResult.data ?? []
+  const usageStats = usageStatsResult.data ?? []
+  const brandDocs = brandDocsResult.data ?? []
 
-  // Fetch usage stats
-  const { data: usageStats } = await supabase
-    .from('ai_tool_usage')
-    .select('time_saved_mins')
-    .eq('user_id', profile.id)
+  const totalTimeSaved = usageStats.reduce((a, u) => a + (u.time_saved_mins ?? 0), 0)
+  const totalRuns = usageStats.length
 
-  const totalTimeSaved = usageStats?.reduce((a, u) => a + (u.time_saved_mins ?? 0), 0) ?? 0
-  const totalRuns = usageStats?.length ?? 0
-
-  // Monthly runs for Starter plan enforcement
-  const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const { count: monthlyRunsCount } = await supabase
-    .from('ai_tool_usage')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', profile.id)
-    .gte('created_at', startOfMonth)
-  const monthlyRuns = monthlyRunsCount ?? 0
-
-  // Fetch brand documents — used for brand voice toggle
-  const { data: brandDocs } = await supabase
-    .from('brand_documents')
-    .select('type, title')
-    .eq('user_id', profile.id)
-
-  const hasBrandKit = (brandDocs?.length ?? 0) > 0
+  const hasBrandKit = brandDocs.length > 0
   const brandKitComplete = ['voice', 'story', 'persona', 'positioning'].every(
-    type => brandDocs?.some(d => d.type === type)
+    type => brandDocs.some(d => d.type === type),
   )
 
   return (
     <AIToolkitClient
-      prompts={prompts ?? []}
-      savedPrompts={savedPrompts ?? []}
+      prompts={prompts}
+      savedPrompts={savedPrompts}
       totalTimeSaved={totalTimeSaved}
       totalRuns={totalRuns}
       plan={profile.plan ?? null}
-      monthlyRuns={monthlyRuns}
+      toolkitLimits={toolkitLimits}
       companyName={profile.company_name ?? ''}
       hasBrandKit={hasBrandKit}
       brandKitComplete={brandKitComplete}

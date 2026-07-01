@@ -97,10 +97,12 @@ function EmailFieldBlock({
   label,
   value,
   multiline,
+  renderMarkdown = false,
 }: {
   label: string
   value: string
   multiline?: boolean
+  renderMarkdown?: boolean
 }) {
   if (!value.trim()) return null
 
@@ -117,11 +119,15 @@ function EmailFieldBlock({
           title={`Copy ${label.toLowerCase()}`}
         />
       </div>
-      <p
-        className={`text-[13px] leading-relaxed text-text-sec ${multiline ? 'whitespace-pre-wrap' : ''}`}
-      >
-        {value}
-      </p>
+      {renderMarkdown ? (
+        <ReactMarkdown components={markdownComponents()}>{value}</ReactMarkdown>
+      ) : (
+        <p
+          className={`text-[13px] leading-relaxed text-text-sec ${multiline ? 'whitespace-pre-wrap' : ''}`}
+        >
+          {value}
+        </p>
+      )}
     </div>
   )
 }
@@ -170,6 +176,7 @@ function EmailSequenceCard({ email }: { email: ParsedSequenceEmail }) {
             label={fieldById.body.label}
             value={fieldById.body.value}
             multiline
+            renderMarkdown
           />
         )}
 

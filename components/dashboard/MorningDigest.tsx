@@ -56,6 +56,8 @@ interface Props {
   profileId: string
   firstName?: string
   coldOpen:  ColdOpenState
+  /** Regenerate today's digest when cached row predates the approval-query fix. */
+  digestStale?: boolean
 }
 
 function getGreeting(): string {
@@ -143,10 +145,10 @@ function StatPill({ label, value, hint }: { label: string; value: string | numbe
   )
 }
 
-export default function MorningDigest({ digest: initialDigest, profileId, firstName, coldOpen }: Props) {
+export default function MorningDigest({ digest: initialDigest, profileId, firstName, coldOpen, digestStale = false }: Props) {
   const [digest, setDigest]       = useState<Digest | null>(initialDigest)
   const [approvals, setApprovals] = useState<ApprovalItem[]>(initialDigest?.approvals ?? [])
-  const [loading, setLoading]     = useState(initialDigest === null)
+  const [loading, setLoading]     = useState(initialDigest === null || digestStale)
   const [now, setNow]             = useState<Date | null>(null)
 
   useEffect(() => {
@@ -156,11 +158,12 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
   }, [])
 
   useEffect(() => {
-    if (initialDigest !== null) return
+    if (initialDigest !== null && !digestStale) return
+    setLoading(true)
     fetch('/api/digest/generate', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ profileId }),
+      body:    JSON.stringify({ profileId, forceRegenerate: digestStale }),
     })
       .then(r => r.json())
       .then(({ digestId }) => {
@@ -174,7 +177,7 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
           })
       })
       .catch(() => setLoading(false))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [profileId, initialDigest, digestStale]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const agentRuns = useMemo(
     () => (digest?.agent_runs ?? []).filter(r => !isSystemAgent(r.agentId)),

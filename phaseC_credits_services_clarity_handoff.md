@@ -45,12 +45,13 @@ Surfaces on:
 
 | Item | Status |
 |------|--------|
-| Thread 7 Layer 2 (Maya form actuation) | Deferred — needs product/API design |
+| Thread 7 Layer 2 (Maya form actuation) | **Shipped** — Settings, Posts compose, Open canvas, agents, guided campaign |
 | Settings / Analytics connect grounding | **Shipped** — see `phaseC_situational_grounding_handoff.md` |
 | Campaign / inquiry form grounding | **Shipped** — guided, open canvas, service inquiry |
 | `per_screen_registry.md` | **Shipped** — June 10, 2026 |
-| Stale digest regenerate after approval-query fix | Optional ops |
-| Explainability pass (per-screen) | Next — use registry as checklist |
+| Stale digest regenerate after approval-query fix | **Shipped** — `forceRegenerate` + dashboard stale detection |
+| Explainability pass (per-screen) | **Shipped** — see `phaseC_explainability_handoff.md` |
+| AI Toolkit trial vs paid messaging | **Shipped** — `lib/ai/toolkitPlanLimits.ts` + PlanBanner copy |
 
 ## Open product decisions (unchanged)
 

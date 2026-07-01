@@ -121,7 +121,8 @@ export function buildPostsMayaContext(input: {
 
 export function buildAiToolkitMayaContext(input: {
   plan: string | null
-  monthlyRuns: number
+  onTrial?: boolean
+  runsUsed: number
   unlimited: boolean
   limit: number
   activeCategory: string
@@ -132,8 +133,10 @@ export function buildAiToolkitMayaContext(input: {
   totalRuns: number
 }): MayaPageContext {
   const usage = input.unlimited
-    ? `${input.monthlyRuns} runs this month (unlimited plan)`
-    : `${input.monthlyRuns}/${input.limit} runs used this month`
+    ? `${input.runsUsed} runs this month (unlimited plan)`
+    : input.onTrial
+      ? `${input.runsUsed}/${input.limit} trial runs used (${input.limit} total during 3-day trial)`
+      : `${input.runsUsed}/${input.limit} runs used this month`
   return {
     page: 'AI TOOLKIT PAGE',
     dataSource: 'live',
@@ -141,13 +144,13 @@ export function buildAiToolkitMayaContext(input: {
       ? `running "${input.runningPromptTitle}"`
       : `${input.activeTab} · ${input.activeCategory}`,
     metrics: [
-      `Plan: ${input.plan ?? 'none'}`,
+      `Plan: ${input.plan ?? 'none'}${input.onTrial ? ' (trialing)' : ''}`,
       `Usage: ${usage}`,
       `Lifetime outputs: ${input.totalRuns}`,
       `Tools visible: ${input.visibleToolCount}`,
-      `Brand voice in prompts: ${input.brandKitComplete ? 'available' : 'Brand Kit incomplete'}`,
+      `Brand voice in prompts: ${input.brandKitComplete ? 'available' : 'Brand Kit incomplete (locked on trial)'}`,
     ],
-    affordance: `${MAYA_VOICE_RULE} User runs reusable marketing prompts from the library. Help pick tools, fill variables, and refine generated copy.`,
+    affordance: `${MAYA_VOICE_RULE} User runs reusable marketing prompts from the library — separate from specialist agents (unlimited). Trial Starter: 5 AI Toolkit runs total. Help pick tools and refine copy; do not confuse Toolkit limits with agent/Maya chat limits.`,
   }
 }
 

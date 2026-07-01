@@ -100,6 +100,10 @@ export default async function DashboardPage() {
   ])
 
   const digest = digestResult.data?.[0] ?? null
+  const pendingApprovals = approvalResult.count ?? 0
+  const digestStale = !!digest
+    && pendingApprovals > 0
+    && (digest.approvals?.length ?? 0) === 0
 
   const checklistCompleted: boolean[] = [
     !!profile?.foundation_complete,
@@ -118,7 +122,6 @@ export default async function DashboardPage() {
   const activeCampaigns = campaignResult.count ?? 0
   const agentsRun = agentResult.count ?? 0
   const creditBalance = creditResult.data?.[0]?.balance ?? null
-  const pendingApprovals = approvalResult.count ?? 0
   const activeOrders = orderResult.count ?? 0
   const brandKitPct = Math.round(((brandKitResult.count ?? 0) / 6) * 100)
   const analyticsConnected = !!(profile as Record<string, unknown>)?.ga_connected || !!(profile as Record<string, unknown>)?.meta_connected
@@ -218,6 +221,7 @@ export default async function DashboardPage() {
           profileId={profile.id}
           firstName={firstName}
           coldOpen={coldOpen}
+          digestStale={digestStale}
         />
       )}
 

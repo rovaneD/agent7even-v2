@@ -6,7 +6,7 @@ import { openRouterComplete } from '@/lib/agents/openrouter'
 
 export async function POST(req: Request) {
   const supabase = createServiceClient()
-  const { profileId } = await req.json()
+  const { profileId, forceRegenerate } = await req.json()
 
   if (!profileId) return NextResponse.json({ error: 'profileId required' }, { status: 400 })
 
@@ -19,7 +19,13 @@ export async function POST(req: Request) {
     .eq('date', today)
     .single()
 
-  if (existing) return NextResponse.json({ digestId: existing.id, cached: true })
+  if (existing && !forceRegenerate) {
+    return NextResponse.json({ digestId: existing.id, cached: true })
+  }
+
+  if (existing && forceRegenerate) {
+    await supabase.from('daily_digests').delete().eq('id', existing.id)
+  }
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 

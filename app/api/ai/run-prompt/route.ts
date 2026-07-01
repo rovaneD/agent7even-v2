@@ -2,10 +2,9 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getToolkitPlanLimits } from '@/lib/ai/toolkitPlanLimits'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-const TRIAL_RUN_LIMIT = 5
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -33,57 +32,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No active plan', code: 'NO_PLAN' }, { status: 403 })
   }
 
-  // Check if on trial (Starter only)
-  let onTrial = false
-  if (profile.plan === 'starter' && profile.stripe_subscription_id) {
-    try {
-      const { getStripeClient } = await import('@/lib/stripe')
-      const stripe = getStripeClient()
-      if (stripe) {
-        const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
-        onTrial = subscription.status === 'trialing'
-      }
-    } catch {
-      // If we can't check, assume not on trial
-    }
-  }
+  // Enforce plan limits (trial total vs Starter monthly vs unlimited)
+  const limits = await getToolkitPlanLimits(supabase, profile)
 
-  // Fetch platform settings for dynamic limits
-  const { data: limitSetting } = await supabase
-    .from('platform_settings')
-    .select('value')
-    .eq('key', 'starter_ai_limit')
-    .single()
-  const STARTER_LIMIT = (limitSetting?.value as number) ?? 15
-
-  // Count this month's usage
-  const startOfMonth = new Date()
-  startOfMonth.setDate(1)
-  startOfMonth.setHours(0, 0, 0, 0)
-
-  const { count: monthlyRuns } = await supabase
-    .from('ai_tool_usage')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', profile.id)
-    .gte('created_at', startOfMonth.toISOString())
-
-  const runsUsed = monthlyRuns ?? 0
-
-  // Enforce trial limit (5 total runs ever, not per month)
-  if (onTrial) {
-    const { count: totalTrialRuns } = await supabase
-      .from('ai_tool_usage')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', profile.id)
-
-    if ((totalTrialRuns ?? 0) >= TRIAL_RUN_LIMIT) {
+  if (!limits.unlimited && limits.runsUsed >= limits.runLimit) {
+    if (limits.onTrial) {
       return NextResponse.json({
-        error: 'Trial AI limit reached. Upgrade to continue.',
+        error: 'Trial AI limit reached. Your 3-day trial includes 5 AI Toolkit runs total.',
         code: 'TRIAL_LIMIT',
       }, { status: 403 })
     }
-  } else if (profile.plan === 'starter' && runsUsed >= STARTER_LIMIT) {
-    // Enforce monthly limit for paid Starter
     return NextResponse.json({
       error: 'Monthly AI limit reached. Upgrade to Growth for unlimited runs.',
       code: 'MONTHLY_LIMIT',
@@ -139,5 +97,9 @@ Now complete the following task:`
     time_saved_mins: timeSavedMins ?? 0,
   })
 
-  return NextResponse.json({ output, onTrial, runsUsed: runsUsed + 1 })
+  return NextResponse.json({
+    output,
+    onTrial: limits.onTrial,
+    runsUsed: limits.runsUsed + 1,
+  })
 }

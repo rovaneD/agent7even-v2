@@ -120,16 +120,25 @@ export default function OpenCanvasFlow() {
     () => ({
       id: 'open-canvas-draft',
       label: 'Open canvas — campaign brief',
-      fields: [{ key: 'draftInput', label: 'Message to Maya', type: 'text' as const }],
+      fields: [
+        { key: 'draftInput', label: 'Message to Maya', type: 'text' as const },
+        {
+          key: 'selectedModel',
+          label: 'AI model',
+          type: 'select' as const,
+          options: MODEL_OPTIONS.map(m => m.id),
+        },
+      ],
     }),
     [],
   )
 
   useRegisterMayaFormSurface(
     openCanvasFormSurface,
-    () => ({ draftInput: input }),
+    () => ({ draftInput: input, selectedModel }),
     patch => {
       if (patch.draftInput !== undefined) setInput(patch.draftInput)
+      if (patch.selectedModel !== undefined) setSelectedModel(patch.selectedModel)
     },
   )
 

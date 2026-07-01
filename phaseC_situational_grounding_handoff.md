@@ -50,14 +50,9 @@ Section edit forms bind live field values via `buildFoundationHubMayaContext` / 
 
 **Surfaces v1:** Agents Command Center setup forms · Guided campaign builder (steps 1–3).
 
-**Still read-only:** Settings, Foundation section edits, Posts compose (register in follow-on if needed).
+**Still read-only:** Foundation section edits (Layer 1 only — register in follow-on if needed).
 
----
-
-## Layer 2 backlog (follow-on)
-
-- Register additional canvases (Settings live form, Posts compose, Open Canvas campaign).
-- Optional: dedicated `/api/maya/propose-form-fill` if patch-block parsing proves fragile.
+**Layer 2 registered (June 30, 2026):** Settings business form · Posts compose drawer · Open canvas brief (+ model select) · Agents setup · Guided campaign steps.
 
 ---
 

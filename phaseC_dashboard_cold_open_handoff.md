@@ -87,4 +87,4 @@ npm run tsc
 2. **Asset lifecycle** — Draft → Approved → Scheduled → Published surfacing.
 3. **Thread 7 Layer 1** — bind visible form field values into `canvasData` on SEO Scanner et al.
 4. **Thread 7 Layer 2** — design actuation API after product decision.
-5. **Stale digest refresh** — optional: regenerate today’s digest when approval query fix deploys.
+5. **Stale digest refresh** — **Shipped:** `forceRegenerate` on `/api/digest/generate`; dashboard detects empty approvals with pending queue and refreshes.
