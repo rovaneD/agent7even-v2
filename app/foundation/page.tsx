@@ -40,6 +40,7 @@ export default async function FoundationPage({
       profileId={profile.id}
       companyName={profile.company_name ?? ''}
       initialStep={profile.foundation_step ?? 0}
+      initialAnswers={profile.foundation_answers ?? null}
       selectedPlan={plan}
     />
   )

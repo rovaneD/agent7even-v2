@@ -79,8 +79,6 @@ export default function TeamClient({
   plan,
   stripeSubscriptionId,
   includedSeats,
-  activeMembers,
-  pendingMembers,
   teamMembers: initial,
 }: Props) {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initial)
@@ -96,8 +94,16 @@ export default function TeamClient({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  const activeMembers = useMemo(
+    () => teamMembers.filter(member => member.status === 'active').length,
+    [teamMembers],
+  )
+  const pendingMembers = useMemo(
+    () => teamMembers.filter(member => member.status === 'pending').length,
+    [teamMembers],
+  )
   const totalMembers = activeMembers + pendingMembers
-  const extraSeats = Math.max(0, totalMembers - includedSeats)
+  const extraSeats = Math.max(0, totalMembers + 1 - includedSeats)
   const inviteWillNeedExtraSeat = (totalMembers + 1) >= includedSeats
   const canBillExtraSeat = Boolean(stripeSubscriptionId)
   const [inviteStep, setInviteStep] = useState<'details' | 'confirm'>('details')
@@ -112,9 +118,9 @@ export default function TeamClient({
         activeMembers,
         pendingMembers,
         extraSeats,
-        members: initial,
+        members: teamMembers,
       }),
-    [companyName, plan, includedSeats, totalMembers, activeMembers, pendingMembers, extraSeats, initial],
+    [companyName, plan, includedSeats, totalMembers, activeMembers, pendingMembers, extraSeats, teamMembers],
   )
   useMayaContext(mayaContext)
 
@@ -143,10 +149,17 @@ export default function TeamClient({
           email: inviteEmail.trim(),
           role: inviteRole,
           permissions: invitePermissions,
+          confirmedExtraSeat: inviteWillNeedExtraSeat && inviteStep === 'confirm',
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed to send invite')
+      if (!res.ok) {
+        if (data.error === 'extra_seat_confirmation_required') {
+          setInviteStep('confirm')
+          throw new Error('Confirm the extra $15/mo team seat before sending this invite.')
+        }
+        throw new Error(data.error ?? 'Failed to send invite')
+      }
       setTeamMembers(prev => [data.member, ...prev])
       setSuccess(`Invite sent to ${inviteEmail}`)
       setInviteEmail('')

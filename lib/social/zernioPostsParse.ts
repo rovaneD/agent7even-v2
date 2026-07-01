@@ -1,8 +1,12 @@
 /** Normalise Zernio GET /posts and POST /posts response shapes for the dashboard UI. */
 
+import type { PostType } from '@/lib/social/postConstraints'
+
 export type ZernioPostPlatform = {
   platform: string
   accountId: string
+  postType: PostType
+  customContent?: string
   username: string
   displayName: string
   status: string
@@ -68,6 +72,15 @@ function readAccountField(entry: Record<string, unknown>, key: string): string {
   return ''
 }
 
+function readPostType(entry: Record<string, unknown>): PostType {
+  const platformSpecificData = asObject(entry.platformSpecificData ?? entry.platform_specific_data)
+  const contentType = asString(entry.postType ?? entry.post_type ?? platformSpecificData.contentType ?? platformSpecificData.content_type)
+    .toLowerCase()
+  if (contentType === 'reel' || contentType === 'reels') return 'reel'
+  if (contentType === 'story' || contentType === 'stories') return 'story'
+  return 'feed'
+}
+
 function readMediaUrl(row: Record<string, unknown>): string {
   return asString(
     row.url ??
@@ -115,6 +128,8 @@ export function mapZernioPost(raw: unknown): ZernioPostRow | null {
     return {
       platform: asString(row.platform).toLowerCase(),
       accountId: readAccountId(row),
+      postType: readPostType(row),
+      ...(asString(row.customContent ?? row.custom_content) ? { customContent: asString(row.customContent ?? row.custom_content) } : {}),
       username: readAccountField(row, 'username') || readAccountField(row, 'platformUsername'),
       displayName: readAccountField(row, 'displayName') || readAccountField(row, 'name'),
       status: asString(row.status),

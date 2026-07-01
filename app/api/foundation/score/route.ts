@@ -5,6 +5,7 @@ import { openRouterComplete } from '@/lib/agents/openrouter'
 import { logActivity } from '@/lib/activity'
 import { FIELD_EXPECTATIONS } from '@/lib/foundation/score'
 import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
+import { buildIdentityUpdateWithSnapshot, legacyColumnsFromAnswers } from '@/lib/foundation/answersSnapshot'
 
 export const maxDuration = 30
 
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, foundation_score, company_name')
+    .select('id, foundation_score, foundation_answers, company_name')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -103,11 +104,12 @@ Return format exactly:
   // Update profile
   await supabase
     .from('profiles')
-    .update({
+    .update(buildIdentityUpdateWithSnapshot(profile.foundation_answers, {
       foundation_score: parsed.overallScore,
       foundation_answers: answers,
+      ...legacyColumnsFromAnswers(answers),
       foundation_updated_at: new Date().toISOString(),
-    })
+    }))
     .eq('id', profile.id)
 
   logActivity(profile.id, 'foundation_updated', { score: parsed.overallScore }).catch(() => {})
