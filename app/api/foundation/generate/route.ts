@@ -7,6 +7,7 @@ import {
   completeOrchestration,
 } from '@/lib/agents/runner'
 import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
+import { buildIdentityUpdateWithSnapshot, legacyColumnsFromAnswers } from '@/lib/foundation/answersSnapshot'
 
 const FOUNDATION_MODEL = 'anthropic/claude-sonnet-4'
 
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, plan, company_name')
+    .select('id, plan, company_name, foundation_answers')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -162,15 +163,26 @@ Monthly goal: ${answers.monthlyGoal}
 
     // Only mark foundation_complete on a full (non-partial) generation
     if (allSaved && !sectionFilter?.length) {
-      await supabase
+      const { error: completeError } = await supabase
         .from('profiles')
-        .update({
+        .update(buildIdentityUpdateWithSnapshot(profile.foundation_answers, {
+          foundation_answers: answers,
+          ...legacyColumnsFromAnswers(answers),
+          foundation_updated_at: new Date().toISOString(),
           foundation_complete: true,
           onboarding_complete: true,
           foundation_step:     5,
           updated_at:          new Date().toISOString(),
-        })
+        }))
         .eq('id', profile.id)
+
+      if (completeError) {
+        console.error('[foundation/generate] completion update failed:', completeError.message)
+        return NextResponse.json(
+          { error: 'Foundation documents were generated, but onboarding could not be completed.', generated: saved, missing },
+          { status: 500 },
+        )
+      }
     }
 
     if (!allSaved) {

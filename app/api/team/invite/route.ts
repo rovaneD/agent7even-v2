@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { email, role, permissions } = await req.json()
+  const { email, role, permissions, confirmedExtraSeat } = await req.json()
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
   const supabase = createServiceClient()
@@ -47,37 +47,15 @@ export async function POST(req: Request) {
     .neq('status', 'removed')
 
   const includedSeats = PLAN_SEAT_LIMITS[profile.plan ?? ''] ?? 1
-  const usedSeats = (currentMembers ?? 0) + 1 // +1 for owner
-  const needsExtraSeat = usedSeats >= includedSeats
+  const currentExtraSeats = Math.max(0, (currentMembers ?? 0) + 1 - includedSeats) // +1 for owner
+  const needsExtraSeat = Math.max(0, (currentMembers ?? 0) + 2 - includedSeats) > currentExtraSeats
 
-  // Add extra seat to Stripe subscription if needed
-  if (needsExtraSeat && profile.stripe_subscription_id) {
-    try {
-      const stripe = getStripeClient()
-      if (!stripe) throw new Error('Billing is not configured')
+  if (needsExtraSeat && !profile.stripe_subscription_id) {
+    return NextResponse.json({ error: 'A paid subscription is required before inviting extra team seats.' }, { status: 402 })
+  }
 
-      const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
-      const existingSeatItem = subscription.items.data.find(
-        item => item.price.id === process.env.STRIPE_SEAT_PRICE_ID
-      )
-
-      if (existingSeatItem) {
-        // Increment existing seat quantity
-        await stripe.subscriptionItems.update(existingSeatItem.id, {
-          quantity: (existingSeatItem.quantity ?? 1) + 1,
-        })
-      } else {
-        // Add new seat line item
-        await stripe.subscriptionItems.create({
-          subscription: profile.stripe_subscription_id,
-          price: process.env.STRIPE_SEAT_PRICE_ID!,
-          quantity: 1,
-        })
-      }
-    } catch (err) {
-      console.error('Stripe seat add error:', err)
-      return NextResponse.json({ error: 'Failed to add seat to subscription. Please check your billing.' }, { status: 500 })
-    }
+  if (needsExtraSeat && confirmedExtraSeat !== true) {
+    return NextResponse.json({ error: 'extra_seat_confirmation_required' }, { status: 409 })
   }
 
   // Generate invite token
@@ -102,6 +80,54 @@ export async function POST(req: Request) {
   if (error) {
     console.error('Team member insert error:', error)
     return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 })
+  }
+
+  const { count: membersAfterInsert } = await supabase
+    .from('team_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('account_id', profile.id)
+    .neq('status', 'removed')
+
+  const extraSeatsAfterInsert = Math.max(0, (membersAfterInsert ?? 0) + 1 - includedSeats)
+  const addedExtraSeat = extraSeatsAfterInsert > currentExtraSeats
+
+  if (addedExtraSeat && !profile.stripe_subscription_id) {
+    await supabase.from('team_members').delete().eq('id', member.id)
+    return NextResponse.json({ error: 'A paid subscription is required before inviting extra team seats.' }, { status: 402 })
+  }
+
+  if (addedExtraSeat && confirmedExtraSeat !== true) {
+    await supabase.from('team_members').delete().eq('id', member.id)
+    return NextResponse.json({ error: 'extra_seat_confirmation_required' }, { status: 409 })
+  }
+
+  // Add extra seat to Stripe subscription only after the invite row exists.
+  if (addedExtraSeat && profile.stripe_subscription_id) {
+    try {
+      const stripe = getStripeClient()
+      if (!stripe) throw new Error('Billing is not configured')
+
+      const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
+      const existingSeatItem = subscription.items.data.find(
+        item => item.price.id === process.env.STRIPE_SEAT_PRICE_ID
+      )
+
+      if (existingSeatItem) {
+        await stripe.subscriptionItems.update(existingSeatItem.id, {
+          quantity: extraSeatsAfterInsert,
+        })
+      } else {
+        await stripe.subscriptionItems.create({
+          subscription: profile.stripe_subscription_id,
+          price: process.env.STRIPE_SEAT_PRICE_ID!,
+          quantity: extraSeatsAfterInsert,
+        })
+      }
+    } catch (err) {
+      console.error('Stripe seat add error:', err)
+      await supabase.from('team_members').delete().eq('id', member.id)
+      return NextResponse.json({ error: 'Failed to add seat to subscription. Please check your billing.' }, { status: 500 })
+    }
   }
 
   // Send invite email

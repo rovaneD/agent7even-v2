@@ -7,10 +7,11 @@ export type FoundationProfile = {
   business_type: string | null
   foundation_complete: boolean | null
   foundation_step: number | null
+  foundation_answers: Record<string, unknown> | null
 }
 
 const FOUNDATION_SELECT =
-  'id, company_name, business_type, foundation_complete, foundation_step'
+  'id, company_name, business_type, foundation_complete, foundation_step, foundation_answers'
 
 const LINK_SELECT =
   'id, clerk_user_id, stripe_customer_id, stripe_subscription_id, plan, status, created_at, company_name, business_type, foundation_complete, foundation_step'

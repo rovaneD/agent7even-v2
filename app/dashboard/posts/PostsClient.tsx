@@ -458,7 +458,21 @@ export default function PostsClient({
         previewUrl: m.type !== 'video' ? (m.thumbnailUrl ?? m.url) : undefined,
       })))
       const accountIds = post.platforms.map(p => p.accountId).filter(Boolean)
+      const restoredPostTypes: Record<string, PostType> = {}
+      const restoredCustomContent: Record<string, string> = {}
+      const restoredCustomOpen: Record<string, boolean> = {}
+      post.platforms.forEach((platform) => {
+        if (!platform.accountId) return
+        restoredPostTypes[platform.accountId] = platform.postType ?? 'feed'
+        if (platform.customContent?.trim()) {
+          restoredCustomContent[platform.accountId] = platform.customContent
+          restoredCustomOpen[platform.accountId] = true
+        }
+      })
       setSelectedAccountIds(accountIds.length > 0 ? accountIds : (accounts.length === 1 ? [accounts[0].id] : []))
+      setPostTypeByAccount(restoredPostTypes)
+      setCustomContentByAccount(restoredCustomContent)
+      setCustomCaptionOpen(restoredCustomOpen)
       setTimezone(post.timezone || 'America/Los_Angeles')
       if (post.status === 'draft') {
         setPublishMode('draft')

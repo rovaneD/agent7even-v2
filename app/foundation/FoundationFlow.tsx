@@ -40,7 +40,7 @@ const FIELD_LABELS: Record<string, string> = {
 
 function getStepForField(fieldKey: string): number {
   const stepMap: Record<string, number> = {
-    businessDescription: 0, problemSolved: 0, transformation: 0,
+    businessDescription: 0, problemSolved: 0, transformation: 0, employeeCountBucket: 0, annualRevenueBucket: 0,
     customerWho: 1, customerFrustration: 1, customerTriedBefore: 1, customerBuyingTrigger: 1,
     competitors: 2, differentiator: 2, differentiatorOwn: 2,
     toneTraits: 3, brandsAdmired: 3, neverSoundLike: 3,
@@ -53,6 +53,7 @@ interface Props {
   profileId: string
   companyName: string
   initialStep: number
+  initialAnswers?: Partial<StepAnswers> | null
   selectedPlan?: string
 }
 
@@ -75,6 +76,64 @@ interface StepAnswers {
   monthlyGoal: string
   employeeCountBucket: string
   annualRevenueBucket: string
+}
+
+const DEFAULT_STEP_ANSWERS: StepAnswers = {
+  businessDescription: '',
+  problemSolved: '',
+  transformation: '',
+  customerWho: '',
+  customerFrustration: '',
+  customerTriedBefore: '',
+  customerBuyingTrigger: '',
+  competitors: ['', '', ''],
+  differentiator: '',
+  differentiatorOwn: '',
+  toneTraits: [],
+  brandsAdmired: '',
+  neverSoundLike: '',
+  marketingBudget: '',
+  channels: [],
+  monthlyGoal: '',
+  employeeCountBucket: '',
+  annualRevenueBucket: '',
+}
+
+function stringAnswer(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function stringArrayAnswer(value: unknown, minLength = 0): string[] {
+  const arr = Array.isArray(value)
+    ? value.map(item => (typeof item === 'string' ? item : '')).filter(Boolean)
+    : []
+  while (arr.length < minLength) arr.push('')
+  return arr
+}
+
+function normalizeInitialAnswers(initialAnswers?: Partial<StepAnswers> | null): StepAnswers {
+  const raw = initialAnswers ?? {}
+  return {
+    ...DEFAULT_STEP_ANSWERS,
+    businessDescription: stringAnswer(raw.businessDescription),
+    problemSolved: stringAnswer(raw.problemSolved),
+    transformation: stringAnswer(raw.transformation),
+    customerWho: stringAnswer(raw.customerWho),
+    customerFrustration: stringAnswer(raw.customerFrustration),
+    customerTriedBefore: stringAnswer(raw.customerTriedBefore),
+    customerBuyingTrigger: stringAnswer(raw.customerBuyingTrigger),
+    competitors: stringArrayAnswer(raw.competitors, 3).slice(0, 3),
+    differentiator: stringAnswer(raw.differentiator),
+    differentiatorOwn: stringAnswer(raw.differentiatorOwn),
+    toneTraits: stringArrayAnswer(raw.toneTraits),
+    brandsAdmired: stringAnswer(raw.brandsAdmired),
+    neverSoundLike: stringAnswer(raw.neverSoundLike),
+    marketingBudget: stringAnswer(raw.marketingBudget),
+    channels: stringArrayAnswer(raw.channels),
+    monthlyGoal: stringAnswer(raw.monthlyGoal),
+    employeeCountBucket: stringAnswer(raw.employeeCountBucket),
+    annualRevenueBucket: stringAnswer(raw.annualRevenueBucket),
+  }
 }
 
 const MAYA_INTROS = [
@@ -146,7 +205,7 @@ function SuggestionLabel() {
   )
 }
 
-export default function FoundationFlow({ profileId, companyName, initialStep, selectedPlan }: Props) {
+export default function FoundationFlow({ profileId, companyName, initialStep, initialAnswers, selectedPlan }: Props) {
   const router = useRouter()
   const [step, setStep] = useState(initialStep)
   const [generating, setGenerating] = useState(false)
@@ -157,26 +216,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
   const [weakFields, setWeakFields] = useState<string[]>([])
   const [fieldScores, setFieldScores] = useState<Record<string, FieldScore>>({})
   const [generationError, setGenerationError] = useState<string | null>(null)
-  const [answers, setAnswers] = useState<StepAnswers>({
-    businessDescription: '',
-    problemSolved: '',
-    transformation: '',
-    customerWho: '',
-    customerFrustration: '',
-    customerTriedBefore: '',
-    customerBuyingTrigger: '',
-    competitors: ['', '', ''],
-    differentiator: '',
-    differentiatorOwn: '',
-    toneTraits: [],
-    brandsAdmired: '',
-    neverSoundLike: '',
-    marketingBudget: '',
-    channels: [],
-    monthlyGoal: '',
-    employeeCountBucket: '',
-    annualRevenueBucket: '',
-  })
+  const [answers, setAnswers] = useState<StepAnswers>(() => normalizeInitialAnswers(initialAnswers))
 
   // Pre-fill state — only active for new users (initialStep === 0) when flag is enabled.
   const showPrefill = EXA_PREFILL_ENABLED && initialStep === 0
@@ -219,19 +259,28 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
   }
 
   async function saveStep() {
-    await fetch('/api/foundation/save-step', {
+    const res = await fetch('/api/foundation/save-step', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ step, answers }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error || 'Your answers could not be saved. Please try again.')
+    }
   }
 
   async function handleNext() {
-    await saveStep()
-    if (step < 4) {
-      setStep(s => s + 1)
-    } else {
-      await handleGenerate()
+    setGenerationError(null)
+    try {
+      await saveStep()
+      if (step < 4) {
+        setStep(s => s + 1)
+      } else {
+        await handleGenerate()
+      }
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : 'Your answers could not be saved. Please try again.')
     }
   }
 
@@ -265,7 +314,13 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers }),
       })
-      const scoreData = await scoreRes.json()
+      const scoreData = await scoreRes.json().catch(() => ({}))
+      if (!scoreRes.ok) {
+        throw new Error(scoreData.error || 'Your Foundation could not be scored. Please try again.')
+      }
+      if (typeof scoreData.overallScore !== 'number') {
+        throw new Error('Your Foundation could not be scored. Please try again.')
+      }
 
       if (scoreData.overallScore < 50) {
         setFoundationScore(scoreData.overallScore)

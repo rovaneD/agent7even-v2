@@ -111,6 +111,14 @@ YouTube connect uses standard Zernio OAuth (`headless: false`). Marketing may cl
 
 ---
 
+## July 1, 2026 — critical correctness fixes
+
+- Foundation onboarding now persists `foundation_answers` on every step save, hydrates saved answers on resume, and fails closed if scoring/save/completion persistence fails.
+- Team extra-seat billing now requires server-validated confirmation, rolls back invites when Stripe seat updates fail, and uses supported Stripe subscription-item deletion when removing the last extra seat.
+- Scheduled post edits now preserve Reel/Story/custom-caption platform targets by restoring parsed target metadata and converting PATCH payloads through `buildZernioPlatformTargets()`.
+
+---
+
 ## Related docs
 
 | Doc | Role |
@@ -123,4 +131,4 @@ YouTube connect uses standard Zernio OAuth (`headless: false`). Marketing may cl
 
 ---
 
-*End CONTEXTV21 — June 25, 2026*
+*End CONTEXTV21 — July 1, 2026*

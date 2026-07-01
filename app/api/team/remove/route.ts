@@ -49,6 +49,7 @@ export async function POST(req: Request) {
   const includedSeats = PLAN_SEAT_LIMITS[profile.plan ?? ''] ?? 1
   const remainingAfterRemoval = (currentMembers ?? 1) - 1
   const hadExtraSeat = (currentMembers ?? 0) + 1 > includedSeats
+  const extraSeatsAfterRemoval = Math.max(0, remainingAfterRemoval + 1 - includedSeats)
 
   // Decrement Stripe seat if was paying for extra
   if (hadExtraSeat && profile.stripe_subscription_id) {
@@ -62,16 +63,15 @@ export async function POST(req: Request) {
       )
 
       if (seatItem) {
-        const newQuantity = (seatItem.quantity ?? 1) - 1
-        if (newQuantity <= 0) {
-          // Remove item by setting quantity to 0 via update (delete not available in this API version)
-          await stripe.subscriptionItems.update(seatItem.id, { quantity: 1, deleted: true } as any)
+        if (extraSeatsAfterRemoval <= 0) {
+          await stripe.subscriptionItems.del(seatItem.id)
         } else {
-          await stripe.subscriptionItems.update(seatItem.id, { quantity: newQuantity })
+          await stripe.subscriptionItems.update(seatItem.id, { quantity: extraSeatsAfterRemoval })
         }
       }
     } catch (err) {
       console.error('Stripe seat remove error:', err)
+      return NextResponse.json({ error: 'Failed to update billing for removed seat' }, { status: 500 })
     }
   }
 

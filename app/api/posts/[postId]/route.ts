@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as publisher from '@/lib/social/publisher'
 import { withZernioProfileUsage } from '@/lib/social/requireZernioProfile'
 import { parseSinglePost, readZernioPostProfileId } from '@/lib/social/zernioPostsParse'
+import {
+  buildZernioPlatformTargets,
+  parsePlatformTargets,
+  validatePost,
+} from '@/lib/social/postConstraints'
 
 async function loadOwnedPost(postId: string, profileIds: string[]) {
   const raw = await publisher.getPost(postId)
@@ -43,11 +48,41 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ po
       return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
     }
 
+    const content = typeof body.content === 'string' ? body.content.trim() : ''
+    const mediaItems = Array.isArray(body.mediaItems)
+      ? (body.mediaItems as Array<{ url?: string; type?: string; title?: string }>)
+          .filter(item => typeof item?.url === 'string' && item.url.length > 0)
+          .map(item => ({
+            url: String(item.url),
+            type: String(item.type ?? 'image'),
+            ...(typeof item.title === 'string' && item.title ? { title: item.title } : {}),
+          }))
+      : []
+    const platformTargets = Array.isArray(body.platforms)
+      ? parsePlatformTargets(body.platforms)
+      : undefined
+
+    if (platformTargets) {
+      const mode = body.isDraft === true ? 'draft' : body.publishNow === true ? 'now' : 'schedule'
+      const validationErrors = validatePost({
+        content,
+        mediaItems,
+        mode,
+        platforms: platformTargets,
+      })
+      if (validationErrors.length > 0) {
+        return NextResponse.json(
+          { error: 'validation_failed', messages: validationErrors, message: validationErrors[0] },
+          { status: 400 },
+        )
+      }
+    }
+
     try {
       const raw = await publisher.updatePost(postId, {
-        content: typeof body.content === 'string' ? body.content : undefined,
+        content: typeof body.content === 'string' ? content : undefined,
         title: typeof body.title === 'string' ? body.title : undefined,
-        platforms: Array.isArray(body.platforms) ? body.platforms as publisher.ZernioPostPlatformTarget[] : undefined,
+        platforms: platformTargets ? buildZernioPlatformTargets(platformTargets) : undefined,
         scheduledFor: typeof body.scheduledFor === 'string' ? body.scheduledFor : undefined,
         timezone: typeof body.timezone === 'string' ? body.timezone : undefined,
         publishNow: body.publishNow === true,

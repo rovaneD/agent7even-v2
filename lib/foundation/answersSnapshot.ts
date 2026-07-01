@@ -28,16 +28,19 @@ export function buildIdentityUpdateWithSnapshot(
 
 /** Mirror legacy profile columns from foundation_answers (backward compat). */
 export function legacyColumnsFromAnswers(answers: Record<string, unknown>): Record<string, unknown> {
+  const has = (key: string) => Object.prototype.hasOwnProperty.call(answers, key)
   return {
-    ideal_customer: (answers.customerWho as string) || null,
-    marketing_challenge: (answers.customerFrustration as string) || null,
-    competitors: (answers.competitors as string[])?.filter(Boolean) ?? undefined,
-    content_comfort: Array.isArray(answers.toneTraits)
-      ? (answers.toneTraits as string[]).join(', ')
-      : undefined,
-    marketing_budget: (answers.marketingBudget as string) || null,
-    sell_locations: (answers.channels as string[]) ?? undefined,
-    top_goals: answers.monthlyGoal ? [(answers.monthlyGoal as string)] : undefined,
+    ...(has('customerWho') ? { ideal_customer: (answers.customerWho as string) || null } : {}),
+    ...(has('customerFrustration') ? { marketing_challenge: (answers.customerFrustration as string) || null } : {}),
+    ...(has('competitors') ? { competitors: (answers.competitors as string[])?.filter(Boolean) ?? [] } : {}),
+    ...(has('toneTraits') && Array.isArray(answers.toneTraits)
+      ? { content_comfort: (answers.toneTraits as string[]).join(', ') }
+      : {}),
+    ...(has('marketingBudget') ? { marketing_budget: (answers.marketingBudget as string) || null } : {}),
+    ...(has('channels') ? { sell_locations: (answers.channels as string[]) ?? [] } : {}),
+    ...(has('monthlyGoal') ? { top_goals: answers.monthlyGoal ? [(answers.monthlyGoal as string)] : [] } : {}),
+    ...(has('employeeCountBucket') ? { employee_count_bucket: (answers.employeeCountBucket as string) || null } : {}),
+    ...(has('annualRevenueBucket') ? { annual_revenue_bucket: (answers.annualRevenueBucket as string) || null } : {}),
   }
 }
 
