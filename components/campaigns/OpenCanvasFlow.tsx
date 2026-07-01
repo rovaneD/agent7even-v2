@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
+import { useRegisterMayaFormSurface } from '@/context/MayaFormActuationContext'
 import { buildOpenCanvasCampaignMayaContext } from '@/lib/maya/summaries/phase3Context'
 import { useRouter } from 'next/navigation'
 import { useChat } from '@ai-sdk/react'
@@ -114,6 +115,23 @@ export default function OpenCanvasFlow() {
     [messages.length, readyToGenerate, isCreating, selectedModel, input, lastUserMessage],
   )
   useMayaContext(mayaContext)
+
+  const openCanvasFormSurface = useMemo(
+    () => ({
+      id: 'open-canvas-draft',
+      label: 'Open canvas — campaign brief',
+      fields: [{ key: 'draftInput', label: 'Message to Maya', type: 'text' as const }],
+    }),
+    [],
+  )
+
+  useRegisterMayaFormSurface(
+    openCanvasFormSurface,
+    () => ({ draftInput: input }),
+    patch => {
+      if (patch.draftInput !== undefined) setInput(patch.draftInput)
+    },
+  )
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

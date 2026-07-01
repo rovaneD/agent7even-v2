@@ -31,7 +31,10 @@ export async function POST(req: Request) {
   const stepFields: Record<string, unknown> = (() => {
     switch (step) {
       case 0:
-        return {}
+        return {
+          employee_count_bucket: answers.employeeCountBucket || null,
+          annual_revenue_bucket: answers.annualRevenueBucket || null,
+        }
       case 1:
         return {
           ideal_customer: answers.customerWho || null,

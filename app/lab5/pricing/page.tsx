@@ -39,7 +39,11 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How does the 3-day free trial work?',
-    a: 'Starter only. Your card is collected at sign-up but not charged for 3 days. Cancel before day 4 and pay nothing. Growth and ProAgent are charged immediately on sign-up.',
+    a: 'Starter only — a product test drive, not a discount tier. Your card is collected at sign-up but not charged for 3 days. Cancel before day 4 and pay nothing. Growth and ProAgent are charged immediately on sign-up.',
+  },
+  {
+    q: 'Why upgrade from Starter to Growth?',
+    a: 'Growth adds team capacity and managed services — 3 seats and 3 active service requests (vs 1 each on Starter) — plus 350 media credits/mo, X / Twitter connect, full analytics, and priority support. Choose Growth when you need collaborators or human-delivered work alongside the OS, not just more posts.',
   },
   {
     q: 'Can I cancel anytime?',
@@ -74,7 +78,7 @@ const TIERS = [
   },
   {
     name: 'Growth',
-    desc: 'More media volume for businesses posting across channels every week.',
+    desc: 'Team seats and managed service requests — plus more media every week.',
     monthlyPrice: 89,
     annualPrice: 890,
     trial: null,
@@ -82,8 +86,9 @@ const TIERS = [
     features: [
       'Everything in Starter',
       '350 media credits / month',
-      '3 service requests',
-      '3 seats included',
+      '3 team seats (vs 1 on Starter)',
+      '3 service requests (vs 1 on Starter)',
+      'X / Twitter connect · full analytics',
       'Priority support',
     ],
     cta: 'Get started',
@@ -190,8 +195,8 @@ export default function PricingPage() {
 
           <p className="tier-note reveal">
             <b>Service requests:</b> {SERVICE_REQUEST_DEF}<br />
-            Growth and ProAgent charged immediately on sign-up. Starter includes a 3-day free trial.<br />
-            <span style={{ color: 'var(--l5-faint)' }}>Open decisions flagged: ProAgent naming · trial on all tiers · Starter→Growth is primarily volume — see FAQ.</span>
+            <b>Free trial:</b> Starter only — test the product for 3 days; Growth and ProAgent bill immediately.<br />
+            <b>Upgrade path:</b> Growth adds team seats and service-request slots beyond Starter&rsquo;s media allowance.
           </p>
         </div>
       </section>

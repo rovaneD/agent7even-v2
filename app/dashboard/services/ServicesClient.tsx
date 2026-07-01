@@ -4,11 +4,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildServicesMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   Globe, Hash, Camera, Mail, Search,
   Brush, Video, Megaphone, Plus, X, ChevronRight,
   Clock, CheckCircle, AlertCircle, Loader2, ArrowRight, Code2, ChevronLeft, Send, Flame,
-  Sparkles, Target, Layers, FileText, Download, Trash2
+  Sparkles, Target, Layers, FileText, Download, Trash2, MessageSquare,
 } from 'lucide-react'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import ViralHooksOutputView from '@/components/agents/ViralHooksOutputView'
@@ -761,6 +762,15 @@ ${VIRAL_HOOKS_FRAMEWORK}`
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              {selectedOrder.support_ticket_id && !isViralHooksOrder && (
+                <Link
+                  href={`/dashboard/support?ticket=${encodeURIComponent(selectedOrder.support_ticket_id)}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold text-text-sec hover:border-brand-primary/40 hover:text-brand-primary transition-colors"
+                >
+                  <MessageSquare size={11} />
+                  Open in Support
+                </Link>
+              )}
               {isViralHooksOrder && generatedAssets.length > 0 && !CLOSED_STATUSES.includes(selectedOrder.status) && (
                 <button
                   type="button"
@@ -1201,6 +1211,14 @@ function OrderCard({
           >
             {isViralHooks ? 'Open generated hooks' : 'Open follow-up conversation'}
           </button>
+          {order.support_ticket_id && !isViralHooks && (
+            <Link
+              href={`/dashboard/support?ticket=${encodeURIComponent(order.support_ticket_id)}`}
+              className="mt-1 block text-[11px] font-medium text-text-soft hover:text-brand-primary"
+            >
+              View support ticket →
+            </Link>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">

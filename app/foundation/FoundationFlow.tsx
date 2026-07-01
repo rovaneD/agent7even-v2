@@ -4,6 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, ArrowLeft, Loader2, Check, AlertCircle, Globe } from 'lucide-react'
 import type { FoundationSuggestions } from '@/lib/research/exa'
+import {
+  ANNUAL_REVENUE_BUCKETS,
+  EMPLOYEE_COUNT_BUCKETS,
+} from '@/lib/profile/businessSizing'
 
 type GenerationStage = 'scoring' | 'generating'
 type PrefillPhase = 'input' | 'loading' | 'confirm' | 'done' | 'skipped'
@@ -30,6 +34,8 @@ const FIELD_LABELS: Record<string, string> = {
   channels:              'Channels',
   monthlyGoal:           'Monthly goal',
   competitors:           'Competitors',
+  employeeCountBucket:   'Team size',
+  annualRevenueBucket:   'Annual revenue',
 }
 
 function getStepForField(fieldKey: string): number {
@@ -67,6 +73,8 @@ interface StepAnswers {
   marketingBudget: string
   channels: string[]
   monthlyGoal: string
+  employeeCountBucket: string
+  annualRevenueBucket: string
 }
 
 const MAYA_INTROS = [
@@ -166,6 +174,8 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
     marketingBudget: '',
     channels: [],
     monthlyGoal: '',
+    employeeCountBucket: '',
+    annualRevenueBucket: '',
   })
 
   // Pre-fill state — only active for new users (initialStep === 0) when flag is enabled.
@@ -195,7 +205,11 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
 
   function canProceed() {
     switch (step) {
-      case 0: return answers.businessDescription.length > 10 && answers.problemSolved.length > 10
+      case 0:
+        return answers.businessDescription.length > 10
+          && answers.problemSolved.length > 10
+          && answers.employeeCountBucket.length > 0
+          && answers.annualRevenueBucket.length > 0
       case 1: return answers.customerWho.length > 5 && answers.customerFrustration.length > 5
       case 2: return answers.differentiator.length > 0
       case 3: return answers.toneTraits.length >= 2
@@ -761,6 +775,48 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
                   }`}
                 />
                 {isSuggested('transformation') && <SuggestionLabel />}
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-800 block mb-2">
+                  How many people work at your business?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {EMPLOYEE_COUNT_BUCKETS.map(bucket => (
+                    <button
+                      key={bucket.id}
+                      type="button"
+                      onClick={() => updateAnswer('employeeCountBucket', bucket.id)}
+                      className={`text-sm px-3.5 py-2 rounded-xl border transition-all ${
+                        answers.employeeCountBucket === bucket.id
+                          ? 'border-[#3B82F6] bg-[#3B82F6]/5 text-[#2D3748] font-medium'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      {bucket.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-gray-800 block mb-2">
+                  What&apos;s your approximate annual revenue?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ANNUAL_REVENUE_BUCKETS.map(bucket => (
+                    <button
+                      key={bucket.id}
+                      type="button"
+                      onClick={() => updateAnswer('annualRevenueBucket', bucket.id)}
+                      className={`text-sm px-3.5 py-2 rounded-xl border transition-all ${
+                        answers.annualRevenueBucket === bucket.id
+                          ? 'border-[#3B82F6] bg-[#3B82F6]/5 text-[#2D3748] font-medium'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      {bucket.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}

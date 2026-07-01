@@ -1,6 +1,10 @@
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
 import { formatActiveFormState, truncateForMaya } from '@/lib/maya/formStateContext'
 import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
+import {
+  labelAnnualRevenueBucket,
+  labelEmployeeCountBucket,
+} from '@/lib/profile/businessSizing'
 
 type Invoice = {
   number?: string | null
@@ -98,6 +102,8 @@ type ProfileSettings = {
   company_name?: string | null
   website_url?: string | null
   instagram_handle?: string | null
+  employee_count_bucket?: string | null
+  annual_revenue_bucket?: string | null
   business_type?: string | null
   plan?: string | null
   status?: string | null
@@ -107,6 +113,8 @@ export type SettingsFormState = {
   companyName: string
   websiteUrl: string
   instagramHandle: string
+  employeeCountBucket: string
+  annualRevenueBucket: string
   emailDigest: boolean
   emailApprovals: boolean
   emailWeekly: boolean
@@ -123,6 +131,8 @@ export function buildSettingsMayaContext(
     `Company: ${profile.company_name ?? 'not set'}`,
     `Website: ${profile.website_url ?? 'not set'}`,
     `Instagram: ${profile.instagram_handle ? `@${profile.instagram_handle}` : 'not set'}`,
+    `Team size: ${labelEmployeeCountBucket(profile.employee_count_bucket ?? null)}`,
+    `Annual revenue: ${labelAnnualRevenueBucket(profile.annual_revenue_bucket ?? null)}`,
     `Business type: ${profile.business_type ?? 'not set'}`,
     `Plan: ${profile.plan ?? 'none'}`,
     `Account status: ${profile.status ?? 'unknown'}`,
@@ -138,6 +148,18 @@ export function buildSettingsMayaContext(
       {
         label: 'Instagram handle',
         value: form.instagramHandle.trim() ? `@${form.instagramHandle.replace(/^@/, '')}` : '',
+      },
+      {
+        label: 'Team size',
+        value: form.employeeCountBucket.trim()
+          ? labelEmployeeCountBucket(form.employeeCountBucket)
+          : '',
+      },
+      {
+        label: 'Annual revenue',
+        value: form.annualRevenueBucket.trim()
+          ? labelAnnualRevenueBucket(form.annualRevenueBucket)
+          : '',
       },
     ]
     const filled = businessFields

@@ -98,7 +98,9 @@ export default function TeamClient({
 
   const totalMembers = activeMembers + pendingMembers
   const extraSeats = Math.max(0, totalMembers - includedSeats)
-  const canAddMore = true // Always can add, just costs more
+  const inviteWillNeedExtraSeat = (totalMembers + 1) >= includedSeats
+  const canBillExtraSeat = Boolean(stripeSubscriptionId)
+  const [inviteStep, setInviteStep] = useState<'details' | 'confirm'>('details')
 
   const mayaContext = useMemo(
     () =>
@@ -147,14 +149,40 @@ export default function TeamClient({
       if (!res.ok) throw new Error(data.error ?? 'Failed to send invite')
       setTeamMembers(prev => [data.member, ...prev])
       setSuccess(`Invite sent to ${inviteEmail}`)
-      setShowInviteModal(false)
       setInviteEmail('')
+      setInviteRole('member')
       setInvitePermissions(DEFAULT_PERMISSIONS)
+      setInviteStep('details')
+      setShowInviteModal(false)
+      setTimeout(() => setSuccess(null), 4000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send invite')
     } finally {
       setInviting(false)
     }
+  }
+
+  function handleInvitePrimaryAction() {
+    if (!inviteEmail.trim()) return
+    setError(null)
+
+    if (inviteWillNeedExtraSeat && !canBillExtraSeat) {
+      setError('Add a paid subscription on Billing before inviting extra team seats ($15/mo each).')
+      return
+    }
+
+    if (inviteStep === 'details' && inviteWillNeedExtraSeat) {
+      setInviteStep('confirm')
+      return
+    }
+
+    void handleInvite()
+  }
+
+  function closeInviteModal() {
+    setShowInviteModal(false)
+    setInviteStep('details')
+    setError(null)
   }
 
   async function handleRemove(memberId: string, email: string) {
@@ -227,7 +255,7 @@ export default function TeamClient({
               <p className="mt-1 text-2xl font-semibold text-text">{totalSeats + 1}</p>
             </div>
             <button
-              onClick={() => setShowInviteModal(true)}
+              onClick={() => { setInviteStep('details'); setShowInviteModal(true) }}
               className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#2563EB]"
             >
               <Plus size={15} />
@@ -312,7 +340,7 @@ export default function TeamClient({
               Invite team members to give them access to your dashboard.
             </p>
             <button
-              onClick={() => setShowInviteModal(true)}
+              onClick={() => { setInviteStep('details'); setShowInviteModal(true) }}
               className="inline-flex items-center gap-2 text-sm font-medium text-text-sec bg-brand-primary/10 hover:bg-brand-primary/15 px-4 py-2.5 rounded-xl transition-colors"
             >
               <Plus size={14} />
@@ -398,13 +426,30 @@ export default function TeamClient({
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <h3 className="text-[17px] font-semibold text-text">Invite team member</h3>
-              <button onClick={() => setShowInviteModal(false)}>
+              <h3 className="text-[17px] font-semibold text-text">
+                {inviteStep === 'confirm' ? 'Confirm extra seat' : 'Invite team member'}
+              </h3>
+              <button onClick={closeInviteModal}>
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>
             </div>
 
             <div className="p-6 space-y-5">
+              {inviteStep === 'confirm' ? (
+                <>
+                  <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-4">
+                    <p className="text-sm font-semibold text-text">Extra team seat — $15/mo</p>
+                    <p className="mt-2 text-sm text-text-sec leading-relaxed">
+                      Your {PLAN_LABELS[plan]} plan includes {includedSeats} seat{includedSeats === 1 ? '' : 's'}.
+                      Inviting <span className="font-medium text-text">{inviteEmail.trim()}</span> adds a billable seat to your subscription immediately.
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    You can remove pending invites or team members later to adjust seat count on your next billing cycle.
+                  </p>
+                </>
+              ) : (
+                <>
               <div>
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-2">
                   Email address
@@ -469,12 +514,16 @@ export default function TeamClient({
 
               <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
                 <p className="text-xs text-amber-700">
-                  {totalSeats < includedSeats
+                  {totalSeats + 1 < includedSeats
                     ? `This seat is included in your ${PLAN_LABELS[plan]} plan.`
-                    : `This will add $15/mo to your subscription for an extra seat.`
+                    : canBillExtraSeat
+                      ? `This invite requires an extra seat ($15/mo). You'll confirm billing on the next step.`
+                      : `This invite requires an extra seat ($15/mo). Set up billing before inviting.`
                   }
                 </p>
               </div>
+                </>
+              )}
 
               {error && (
                 <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
@@ -485,18 +534,24 @@ export default function TeamClient({
 
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => setShowInviteModal(false)}
+                  onClick={inviteStep === 'confirm' ? () => setInviteStep('details') : closeInviteModal}
                   className="flex-1 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 py-3 rounded-xl transition-colors"
                 >
-                  Cancel
+                  {inviteStep === 'confirm' ? 'Back' : 'Cancel'}
                 </button>
                 <button
-                  onClick={handleInvite}
+                  onClick={handleInvitePrimaryAction}
                   disabled={!inviteEmail.trim() || inviting}
                   className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold text-white bg-brand-primary hover:bg-[#2563EB] py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {inviting ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                  {inviting ? 'Sending...' : 'Send invite'}
+                  {inviting
+                    ? 'Sending...'
+                    : inviteStep === 'confirm'
+                      ? 'Confirm & send invite'
+                      : inviteWillNeedExtraSeat && canBillExtraSeat
+                        ? 'Continue to billing'
+                        : 'Send invite'}
                 </button>
               </div>
             </div>

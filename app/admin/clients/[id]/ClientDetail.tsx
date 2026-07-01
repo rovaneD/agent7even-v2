@@ -9,8 +9,12 @@ import {
   ArrowLeft, Building2, Globe, Hash, Calendar, Clock,
   Mail, Bell, Zap, Shield, Ban, RefreshCw, AlertTriangle,
   Activity, CreditCard, Users, BookOpen, MessageSquare,
-  HelpCircle, Loader2, Send, X,
+  HelpCircle, Loader2, Send, X, DollarSign, Share2,
 } from 'lucide-react'
+import {
+  labelAnnualRevenueBucket,
+  labelEmployeeCountBucket,
+} from '@/lib/profile/businessSizing'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -22,6 +26,12 @@ type ClientProfile = {
   company_name: string | null
   website_url: string | null
   instagram_handle: string | null
+  business_type: string | null
+  employee_count_bucket: string | null
+  annual_revenue_bucket: string | null
+  marketing_budget: string | null
+  ideal_customer: string | null
+  zernio_connected_platforms: string[] | null
   plan: string | null
   status: string | null
   role: string | null
@@ -81,6 +91,30 @@ function relativeTime(iso: string | null): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatPlatformLabel(platform: string): string {
+  return platform.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function IdentityRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="text-gray-300 mt-0.5 flex-shrink-0">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] text-gray-400">{label}</p>
+        <div className="text-xs text-gray-700 font-medium">{children}</div>
+      </div>
+    </div>
+  )
 }
 
 function derivedStatus(profile: ClientProfile): 'healthy' | 'drifting' | 'at_risk' {
@@ -219,6 +253,10 @@ export default function ClientDetail({
         email: profile.email,
         plan: profile.plan,
         status: profile.status,
+        employeeCountBucket: profile.employee_count_bucket,
+        annualRevenueBucket: profile.annual_revenue_bucket,
+        marketingBudget: profile.marketing_budget,
+        connectedPlatforms: profile.zernio_connected_platforms,
         foundationScore: profile.foundation_score,
         engagementScore: profile.engagement_score,
         foundationComplete: profile.foundation_complete,
@@ -437,49 +475,54 @@ export default function ClientDetail({
 
             {/* Company details */}
             <div className="space-y-2.5 pt-4 border-t border-gray-100">
-              {profile.company_name && (
-                <div className="flex items-start gap-2.5">
-                  <Building2 size={13} className="text-gray-300 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-gray-400">Company</p>
-                    <p className="text-xs text-gray-700 font-medium">{profile.company_name}</p>
-                  </div>
-                </div>
+              <IdentityRow icon={<Mail size={13} />} label="Email">
+                {profile.email ?? '—'}
+              </IdentityRow>
+              <IdentityRow icon={<Building2 size={13} />} label="Company">
+                {profile.company_name ?? '—'}
+              </IdentityRow>
+              {profile.business_type && (
+                <IdentityRow icon={<BookOpen size={13} />} label="Business type">
+                  {profile.business_type}
+                </IdentityRow>
               )}
-              {profile.website_url && (
-                <div className="flex items-start gap-2.5">
-                  <Globe size={13} className="text-gray-300 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-gray-400">Website</p>
-                    <a href={profile.website_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 font-medium hover:underline truncate block max-w-[240px]">
-                      {profile.website_url}
-                    </a>
-                  </div>
-                </div>
+              <IdentityRow icon={<Users size={13} />} label="Team size">
+                {labelEmployeeCountBucket(profile.employee_count_bucket)}
+              </IdentityRow>
+              <IdentityRow icon={<DollarSign size={13} />} label="Annual revenue">
+                {labelAnnualRevenueBucket(profile.annual_revenue_bucket)}
+              </IdentityRow>
+              {profile.marketing_budget && (
+                <IdentityRow icon={<CreditCard size={13} />} label="Marketing budget">
+                  {profile.marketing_budget}
+                </IdentityRow>
               )}
-              {profile.instagram_handle && (
-                <div className="flex items-start gap-2.5">
-                  <Hash size={13} className="text-gray-300 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-[10px] text-gray-400">Instagram</p>
-                    <p className="text-xs text-gray-700 font-medium">@{profile.instagram_handle}</p>
-                  </div>
-                </div>
+              <IdentityRow icon={<Globe size={13} />} label="Website">
+                {profile.website_url ? (
+                  <a href={profile.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline truncate block max-w-[240px]">
+                    {profile.website_url}
+                  </a>
+                ) : '—'}
+              </IdentityRow>
+              <IdentityRow icon={<Hash size={13} />} label="Instagram">
+                {profile.instagram_handle ? `@${profile.instagram_handle}` : '—'}
+              </IdentityRow>
+              <IdentityRow icon={<Share2 size={13} />} label="Connected social">
+                {profile.zernio_connected_platforms?.length
+                  ? profile.zernio_connected_platforms.map(formatPlatformLabel).join(', ')
+                  : 'None connected'}
+              </IdentityRow>
+              {profile.ideal_customer && (
+                <IdentityRow icon={<Users size={13} />} label="Ideal customer">
+                  <span className="line-clamp-3 font-normal text-gray-600">{profile.ideal_customer}</span>
+                </IdentityRow>
               )}
-              <div className="flex items-start gap-2.5">
-                <Calendar size={13} className="text-gray-300 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] text-gray-400">Joined</p>
-                  <p className="text-xs text-gray-700 font-medium">{formatDate(profile.created_at)}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <Clock size={13} className="text-gray-300 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-[10px] text-gray-400">Last active</p>
-                  <p className="text-xs text-gray-700 font-medium">{relativeTime(profile.last_active_at)}</p>
-                </div>
-              </div>
+              <IdentityRow icon={<Calendar size={13} />} label="Joined">
+                {formatDate(profile.created_at)}
+              </IdentityRow>
+              <IdentityRow icon={<Clock size={13} />} label="Last active">
+                {relativeTime(profile.last_active_at)}
+              </IdentityRow>
             </div>
 
             {/* Badges */}

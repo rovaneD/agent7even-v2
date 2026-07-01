@@ -14,7 +14,9 @@ import type { PostsDataState } from './page'
 import type { ZernioPostRow } from '@/lib/social/zernioPostsParse'
 import type { ZernioQueueRow } from '@/lib/social/zernioQueuesParse'
 import { useMayaContext } from '@/hooks/useMayaContext'
+import { useRegisterMayaFormSurface } from '@/context/MayaFormActuationContext'
 import { buildPostsMayaContext } from '@/lib/maya/summaries/phase3Context'
+import type { FormFieldSchema } from '@/lib/maya/formActuation'
 import {
   type PostType,
   captionLimitForPlatform,
@@ -275,6 +277,34 @@ export default function PostsClient({
     ],
   )
   useMayaContext(mayaContext)
+
+  const postsFormSurface = useMemo(() => {
+    if (!drawerOpen) return null
+    const fields: FormFieldSchema[] = [
+      { key: 'content', label: 'Caption', type: 'textarea' },
+    ]
+    if (publishMode === 'schedule') {
+      fields.push({ key: 'scheduledLocal', label: 'Schedule (local datetime)', type: 'text' })
+    }
+    return {
+      id: 'posts-compose',
+      label: editingPostId ? 'Posts — edit compose drawer' : 'Posts — compose drawer',
+      fields,
+    }
+  }, [drawerOpen, publishMode, editingPostId])
+
+  useRegisterMayaFormSurface(
+    postsFormSurface,
+    () => {
+      const values: Record<string, string> = { content }
+      if (publishMode === 'schedule') values.scheduledLocal = scheduledLocal
+      return values
+    },
+    patch => {
+      if (patch.content !== undefined) setContent(patch.content)
+      if (patch.scheduledLocal !== undefined) setScheduledLocal(patch.scheduledLocal)
+    },
+  )
 
   const buildPlatformPayload = useCallback(() => {
     return selectedAccountIds.map(id => {

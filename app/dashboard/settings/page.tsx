@@ -11,7 +11,7 @@ export default async function SettingsPage() {
 
   const { data: profileRows } = await supabase
     .from('profiles')
-    .select('id, full_name, email, company_name, website_url, instagram_handle, business_type, plan, status, email_digest, email_approvals, email_weekly')
+    .select('id, full_name, email, company_name, website_url, instagram_handle, business_type, employee_count_bucket, annual_revenue_bucket, plan, status, email_digest, email_approvals, email_weekly')
     .eq('clerk_user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)

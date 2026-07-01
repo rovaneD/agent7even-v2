@@ -8,7 +8,16 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { companyName, websiteUrl, instagramHandle, emailDigest, emailApprovals, emailWeekly } = await req.json()
+  const {
+    companyName,
+    websiteUrl,
+    instagramHandle,
+    employeeCountBucket,
+    annualRevenueBucket,
+    emailDigest,
+    emailApprovals,
+    emailWeekly,
+  } = await req.json()
 
   const supabase = createServiceClient()
 
@@ -20,6 +29,8 @@ export async function POST(req: Request) {
     updatePayload.website_url = websiteUrl ? normalizeWebsiteUrl(websiteUrl) : null
   }
   if (instagramHandle  !== undefined) updatePayload.instagram_handle  = instagramHandle || null
+  if (employeeCountBucket !== undefined) updatePayload.employee_count_bucket = employeeCountBucket || null
+  if (annualRevenueBucket !== undefined) updatePayload.annual_revenue_bucket = annualRevenueBucket || null
   if (emailDigest      !== undefined) updatePayload.email_digest      = emailDigest
   if (emailApprovals   !== undefined) updatePayload.email_approvals   = emailApprovals
   if (emailWeekly      !== undefined) updatePayload.email_weekly      = emailWeekly

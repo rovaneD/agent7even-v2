@@ -68,7 +68,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 |--------|-------|----------|---------|-----------------|-----------|
 | Campaigns list | `/dashboard/campaigns` | P1 | T3 | Maya list context · artifact preview on cards | — |
 | New campaign — guided | `/dashboard/campaigns/new` | P1 | T7 | Step form grounding (Layer 1) · Layer 2 form actuation | — |
-| New campaign — open canvas | `/dashboard/campaigns/new?mode=open` | P1 | T7 | Chat + draft input grounding | — |
+| New campaign — open canvas | `/dashboard/campaigns/new?mode=open` | P1 | T7 | Chat + draft input grounding · Layer 2 form actuation | — |
 | Campaign detail | `/dashboard/campaigns/[id]` | P1 | T3 T7 | Detail Maya context · do-this-today explainer | — |
 
 ---
@@ -87,7 +87,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
-| Services | `/dashboard/services` | P0 | T2 | Hero · plan callout · order status hints | Order ↔ support linking in UI |
+| Services | `/dashboard/services` | P0 | T2 | Hero · plan callout · order status hints · order ↔ support linking | — |
 | Service inquiry (scoped) | `/dashboard/services/inquiry` | P1 | T2 T7 | Full 3-step form grounding (Layer 1) | — |
 | Deliverables | `/dashboard/deliverables` | P2 | T2 | Maya context · upload → agent context callout | — |
 | Support | `/dashboard/support` | P2 | T2 | Maya context · ticket ↔ service order linking | — |
@@ -99,9 +99,9 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
 | Notifications | `/dashboard/notifications` | P2 | — | Maya context | — |
-| Team | `/dashboard/team` | P2 | T2 | Maya context · seat limits in context | Extra seat checkout inline |
+| Team | `/dashboard/team` | P2 | T2 | Maya context · seat limits in context · extra seat confirm step | — |
 | Billing | `/dashboard/billing` | P0 | T2 | Media credits copy · plan bullets · top-up wording | Flagged pricing decisions only |
-| Settings | `/dashboard/settings` | P1 | T7 | Live form grounding (company, URL, IG, prefs) | — |
+| Settings | `/dashboard/settings` | P1 | T7 | Live form grounding (company, URL, IG, team size, revenue, prefs) | — |
 
 ---
 

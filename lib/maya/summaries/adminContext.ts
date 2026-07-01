@@ -1,5 +1,9 @@
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
 import { MAYA_ADMIN_VOICE_RULE } from '@/lib/maya/voiceRules'
+import {
+  labelAnnualRevenueBucket,
+  labelEmployeeCountBucket,
+} from '@/lib/profile/businessSizing'
 
 export function buildAdminCommandCenterMayaContext(input: {
   totalClients: number
@@ -143,6 +147,10 @@ export function buildAdminClientDetailMayaContext(input: {
   email?: string | null
   plan?: string | null
   status?: string | null
+  employeeCountBucket?: string | null
+  annualRevenueBucket?: string | null
+  marketingBudget?: string | null
+  connectedPlatforms?: string[] | null
   foundationScore?: number | null
   engagementScore?: number | null
   foundationComplete?: boolean | null
@@ -157,6 +165,9 @@ export function buildAdminClientDetailMayaContext(input: {
       `Company: ${input.companyName ?? '—'}`,
       `Email: ${input.email ?? '—'}`,
       `Plan: ${input.plan ?? 'none'} | Status: ${input.status ?? '—'}`,
+      `Team size: ${labelEmployeeCountBucket(input.employeeCountBucket)} | Revenue: ${labelAnnualRevenueBucket(input.annualRevenueBucket)}`,
+      `Marketing budget: ${input.marketingBudget ?? '—'}`,
+      `Connected social: ${input.connectedPlatforms?.length ? input.connectedPlatforms.join(', ') : 'none'}`,
       `Foundation score: ${input.foundationScore ?? 0} | Engagement: ${input.engagementScore ?? 0}`,
       `Foundation complete: ${input.foundationComplete ? 'yes' : 'no'}`,
       `Last active: ${input.lastActive ?? 'never'}`,

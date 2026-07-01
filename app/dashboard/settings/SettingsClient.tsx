@@ -2,10 +2,17 @@
 
 import { useState, useMemo } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
+import { useRegisterMayaFormSurface } from '@/context/MayaFormActuationContext'
 import { buildSettingsMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import { useRouter } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
-import { Save, Loader2, CheckCircle, AlertCircle, User, Building, Globe, Hash, Bell } from 'lucide-react'
+import { Save, Loader2, CheckCircle, AlertCircle, User, Building, Globe, Hash, Bell, Users, DollarSign } from 'lucide-react'
+import {
+  ANNUAL_REVENUE_BUCKETS,
+  EMPLOYEE_COUNT_BUCKETS,
+  labelAnnualRevenueBucket,
+  labelEmployeeCountBucket,
+} from '@/lib/profile/businessSizing'
 
 interface Profile {
   id: string
@@ -15,6 +22,8 @@ interface Profile {
   website_url: string | null
   instagram_handle: string | null
   business_type: string | null
+  employee_count_bucket: string | null
+  annual_revenue_bucket: string | null
   plan: string | null
   status: string | null
   email_digest: boolean | null
@@ -83,6 +92,8 @@ export default function SettingsClient({ profile }: Props) {
   const [companyName, setCompanyName] = useState(profile.company_name ?? '')
   const [websiteUrl, setWebsiteUrl] = useState(profile.website_url ?? '')
   const [instagramHandle, setInstagramHandle] = useState(profile.instagram_handle ?? '')
+  const [employeeCountBucket, setEmployeeCountBucket] = useState(profile.employee_count_bucket ?? '')
+  const [annualRevenueBucket, setAnnualRevenueBucket] = useState(profile.annual_revenue_bucket ?? '')
   const [emailDigest, setEmailDigest]       = useState(profile.email_digest    ?? true)
   const [emailApprovals, setEmailApprovals] = useState(profile.email_approvals ?? true)
   const [emailWeekly, setEmailWeekly]       = useState(profile.email_weekly    ?? true)
@@ -95,6 +106,8 @@ export default function SettingsClient({ profile }: Props) {
     companyName !== (profile.company_name ?? '') ||
     websiteUrl !== (profile.website_url ?? '') ||
     instagramHandle !== (profile.instagram_handle ?? '') ||
+    employeeCountBucket !== (profile.employee_count_bucket ?? '') ||
+    annualRevenueBucket !== (profile.annual_revenue_bucket ?? '') ||
     emailDigest    !== (profile.email_digest    ?? true) ||
     emailApprovals !== (profile.email_approvals ?? true) ||
     emailWeekly    !== (profile.email_weekly    ?? true)
@@ -105,6 +118,8 @@ export default function SettingsClient({ profile }: Props) {
         companyName,
         websiteUrl,
         instagramHandle,
+        employeeCountBucket,
+        annualRevenueBucket,
         emailDigest,
         emailApprovals,
         emailWeekly,
@@ -115,6 +130,8 @@ export default function SettingsClient({ profile }: Props) {
       companyName,
       websiteUrl,
       instagramHandle,
+      employeeCountBucket,
+      annualRevenueBucket,
       emailDigest,
       emailApprovals,
       emailWeekly,
@@ -122,6 +139,52 @@ export default function SettingsClient({ profile }: Props) {
     ],
   )
   useMayaContext(mayaContext)
+
+  const settingsFormSurface = useMemo(
+    () => ({
+      id: 'settings-business',
+      label: 'Settings — business details',
+      canonicalWebsite: profile.website_url,
+      fields: [
+        { key: 'companyName', label: 'Company name', type: 'text' as const },
+        { key: 'websiteUrl', label: 'Website URL', type: 'text' as const },
+        { key: 'instagramHandle', label: 'Instagram handle', type: 'text' as const },
+        {
+          key: 'employeeCountBucket',
+          label: 'Team size',
+          type: 'select' as const,
+          options: EMPLOYEE_COUNT_BUCKETS.map(b => b.id),
+        },
+        {
+          key: 'annualRevenueBucket',
+          label: 'Annual revenue',
+          type: 'select' as const,
+          options: ANNUAL_REVENUE_BUCKETS.map(b => b.id),
+        },
+      ],
+    }),
+    [profile.website_url],
+  )
+
+  useRegisterMayaFormSurface(
+    settingsFormSurface,
+    () => ({
+      companyName,
+      websiteUrl,
+      instagramHandle,
+      employeeCountBucket,
+      annualRevenueBucket,
+    }),
+    patch => {
+      if (patch.companyName !== undefined) setCompanyName(patch.companyName)
+      if (patch.websiteUrl !== undefined) setWebsiteUrl(patch.websiteUrl)
+      if (patch.instagramHandle !== undefined) {
+        setInstagramHandle(patch.instagramHandle.replace(/^@+/, ''))
+      }
+      if (patch.employeeCountBucket !== undefined) setEmployeeCountBucket(patch.employeeCountBucket)
+      if (patch.annualRevenueBucket !== undefined) setAnnualRevenueBucket(patch.annualRevenueBucket)
+    },
+  )
 
   async function updateEmailPref(field: 'emailDigest' | 'emailApprovals' | 'emailWeekly', val: boolean) {
     const next = {
@@ -135,7 +198,7 @@ export default function SettingsClient({ profile }: Props) {
     await fetch('/api/settings/update', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ companyName, websiteUrl, instagramHandle, ...next }),
+      body:    JSON.stringify({ companyName, websiteUrl, instagramHandle, employeeCountBucket, annualRevenueBucket, ...next }),
     })
   }
 
@@ -147,7 +210,7 @@ export default function SettingsClient({ profile }: Props) {
       const res = await fetch('/api/settings/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyName, websiteUrl, instagramHandle, emailDigest, emailApprovals, emailWeekly }),
+        body: JSON.stringify({ companyName, websiteUrl, instagramHandle, employeeCountBucket, annualRevenueBucket, emailDigest, emailApprovals, emailWeekly }),
       })
       if (!res.ok) throw new Error('Failed to save')
       setSaved(true)
@@ -274,6 +337,62 @@ export default function SettingsClient({ profile }: Props) {
                 <AlertCircle size={13} className="text-status-danger flex-shrink-0" />
                 <p className="text-xs text-status-danger">{error}</p>
               </div>
+            )}
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-xs font-semibold text-text-soft uppercase tracking-wide mb-2">
+              <Users size={12} />
+              Team size
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {EMPLOYEE_COUNT_BUCKETS.map(bucket => (
+                <button
+                  key={bucket.id}
+                  type="button"
+                  onClick={() => setEmployeeCountBucket(bucket.id)}
+                  className={`text-sm px-3.5 py-2 rounded-xl border transition-all ${
+                    employeeCountBucket === bucket.id
+                      ? 'border-brand-primary bg-brand-primary/5 text-text-sec font-medium'
+                      : 'border-border text-text-sec hover:border-gray-300'
+                  }`}
+                >
+                  {bucket.label}
+                </button>
+              ))}
+            </div>
+            {employeeCountBucket && (
+              <p className="text-xs text-text-soft mt-2">
+                Selected: {labelEmployeeCountBucket(employeeCountBucket)}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-xs font-semibold text-text-soft uppercase tracking-wide mb-2">
+              <DollarSign size={12} />
+              Annual revenue
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {ANNUAL_REVENUE_BUCKETS.map(bucket => (
+                <button
+                  key={bucket.id}
+                  type="button"
+                  onClick={() => setAnnualRevenueBucket(bucket.id)}
+                  className={`text-sm px-3.5 py-2 rounded-xl border transition-all ${
+                    annualRevenueBucket === bucket.id
+                      ? 'border-brand-primary bg-brand-primary/5 text-text-sec font-medium'
+                      : 'border-border text-text-sec hover:border-gray-300'
+                  }`}
+                >
+                  {bucket.label}
+                </button>
+              ))}
+            </div>
+            {annualRevenueBucket && (
+              <p className="text-xs text-text-soft mt-2">
+                Selected: {labelAnnualRevenueBucket(annualRevenueBucket)}
+              </p>
             )}
           </div>
         </div>

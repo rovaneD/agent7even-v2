@@ -33,8 +33,12 @@ const FAQS = [
     a: 'Premium image (Recraft) and premium video (Kling) models — higher-quality media on ProAgent. Standard models on every plan.',
   },
   {
+    q: 'Why upgrade from Starter to Growth?',
+    a: 'Growth adds 3 team seats and 3 active service requests (Starter has 1 of each), plus 350 media credits/mo, X connect, full analytics, and priority support — not just more volume.',
+  },
+  {
     q: "How does the 3-day free trial work?",
-    a: "Starter only. Your card is collected at sign-up but not charged for 3 days. If you cancel before day 4, you pay nothing. Growth and ProAgent are charged immediately — no trial.",
+    a: "Starter only — a product test drive. Your card is collected at sign-up but not charged for 3 days. Cancel before day 4 and you pay nothing. Growth and ProAgent are charged immediately.",
   },
   {
     q: "Can I cancel or change plans anytime?",
@@ -94,7 +98,7 @@ const PLANS = [
     billingNote: 'Billed immediately — cancel anytime',
     cta: 'Get started',
     popular: true,
-    description: 'More media volume for businesses posting every week.',
+    description: 'Team seats, service requests, and more media for weekly posting.',
     features: [
       'Everything in Starter',
       '350 media credits / month',
