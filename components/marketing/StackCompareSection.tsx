@@ -17,8 +17,9 @@ export default function StackCompareSection() {
           <h2 className="t-h2">Stop stitching marketing together&nbsp;yourself.</h2>
           <p className="t-lead">
             Most owners already juggle AI, design, and scheduling. One Foundation feeds every agent.
-            Agent7even connects the work into one approval-first system.{' '}
-            <Link href="/how-it-works">See the full workflow →</Link>
+            Agent7even connects the work into one approval-first system.
+            <br />
+            <Link href="/how-it-works">See the full&nbsp;workflow →</Link>
           </p>
         </div>
 

@@ -1397,7 +1397,7 @@
 }
 
 /* ---- dark CTA ---- */
-.lab5 .cta-section { background: var(--l5-ink); border-radius: 28px; margin: 0 var(--l5-pad); overflow: hidden; position: relative; }
+.lab5 .cta-section { background: var(--l5-ink); border-radius: 0; margin: 0; overflow: hidden; position: relative; width: 100%; }
 .lab5 .cta-in { max-width: var(--l5-maxw); margin: 0 auto; padding: 96px 40px; text-align: center; position: relative; z-index: 2; }
 .lab5 .cta-in h2 { color: #fff; font-size: clamp(32px,4vw,50px); letter-spacing: -.03em; line-height: 1.04; }
 .lab5 .cta-in .cta-lead { color: rgba(255,255,255,.6); font-size: 18px; margin: 20px 0 34px; line-height: 1.55; }
@@ -1619,7 +1619,6 @@
   }
   .lab5 .stack-spine-wrap { padding: 24px 20px; }
   .lab5 .integrations-list li { grid-template-columns: 1fr; gap: 6px; }
-  .lab5 .cta-section { margin: 0 16px; border-radius: 18px; }
 }
 @media (max-width: 480px) {
   .lab5 .t-display { font-size: clamp(34px,9.6vw,40px); }

@@ -125,7 +125,8 @@ export default function Lab5Page() {
               You approve once.
             </h2>
             <p className="t-lead">
-              No briefs, no tool-hopping. Maya reads your Foundation and Brand Kit, coordinates specialist agents, and routes every draft to your approval queue.{' '}
+              No briefs, no tool-hopping. Maya reads your Foundation and Brand Kit, coordinates specialist agents, and routes every draft to your approval&nbsp;queue.
+              <br />
               <a href="/how-it-works">See the full AI marketing automation workflow →</a>
             </p>
           </div>
@@ -144,7 +145,8 @@ export default function Lab5Page() {
               One shared Foundation.
             </h2>
             <p className="t-lead">
-              Every agent reads Foundation and Brand Kit before drafting — campaigns, creative, posts, and reports land in one approval queue.{' '}
+              Every agent reads Foundation and Brand Kit before drafting — campaigns, creative, posts, and reports land in one approval&nbsp;queue.
+              <br />
               <a href="/agents">See our AI marketing automation features →</a>
             </p>
           </div>
@@ -296,7 +298,8 @@ export default function Lab5Page() {
             <span className="eyebrow">Built for the way you work</span>
             <h2 className="t-h2">Marketing built around how your business actually sells.</h2>
             <p className="t-lead">
-              See how our AI marketing strategist works for{' '}
+              See how our AI marketing strategist works for
+              <br />
               <a href="/use-cases/local-service">local service businesses</a>,{' '}
               <a href="/use-cases/coaches-creators">coaches and creators</a>, and{' '}
               <a href="/use-cases/ecommerce">e-commerce brands</a>.
@@ -382,7 +385,11 @@ export default function Lab5Page() {
         </div>
         <div className="cta-in">
           <h2>One Foundation.<br />Twelve specialist agents.<br />One approval queue.</h2>
-          <p className="cta-lead">Maya reads your Foundation and Brand Kit before every draft. Every campaign lands in your approval queue before anything goes live.</p>
+          <p className="cta-lead">
+            Maya reads your Foundation and Brand Kit before every draft.
+            <br />
+            Every campaign lands in your approval queue before anything goes live.
+          </p>
           <div className="cta-btns">
             <a className="btn btn-white btn-lg" href="/pricing"
               onClick={() => trackEvent('cta_click', { cta: 'start_trial', location: 'footer_cta' })}>Start your free trial</a>
