@@ -20,6 +20,12 @@ export type ParsedAdVariations = {
   metadata: Record<string, string>
   variations: ParsedAdVariation[]
   footer: string
+  sections: AdVariationSection[]
+}
+
+export type AdVariationSection = {
+  title: string
+  content: string
 }
 
 const FIELD_SPECS: Array<{
@@ -66,8 +72,34 @@ function extractMultilineValue(text: string, label: string, stopLabels: string[]
     }
   }
 
+  const globalStops = [/\n-{3,}\s*\n/, /\n##\s+/]
+  for (const stopPattern of globalStops) {
+    const stopMatch = text.slice(valueStart).match(stopPattern)
+    if (stopMatch?.index != null) {
+      end = Math.min(end, valueStart + stopMatch.index)
+    }
+  }
+
   const value = text.slice(valueStart, end).trim()
   return value || null
+}
+
+function parseTrailingSections(content: string): AdVariationSection[] {
+  const normalized = content.replace(/\r\n/g, '\n').trim()
+  if (!normalized) return []
+
+  const headingPattern = /(?:^|\n)\s*#{1,3}\s+([^\n]+)\n([\s\S]*?)(?=(?:\n\s*#{1,3}\s+)|$)/g
+  const sections: AdVariationSection[] = []
+
+  for (const match of normalized.matchAll(headingPattern)) {
+    const title = match[1].replace(/\*\*/g, '').trim()
+    const sectionContent = match[2].trim()
+    if (!title || !sectionContent) continue
+    sections.push({ title, content: sectionContent })
+  }
+
+  if (sections.length > 0) return sections
+  return [{ title: 'Notes', content: normalized }]
 }
 
 function allFieldLabels(): string[] {
@@ -134,11 +166,28 @@ export function parseAdVariationsMarkdown(content: string): ParsedAdVariations |
 
   const chunks = variationBody.split(/(?=##\s*VARIATION\s+\d+)/i).filter(Boolean)
   const variations: ParsedAdVariation[] = []
+  let trailingAfterVariations = ''
+
+  const variationMatches = [...variationBody.matchAll(/##\s*VARIATION\s+\d+/gi)]
+  if (variationMatches.length > 0) {
+    const lastMatch = variationMatches[variationMatches.length - 1]
+    const afterLastStart = (lastMatch.index ?? 0) + lastMatch[0].length
+    const trailingMatch = variationBody.slice(afterLastStart).match(/\n##\s*(?!VARIATION\s+\d)/i)
+    if (trailingMatch?.index != null) {
+      trailingAfterVariations = variationBody.slice(afterLastStart + trailingMatch.index).trim()
+    }
+  }
 
   for (const chunk of chunks) {
     const match = chunk.match(/^##\s*VARIATION\s+(\d+):\s*([^\n]+)\n([\s\S]*)$/i)
     if (!match) continue
-    const text = chunk.trim()
+    let text = chunk.trim()
+    if (trailingAfterVariations && text.includes(trailingAfterVariations)) {
+      text = text.slice(0, text.indexOf(trailingAfterVariations)).trim()
+    } else if (trailingAfterVariations) {
+      const cutAt = text.search(/\n##\s*(?!VARIATION\s+\d)/i)
+      if (cutAt >= 0) text = text.slice(0, cutAt).trim()
+    }
     variations.push({
       number: match[1],
       heading: match[2].trim(),
@@ -149,12 +198,16 @@ export function parseAdVariationsMarkdown(content: string): ParsedAdVariations |
 
   if (variations.length === 0) return null
 
+  const footerContent = [trailingAfterVariations, footer].filter(Boolean).join('\n\n').trim()
+  const sections = parseTrailingSections(footerContent)
+
   return {
     title: parseTitle(intro),
     intro,
     metadata: parseMetadata(intro),
     variations,
-    footer,
+    footer: footerContent,
+    sections,
   }
 }
 

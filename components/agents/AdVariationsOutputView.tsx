@@ -42,10 +42,14 @@ function FieldBlock({
   label,
   value,
   multiline = false,
+  renderMarkdown = false,
+  emphasis = false,
 }: {
   label: string
   value: string
   multiline?: boolean
+  renderMarkdown?: boolean
+  emphasis?: boolean
 }) {
   return (
     <div>
@@ -53,13 +57,30 @@ function FieldBlock({
         {label}
       </p>
       <div
-        className={`rounded-xl border border-gray-100 bg-[#F8FAFC] text-[13px] leading-relaxed text-text-sec ${
-          multiline ? 'whitespace-pre-wrap p-4' : 'px-4 py-3'
-        }`}
+        className={`rounded-xl border text-[13px] leading-relaxed text-text-sec ${
+          emphasis
+            ? 'border-[#FDE68A] bg-[#FFFBEB] p-4'
+            : 'border-gray-100 bg-[#F8FAFC] ' + (multiline && !renderMarkdown ? 'whitespace-pre-wrap p-4' : 'px-4 py-3')
+        } ${renderMarkdown ? 'p-4' : ''}`}
       >
-        {value}
+        {renderMarkdown ? (
+          <ReactMarkdown components={markdownComponents()}>{value}</ReactMarkdown>
+        ) : (
+          value
+        )}
       </div>
     </div>
+  )
+}
+
+function TrailingSection({ title, content }: { title: string; content: string }) {
+  return (
+    <section className="rounded-2xl border border-gray-100 bg-white px-5 py-4">
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-soft">
+        {title}
+      </p>
+      <ReactMarkdown components={markdownComponents()}>{content}</ReactMarkdown>
+    </section>
   )
 }
 
@@ -108,6 +129,7 @@ function VariationCard({ variation }: { variation: ParsedAdVariation }) {
             label={fieldById.primaryText.label}
             value={fieldById.primaryText.value}
             multiline
+            renderMarkdown
           />
         )}
 
@@ -120,6 +142,7 @@ function VariationCard({ variation }: { variation: ParsedAdVariation }) {
             label={fieldById.formatNote.label}
             value={fieldById.formatNote.value}
             multiline
+            renderMarkdown
           />
         )}
 
@@ -130,6 +153,7 @@ function VariationCard({ variation }: { variation: ParsedAdVariation }) {
                 label={fieldById.audienceAngle.label}
                 value={fieldById.audienceAngle.value}
                 multiline
+                renderMarkdown
               />
             )}
             {fieldById.complianceRisk && (
@@ -137,6 +161,8 @@ function VariationCard({ variation }: { variation: ParsedAdVariation }) {
                 label={fieldById.complianceRisk.label}
                 value={fieldById.complianceRisk.value}
                 multiline
+                renderMarkdown
+                emphasis={/medium|high|requires approval|do not run/i.test(fieldById.complianceRisk.value)}
               />
             )}
           </div>
@@ -224,7 +250,11 @@ export default function AdVariationsOutputView({
         <VariationCard key={variation.number} variation={variation} />
       ))}
 
-      {parsed.footer && (
+      {parsed.sections.map((section, index) => (
+        <TrailingSection key={`${section.title}-${index}`} title={section.title} content={section.content} />
+      ))}
+
+      {parsed.sections.length === 0 && parsed.footer && (
         <div className="rounded-2xl border border-gray-100 bg-[#F8FAFC] px-5 py-4">
           <ReactMarkdown components={markdownComponents()}>{parsed.footer}</ReactMarkdown>
         </div>
