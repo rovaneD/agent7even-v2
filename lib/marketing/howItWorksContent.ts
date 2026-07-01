@@ -1,20 +1,36 @@
-export type HowItWorksStep = { n: string; title: string; body: string }
+export type HowItWorksStep = {
+  n: string
+  kicker: string
+  title: string
+  titleBreak?: string
+  body: string
+  accent: 'pink' | 'blue' | 'green'
+}
 
 export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
   {
     n: '01',
-    title: 'Tell her what you want',
-    body: '“Promote the Friday slot.” “We’ve gone quiet — fix it.” Maya already knows your business from Foundation and Brand Kit — she gets to work.',
+    kicker: 'Conversation',
+    title: 'Describe the goal.',
+    titleBreak: 'Maya handles the work.',
+    body: '“Promote the Friday slot.” “We’ve gone quiet — fix it.” Maya already reads your Foundation and Brand Kit — then coordinates the agents.',
+    accent: 'pink',
   },
   {
     n: '02',
-    title: 'She drafts it in your voice',
-    body: 'Campaign plans, post copy, emails, images, and Reels — grounded in your Foundation and Brand Kit. Maya coordinates the specialists behind one conversation.',
+    kicker: 'Shared context',
+    title: 'Agents read Foundation',
+    titleBreak: 'and Brand Kit',
+    body: 'Campaign plans, post copy, emails, images, and Reels — each specialist pulls from the same saved context before drafting.',
+    accent: 'blue',
   },
   {
     n: '03',
-    title: 'You approve, you publish',
-    body: 'Nothing goes live until you sign off. Review the queue, edit what needs changing, then schedule or publish in a click.',
+    kicker: 'Approval queue',
+    title: 'Everything waits',
+    titleBreak: 'for your approval.',
+    body: 'Every post, email, ad, and image lands in one approval queue. Review what changed, make edits, then publish when you\'re ready.',
+    accent: 'green',
   },
 ]
 
@@ -25,7 +41,7 @@ export const HOW_IT_WORKS_WORKFLOW = [
   },
   {
     title: 'Brand Kit sets the voice',
-    body: 'A short Brand Kit session teaches tone, offers, and boundaries. Every draft sounds like you wrote it — not like generic software.',
+    body: 'Colors, tone, offers, and creative direction live in Brand Kit. Every image and caption agent reads them before generating — not a blank prompt each time.',
   },
   {
     title: 'Twelve specialist agents',

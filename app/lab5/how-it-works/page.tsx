@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { trackEvent } from '@/lib/gtag'
 import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
+import HowItWorksSteps from '@/components/marketing/HowItWorksSteps'
 import {
-  HOW_IT_WORKS_STEPS,
   HOW_IT_WORKS_WORKFLOW,
 } from '@/lib/marketing/howItWorksContent'
 
@@ -50,15 +50,7 @@ export default function HowItWorksPage() {
               No scattered briefs. No tool-hopping. Tell Maya what you need and specialist agents draft the work — you stay in control.
             </p>
           </div>
-          <div className="steps">
-            {HOW_IT_WORKS_STEPS.map((step) => (
-              <div key={step.n} className="step reveal">
-                <div className="step-n">{step.n}</div>
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
-              </div>
-            ))}
-          </div>
+          <HowItWorksSteps />
         </div>
       </section>
 

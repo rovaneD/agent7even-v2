@@ -11,23 +11,23 @@ export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   },
   {
     q: 'How is AI marketing different from traditional marketing?',
-    a: 'Traditional marketing stacks agencies, freelancers, and scheduling tools — you still write the briefs and stitch the work together. Agent7even gives you an AI marketing strategist (Maya) plus twelve specialist agents that draft campaigns, content, and creative in your voice — everything lands in your approval queue before it publishes.',
+    a: 'Traditional marketing stacks agencies, freelancers, and scheduling tools — you re-explain your business in every app and stitch the work together yourself. Agent7even keeps context in Foundation and Brand Kit, coordinates twelve specialist agents from one conversation, and routes every draft through your approval queue before it publishes.',
   },
   {
     q: 'What is AI marketing automation?',
-    a: 'AI marketing automation uses specialist agents to plan campaigns, draft content, and queue work for your approval — instead of you doing every post, email, and ad variation manually. Agent7even combines automation with an approval-first workflow so nothing publishes until you sign off.',
+    a: 'Specialist agents read your Foundation and Brand Kit, draft campaigns and content, and queue work for your approval — instead of you writing every post, email, and ad variation from scratch. Nothing publishes until you sign off from one queue.',
   },
   {
     q: 'How does AI marketing work for small business?',
-    a: 'You complete Foundation and Brand Kit once. Maya coordinates twelve specialist agents to draft campaigns, social posts, emails, and creative in your voice — everything lands in your approval queue before it goes live.',
+    a: 'You complete Foundation and Brand Kit once. Maya coordinates twelve specialist agents that read that context before drafting — campaigns, posts, emails, and creative land in your approval queue before anything goes live.',
   },
   {
     q: 'What exactly is Agent7even?',
-    a: 'Agent7even is an AI marketing operating system — twelve specialist agents for campaigns, content, creative, SEO, and more. Maya is the interface: she coordinates the agents, drafts in your brand voice, and routes everything through your approval queue. Nothing publishes until you approve it.',
+    a: 'One Foundation. Twelve specialist agents. One approval queue. Maya is the interface — she reads your Brand Kit, coordinates the agents, and routes every draft for your approval before anything publishes.',
   },
   {
     q: 'Does the copy actually sound like me?',
-    a: 'Yes. When you sign up, you complete a Brand Kit session where Maya learns your business, tone, and audience. Everything she creates draws from that — so it reads like you wrote it, not like software.',
+    a: 'Every draft starts from your Foundation and Brand Kit — business context, tone, offers, and boundaries saved once. Agents read that source before writing, so copy reflects how you actually sell instead of generic AI output.',
   },
   {
     q: 'How does the approval flow work?',
@@ -51,6 +51,6 @@ export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   },
   {
     q: 'How is this different from a social media scheduling tool?',
-    a: "Scheduling tools post what you give them. Agent7even plans, drafts, and generates — campaigns, captions, images, and video — then queues everything for your approval. You publish when you're ready.",
+    a: 'Scheduling tools publish what you upload. Agent7even agents read Foundation and Brand Kit, draft campaigns, captions, images, and video, then queue everything for your approval — you publish when you\'re ready.',
   },
 ]

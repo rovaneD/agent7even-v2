@@ -74,7 +74,7 @@
       <div class="mk-body" style="height:418px">
         ${rail([['grid', true], ['spark', false], ['mega', false], ['cal', false]])}
         <div class="mk-chat">
-          <div class="mk-chat-hd">${mayaOrbAvatar(24, true)}<div><div class="nm">Maya</div><div class="rl">Your marketing partner</div></div></div>
+          <div class="mk-chat-hd">${mayaOrbAvatar(24, true)}<div><div class="nm">Maya</div><div class="rl">Coordinates 12 specialist agents.</div></div></div>
           <div class="mk-msgs">
             <div class="bub bub-u">Fill next Friday — it's our slow day.</div>
             <div class="bub bub-m">On it. A Friday promo — offer, email draft and three posts. Drafting it in your canvas now.<span class="lnk">View campaign draft ${arrowUp}</span></div>
@@ -136,7 +136,7 @@
           <div class="mk-pad">
             <div class="mk-row" style="border-color:#DCE9FF;background:#F8FBFF;align-items:flex-start"><span class="dot" style="background:var(--blue);margin-top:5px"></span><div class="grow"><div class="rt">Friday promo email</div><div class="rs">Draft ready · paste into your ESP after approval</div></div>
               <div style="display:flex;gap:6px"><span class="btn-blue" style="font-size:12px;padding:6px 13px;border-radius:8px;color:#fff;font-weight:500">Approve</span><span class="tag tag-ghost" style="padding:6px 11px">Edit</span></div></div>
-            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:5px"></span><div class="grow"><div class="rt">Instagram post — slow-day promo</div><div class="rs">Image + caption drafted in your voice</div></div><span class="tag tag-green" style="padding:6px 12px">Approve</span></div>
+            <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:5px"></span><div class="grow"><div class="rt">Instagram post — slow-day promo</div><div class="rs">From Foundation + Brand Kit</div></div><span class="tag tag-green" style="padding:6px 12px">Approve</span></div>
             <div class="mk-row" style="align-items:flex-start"><span class="dot" style="background:var(--amber);margin-top:5px"></span><div class="grow"><div class="rt">Weekly content plan</div><div class="rs">5 posts · one approval session</div></div><span class="tag tag-amber" style="padding:6px 12px">Review</span></div>
             <div class="mk-note accent-pink" style="margin-top:2px"><div class="nl">Maya · waiting on you</div><div class="nt">Nothing goes live until you say so. Approve what's right, then publish when you're ready.</div></div>
           </div>
@@ -157,7 +157,7 @@
               <div style="background:#FFF3E2;border:1px solid #FBDFB4;border-radius:11px;padding:11px 13px"><div style="font-family:var(--mono);font-size:10px;font-weight:500;color:#B26B00;margin-bottom:4px">FRI</div><div style="font-size:12px;color:var(--ink-2);line-height:1.4">Story — slow-day promo</div></div>
               <div style="background:#F4F4F6;border:1px solid var(--line);border-radius:11px;padding:11px 13px;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:12px;text-align:center;line-height:1.35">+ 3 more queued</div>
             </div>
-            <div class="mk-note accent-pink"><div class="nl">Maya suggestion</div><div class="nt">Tuesday looks quiet. Want a behind-the-scenes post of the morning bake? I can have it ready in your voice.</div></div>
+            <div class="mk-note accent-pink"><div class="nl">Maya suggestion</div><div class="nt">Tuesday looks quiet. Want a behind-the-scenes post of the morning bake? I can draft it from your Brand Kit.</div></div>
           </div>
         </div>
       </div>`,
@@ -228,7 +228,7 @@
           <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Approval queue</div><div class="sub" style="font-size:10px">3 drafts waiting</div></div><span class="pill" style="font-size:10px;padding:3px 9px">3 waiting</span></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
             <div class="mk-row" style="padding:7px 9px;border-color:#DCE9FF;background:#F8FBFF;align-items:flex-start"><span class="dot" style="background:var(--blue);margin-top:4px"></span><div class="grow"><div class="rt" style="font-size:12px">Friday promo email</div><div class="rs" style="font-size:10px">Draft · approve to use</div></div><span style="font-size:10px;padding:5px 10px;border-radius:7px;background:var(--blue);color:#fff;font-weight:500">Approve</span></div>
-            <div class="mk-row" style="padding:7px 9px;align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:4px"></span><div class="grow"><div class="rt" style="font-size:12px">IG post + caption</div><div class="rs" style="font-size:10px">Image generated · on-brand</div></div><span class="tag tag-green" style="font-size:10px;padding:4px 9px">Approve</span></div>
+            <div class="mk-row" style="padding:7px 9px;align-items:flex-start"><span class="dot" style="background:var(--green);margin-top:4px"></span><div class="grow"><div class="rt" style="font-size:12px">IG post + caption</div><div class="rs" style="font-size:10px">Brand Kit colors + style</div></div><span class="tag tag-green" style="font-size:10px;padding:4px 9px">Approve</span></div>
           </div>
         </div>
       </div>`,
@@ -237,7 +237,7 @@
       ${miniBar('agent7even.ai/campaigns')}
       <div class="mk-body" style="height:auto;background:#fff">
         <div class="mk-main">
-          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Copy options</div><div class="sub" style="font-size:10px">Friday promo · your voice</div></div><span class="tag tag-blue" style="font-size:10px;padding:3px 8px">On-brand</span></div>
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Copy options</div><div class="sub" style="font-size:10px">Friday promo · from Foundation</div></div><span class="tag tag-blue" style="font-size:10px;padding:3px 8px">Brand Kit</span></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
             <div style="background:#fff;border:1.5px solid var(--blue);border-radius:10px;padding:9px 11px"><div style="font-family:var(--mono);font-size:9px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Option A</div><div style="font-size:11px;color:var(--ink-2);line-height:1.45">Fridays just got better. 20% off every drink — this Friday only.</div></div>
             <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px"><div style="font-family:var(--mono);font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Option B</div><div style="font-size:11px;color:var(--ink-2);line-height:1.45">Your Friday deserves a proper sit-down. 20% off, all day.</div></div>
@@ -274,9 +274,9 @@
       ${miniBar('agent7even.ai/campaigns')}
       <div class="mk-body" style="height:auto;background:#fff">
         <div class="mk-main">
-          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Cohort 4 — launch</div><div class="sub" style="font-size:10px">Lena Ray · opens Mon</div></div><span class="tag tag-pink" style="font-size:10px;padding:3px 8px">In your voice</span></div>
+          <div class="mk-main-hd" style="padding:10px 12px"><div><div class="ttl" style="font-size:12px">Cohort 4 — launch</div><div class="sub" style="font-size:10px">Lena Ray · opens Mon</div></div><span class="tag tag-pink" style="font-size:10px;padding:3px 8px">Foundation</span></div>
           <div class="mk-pad" style="padding:10px 12px;gap:7px">
-            <div class="mk-note accent-pink" style="padding:8px 10px"><div class="nl">Voice match</div><div class="nt" style="font-size:11px">Warm, direct, no hype — <b style="color:var(--brand)">98% on-voice.</b></div></div>
+            <div class="mk-note accent-pink" style="padding:8px 10px"><div class="nl">Source context</div><div class="nt" style="font-size:11px">Tone from Brand Kit — warm, direct, no hype.</div></div>
             <div class="mk-row" style="padding:7px 9px"><span class="tag tag-ghost">Email</span><div class="grow"><div class="rt" style="font-weight:500;font-size:12px">Waitlist — "Doors open Monday"</div></div><span style="font-size:10px;color:var(--green);font-weight:500">${check}Drafted</span></div>
           </div>
         </div>

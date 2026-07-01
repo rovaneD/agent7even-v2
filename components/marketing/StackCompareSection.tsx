@@ -14,9 +14,9 @@ export default function StackCompareSection() {
       <div className="wrap">
         <div className="sec-head stack-compare-head reveal">
           <span className="eyebrow">Why an OS</span>
-          <h2 className="t-h2">Stop stitching marketing together yourself.</h2>
+          <h2 className="t-h2">Stop stitching marketing together&nbsp;yourself.</h2>
           <p className="t-lead">
-            Most owners already juggle AI, design, and scheduling — but nothing shares context.
+            Most owners already juggle AI, design, and scheduling. One Foundation feeds every agent.
             Agent7even connects the work into one approval-first system.{' '}
             <Link href="/how-it-works">See the full workflow →</Link>
           </p>
@@ -46,7 +46,7 @@ export default function StackCompareSection() {
 
             <div className="stack-flow-side stack-flow-side-os">
               <span className="stack-flow-label">With Agent7even</span>
-              <p className="stack-flow-os">One marketing OS — shared context, one approval queue.</p>
+              <p className="stack-flow-os">One Foundation. Twelve specialist agents. One approval queue.</p>
             </div>
           </div>
 
