@@ -13,7 +13,7 @@ export default async function AIToolkitPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, company_name, plan, stripe_subscription_id')
+    .select('id, company_name, plan, stripe_subscription_id, billing_exempt')
     .eq('clerk_user_id', userId)
     .single()
 

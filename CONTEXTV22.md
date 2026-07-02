@@ -65,6 +65,7 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 - Starter trial: **5 total AI Toolkit runs** (matches AGENTS.md trial rule).
 - Paid plans: per-plan limits from shared helpers.
 - UI: `AIToolkitClient.tsx` + `app/dashboard/ai-toolkit/page.tsx` — banner and disabled state when cap hit.
+- July 2 critical fix: Starter subscriptions whose Stripe trial status cannot be confirmed now fail closed to the 5-run trial window instead of falling through to the paid Starter monthly cap. Billing-exempt accounts are treated as non-trial before Stripe lookup.
 
 **Related:** Open Canvas flow model field fix in `components/campaigns/OpenCanvasFlow.tsx` (same commit).
 

@@ -15,6 +15,15 @@ export type ToolkitPlanLimits = {
   totalRunsAllTime: number
 }
 
+type StarterTrialStatus = 'trialing' | 'not_trialing' | 'unknown'
+
+type ToolkitProfile = {
+  id: string
+  plan: string | null
+  stripe_subscription_id: string | null
+  billing_exempt?: boolean | null
+}
+
 export async function getStarterMonthlyLimit(supabase: SupabaseClient): Promise<number> {
   const { data } = await supabase
     .from('platform_settings')
@@ -24,24 +33,26 @@ export async function getStarterMonthlyLimit(supabase: SupabaseClient): Promise<
   return (data?.value as number) ?? 15
 }
 
-export async function isProfileOnStarterTrial(
-  profile: { plan: string | null; stripe_subscription_id: string | null },
-): Promise<boolean> {
-  if (profile.plan !== 'starter' || !profile.stripe_subscription_id) return false
+export async function getStarterTrialStatus(
+  profile: Pick<ToolkitProfile, 'plan' | 'stripe_subscription_id' | 'billing_exempt'>,
+): Promise<StarterTrialStatus> {
+  if (profile.plan !== 'starter' || profile.billing_exempt || !profile.stripe_subscription_id) {
+    return 'not_trialing'
+  }
   try {
     const { getStripeClient } = await import('@/lib/stripe')
     const stripe = getStripeClient()
-    if (!stripe) return false
+    if (!stripe) return 'unknown'
     const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
-    return subscription.status === 'trialing'
+    return subscription.status === 'trialing' ? 'trialing' : 'not_trialing'
   } catch {
-    return false
+    return 'unknown'
   }
 }
 
 export async function getToolkitPlanLimits(
   supabase: SupabaseClient,
-  profile: { id: string; plan: string | null; stripe_subscription_id: string | null },
+  profile: ToolkitProfile,
 ): Promise<ToolkitPlanLimits> {
   const plan = profile.plan
   const unlimited = plan === 'growth' || plan === 'proagent'
@@ -62,7 +73,10 @@ export async function getToolkitPlanLimits(
     .gte('created_at', startOfMonth.toISOString())
 
   const starterMonthlyLimit = await getStarterMonthlyLimit(supabase)
-  const onTrial = await isProfileOnStarterTrial(profile)
+  const starterTrialStatus = await getStarterTrialStatus(profile)
+  // Fail closed for Starter subscriptions if Stripe cannot confirm the trial ended.
+  // Otherwise a trialing user can silently fall through to the paid monthly cap.
+  const useTrialLimit = starterTrialStatus === 'trialing' || starterTrialStatus === 'unknown'
 
   if (unlimited) {
     return {
@@ -76,7 +90,7 @@ export async function getToolkitPlanLimits(
     }
   }
 
-  if (onTrial) {
+  if (useTrialLimit) {
     const used = totalRunsAllTime ?? 0
     return {
       onTrial: true,
