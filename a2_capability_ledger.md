@@ -100,3 +100,5 @@ Two kinds of "later," kept distinct:
 ## 6. Asset lifecycle (Thread 3 scope note)
 
 No unified Draft→Approved→Scheduled→Published state machine on one entity. Three parallel models exist (agent_outputs: pending_approval/approved; agent_tasks: pending→completed/failed; Zernio posts: draft/scheduled/published/failed). **Thread 3 is a surfacing + bridging job, not a greenfield data model** — but the full four-state lifecycle is not on one entity today. Bridge exists only for single-image caption approvals.
+
+**Surfacing fix (July 1, 2026):** All dashboard/agents “needs review” counts now read `agent_outputs.pending_approval` via `lib/agents/pendingApprovals.ts`. This does **not** merge the three models — it stops operator-facing count contradictions. See `CONTEXTV22.md` §5.

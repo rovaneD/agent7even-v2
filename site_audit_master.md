@@ -123,5 +123,24 @@ Marketing-page scores (for Phase B): Homepage 7.0–7.5 · Agents 8.5 (strongest
 
 **Open inputs still needed (non-blocking for A3):**
 - Live-page recon (gates A2).
-- Maya chat write-path confirmation (gates Thread-7 Layer 2 scoping).
 - Starter→Growth non-media differentiator (volume-only today; consider seats/service-requests) — Phase B pricing refinement, not a blocker.
+
+---
+
+## 6. Phase C execution tracker (updated July 1, 2026)
+
+| Slice | Status | Reference |
+|-------|--------|-----------|
+| Dashboard cold-open (Maya's brief) | **Shipped** | `phaseC_dashboard_cold_open_handoff.md` |
+| IA regroup (7 nav groups) | **Shipped** | `phaseC_ia_regroup_handoff.md` |
+| Asset lifecycle surfacing | **Shipped** | `phaseC_asset_lifecycle_handoff.md` |
+| Credits + services clarity | **Shipped** | `phaseC_credits_services_clarity_handoff.md` |
+| Explainability pass | **Shipped** | `phaseC_explainability_handoff.md` |
+| Situational grounding L1 | **Shipped** | `phaseC_situational_grounding_handoff.md` |
+| Thread 7 Layer 2 (Apply gate) | **Shipped** | `phaseC_dashboard_cold_open_handoff.md` § write-path |
+| Stale digest refresh | **Shipped** | `phaseC_dashboard_cold_open_handoff.md` |
+| Approval count consistency | **Shipped** | `CONTEXTV22.md` §5 · `lib/agents/pendingApprovals.ts` |
+| Structured approval output views | **Shipped** | `CONTEXTV22.md` §1 |
+| **Remaining Phase C** | Not shipped | Thread 3 unified lifecycle on one entity · Thread 7 write-path extensions beyond Apply gate · flagged pricing/product decisions |
+
+**Note:** Phase C #1 “Dashboard cold-open” from the original audit backlog is **built and live** — not “NOT STARTED.” Remaining logged-in work is count/lifecycle integrity (partially addressed), IA polish, and situational grounding depth.

@@ -67,7 +67,7 @@ Dashboard opened with a static “Command center” welcome block. `MorningDiges
 
 - Approval-first language in brief empty states (“queue work for your approval”).
 - Digest-first page order — brief before metrics cards.
-- Correct pending-approval query in digest generate.
+- Correct pending-approval query via `lib/agents/pendingApprovals.ts` (not digest JSON or task-only drift).
 
 ---
 

@@ -1,6 +1,6 @@
 # Per-Screen Registry — Agent7even v2
 
-**Status:** Phase C reference doc (June 10, 2026)  
+**Status:** Phase C reference doc (updated July 1, 2026)  
 **Repo:** `rovaneD/agent7even-v2`  
 **Sources:** `site_audit_master.md` (571-page logged-in audit + 4 marketing pages), Phase C handoffs, live route recon
 
@@ -36,7 +36,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
-| Dashboard (cold open) | `/dashboard` | P0 | T2 T3 T7 | Cold-open brief · lifecycle bar · plan usage callout · canonical profile | Digest section subtitles shipped |
+| Dashboard (cold open) | `/dashboard` | P0 | T2 T3 T7 | Cold-open brief · lifecycle bar · plan usage callout · approval count SSOT · stale digest refresh | Thread 3 unified lifecycle (not surfacing-only) |
 
 ---
 
@@ -44,9 +44,9 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
-| Agents Command Center | `/dashboard/agents` | P0 | T4 T7 | Agent setup form grounding (Layer 1) · Layer 2 form actuation | — |
-| Approvals | `/dashboard/agents/approvals` | P1 | T3 T7 | Maya context · lifecycle → Review link · draft-post banner | — |
-| Agent outputs archive | `/dashboard/agents/[id]/outputs` | P2 | T3 | Maya context · lifecycle stage labels | — |
+| Agents Command Center | `/dashboard/agents` | P0 | T4 T7 | Agent setup form grounding (Layer 1) · Layer 2 form actuation · approval snapshot matches dashboard | — |
+| Approvals | `/dashboard/agents/approvals` | P1 | T3 T7 | Maya context · lifecycle → Review link · draft-post banner · structured output views (Campaign, Ad Variations, Email) | — |
+| Agent outputs archive | `/dashboard/agents/[id]/outputs` | P2 | T3 | Maya context · lifecycle stage labels · structured detail views | — |
 | Analytics | `/dashboard/analytics` | P1 | T7 | Tab activeView · connect panel/modal grounding | — |
 | Inbox | `/dashboard/inbox` | P2 | T7 | Maya context · DM + comment reply · Maya draft-reply | — |
 
@@ -56,9 +56,9 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Threads | Phase C shipped | Remaining |
 |--------|-------|----------|---------|-----------------|-----------|
-| Foundation Hub | `/dashboard/foundation` | P0 | T7 | Tab + section edit form grounding · ingest success messaging | — |
+| Foundation Hub | `/dashboard/foundation` | P0 | T7 | Tab + section edit form grounding · ingest success messaging · competitors string[] · sidebar rescore sync | — |
 | Foundation Editor (legacy) | `/dashboard/foundation` (flag off) | P2 | T7 | Editor form grounding | Retire when V2 flag universal |
-| Brand Kit | `/dashboard/brand-kit` | P1 | T1 T7 | Tab activeView · media credit + ProAgent premium callout | — |
+| Brand Kit | `/dashboard/brand-kit` | P1 | T1 T7 | Tab activeView · media credit + ProAgent premium callout · progress bar color thresholds | — |
 
 ---
 
@@ -109,7 +109,7 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 
 | Screen | Route | Priority | Notes |
 |--------|-------|----------|-------|
-| AI Toolkit | `/dashboard/ai-toolkit` | P2 | Trial vs paid run limits in UI; removed from sidebar IA |
+| AI Toolkit | `/dashboard/ai-toolkit` | P2 | Trial vs paid run limits in UI (`lib/ai/toolkitPlanLimits.ts`); removed from sidebar IA |
 | Content posting flows | `/dashboard/agents/content-posting/*` | P2 | Agent-specific posting subflows |
 
 ---
@@ -119,6 +119,8 @@ This is the durable screen-by-screen reference for product/UX work. Scores for m
 | Slice | Handoff | Screens touched |
 |-------|---------|-----------------|
 | Dashboard cold-open | `phaseC_dashboard_cold_open_handoff.md` | Dashboard |
+| Approval count SSOT | `CONTEXTV22.md` §5 · `lib/agents/pendingApprovals.ts` | Dashboard, Agents, Approvals, layout, digest |
+| Structured output views | `CONTEXTV22.md` §1 | Approvals, agent output detail |
 | IA regroup (7 groups) | `phaseC_ia_regroup_handoff.md` | All sidebar routes |
 | Asset lifecycle | `phaseC_asset_lifecycle_handoff.md` | Dashboard, Posts |
 | Credits + services clarity | `phaseC_credits_services_clarity_handoff.md` | Dashboard, Services, Billing, MorningDigest |

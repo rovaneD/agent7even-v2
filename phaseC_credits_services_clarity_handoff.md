@@ -50,6 +50,7 @@ Surfaces on:
 | Campaign / inquiry form grounding | **Shipped** — guided, open canvas, service inquiry |
 | `per_screen_registry.md` | **Shipped** — June 10, 2026 |
 | Stale digest regenerate after approval-query fix | **Shipped** — `forceRegenerate` + dashboard stale detection |
+| Approval count consistency (six read-points) | **Shipped** — `lib/agents/pendingApprovals.ts` — see `CONTEXTV22.md` §5 |
 | Explainability pass (per-screen) | **Shipped** — see `phaseC_explainability_handoff.md` |
 | AI Toolkit trial vs paid messaging | **Shipped** — `lib/ai/toolkitPlanLimits.ts` + PlanBanner copy |
 

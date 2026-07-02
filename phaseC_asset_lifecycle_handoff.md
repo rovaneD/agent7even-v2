@@ -17,7 +17,7 @@ Audit: users cannot see **Draft → Review → Scheduled → Published** as one 
 ### `lib/content/lifecycleCounts.ts`
 
 Server helper aggregates:
-- **Review** — `agent_tasks` pending approval (`requires_approval`, completed, not approved/rejected)
+- **Review** — `getPendingApprovalCount()` from `lib/agents/pendingApprovals.ts` (`agent_outputs.status = 'pending_approval'`) — **updated July 1, 2026**; was `agent_tasks` pending approval query
 - **Draft / Scheduled / Published** — Zernio `listPosts` pagination totals when profile connected + `ZERNIO_API_KEY` set
 
 ### `components/dashboard/ContentLifecycleBar.tsx`

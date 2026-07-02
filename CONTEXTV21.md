@@ -1,7 +1,7 @@
 # CONTEXTV21 — Lab5 marketing site (homepage + agents)
-*Snapshot: June 25, 2026 — supersedes `CONTEXTV18.md` for lab5 homepage hero, FAQ channels, agents Connect strip, and mobile mockup CSS*
+*Snapshot: June 25, 2026 — marketing-site sections still valid; logged-in product work superseded by `CONTEXTV22.md` (July 1, 2026)*
 
-This document supersedes **marketing-site sections** in `CONTEXTV18.md` (hero structure, FAQ channels, feature mockups). Product/dashboard work remains governed by `CONTEXTV20.md` unless noted here.
+This document supersedes **marketing-site sections** in `CONTEXTV18.md` (hero structure, FAQ channels, feature mockups). Product/dashboard work is governed by **`CONTEXTV22.md`** (latest) and `CONTEXTV20.md` unless noted here.
 
 Session log: `SESSION_2026-06-25.md`.
 
@@ -118,6 +118,7 @@ YouTube connect uses standard Zernio OAuth (`headless: false`). Marketing may cl
 | `a1_positioning_lock.md` | Pre/post signup positioning; hero inherits approval-first OS frame |
 | `a2_capability_ledger.md` | What product claims may assert (gates Phase B copy) |
 | `CONTEXTV20.md` | Content Posting UX, Creative Direction cache |
+| `CONTEXTV22.md` | Latest logged-in product handoff (July 1, 2026) |
 | `CONTEXTV18.md` | Prior lab5 homepage structure (superseded for hero by this file) |
 | `phaseB_*_handoff.md` | Phase B rebuild notes (local, untracked) |
 
