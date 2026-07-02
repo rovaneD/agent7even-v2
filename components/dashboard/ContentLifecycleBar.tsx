@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, CheckCircle2, Clock, FileEdit, Send } from 'lucide-react'
+import { ArrowRight, CheckCircle2, CircleCheck, Clock, FileEdit, Send } from 'lucide-react'
 import type { ContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 
 interface Props {
@@ -14,6 +14,13 @@ const STEPS = [
     hint: 'Awaiting approval',
     href: '/dashboard/agents/approvals',
     icon: FileEdit,
+  },
+  {
+    key: 'approved' as const,
+    label: 'Approved',
+    hint: 'Ready for Posts',
+    href: '/dashboard/agents/approvals',
+    icon: CircleCheck,
   },
   {
     key: 'draft' as const,
@@ -40,7 +47,9 @@ const STEPS = [
 
 export default function ContentLifecycleBar({ counts, compact = false }: Props) {
   const visibleSteps = STEPS.filter(step =>
-    step.key === 'review' || counts.postsConnected,
+    step.key === 'review'
+    || step.key === 'approved'
+    || counts.postsConnected,
   )
 
   if (visibleSteps.length === 0) return null
@@ -65,7 +74,7 @@ export default function ContentLifecycleBar({ counts, compact = false }: Props) 
         </div>
       )}
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {visibleSteps.map(step => {
           const Icon = step.icon
           const value = counts[step.key]

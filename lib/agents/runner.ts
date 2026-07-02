@@ -325,18 +325,22 @@ export async function runAgent(opts: {
       ? opts.agentId.replace('foundation_generate_', '')
       : 'agent_output')
 
+  const outputStatus = agentDef?.autonomyLevel === 'approval_required'
+    ? 'pending_approval'
+    : 'approved'
+  const lifecycleStage = outputStatus === 'pending_approval' ? 'review' : 'approved'
+
   const { error: outputErr } = await supabase.from('agent_outputs').insert({
-    task_id:       taskId,
-    user_id:       opts.userId,
-    agent:         opts.agentId,
-    output_type:   outputType,
-    content:       { raw: raw.content },
-    input_tokens:  raw.inputTokens,
-    output_tokens: raw.outputTokens,
-    cost_usd:      costUsd,
-    status:        agentDef?.autonomyLevel === 'approval_required'
-      ? 'pending_approval'
-      : 'approved',
+    task_id:         taskId,
+    user_id:         opts.userId,
+    agent:           opts.agentId,
+    output_type:     outputType,
+    content:         { raw: raw.content },
+    input_tokens:    raw.inputTokens,
+    output_tokens:   raw.outputTokens,
+    cost_usd:        costUsd,
+    status:          outputStatus,
+    lifecycle_stage: lifecycleStage,
   })
 
   if (outputErr) {
@@ -520,19 +524,21 @@ export async function saveAgentOutput({
 }) {
   const supabase = createServiceClient()
   const agentDef = AGENTS[agent as AgentId]
+  const outputStatus = agentDef?.autonomyLevel === 'approval_required'
+    ? 'pending_approval'
+    : 'approved'
 
   const { data, error } = await supabase
     .from('agent_outputs')
     .insert({
-      task_id:     taskId,
-      user_id:     userId,
+      task_id:         taskId,
+      user_id:         userId,
       agent,
-      output_type: outputType,
+      output_type:     outputType,
       title,
       content,
-      status:      agentDef?.autonomyLevel === 'approval_required'
-        ? 'pending_approval'
-        : 'approved',
+      status:          outputStatus,
+      lifecycle_stage: outputStatus === 'pending_approval' ? 'review' : 'approved',
     })
     .select()
     .single()

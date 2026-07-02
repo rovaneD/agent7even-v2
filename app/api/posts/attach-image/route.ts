@@ -15,6 +15,11 @@ type AttachBody = {
   mime?: string
   taskId?: string
   outputId?: string
+  media_edit?: {
+    cropped?: boolean
+    aspect?: string
+    source_filename?: string
+  }
 }
 
 function parseBase64(content: string): Buffer {
@@ -45,7 +50,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
   }
 
-  const { content, filename = 'upload.jpg', mime, taskId, outputId } = body
+  const { content, filename = 'upload.jpg', mime, taskId, outputId, media_edit } = body
   if (!content || typeof content !== 'string') {
     return NextResponse.json({ error: 'content required (base64)' }, { status: 400 })
   }
@@ -75,10 +80,17 @@ export async function POST(req: Request) {
       bytes,
     })
 
-    const mediaFields = {
+    const mediaFields: Record<string, unknown> = {
       media_storage_path: storagePath,
       media_mime: resolvedMime,
       image_caption_mode: true,
+    }
+    if (media_edit?.cropped && media_edit.aspect) {
+      mediaFields.media_edit = {
+        cropped: true,
+        aspect: media_edit.aspect,
+        source_filename: media_edit.source_filename ?? filename,
+      }
     }
 
     if (outputId) {

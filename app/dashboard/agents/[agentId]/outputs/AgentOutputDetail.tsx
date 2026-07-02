@@ -19,6 +19,7 @@ type AgentOutputDetailProps = {
   title: string
   subtitle: string
   status: string
+  lifecycleStage?: string | null
   content: string
   outputContent?: { raw?: string; parsed?: unknown } | string | null
   viralHooksHints?: ViralHooksDraftHints
@@ -210,6 +211,7 @@ export default function AgentOutputDetail({
   title,
   subtitle,
   status: initialStatus,
+  lifecycleStage,
   content,
   outputContent,
   viralHooksHints,
@@ -232,8 +234,8 @@ export default function AgentOutputDetail({
   const isPending = status === 'pending_approval'
   const badge = statusStyles(status)
   const lifecycle = useMemo(
-    () => formatOutputLifecycle(status, agentId ?? '', taskId),
-    [status, agentId, taskId],
+    () => formatOutputLifecycle(status, agentId ?? '', taskId, lifecycleStage),
+    [status, agentId, taskId, lifecycleStage],
   )
 
   async function approve() {

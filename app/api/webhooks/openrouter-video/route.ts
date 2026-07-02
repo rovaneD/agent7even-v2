@@ -236,7 +236,8 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
     output_type: 'social_post',
     title:       'Generated video',
     content,
-    status:      'pending_approval',
+    status:          'pending_approval',
+    lifecycle_stage: 'review',
   })
 
   if (outputError) {

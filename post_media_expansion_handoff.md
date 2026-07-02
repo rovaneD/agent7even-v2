@@ -2,14 +2,15 @@
 # Post Media Expansion — Full Scope Handoff
 *Extends image-context captions (v1) with crop, carousels, and video*
 
-**Status:** Planning — gated on image-context v1 verification. Image **generation** is a separate shipped track (`creative_generation_handoff.md`, `CONTEXTV19.md`); this handoff covers crop/carousel/video on **user-supplied** media.
+**Status:** Phase A (crop) shipped in app · v1 path verified in code (July 2026)  
 **Technical baseline:** `CONTEXTV15.md` §2 (image-context v1).  
 **Product rules:** `MAYA_CONTEXT_V06.md`.
 
-Read `MAYA_CONTEXT_V06.md` and `CONTEXTV15.md` before starting.  
+Read `MAYA_CONTEXT_V06.md` and `CONTEXTV15.md` before starting Phase B.  
 Confirm `git remote -v` shows **`agent7even-v2`**, NEVER `agent7even-app`.
 
-**Planning handoff — not started.** v1 (single still image) must be verified before Phase A/B/C.
+**Phase A:** `PostImageCropper.tsx` + crop step in `PostImageAttach.tsx` (Content Posting → Single post upload path).  
+**Next:** Phase B carousel — see §4.
 
 ---
 

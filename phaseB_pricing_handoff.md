@@ -1,7 +1,7 @@
 # Phase B — Pricing Page Handoff
 
-**Status:** drafted, staged. **EXECUTION GATED on A3 credit retune landing + verifying.**
-Do not write credit numbers on the page until the app actually debits them (text=0, std image=3, std video=10, premium ProAgent-gated). Shipping pricing copy ahead of the retune = the performance-theater violation this whole audit exists to prevent.
+**Status:** decisions locked · copy + billing aligned (June 2026)  
+**EXECUTION GATED on A3 credit retune landing + verifying.** ✅ A3 live in code (`ACTION_CREDIT_COST`, premium gating in `actionCosts.ts`; run `npx tsx scripts/verify-a3-credit-ledger.ts` locally).
 **Repo:** `rovaneD/agent7even-v2`. `git remote -v` before push.
 **Gating docs:** `a1_positioning_lock.md`, `a2_capability_ledger.md`, `credit_model_retune_spec.md` (A3).
 
@@ -53,13 +53,25 @@ Starter 1 / Growth 3 / ProAgent unlimited (existing).
 ## Step 7 — Starter→Growth differentiator (open item)
 - Under the retune, Starter→Growth is volume-only (more media credits). The audit wants a clearer reason. Options: seats, service-request count, or premium-media-preview. **Flag for your decision** — volume-only is acceptable for v1; note it.
 
+## Open decisions — LOCKED (v1, aligns with AGENTS.md + Stripe)
+
+| Decision | v1 choice | Rationale |
+|----------|-----------|-----------|
+| **ProAgent naming** | Keep **ProAgent** | Audit flagged it reads like a feature; rename to Scale/Pro deferred — no Stripe/product rename churn before launch. |
+| **Trial structure** | **Starter-only** 3-day trial; Growth + ProAgent bill immediately | Card-upfront test drive on entry tier; higher tiers = committed buyers. Matches `app/api/stripe/checkout/route.ts` (`trial_period_days: 3` for starter only). |
+| **Starter → Growth lever** | **Not volume-only** — seats (1→3), service requests (1→3), X connect, full analytics, priority support **plus** 350 vs 100 media credits | Gives a non-credit upgrade story; Growth FAQ + compare table on `app/pricing/page.tsx` and `app/lab5/pricing/page.tsx`. |
+
+No further copy blockers unless you reopen one of the above.
+
+---
+
 ## Definition of done
-- [ ] Pre-flight gate passed (A3 live in app).
-- [ ] Credits reframed as media-only meter with outcome examples; text/chat/campaigns shown unlimited.
-- [ ] Service Requests defined plainly.
-- [ ] Premium = ProAgent unlock, surfaced as upgrade reason.
-- [ ] Category/anchoring aligned to A1; no fabricated ROI.
-- [ ] FAQ leads with capability, not credits.
-- [ ] No claim violates A2 (capability) or A3 (economics).
-- [ ] Live render + `npm run build` verified.
-- [ ] Open decisions flagged (ProAgent rename, trial structure, Starter→Growth lever) — captured, not silently resolved.
+- [x] Pre-flight gate passed (A3 live in app).
+- [x] Credits reframed as media-only meter with outcome examples; text/chat/campaigns shown unlimited.
+- [x] Service Requests defined plainly.
+- [x] Premium = ProAgent unlock, surfaced as upgrade reason.
+- [x] Category/anchoring aligned to A1; no fabricated ROI.
+- [x] FAQ leads with capability, not credits.
+- [x] No claim violates A2 (capability) or A3 (economics).
+- [ ] Live render + `npm run build` verified (run before deploy).
+- [x] Open decisions flagged and locked (ProAgent rename deferred, Starter-only trial, Starter→Growth = team + services + media).

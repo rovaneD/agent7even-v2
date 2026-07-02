@@ -1,10 +1,12 @@
 import { getPendingApprovalCount } from '@/lib/agents/pendingApprovals'
+import { countApprovedPostPipelineOutputs } from '@/lib/content/agentOutputLifecycle'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
 import { parsePostsList } from '@/lib/social/zernioPostsParse'
 
 export type ContentLifecycleCounts = {
   review: number
+  approved: number
   draft: number
   scheduled: number
   published: number
@@ -35,10 +37,12 @@ export async function getContentLifecycleCounts(
   const supabase = createServiceClient()
 
   const review = await getPendingApprovalCount(supabase, profileId)
+  const approved = await countApprovedPostPipelineOutputs(supabase, profileId)
 
   if (!zernioProfileId) {
     return {
       review,
+      approved,
       draft: 0,
       scheduled: 0,
       published: 0,
@@ -54,6 +58,7 @@ export async function getContentLifecycleCounts(
 
   return {
     review,
+    approved,
     draft,
     scheduled,
     published,

@@ -33,10 +33,11 @@ export async function POST(
     supabase
       .from('agent_outputs')
       .update({
-        status:       'rejected',
-        feedback:     feedback ?? null,
+        status: 'rejected',
+        lifecycle_stage: 'rejected',
+        feedback: feedback ?? null,
         feedback_note: rejectionText,
-        feedback_at:  now,
+        feedback_at: now,
       })
       .eq('id', outputId)
       .eq('user_id', profile.id),

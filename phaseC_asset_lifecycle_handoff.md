@@ -1,6 +1,6 @@
 # Phase C — Asset Lifecycle Surfacing Handoff
 
-**Status:** shipped (surfacing layer — not new state machine)  
+**Status:** Thread 3 v1 shipped (lifecycle spine on `agent_outputs`)  
 **Prior:** IA regroup  
 **Next:** Thread 7 Layer 2 (actuation — not built)
 
@@ -8,25 +8,50 @@
 
 ## Problem
 
-Audit: users cannot see **Draft → Review → Scheduled → Published** as one pipeline. Three parallel state models exist (agent approvals, Zernio posts, calendar); only the approval→post bridge was explained in a banner on Posts.
+Audit: users cannot see **Review → Approved → Draft → Scheduled → Published** as one pipeline. Three parallel state models exist (agent approvals, Zernio posts, calendar); only the approval→post bridge was explained in a banner on Posts.
 
 ---
 
-## Shipped
+## Shipped (Thread 3 v1 — July 2026)
+
+### `30_content_lifecycle_unification.sql`
+
+Adds to `agent_outputs`:
+- `lifecycle_stage` — `review | approved | draft | scheduled | published | rejected`
+- `zernio_post_id` — links output row to Zernio post after publish bridge
+
+Backfills from existing `status`. **Run once in Supabase SQL Editor.**
+
+### `lib/content/agentOutputLifecycle.ts`
+
+SSOT helpers: stage mapping, approved post-pipeline count, `linkOutputToZernioPost`, `syncOutputLifecycleFromZernioPost`.
 
 ### `lib/content/lifecycleCounts.ts`
 
 Server helper aggregates:
-- **Review** — `getPendingApprovalCount()` from `lib/agents/pendingApprovals.ts` (`agent_outputs.status = 'pending_approval'`) — **updated July 1, 2026**; was `agent_tasks` pending approval query
+- **Review** — `getPendingApprovalCount()` (`agent_outputs.status = 'pending_approval'`)
+- **Approved** — post-type outputs with `lifecycle_stage = 'approved'` and no Zernio link yet
 - **Draft / Scheduled / Published** — Zernio `listPosts` pagination totals when profile connected + `ZERNIO_API_KEY` set
 
 ### `components/dashboard/ContentLifecycleBar.tsx`
 
-Four linked stage cards → Approvals queue or Posts filtered by `?status=`.
+Five linked stage cards → Approvals queue or Posts filtered by `?status=`.
 
 Surfaces on:
 - **Dashboard** — below Maya brief
 - **Posts** — below page header (`compact`)
+- **Calendar** — compact bar
+
+### Write-path wiring
+
+- `lib/agents/runner.ts` — sets `lifecycle_stage` on insert
+- Approve / reject / bulk routes — update `lifecycle_stage`
+- `publishApprovedImageCaption` + approve route — `linkOutputToZernioPost` when Zernio draft created
+- `app/api/posts/[postId]/route.ts` PATCH — `syncOutputLifecycleFromZernioPost` on status change
+
+### `lib/content/outputLifecycleLabel.ts`
+
+Output archive labels use `lifecycle_stage` when present (falls back to `status`).
 
 ### `PostsClient.tsx`
 
@@ -36,9 +61,10 @@ Reads `?status=` from URL on load for deep links from pipeline cards.
 
 ## Honest scope (A2)
 
-- **Review** = approval queue, not all drafts everywhere.
-- **Draft/Scheduled/Published** = Zernio post rows only (requires connected social).
-- No separate **Approved** stage count — approved agent output not yet in Zernio is implicit between Review and Draft (existing Posts banner still applies for post-type approvals).
+- **Review** = approval queue (`pending_approval`).
+- **Approved** = post-type agent output approved but not yet linked to Zernio (or publish bridge blocked).
+- **Draft/Scheduled/Published** = Zernio post rows (requires connected social).
+- Non-post approvals (weekly plans, etc.) stay in archive with `lifecycle_stage = approved` but do not increment **Approved** pipeline count.
 
 ---
 
@@ -46,6 +72,7 @@ Reads `?status=` from URL on load for deep links from pipeline cards.
 
 ```bash
 npx tsc --noEmit
-# Dashboard: pipeline row visible with Review count
-# Posts: ?status=draft filters list; pipeline compact bar visible when connected
+# Run 30_content_lifecycle_unification.sql in Supabase
+# Dashboard: pipeline shows Review + Approved + Draft/Scheduled/Published when connected
+# Approve post with media → lifecycle moves Approved → Draft; schedule → Scheduled
 ```

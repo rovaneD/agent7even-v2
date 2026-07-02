@@ -11,12 +11,13 @@ export const IMAGE_CONTEXT_CAPABILITY = {
   version: 'v1',
   supported: [
     'Owner uploads a ready-to-post still image',
+    'In-platform crop to platform aspect before caption run',
     'Maya reads the attached image via vision and writes caption copy in context',
     'Caption and image stay paired through approval and publish',
   ],
   unsupported: [
     'Image generation',
-    'Cropping or in-platform image editing',
+    'Filters, stickers, or full image editing beyond crop',
     'Carousels (multi-image posts)',
     'Video generation',
   ],
@@ -81,7 +82,7 @@ export function buildImageContextCapabilityPrompt(): string {
     : null
   const fallbackNote =
     !isImageGenerationEnabled() && !isVideoGenerationEnabled()
-      ? 'If asked to generate, crop, edit, build a carousel, or use video, refuse and explain the owner must supply a ready-to-post still image — Maya writes the caption to match it.'
+      ? 'If asked to generate, edit beyond crop, build a carousel, or use video, refuse and explain the owner must supply a still image (they may crop before upload) — Maya writes the caption to match the final frame.'
       : [imageNote, videoNote].filter(Boolean).join(' ')
 
   const flagSuffix = [
@@ -109,7 +110,7 @@ export function buildImageContextAgentConstraints(): string {
   if (parts.length > 0) {
     return `Post media: user may upload a still for vision captions, or ${parts.join('; ')}. Saved image generations are in Assets. You must never ${unsupported}. One image per post only.`
   }
-  return `Image-context captions: you may read a user-supplied still image and write matching copy. You must never ${unsupported}. One image per post only.`
+  return `Image-context captions: you may read a user-supplied still image and write matching copy. The owner may crop before upload; always assume you see the final exported frame. You must never ${unsupported}. One image per post only.`
 }
 
 export function validateImageContextUpload(

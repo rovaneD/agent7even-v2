@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as publisher from '@/lib/social/publisher'
 import { withZernioProfileUsage } from '@/lib/social/requireZernioProfile'
 import { parseSinglePost, readZernioPostProfileId } from '@/lib/social/zernioPostsParse'
+import { createServiceClient } from '@/lib/supabase/server'
+import { syncOutputLifecycleFromZernioPost } from '@/lib/content/agentOutputLifecycle'
 
 async function loadOwnedPost(postId: string, profileIds: string[]) {
   const raw = await publisher.getPost(postId)
@@ -58,6 +60,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ po
           : undefined,
       })
       const post = parseSinglePost(raw)
+      if (post?.status) {
+        const supabase = createServiceClient()
+        await syncOutputLifecycleFromZernioPost(supabase, {
+          userId: ctx.profileUserId,
+          zernioPostId: postId,
+          zernioStatus: post.status,
+        }).catch(err => {
+          console.error('[posts PATCH] lifecycle sync failed:', err)
+        })
+      }
       return NextResponse.json({ post, raw })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'update_failed'

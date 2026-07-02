@@ -40,7 +40,7 @@ export async function POST(req: Request) {
         .eq('user_id', profile.id),
       supabase
         .from('agent_outputs')
-        .update({ status: 'approved', approved_at: now })
+        .update({ status: 'approved', approved_at: now, lifecycle_stage: 'approved' })
         .in('task_id', taskIds)
         .eq('user_id', profile.id),
     ])
@@ -50,6 +50,7 @@ export async function POST(req: Request) {
   } else {
     const outputUpdate: Record<string, unknown> = {
       status: 'rejected',
+      lifecycle_stage: 'rejected',
       feedback: feedback ?? null,
       feedback_note: feedbackNote ?? null,
       feedback_at: now,

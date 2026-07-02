@@ -18,6 +18,7 @@ type AgentOutput = {
   title: string
   content: { raw?: string; parsed?: Record<string, unknown> } | string | null
   status: string
+  lifecycle_stage: string | null
   created_at: string
 }
 
@@ -98,7 +99,7 @@ export default async function AgentOutputsPage({
 
   const { data: outputs } = await supabase
     .from('agent_outputs')
-    .select('id, task_id, agent, output_type, title, content, status, created_at')
+    .select('id, task_id, agent, output_type, title, content, status, lifecycle_stage, created_at')
     .eq('user_id', profile.id)
     .in('agent', outputAgentIds)
     .order('created_at', { ascending: false })
@@ -155,7 +156,12 @@ export default async function AgentOutputsPage({
             <div className="max-h-[280px] overflow-y-auto lg:max-h-[620px]">
               {outputRows.map(output => {
                 const selected = output.id === selectedOutput.id
-                const lifecycle = formatOutputLifecycle(output.status, output.agent, output.task_id)
+                const lifecycle = formatOutputLifecycle(
+                  output.status,
+                  output.agent,
+                  output.task_id,
+                  output.lifecycle_stage,
+                )
                 return (
                   <Link
                     key={output.id}
@@ -190,6 +196,7 @@ export default async function AgentOutputsPage({
             title={getOutputDescription(selectedOutput, rawAgentId)}
             subtitle={`${selectedOutput.title || agent.name} · ${relativeTime(selectedOutput.created_at)}`}
             status={selectedOutput.status}
+            lifecycleStage={selectedOutput.lifecycle_stage}
             content={getOutputText(selectedOutput)}
             outputContent={selectedOutput.content}
             viralHooksHints={{

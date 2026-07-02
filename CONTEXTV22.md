@@ -131,7 +131,7 @@ Update for `site_audit_master.md` §6 tracker:
 |---------------|--------|
 | Dashboard cold-open (Maya's brief) | **Shipped** (`4164c3b` + follow-ons) |
 | IA regroup (7 groups) | **Shipped** |
-| Asset lifecycle surfacing | **Shipped** (Review count now uses `pendingApprovals` helper) |
+| Asset lifecycle surfacing | **Shipped** — Thread 3 v1: `lifecycle_stage` + Approved pipeline stage (`30_content_lifecycle_unification.sql`) |
 | Credits + services clarity | **Shipped** |
 | Explainability pass | **Shipped** |
 | Situational grounding L1 | **Shipped** |
@@ -139,7 +139,7 @@ Update for `site_audit_master.md` §6 tracker:
 | Stale digest refresh | **Shipped** |
 | Approval count consistency | **Shipped** (`b889cc6`) |
 | Structured approval output views | **Shipped** (`c0c6911`, `9482a9d`) |
-| **Remaining Phase C** | IA polish only · full asset lifecycle unification (Thread 3) · situational grounding depth (Thread 7 write-path extensions) |
+| **Remaining Phase C** | IA polish only · situational grounding depth (Thread 7 write-path extensions) |
 
 ---
 
@@ -150,6 +150,23 @@ Update for `site_audit_master.md` §6 tracker:
 - Foundation `competitors` as `string[]` via `competitorsArray.ts`.
 - Structured output views for Campaign Builder, Ad Variations, Email Sequence in approvals.
 - Starter trial 5-run cap for AI Toolkit.
+- `agent_outputs.lifecycle_stage` + `zernio_post_id` as content pipeline SSOT (Thread 3 v1).
+
+---
+
+## 6. Thread 3 — Content lifecycle unification (v1)
+
+**Problem:** Three parallel models (agent outputs, tasks, Zernio posts) with no explicit **Approved** stage between Review and Draft.
+
+**Shipped:**
+
+- Migration `30_content_lifecycle_unification.sql` — columns + backfill
+- `lib/content/agentOutputLifecycle.ts` — stage helpers, Zernio link/sync
+- Pipeline bar: Review → **Approved** → Draft → Scheduled → Published
+- Write paths: runner insert, approve/reject/bulk, publish bridge, posts PATCH sync
+- Output archive labels read `lifecycle_stage` when set
+
+**Not in v1:** Calendar as fourth source of truth; bulk approve → auto Zernio publish; webhook-driven lifecycle from Zernio push events.
 
 ---
 

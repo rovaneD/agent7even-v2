@@ -22,6 +22,7 @@ function normalizePlatform(value: string): string {
 /** After approval, schedule a single-image post through Zernio when media is attached. */
 export async function publishApprovedImageCaption(opts: {
   profileId: string
+  outputId?: string
   taskInput: Record<string, unknown>
   outputContent: Record<string, unknown>
   caption: string

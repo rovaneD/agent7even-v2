@@ -135,6 +135,7 @@ export async function POST(): Promise<NextResponse> {
           },
         },
         status: 'pending_approval',
+        lifecycle_stage: 'review',
       })
 
       await supabase

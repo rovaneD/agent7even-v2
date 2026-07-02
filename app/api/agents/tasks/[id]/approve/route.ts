@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
 import { publishApprovedImageCaption } from '@/lib/agents/publishApprovedOutput'
 import { shouldPublishApprovedPost, singlePostPublishBlockReason } from '@/lib/agents/contentPosting'
+import { linkOutputToZernioPost } from '@/lib/content/agentOutputLifecycle'
 
 export async function POST(
   req: Request,
@@ -29,7 +30,11 @@ export async function POST(
 
   const now = new Date().toISOString()
 
-  const outputUpdate: Record<string, unknown> = { status: 'approved', approved_at: now }
+  const outputUpdate: Record<string, unknown> = {
+    status: 'approved',
+    approved_at: now,
+    lifecycle_stage: 'approved',
+  }
   if (typeof editedContent === 'string') {
     const { data: existing } = await supabase
       .from('agent_outputs')
@@ -78,11 +83,20 @@ export async function POST(
   if (shouldPublishApprovedPost(publishOpts)) {
     publish = await publishApprovedImageCaption({
       profileId: profile.id,
+      outputId,
       taskInput: publishOpts.taskInput,
       outputContent,
       caption,
       taskId,
     })
+    if (publish?.scheduled && publish.postId) {
+      await linkOutputToZernioPost(supabase, {
+        userId: profile.id,
+        outputId,
+        zernioPostId: publish.postId,
+        stage: 'draft',
+      })
+    }
   }
 
   logActivity(profile.id, 'agent_approved', { taskId, publishScheduled: publish?.scheduled ?? false }).catch(() => {})

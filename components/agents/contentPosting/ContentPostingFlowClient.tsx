@@ -37,6 +37,8 @@ import {
   resolveVideoFormat,
   contentPostingModeHref,
 } from '@/lib/agents/contentPosting/platformFormats'
+import { cropPresetsForFormat } from '@/lib/posts/cropPresets'
+import type { AttachedPostImage } from '@/components/agents/PostImageAttach'
 
 interface Props {
   mode: ContentPostingMode
@@ -293,6 +295,7 @@ export default function ContentPostingFlowClient({
     return null
   }, [isImageMode, isVideoMode, formatParam])
 
+  const imageCropFormat = isImageMode && selectedFormat ? selectedFormat as import('@/lib/agents/contentPosting/platformFormats').ImageFormatSpec : null
   const imageGenerationEnabled = process.env.NEXT_PUBLIC_IMAGE_GENERATION === 'true'
   const videoGenerationEnabled = process.env.NEXT_PUBLIC_VIDEO_GENERATION === 'true'
 
@@ -308,12 +311,7 @@ export default function ContentPostingFlowClient({
   const [runTracker, setRunTracker] = useState<RunTracker | null>(null)
   const [taskCreateError, setTaskCreateError] = useState<string | null>(null)
 
-  const [postImageMedia, setPostImageMedia] = useState<{
-    storagePath: string
-    mime: string
-    previewUrl: string
-    filename?: string
-  } | null>(null)
+  const [postImageMedia, setPostImageMedia] = useState<AttachedPostImage | null>(null)
   const [postImageRequiredError, setPostImageRequiredError] = useState<string | null>(null)
   const [generatedImageOptions, setGeneratedImageOptions] = useState<GeneratedImageOption[]>([])
   const [generatedBriefId, setGeneratedBriefId] = useState<string | null>(null)
@@ -876,6 +874,9 @@ export default function ContentPostingFlowClient({
         input.media_storage_path = postImageMedia.storagePath
         input.media_mime = postImageMedia.mime
         input.image_caption_mode = true
+        if (postImageMedia.mediaEdit) {
+          input.media_edit = postImageMedia.mediaEdit
+        }
         input.platforms = form.platform ?? 'Instagram'
       }
 
@@ -1122,6 +1123,8 @@ export default function ContentPostingFlowClient({
           )}
           <PostImageAttach
             disabled={submitting}
+            cropPresets={cropPresetsForFormat(imageCropFormat)}
+            defaultCropPresetId={imageCropFormat?.id}
             attached={
               postImageMedia
                 ? {
