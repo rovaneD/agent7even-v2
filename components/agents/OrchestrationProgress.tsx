@@ -149,15 +149,6 @@ export default function OrchestrationProgress({
         </div>
       )}
 
-      {/* Cost summary */}
-      {isComplete && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '0.5px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#aaa' }}>Total cost</span>
-          <span style={{ fontSize: 11, fontWeight: 500, color: '#555' }}>
-            ${(session.total_cost_usd ?? 0).toFixed(4)}
-          </span>
-        </div>
-      )}
     </div>
   )
 }

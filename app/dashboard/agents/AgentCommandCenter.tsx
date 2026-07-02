@@ -1417,13 +1417,12 @@ export default function AgentCommandCenter({
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[11px] text-text-sec">${(orch.total_cost_usd ?? 0).toFixed(4)}</p>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       orch.budget_exceeded
                         ? 'bg-status-warning/10 text-status-warning'
                         : 'bg-status-success/10 text-status-success'
                     }`}>
-                      {orch.budget_exceeded ? 'budget hit' : 'completed'}
+                      {orch.budget_exceeded ? 'Budget reached' : 'Completed'}
                     </span>
                   </div>
                 </div>
