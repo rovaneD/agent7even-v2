@@ -3,12 +3,11 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/gtag'
+import Metaballs from '../SafeMetaballs'
 import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
-import {
-  VS_SCHEDULING_COMPARE,
-  VS_SCHEDULING_ROWS,
-} from '@/lib/marketing/vsSchedulingToolsContent'
+import VsSchedulingCompareSection from '@/components/marketing/VsSchedulingCompareSection'
+import { VS_SCHEDULING_WORKFLOW } from '@/lib/marketing/vsSchedulingToolsContent'
 
 export default function VsSchedulingToolsPage() {
   useEffect(() => {
@@ -31,72 +30,60 @@ export default function VsSchedulingToolsPage() {
     <div className="lab5">
       <MarketingNav />
 
-      <header className="idx-hero">
+      <header className="phero">
         <div className="wrap">
           <span className="eyebrow">Compare</span>
-          <h1 className="t-display">AI marketing OS vs scheduling tools</h1>
+          <h1 className="t-display">
+            Scheduling tools post what you wrote.
+            <br />
+            Agent7even drafts it first.
+          </h1>
           <p className="t-lead">
-            Scheduling tools post what you give them. Agent7even plans, drafts, and generates campaigns in your voice — then queues everything for your approval before it goes live.
+            Buffer and Hootsuite are built for timing — not strategy, Brand Kit, or campaign planning. Maya plans and drafts in your voice, routes everything to one approval queue, and lets you schedule when you sign&nbsp;off.
           </p>
         </div>
       </header>
 
-      <section className="compare-section" style={{ paddingTop: 0 }}>
-        <div className="wrap">
-          <div className="compare-grid reveal">
-            <div className="compare-col compare-traditional">
-              <h3>{VS_SCHEDULING_COMPARE.scheduling.title}</h3>
-              <ul>
-                {VS_SCHEDULING_COMPARE.scheduling.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="compare-col compare-agent7even">
-              <h3>{VS_SCHEDULING_COMPARE.agent7even.title}</h3>
-              <ul>
-                {VS_SCHEDULING_COMPARE.agent7even.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+      <VsSchedulingCompareSection />
 
-      <section>
+      <section className="workflow-section">
         <div className="wrap">
           <div className="sec-head reveal">
-            <span className="eyebrow">Side by side</span>
-            <h2 className="t-h2">Strategy layer vs publish button.</h2>
+            <span className="eyebrow">Why owners switch</span>
+            <h2 className="t-h2">Strategy layer, not just a calendar.</h2>
+            <p className="t-lead">
+              You should not have to write every caption, plan every campaign, and babysit a publish queue in three different tools.
+            </p>
           </div>
-          <div className="compare-table-wrap reveal">
-            <table className="compare-table">
-              <thead>
-                <tr>
-                  <th scope="col"></th>
-                  <th scope="col">Scheduling tools</th>
-                  <th scope="col">Agent7even</th>
-                </tr>
-              </thead>
-              <tbody>
-                {VS_SCHEDULING_ROWS.map((row) => (
-                  <tr key={row.label}>
-                    <th scope="row">{row.label}</th>
-                    <td>{row.scheduling}</td>
-                    <td>{row.agent7even}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="workflow-grid reveal">
+            {VS_SCHEDULING_WORKFLOW.map((item) => (
+              <div key={item.title} className="workflow-card">
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       <div className="cta-section">
-        <div className="cta-in">
+        <div className="cta-orb">
+          <Metaballs
+            speed={1}
+            count={9}
+            size={0.26}
+            scale={1}
+            colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
+            colorBack="#0E0E11"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+          />
+        </div>
+        <div className="cta-in reveal">
+          <span className="eyebrow">Approval-first</span>
           <h2>Draft first. Schedule when you approve.</h2>
-          <p>3-day Starter trial — Maya plans and drafts; you stay in control.</p>
+          <p className="cta-lead">
+            Maya plans and drafts in your Brand Kit voice — nothing publishes until you sign off. Then queue it in a click.
+          </p>
           <div className="cta-btns">
             <Link
               className="btn btn-white btn-lg"
@@ -105,10 +92,11 @@ export default function VsSchedulingToolsPage() {
             >
               Start your free trial
             </Link>
-            <Link className="btn btn-dark-ghost btn-lg" href="/how-it-works">
-              How it works →
+            <Link className="btn btn-dark-ghost btn-lg" href="/agents">
+              Meet the agents →
             </Link>
           </div>
+          <p className="cta-note">3-day free trial on Starter. No charge until day 4.</p>
         </div>
       </div>
 

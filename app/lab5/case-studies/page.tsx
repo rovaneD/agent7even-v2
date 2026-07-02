@@ -76,7 +76,7 @@ export default function CaseStudiesPage() {
       <div className="cta-section">
         <div className="cta-in">
           <h2>See it on your business first.</h2>
-          <p>3-day Starter trial — draft real campaigns before any case study goes live.</p>
+          <p className="cta-lead">3-day Starter trial — draft real campaigns before any case study goes live.</p>
           <div className="cta-btns">
             <Link
               className="btn btn-white btn-lg"

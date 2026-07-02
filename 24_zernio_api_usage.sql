@@ -26,8 +26,13 @@ CREATE INDEX IF NOT EXISTS zernio_api_usage_platform_created_idx
 CREATE INDEX IF NOT EXISTS zernio_api_usage_created_at_idx
   ON zernio_api_usage(created_at DESC);
 
+ALTER TABLE public.zernio_api_usage ENABLE ROW LEVEL SECURITY;
+-- Service-role only (see 27_admin_views_security_invoker.sql for view grants).
+
 -- Per-tenant X usage in the rolling 30-day measurement window
-CREATE OR REPLACE VIEW v_x_usage_30d AS
+CREATE OR REPLACE VIEW v_x_usage_30d
+WITH (security_invoker = true)
+AS
 SELECT
   u.user_id,
   p.company_name,
@@ -41,7 +46,9 @@ WHERE u.platform = 'x'
 GROUP BY u.user_id, p.company_name, p.plan;
 
 -- Fleet-wide X rollup for admin dashboard
-CREATE OR REPLACE VIEW v_admin_x_usage_summary AS
+CREATE OR REPLACE VIEW v_admin_x_usage_summary
+WITH (security_invoker = true)
+AS
 SELECT
   COUNT(*) FILTER (WHERE platform = 'x')::bigint                          AS x_calls_30d,
   COALESCE(SUM(estimated_cost_usd) FILTER (WHERE platform = 'x'), 0)    AS x_cost_30d,

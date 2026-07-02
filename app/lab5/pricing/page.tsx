@@ -235,11 +235,11 @@ export default function PricingPage() {
         </div>
         <div className="cta-in">
           <h2>Work like you have a full<br />marketing team. Because now you do.</h2>
-          <p>Start your 3-day free trial. No charge until day 4.</p>
           <div className="cta-btns">
             <a className="btn btn-white btn-lg" href="/pricing">Start your free trial</a>
             <a className="btn btn-dark-ghost btn-lg" href="/sign-in">Sign in</a>
           </div>
+          <p className="cta-note">3-day free trial. No charge until day 4.</p>
         </div>
       </div>
 

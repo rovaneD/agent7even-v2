@@ -36,7 +36,6 @@ export default function MarketingFooter() {
             <h5>Company</h5>
             <a href="/about">About</a>
             <a href="/blog">Blog</a>
-            <a href="/case-studies">Customer stories</a>
             <a href="/careers">Careers</a>
             <a href="/contact">Contact</a>
           </div>

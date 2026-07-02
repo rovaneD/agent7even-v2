@@ -71,7 +71,7 @@ export default function BlogIndexClient({ posts }: { posts: PostSummary[] }) {
       <div className="cta-section">
         <div className="cta-in">
           <h2>Stop reading. Start running.</h2>
-          <p>Maya and twelve specialist agents draft campaigns you approve — from $49/mo with a 3-day Starter trial.</p>
+          <p className="cta-lead">Maya and twelve specialist agents draft campaigns you approve — from $49/mo with a 3-day Starter trial.</p>
           <div className="cta-btns">
             <Link
               className="btn btn-white btn-lg"

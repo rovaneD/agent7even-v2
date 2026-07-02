@@ -45,7 +45,9 @@ CREATE INDEX IF NOT EXISTS agent_tasks_user_month_idx
 -- Per-account cost + usage rollup for the current calendar month.
 -- Used by Admin Screen 1 (Margin Overview) and Screen 2 (Account Activity).
 -- MRR derived from profiles.plan: starter=$49, growth=$89, proagent=$149.
-CREATE OR REPLACE VIEW v_account_month_cost AS
+CREATE OR REPLACE VIEW v_account_month_cost
+WITH (security_invoker = true)
+AS
 SELECT
   p.id                                              AS user_id,
   p.company_name,

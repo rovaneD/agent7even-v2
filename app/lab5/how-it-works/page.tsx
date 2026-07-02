@@ -77,7 +77,7 @@ export default function HowItWorksPage() {
       <div className="cta-section">
         <div className="cta-in">
           <h2>See it on your business.</h2>
-          <p>Maya learns your Foundation once — then drafts campaigns you approve from one conversation.</p>
+          <p className="cta-lead">Maya learns your Foundation once — then drafts campaigns you approve from one conversation.</p>
           <div className="cta-btns">
             <Link
               className="btn btn-white btn-lg"

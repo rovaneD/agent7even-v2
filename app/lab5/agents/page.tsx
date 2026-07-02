@@ -5,6 +5,7 @@ import Script from 'next/script'
 import Metaballs from '../SafeMetaballs'
 import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
+import MarketingConnectSources from '../MarketingConnectSources'
 
 declare global {
   interface Window {
@@ -44,7 +45,7 @@ export default function AgentsPage() {
         <div className="wrap">
           <span className="eyebrow">The platform</span>
           <h1 className="t-display">The intelligence running<br />behind your marketing.</h1>
-          <p className="t-lead">Twelve specialist agents, marketing intelligence when you connect your accounts, and Maya orchestrating them all. Here&rsquo;s what each one does — and what runs automatically vs. what waits for your approval.</p>
+          <p className="t-lead">Twelve specialist agents, marketing intelligence when you connect your accounts, and Maya orchestrating them all. Here&rsquo;s what each one does — and what runs automatically vs. what waits for your&nbsp;approval.</p>
         </div>
       </header>
 
@@ -57,15 +58,7 @@ export default function AgentsPage() {
             <p className="t-lead">Connect Google Analytics and your social accounts — then see reach, engagement, and traffic in one place, with plain-English briefings from the Performance Digest.</p>
           </div>
 
-          <div className="sources reveal">
-            <span className="lead-in">Connect via Agent7even</span>
-            <div className="source"><span className="sd" style={{ background: 'var(--l5-brand)' }}></span><span>Instagram</span></div>
-            <div className="source"><span className="sd" style={{ background: 'var(--l5-blue)' }}></span><span>Facebook</span></div>
-            <div className="source"><span className="sd" style={{ background: 'var(--l5-ink)' }}></span><span>LinkedIn</span></div>
-            <div className="source"><span className="sd" style={{ background: '#111' }}></span><span>X (Growth+)</span></div>
-            <div className="source"><span className="sd" style={{ background: '#FF0000' }}></span><span>YouTube</span></div>
-            <div className="source"><span className="sd" style={{ background: 'var(--l5-green)' }}></span><span>Google Analytics</span></div>
-          </div>
+          <MarketingConnectSources />
           <p className="t-body reveal" style={{ marginTop: '1rem', maxWidth: '42rem', color: 'var(--l5-muted, #64748B)', fontSize: '0.875rem' }}>
             Instagram, Facebook, LinkedIn, and YouTube on every plan. X / Twitter connect requires Growth or ProAgent.
           </p>
@@ -319,11 +312,11 @@ export default function AgentsPage() {
         </div>
         <div className="cta-in reveal">
           <h2>Put Maya and the agents<br />to work for your business.</h2>
-          <p>Start your 3-day free trial. No charge until day 4.</p>
           <div className="cta-btns">
             <a className="btn btn-white btn-lg" href="/pricing">Start your free trial</a>
             <a className="btn btn-dark-ghost btn-lg" href="/pricing">See plans →</a>
           </div>
+          <p className="cta-note">3-day free trial. No charge until day 4.</p>
         </div>
       </div>
 

@@ -267,11 +267,11 @@ export default function UseCaseDetailClient({
           </div>
           <div className="cta-in reveal">
             <h2>Put Maya to work<br />for your business.</h2>
-            <p>Start your 3-day free trial. No charge until day 4.</p>
             <div className="cta-btns">
               <a className="btn btn-white btn-lg" href="/pricing">Start your free trial</a>
               <a className="btn btn-dark-ghost btn-lg" href="/pricing">See plans →</a>
             </div>
+            <p className="cta-note">3-day free trial. No charge until day 4.</p>
           </div>
         </div>
       </div>

@@ -61,7 +61,7 @@ export default function IntegrationsPage() {
       <div className="cta-section">
         <div className="cta-in">
           <h2>Connect your stack after sign-up.</h2>
-          <p>Social accounts, Google Analytics, and your Brand Kit — all in Settings once you are inside the app.</p>
+          <p className="cta-lead">Social accounts, Google Analytics, and your Brand Kit — all in Settings once you are inside the app.</p>
           <div className="cta-btns">
             <Link className="btn btn-white btn-lg" href="/sign-up">
               Start your free trial
