@@ -3,10 +3,66 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
-import { COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
+import { COMMAND_CENTER_AGENTS, type AgentId } from '@/lib/agents/registry'
 import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
 import AgentCommandCenter from './AgentCommandCenter'
 import AgentsLegacyRedirects from './AgentsLegacyRedirects'
+
+type ScorecardTaskRow = {
+  agent: string
+  status: string
+  completed_at: string | null
+  updated_at: string | null
+  created_at: string
+  error?: string | null
+}
+
+const SCORECARD_AGENT_IDS = [
+  ...new Set(
+    COMMAND_CENTER_AGENTS.flatMap(agent =>
+      agent.id === 'content_posting' ? contentPostingStatsAgentIds() : [agent.id],
+    ),
+  ),
+] as AgentId[]
+
+function taskTimestamp(task: Pick<ScorecardTaskRow, 'completed_at' | 'updated_at' | 'created_at'> | undefined): string | null {
+  if (!task) return null
+  return task.completed_at ?? task.updated_at ?? task.created_at ?? null
+}
+
+function latestTaskForAgentIds(
+  agentIds: string[],
+  byAgent: Map<string, ScorecardTaskRow>,
+): ScorecardTaskRow | undefined {
+  let best: ScorecardTaskRow | undefined
+  let bestMs = 0
+  for (const id of agentIds) {
+    const task = byAgent.get(id)
+    const ts = taskTimestamp(task)
+    if (!task || !ts) continue
+    const ms = new Date(ts).getTime()
+    if (!best || ms > bestMs) {
+      best = task
+      bestMs = ms
+    }
+  }
+  return best
+}
+
+function latestOutputAt(agentIds: string[], outputs: Array<{ agent: string; created_at: string }>): string | null {
+  let best: string | null = null
+  for (const output of outputs) {
+    if (!agentIds.includes(output.agent)) continue
+    if (!best || new Date(output.created_at) > new Date(best)) best = output.created_at
+  }
+  return best
+}
+
+function latestRunAt(taskTime: string | null, outputTime: string | null): string | null {
+  if (!taskTime) return outputTime
+  if (!outputTime) return taskTime
+  return new Date(taskTime) > new Date(outputTime) ? taskTime : outputTime
+}
 
 export default async function AgentsPage() {
   const { userId } = await auth()
@@ -63,6 +119,7 @@ export default async function AgentsPage() {
     { data: activeTasks },
     pendingApprovalsData,
     { data: recentTasks },
+    { data: scorecardTasks },
     { data: schedules },
     { data: allOutputs },
     { data: recentOutputs },
@@ -84,13 +141,20 @@ export default async function AgentsPage() {
       .limit(30),
 
     supabase
+      .from('agent_tasks')
+      .select('agent, status, completed_at, updated_at, created_at, error')
+      .eq('user_id', profile.id)
+      .in('agent', SCORECARD_AGENT_IDS)
+      .order('created_at', { ascending: false }),
+
+    supabase
       .from('agent_schedules')
       .select('*')
       .eq('user_id', profile.id),
 
     supabase
       .from('agent_outputs')
-      .select('agent, status')
+      .select('agent, status, created_at')
       .eq('user_id', profile.id),
 
     supabase
@@ -102,25 +166,32 @@ export default async function AgentsPage() {
   ])
 
   // Build scorecard stats per Command Center agent (legacy content agents roll into Content Posting)
+  const latestTaskByAgent = new Map<string, ScorecardTaskRow>()
+  for (const task of (scorecardTasks ?? []) as ScorecardTaskRow[]) {
+    if (!latestTaskByAgent.has(task.agent)) latestTaskByAgent.set(task.agent, task)
+  }
+
   const scorecard = COMMAND_CENTER_AGENTS.map(agent => {
     const agentIds = agent.id === 'content_posting'
       ? contentPostingStatsAgentIds()
       : [agent.id]
-    const tasks = (recentTasks ?? []).filter(t => agentIds.includes(t.agent))
     const outputs = (allOutputs ?? []).filter(o => agentIds.includes(o.agent))
     const approved = outputs.filter(o => o.status === 'approved').length
     const approvalRequired = outputs.filter(o => o.status !== 'approved' || o.status === 'pending_approval').length + approved
 
-    const lastTask = tasks[0]
+    const lastTask = latestTaskForAgentIds(agentIds, latestTaskByAgent)
     const schedule = (schedules ?? []).find(s => agentIds.includes(s.agent))
 
     return {
       agentId: agent.id,
       name: agent.name,
       icon: agent.icon,
-      lastRunAt: lastTask?.completed_at ?? lastTask?.updated_at ?? lastTask?.created_at ?? null,
+      lastRunAt: latestRunAt(
+        taskTimestamp(lastTask),
+        latestOutputAt(agentIds, (allOutputs ?? []) as Array<{ agent: string; created_at: string }>),
+      ),
       lastRunStatus: lastTask?.status ?? null,
-      lastRunError: (lastTask as { error?: string | null })?.error ?? null,
+      lastRunError: lastTask?.error ?? null,
       totalOutputs: outputs.length,
       approvalRate: approvalRequired > 0 ? Math.round((approved / approvalRequired) * 100) : null,
       isScheduled: !!schedule?.is_active,
