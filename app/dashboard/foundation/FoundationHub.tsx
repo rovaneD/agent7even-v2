@@ -1443,6 +1443,7 @@ export default function FoundationHub({
     if (data.overallScore != null) {
       setCurrentScore(data.overallScore)
       setLastScored(new Date().toISOString())
+      window.dispatchEvent(new CustomEvent('foundation:rescored', { detail: { score: data.overallScore } }))
     }
     if (data.fieldScores) {
       setLocalFieldScores(prev => ({ ...prev, ...data.fieldScores }))

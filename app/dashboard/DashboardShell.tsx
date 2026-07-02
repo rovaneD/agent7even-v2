@@ -566,6 +566,12 @@ export default function DashboardShell({
     return 'var(--color-status-danger)'
   }
 
+  function brandKitBarColor(pct: number): string {
+    if (pct >= 100) return 'var(--color-status-success)'
+    if (pct >= 50) return 'var(--color-brand-primary)'
+    return 'var(--color-status-danger)'
+  }
+
   // ── Nav item ──────────────────────────────────────────────────────────────
   function NavLink({ item }: { item: typeof NAV[0]['items'][0] }) {
     const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
@@ -649,9 +655,9 @@ export default function DashboardShell({
           {isBrandKit && brandKitCompleted > 0 && (
             <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3 }}>
               <span style={{ width: 28, height: 3, background: 'var(--color-border)', borderRadius: 2, display: 'block', overflow: 'hidden' }}>
-                <span style={{ display: 'block', width: `${brandKitPct}%`, height: '100%', background: brandKitCompleted === 6 ? 'var(--color-status-success)' : 'var(--color-brand-primary)', borderRadius: 2, transition: 'width 0.4s' }} />
+                <span style={{ display: 'block', width: `${brandKitPct}%`, height: '100%', background: brandKitBarColor(brandKitPct), borderRadius: 2, transition: 'width 0.4s, background 0.4s' }} />
               </span>
-              <span style={{ fontSize: 9.5, color: brandKitCompleted === 6 ? 'var(--color-status-success)' : 'var(--color-brand-primary)' }}>{brandKitPct}%</span>
+              <span style={{ fontSize: 9.5, color: brandKitBarColor(brandKitPct) }}>{brandKitPct}%</span>
             </span>
           )}
           {isAgents && pendingApprovalsCount > 0 && (

@@ -111,6 +111,11 @@ export default function BrandKitView({
   const completedCount = SECTIONS.filter(s =>
     sections.find(r => r.section_key === s.key)?.completed
   ).length
+  const completionPct = Math.round((completedCount / 6) * 100)
+  const completionBarClass =
+    completionPct >= 100 ? 'bg-status-success'
+      : completionPct >= 50 ? 'bg-brand-primary'
+        : 'bg-status-danger'
 
   const mayaContext = useMemo(
     () =>
@@ -172,7 +177,7 @@ export default function BrandKitView({
             </div>
             <div className="h-2 w-36 rounded-full bg-border">
               <div
-                className={`${completedCount === 6 ? 'bg-status-success' : 'bg-brand-primary'} h-2 rounded-full transition-all`}
+                className={`${completionBarClass} h-2 rounded-full transition-all`}
                 style={{ width: `${(completedCount / 6) * 100}%` }}
               />
             </div>
