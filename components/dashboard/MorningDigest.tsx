@@ -58,6 +58,9 @@ interface Props {
   coldOpen:  ColdOpenState
   /** Regenerate today's digest when cached row predates the approval-query fix. */
   digestStale?: boolean
+  /** Live pending-approval count — single source of truth for all brief surfaces. */
+  livePendingCount: number
+  livePendingItems: ApprovalItem[]
 }
 
 function getGreeting(): string {
@@ -145,11 +148,18 @@ function StatPill({ label, value, hint }: { label: string; value: string | numbe
   )
 }
 
-export default function MorningDigest({ digest: initialDigest, profileId, firstName, coldOpen, digestStale = false }: Props) {
-  const [digest, setDigest]       = useState<Digest | null>(initialDigest)
-  const [approvals, setApprovals] = useState<ApprovalItem[]>(initialDigest?.approvals ?? [])
-  const [loading, setLoading]     = useState(initialDigest === null || digestStale)
-  const [now, setNow]             = useState<Date | null>(null)
+export default function MorningDigest({
+  digest: initialDigest,
+  profileId,
+  firstName,
+  coldOpen,
+  digestStale = false,
+  livePendingCount,
+  livePendingItems,
+}: Props) {
+  const [digest, setDigest] = useState<Digest | null>(initialDigest)
+  const [loading, setLoading] = useState(initialDigest === null || digestStale)
+  const [now, setNow] = useState<Date | null>(null)
 
   useEffect(() => {
     setNow(new Date())
@@ -172,7 +182,6 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
           .then(r => r.json())
           .then(data => {
             setDigest(data)
-            setApprovals(data?.approvals ?? [])
             setLoading(false)
           })
       })
@@ -184,16 +193,17 @@ export default function MorningDigest({ digest: initialDigest, profileId, firstN
     [digest?.agent_runs],
   )
 
-  const pendingCount = Math.max(approvals.length, coldOpen.pendingApprovals)
+  const pendingCount = livePendingCount
+  const approvals = livePendingItems
   const hasActivity = agentRuns.length > 0
   const hasPending  = pendingCount > 0
   const hasActions  = (digest?.today_actions?.length ?? 0) > 0
   const hasBriefContent = hasActivity || hasPending || hasActions
 
   const summaryParts = buildSummaryParts(pendingCount, agentRuns.length, digest?.today_actions?.length ?? 0)
-  const summaryLine = summaryParts.length > 0 ? summaryParts.join(' · ') : buildEmptyLine(coldOpen)
+  const summaryLine = summaryParts.length > 0 ? summaryParts.join(' · ') : buildEmptyLine({ ...coldOpen, pendingApprovals: pendingCount })
   const visibleApprovals = approvals.slice(0, VISIBLE_APPROVALS)
-  const hiddenApprovalCount = Math.max(0, approvals.length - VISIBLE_APPROVALS)
+  const hiddenApprovalCount = Math.max(0, pendingCount - VISIBLE_APPROVALS)
 
   if (loading) return <DigestSkeleton />
 

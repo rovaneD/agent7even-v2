@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
+import { listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
 import { agentOutputContentText } from '@/lib/agents/agentOutputText'
-import { agentDisplayName, formatDigestPreview } from '@/lib/agents/digestPreview'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 
@@ -43,23 +43,11 @@ export async function POST(req: Request) {
     .filter(task => !isSystemAgent(task.agent))
     .slice(0, 5)
 
-  // Pending approvals — tasks complete but awaiting user sign-off
-  const { data: pendingTasks } = await supabase
-    .from('agent_tasks')
-    .select('id, agent, created_at')
-    .eq('user_id', profileId)
-    .eq('requires_approval', true)
-    .eq('status', 'completed')
-    .is('approved_at', null)
-    .is('rejected_at', null)
-    .order('created_at', { ascending: false })
-    .limit(5)
+  // Pending approvals — outputs awaiting owner sign-off
+  const approvalItems = await listPendingApprovalDigestItems(supabase, profileId, 5)
 
   // Fetch outputs separately (avoids FK dependency)
-  const allTaskIds = [
-    ...digestAgentTasks.map(t => t.id),
-    ...(pendingTasks ?? []).map(t => t.id),
-  ]
+  const allTaskIds = digestAgentTasks.map(t => t.id)
   const { data: allOutputs } = allTaskIds.length
     ? await supabase.from('agent_outputs').select('task_id, content').in('task_id', allTaskIds)
     : { data: [] }
@@ -120,21 +108,6 @@ Return only the sentence, nothing else.`,
       }
     })
   )
-
-  const approvalItems = (pendingTasks ?? []).map(task => {
-    const raw = outputByTask[task.id] ?? ''
-    const { title, subtitle } = formatDigestPreview(raw, task.agent)
-    return {
-      taskId:    task.id,
-      agentId:   task.agent,
-      agentName: agentDisplayName(task.agent),
-      title,
-      subtitle,
-      preview:   subtitle,
-      createdAt: task.created_at,
-      reviewUrl: `/dashboard/agents/approvals?task=${task.id}`,
-    }
-  })
 
   const { data: digest, error } = await supabase
     .from('daily_digests')

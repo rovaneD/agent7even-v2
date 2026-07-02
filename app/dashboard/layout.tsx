@@ -2,6 +2,7 @@ import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
 import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
+import { getPendingApprovalCount } from '@/lib/agents/pendingApprovals'
 import DashboardShell from './DashboardShell'
 
 export default async function DashboardLayout({
@@ -36,7 +37,7 @@ export default async function DashboardLayout({
       profile = p
       profileId = p.id
 
-      const [{ data: notifs }, { data: sessionRows }, { data: brandKitRows }, { count: approvalsCount }] = await Promise.all([
+      const [{ data: notifs }, { data: sessionRows }, { data: brandKitRows }, approvalsCount] = await Promise.all([
         supabase
           .from('notifications')
           .select('*')
@@ -56,14 +57,7 @@ export default async function DashboardLayout({
           .select('completed')
           .eq('user_id', p.id),
 
-        supabase
-          .from('agent_tasks')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', p.id)
-          .eq('requires_approval', true)
-          .eq('status', 'completed')
-          .is('approved_at', null)
-          .is('rejected_at', null),
+        getPendingApprovalCount(supabase, p.id),
 
         logActivity(p.id, 'page_view'),
       ])

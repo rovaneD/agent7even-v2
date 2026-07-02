@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
 import { COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
+import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
 import AgentCommandCenter from './AgentCommandCenter'
 import AgentsLegacyRedirects from './AgentsLegacyRedirects'
 
@@ -60,7 +61,7 @@ export default async function AgentsPage() {
 
   const [
     { data: activeTasks },
-    { data: pendingApprovals },
+    pendingApprovalsData,
     { data: recentTasks },
     { data: schedules },
     { data: allOutputs },
@@ -73,15 +74,7 @@ export default async function AgentsPage() {
       .in('status', ['running', 'pending'])
       .order('created_at', { ascending: false }),
 
-    supabase
-      .from('agent_tasks')
-      .select('*, agent_outputs(*)')
-      .eq('user_id', profile.id)
-      .eq('requires_approval', true)
-      .eq('status', 'completed')
-      .is('approved_at', null)
-      .is('rejected_at', null)
-      .order('created_at', { ascending: false }),
+    listPendingApprovalTasks(supabase, profile.id),
 
     supabase
       .from('agent_tasks')
@@ -145,7 +138,7 @@ export default async function AgentsPage() {
         brandKitAvailable={brandKitAvailable}
         hasUploadedLogo={hasUploadedLogo}
         activeTasks={activeTasks ?? []}
-        pendingApprovals={pendingApprovals ?? []}
+        pendingApprovals={pendingApprovalsData}
         recentTasks={recentTasks ?? []}
         recentOutputs={recentOutputs ?? []}
         scorecard={scorecard}

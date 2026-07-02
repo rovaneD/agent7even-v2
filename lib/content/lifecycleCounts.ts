@@ -1,3 +1,4 @@
+import { getPendingApprovalCount } from '@/lib/agents/pendingApprovals'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
 import { parsePostsList } from '@/lib/social/zernioPostsParse'
@@ -33,18 +34,11 @@ export async function getContentLifecycleCounts(
 ): Promise<ContentLifecycleCounts> {
   const supabase = createServiceClient()
 
-  const { count: review } = await supabase
-    .from('agent_tasks')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', profileId)
-    .eq('requires_approval', true)
-    .eq('status', 'completed')
-    .is('approved_at', null)
-    .is('rejected_at', null)
+  const review = await getPendingApprovalCount(supabase, profileId)
 
   if (!zernioProfileId) {
     return {
-      review: review ?? 0,
+      review,
       draft: 0,
       scheduled: 0,
       published: 0,
@@ -59,7 +53,7 @@ export async function getContentLifecycleCounts(
   ])
 
   return {
-    review: review ?? 0,
+    review,
     draft,
     scheduled,
     published,

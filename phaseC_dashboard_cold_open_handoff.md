@@ -30,9 +30,10 @@ Dashboard opened with a static “Command center” welcome block. `MorningDiges
 ### 3. Digest approval bug fix (`app/api/digest/generate/route.ts`)
 
 **Was wrong:** `.eq('status', 'approval_required')` — no tasks use that status.  
-**Correct:** `requires_approval = true` + `status = 'completed'` + `approved_at`/`rejected_at` null (matches dashboard + approvals page).
+**Correct (June 10 follow-on):** `agent_outputs.status = 'pending_approval'` via `lib/agents/pendingApprovals.ts` — single count for dashboard brief, lifecycle bar, sidebar badge, Agents snapshot, and digest generation.  
+**Was (intermediate):** `requires_approval = true` + `status = 'completed'` + `approved_at`/`rejected_at` null — could drift from output status and disagreed with stale `daily_digests.approvals` JSON when `MorningDigest` used `Math.max(digest, live)`.
 
-**Note:** Digests generated before this fix may have empty `approvals` until tomorrow’s regenerate or manual dismiss + refresh.
+**Note:** Digests generated before the output-based fix may have stale `approvals` until `digestStale` triggers regenerate (count mismatch) or the next daily row.
 
 ### 4. Maya sidebar hook (`app/dashboard/DashboardShell.tsx`)
 
@@ -87,4 +88,5 @@ npm run tsc
 2. **Asset lifecycle** — Draft → Approved → Scheduled → Published surfacing.
 3. **Thread 7 Layer 1** — bind visible form field values into `canvasData` on SEO Scanner et al.
 4. **Thread 7 Layer 2** — design actuation API after product decision.
-5. **Stale digest refresh** — **Shipped:** `forceRegenerate` on `/api/digest/generate`; dashboard detects empty approvals with pending queue and refreshes.
+5. **Stale digest refresh** — **Shipped:** `forceRegenerate` on `/api/digest/generate`; dashboard detects approval count mismatch and refreshes.
+6. **Approval count consistency** — **Shipped:** `lib/agents/pendingApprovals.ts`; all six “needs review” read-points use `agent_outputs.pending_approval`; removed `Math.max` with cached digest.

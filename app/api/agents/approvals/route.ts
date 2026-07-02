@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function GET() {
@@ -17,17 +18,7 @@ export async function GET() {
   const profile = profileRows?.[0] ?? null
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-  const { data: tasks, error } = await supabase
-    .from('agent_tasks')
-    .select('*, agent_outputs(*)')
-    .eq('user_id', profile.id)
-    .eq('requires_approval', true)
-    .eq('status', 'completed')
-    .is('approved_at', null)
-    .is('rejected_at', null)
-    .order('created_at', { ascending: false })
+  const tasks = await listPendingApprovalTasks(supabase, profile.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({ tasks: tasks ?? [] })
+  return NextResponse.json({ tasks })
 }

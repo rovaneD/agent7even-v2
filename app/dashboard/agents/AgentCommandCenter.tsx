@@ -725,9 +725,25 @@ export default function AgentCommandCenter({
           ) {
             setPendingApprovals(prev => {
               const exists = prev.find(t => t.id === updated.id)
-              return exists ? prev : [updated, ...prev]
+              return exists ? prev.map(t => t.id === updated.id ? updated : t) : [updated, ...prev]
             })
+          } else if (updated.approved_at || updated.rejected_at) {
+            setPendingApprovals(prev => prev.filter(t => t.id !== updated.id))
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'agent_outputs',
+          filter: `user_id=eq.${profileId}`,
+        },
+        (payload) => {
+          const output = payload.new as AgentOutput
+          if (!output || output.status === 'pending_approval') return
+          setPendingApprovals(prev => prev.filter(t => t.id !== output.task_id))
         }
       )
       .on(

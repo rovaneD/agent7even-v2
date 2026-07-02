@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
+import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
 import ApprovalsClient from './ApprovalsClient'
 
 export default async function ApprovalsPage() {
@@ -26,16 +27,8 @@ export default async function ApprovalsPage() {
     (profile.zernio_profile_id as string | null) ?? null,
   )
 
-  const [{ data: tasks }, { data: runningVideoRows }] = await Promise.all([
-    supabase
-      .from('agent_tasks')
-      .select('*, agent_outputs(*)')
-      .eq('user_id', profile.id)
-      .eq('requires_approval', true)
-      .eq('status', 'completed')
-      .is('approved_at', null)
-      .is('rejected_at', null)
-      .order('created_at', { ascending: false }),
+  const [tasks, { data: runningVideoRows }] = await Promise.all([
+    listPendingApprovalTasks(supabase, profile.id),
 
     supabase
       .from('agent_tasks')
@@ -46,10 +39,8 @@ export default async function ApprovalsPage() {
       .order('created_at', { ascending: false }),
   ])
 
-  const enrichedTasks = await Promise.all((tasks ?? []).map(async task => {
-    const outputs = await Promise.all((task.agent_outputs ?? []).map(async (output: {
-      content?: Record<string, unknown>
-    }) => {
+  const enrichedTasks = await Promise.all(tasks.map(async task => {
+    const outputs = await Promise.all((task.agent_outputs ?? []).map(async (output: Record<string, unknown>) => {
       const content = (output.content ?? {}) as Record<string, unknown>
       const media = readPostMediaRef(content)
       const mediaPreviewUrl = media.media_storage_path

@@ -24,6 +24,7 @@ import ContentLifecycleBar from '@/components/dashboard/ContentLifecycleBar'
 import PlanUsageCallout from '@/components/dashboard/PlanUsageCallout'
 import GettingStarted from '@/components/dashboard/GettingStarted'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
+import { getPendingApprovalCount, listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  const [digestResult, campaignResult, agentResult, brandKitResult, creditResult, approvalResult, orderResult] = await Promise.all([
+  const [digestResult, campaignResult, agentResult, brandKitResult, creditResult, pendingApprovalResult, orderResult] = await Promise.all([
     profile
       ? supabase
           .from('daily_digests')
@@ -80,15 +81,11 @@ export default async function DashboardPage() {
       : Promise.resolve({ data: null }),
 
     profile
-      ? supabase
-          .from('agent_tasks')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', profile.id)
-          .eq('requires_approval', true)
-          .eq('status', 'completed')
-          .is('approved_at', null)
-          .is('rejected_at', null)
-      : Promise.resolve({ count: 0 }),
+      ? Promise.all([
+          getPendingApprovalCount(supabase, profile.id),
+          listPendingApprovalDigestItems(supabase, profile.id),
+        ]).then(([count, items]) => ({ count, items }))
+      : Promise.resolve({ count: 0, items: [] }),
 
     profile
       ? supabase
@@ -100,10 +97,10 @@ export default async function DashboardPage() {
   ])
 
   const digest = digestResult.data?.[0] ?? null
-  const pendingApprovals = approvalResult.count ?? 0
+  const pendingApprovals = pendingApprovalResult.count ?? 0
+  const pendingApprovalItems = pendingApprovalResult.items ?? []
   const digestStale = !!digest
-    && pendingApprovals > 0
-    && (digest.approvals?.length ?? 0) === 0
+    && (digest.approvals?.length ?? 0) !== pendingApprovals
 
   const checklistCompleted: boolean[] = [
     !!profile?.foundation_complete,
@@ -222,6 +219,8 @@ export default async function DashboardPage() {
           firstName={firstName}
           coldOpen={coldOpen}
           digestStale={digestStale}
+          livePendingCount={pendingApprovals}
+          livePendingItems={pendingApprovalItems}
         />
       )}
 
