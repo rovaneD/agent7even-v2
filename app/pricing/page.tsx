@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Check, Zap, TrendingUp, Star, Plus, Minus } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { trackEvent } from '@/lib/gtag'
+import { BILLING_EMAIL } from '@/lib/siteUrls'
 
 // ── FAQ data ───────────────────────────────────────────────────────────────
 
@@ -413,8 +414,8 @@ export default function PricingPage() {
           Starter includes a 3-day free trial — card required, no charge until day 4.
           Growth and ProAgent are charged immediately.{' '}
           Questions?{' '}
-          <a href="mailto:billing@agent7even.ai" className="text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors">
-            billing@agent7even.ai
+          <a href={`mailto:${BILLING_EMAIL}`} className="text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors">
+            {BILLING_EMAIL}
           </a>
         </p>
       </div>
@@ -511,8 +512,8 @@ export default function PricingPage() {
 
         <p className="text-center text-sm text-gray-400 mt-10">
           Still have questions?{' '}
-          <a href="mailto:support@agent7even.ai" className="text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors">
-            support@agent7even.ai
+          <a href={`mailto:${BILLING_EMAIL}`} className="text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors">
+            {BILLING_EMAIL}
           </a>
         </p>
       </div>
@@ -526,8 +527,8 @@ export default function PricingPage() {
             </a>
             <a href="/privacy" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
             <a href="/terms"   className="hover:text-gray-600 transition-colors">Terms of Service</a>
-            <a href="mailto:support@agent7even.ai" className="hover:text-gray-600 transition-colors">
-              support@agent7even.ai
+            <a href={`mailto:${BILLING_EMAIL}`} className="hover:text-gray-600 transition-colors">
+              {BILLING_EMAIL}
             </a>
           </div>
           <p className="text-xs text-gray-300">© {new Date().getFullYear()} Agent7even. All rights reserved.</p>

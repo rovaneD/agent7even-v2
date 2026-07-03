@@ -15,10 +15,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const useCase = cases.find(c => c.slug === slug)
   if (!useCase) return {}
+  // coaches-creators hub page duplicates /for-coaches — canonical lives on the dedicated landing URL
+  const canonicalPath = slug === 'coaches-creators' ? '/for-coaches' : undefined
+
   return marketingPageMetadata({
     title: `${useCase.label} — AI Marketing | Agent7even`,
     description: useCase.hero.subhead.slice(0, 160),
     path: `/use-cases/${slug}`,
+    canonicalPath,
   })
 }
 

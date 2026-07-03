@@ -7,12 +7,25 @@ export function canonicalUrl(path: string): string {
   return `${CANONICAL_SITE_URL}${normalized}`
 }
 
+/** Auth / onboarding routes — never index. */
+export const NOINDEX_PAGE_ROBOTS: Metadata['robots'] = {
+  index: false,
+  follow: false,
+  googleBot: { index: false, follow: false },
+}
+
+export function privateRouteMetadata(title: string): Metadata {
+  return { title, robots: NOINDEX_PAGE_ROBOTS }
+}
+
 export function marketingPageMetadata(input: {
   title: string
   description: string
   path: string
+  /** When set, canonical + og:url use this path instead of `path` (duplicate landing pages). */
+  canonicalPath?: string
 }): Metadata {
-  const url = canonicalUrl(input.path)
+  const url = canonicalUrl(input.canonicalPath ?? input.path)
   return {
     title: input.title,
     description: input.description,
@@ -38,7 +51,6 @@ export const MARKETING_SITEMAP_PATHS = [
   '/use-cases',
   '/use-cases/local-service',
   '/use-cases/ecommerce',
-  '/use-cases/coaches-creators',
   '/use-cases/startups',
   '/for-coaches',
   '/for-consultants',
