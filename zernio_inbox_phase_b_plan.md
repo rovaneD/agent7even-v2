@@ -185,7 +185,7 @@ if Zernio exposes per-message status on fetch.
 - [x] Analytics Inbox tab shows live metrics (Phase A) and links to inbox workspace.
 - [x] Maya context describes inbox workspace affordances without naming Zernio.
 - [x] `npx tsc --noEmit` + `npm run build` pass.
-- [x] Manual test on `@rovanedurso` test account only until DPA gate clears.
+- [x] Manual test on `@rovanedurso` test account only until Zernio confirms DPA (Agent7even signed Jul 2026).
 - [x] B4.1 — Maya draft-reply in composer (shipped June 10, 2026)
 - [x] Comment thread read + in-app reply via `GET/POST /inbox/comments/{postId}`
 

@@ -29,7 +29,7 @@ Confirm `git remote -v` shows **`agent7even-v2`**, NEVER `agent7even-app`.
 
 **Explicit non-goals across Phases A–C:** in-platform **generation** (Maya creating visuals) — see `creative_generation_handoff.md` instead. Crop/carousel/video here assume the user supplies media (upload or saved asset).
 
-**Dependency gate (unchanged from v1):** live publish to real client accounts remains gated on Zernio Q4 (DPA/data handling). Build and test on Zernio FREE tier (2 accounts) until cleared.
+**Dependency gate:** live publish to **real client** accounts — Agent7even signed Zernio DPA Jul 2026; **await Zernio written confirmation** before client onboarding. Build and test on Zernio FREE tier (2 accounts) until then. See `CONTEXTV22.md` §8.
 
 ---
 
@@ -515,7 +515,7 @@ Before each phase ships, confirm against Zernio API docs + test account:
 - [ ] `createPost` with ordered multi `mediaItems` publishes carousel to IG
 - [ ] Video `mediaType: 'video'` publishes as Reel when `platformSpecificData.contentType` set
 - [ ] Webhook publish/fail still reconciles to calendar slot (silent fail = broken promise)
-- [ ] Q4 DPA cleared before connecting real client accounts
+- [ ] Q4 DPA — Agent7even signed Jul 2026; await Zernio confirmation before real client accounts (`CONTEXTV22.md` §8)
 
 Reference: `zernio_social_evaluation_backlog.md`, `lib/social/postConstraints.ts`.
 
@@ -544,7 +544,7 @@ All via `deductCredits()` — never direct SDK calls outside runner.
 - **Buffer OAuth** — still out (see AGENTS.md)
 - **In-platform full design editor** — filters, templates, Canva replacement (out of scope; crop-only is Phase A max)
 - **Mixed carousel + video slides** — out of scope until single-format carousels proven
-- **Live client publish before Zernio Q4** — test accounts only
+- **Live client publish before Zernio DPA confirmation** — test accounts only (`CONTEXTV22.md` §8)
 
 ---
 

@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 1, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 2, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -56,7 +56,7 @@ Always use `'2026-04-22.dahlia'` cast as `as any`. **Never use `'2025-04-30.basi
 Next.js 16 uses `proxy.ts` not `middleware.ts`.
 
 ## Key third-party notes
-- **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026): legacy REST OAuth is closed to new developer app registrations (no new client_id), and the new GraphQL API is personal-key-only beta with no third-party end-user OAuth. Publer is dashboard-first, also not a multi-tenant fit. Leading candidate is **Zernio** (multi-tenant OAuth-as-a-service, white-label, per-account pricing, publish/fail webhooks) — pending verification (tenant isolation [open], cost caps [answered], support/reliability, data-handling/DPA) and gated behind the Exa pre-fill value test. Build behind a swappable `lib/social/publisher.ts` interface. Do NOT attempt Buffer OAuth. Details in `zernio_social_evaluation_backlog.md`.
+- **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026). Publer is dashboard-first, also not a multi-tenant fit. **Zernio** is the integrated publisher (`lib/social/publisher.ts`). **DPA:** Agent7even signed Jul 2026 — await Zernio confirmation before onboarding client social accounts; SOC 2 Type II + GDPR attestation on file under trust-center NDA. Tenant isolation (scoped keys) still pending written answer. Details: `zernio_social_evaluation_backlog.md`, `CONTEXTV22.md` §8.
 - **Instagram Lucide icon** — does not exist. Use `Hash` icon instead.
 
 ## This app (agent7even-v2) — experimental
@@ -64,7 +64,7 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV22.md` — latest product handoff: approval count SSOT, structured output views, Foundation competitors fix, sidebar progress, Phase C status (July 1, 2026).
+- `CONTEXTV22.md` — latest product handoff: Thread 3 lifecycle v1, Phase A crop, Zernio DPA/compliance (§8), structured output views, approval count SSOT (July 2, 2026).
 - `SESSION_2026-07-01.md` — July 1 session log (commits c949a77 … b889cc6 + doc pass).
 - `CONTEXTV21.md` — lab5 marketing homepage hero (approval-first), FAQ/agents channels, mobile mockup fixes (June 25, 2026).
 - `SESSION_2026-06-25.md` — June 25 session log (5 commits: hero rebuild, mockups, channels, mobile, approval copy).

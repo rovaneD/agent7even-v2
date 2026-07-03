@@ -63,11 +63,7 @@ Vendor questions and current status (as of June 4, 2026 webchat with Ana + escal
    me check" rather than a bluff. For a ~5-person team that's a positive early signal, but
    still confirm: incident response commitment, status page, breaking-change notice policy,
    realistic support response time. The teammate's response speed on Q1 is the next data point.
-4. DATA HANDLING / DPA - **NEW, OPEN.** What's their data-processing agreement and retention
-   posture for end-user social tokens and connected-account data? Under white-label, our SMB
-   clients never see Zernio, but Zernio still holds their credentials/connected-account data.
-   Confirm before any real client data flows. (Prompted by Ana referencing our account email
-   in plain chat - a reminder that Zernio sees which of our accounts map to activity.)
+4. DATA HANDLING / DPA - **CLEARED (Agent7even signed, Jul 2026).** DPA `Data-Processing-Agreement-ARBICHAT.pdf`: Agent7even signed (Rovane Durso Bezerra, CEO), §13 California/LA County, sent back to Zernio. Zernio pre-signed 20/03/2026. **Await Zernio written confirmation / fully executed copy.** Trust materials on file under NDA (Jun 15, 2026): SOC 2 Type II Jan–Apr 2026 (Securance Pro, unqualified), GDPR attestation Feb 2026. Processing schedule annex still optional follow-up. Real client social connect: proceed after Zernio confirms execution — see `CONTEXTV22.md` §8.
 
 Fallback if Zernio fails the gate: Postproxy claims scoped per-client keys, profile-group
 pricing (caps surge exposure), and a higher uptime SLA — but verify its analytics depth and
@@ -132,9 +128,9 @@ Rules carried from prior architecture decisions:
 1. The Exa Foundation pre-fill A/B test (queue #18) has shown value — we don't expand the
    external-integration surface until the cheapest grounding test pays off. (Independent
    rationale: social scheduling is a bigger build; sequence behind the validated win.)
-2. Zernio has answered the OPEN questions acceptably - tenant isolation (Q1) and data
-   handling/DPA (Q4) in particular - or a fallback vendor has. (Q2 cost caps answered; Q3
-   support trending OK.)
+2. Zernio has answered the OPEN questions acceptably - tenant isolation (Q1) still pending
+   scoped-key written guarantee; data handling/DPA (Q4) **Agent7even signed Jul 2026** pending
+   Zernio countersign - or a fallback vendor has. (Q2 cost caps answered; Q3 support trending OK.)
 
 Validation approach when unblocked: build the publisher interface, wire Zernio behind it on
 the FREE tier (2 accounts), validate the full schedule->publish->reconcile loop AND Zernio's

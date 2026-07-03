@@ -1,7 +1,7 @@
 # CONTEXTV22 — Product integrity, structured approvals, Phase C close-out
-*Snapshot: July 1, 2026 — supersedes `CONTEXTV21.md` for logged-in product work; marketing hero/channel sections in V21 remain valid unless noted here*
+*Snapshot: July 2, 2026 — supersedes `CONTEXTV21.md` for logged-in product work; marketing hero/channel sections in V21 remain valid unless noted here*
 
-Session log: `SESSION_2026-07-01.md`.
+Session log: `SESSION_2026-07-01.md` (+ July 2 vendor/compliance updates in §8).
 
 ---
 
@@ -12,7 +12,7 @@ Local workspace: /Users/durso/agent7even-v2-clean
 GitHub: rovaneD/agent7even-v2
 Vercel: agent7even-v2.vercel.app
 Branch: main
-Latest commits (this session): c949a77 … b889cc6 (July 1, 2026)
+Latest commits: 5879ebd (Thread 3 lifecycle + Phase A crop, July 2, 2026)
 Prior handoff: CONTEXTV21 (June 25 lab5 marketing)
 ```
 
@@ -37,6 +37,8 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 | **Foundation competitors array** | `df774f2` | **This file §3** |
 | **Sidebar progress sync** | `2822a3b` | **This file §4** |
 | **Approval count SSOT** | `b889cc6` | **This file §5** |
+| **Thread 3 lifecycle v1 + crop** | `5879ebd` | **This file §7** |
+| **Zernio DPA + compliance** | Jul 2, 2026 (vendor) | **This file §8** |
 
 ---
 
@@ -119,7 +121,7 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 
 **Also:** `digestStale` when cached digest approval count ≠ live count; Command Center realtime removes items on approve/reject or output leaving `pending_approval`.
 
-**Thread 3 note:** Unified Draft→Approved→Scheduled→Published on one entity is **still not built**. This fix aligns **count surfacing** only — not a lifecycle state machine.
+**Thread 3 note (Jul 1):** Count surfacing was fixed before lifecycle v1 shipped (`5879ebd`). Lifecycle spine is now on `agent_outputs.lifecycle_stage` — see §6.
 
 ---
 
@@ -154,7 +156,7 @@ Update for `site_audit_master.md` §6 tracker:
 
 ---
 
-## 6. Thread 3 — Content lifecycle unification (v1)
+## 7. Thread 3 — Content lifecycle unification (v1)
 
 **Problem:** Three parallel models (agent outputs, tasks, Zernio posts) with no explicit **Approved** stage between Review and Draft.
 
@@ -170,6 +172,34 @@ Update for `site_audit_master.md` §6 tracker:
 
 ---
 
+## 8. Zernio vendor gates — DPA + compliance (July 2, 2026)
+
+**Prior state (`CONTEXTV18.md`):** Q4 data-handling/DPA **OPEN**; real client social accounts gated.
+
+**Current state:**
+
+| Item | Status | Notes |
+|------|--------|-------|
+| **DPA** (`Data-Processing-Agreement-ARBICHAT.pdf`) | **Signed by Agent7even; sent to Zernio** | Rovane Durso Bezerra, CEO. §13 filled: **California law, Los Angeles County** jurisdiction. Zernio pre-signed Miquel Palet 20/03/2026. **Await written confirmation / fully executed copy from Zernio.** |
+| **Processing schedule annex** | Optional follow-up | 6-page DPA has no attached Schedule; SOC 2 + trust center partially cover sub-processors |
+| **Trust-center NDA** | **Signed** 15 Jun 2026 | Rovane Durso — access to confidential compliance docs (not a DPA) |
+| **SOC 2 Type II** | **On file** (NDA) | ARBICHAT d.b.a. Zernio; **Jan 20 – Apr 20, 2026**; Securance Pro; **unqualified** opinion (Security, Confidentiality, Availability); subservice orgs include Google Cloud, Vercel |
+| **GDPR attestation** | **On file** | DPLMC International; issued **Feb 2, 2026**, expires **Feb 2, 2027** |
+| **Tenant isolation (scoped keys)** | **Still open** | See `CONTEXTV18.md` — Phase 2 scoped-key question pending written answer from Zernio |
+| **Meta OAuth branding** | **Mitigation shipped** | Shared Zernio app shows "Social Media Connector"; disclosure in connect flow — separate from DPA |
+
+**Operational gate:**
+
+- **OK now:** owner/test accounts; paying customers on other product surfaces (Stripe live, Clerk live on `.ai` per readiness script).
+- **Client social connect:** proceed once Zernio confirms DPA fully executed (or legal comfort with signed copy returned). Optional env: `ZERNIO_CLIENT_ACCOUNTS_ENABLED=true` (`PRODUCTION_LAUNCH_SESSION.md`).
+- **Still not OK without Zernio:** assuming BYOK Meta; orphan profile on disconnect (`DELETE /profiles/{id}` fail-soft) — monitor for DPA deletion commitment.
+
+**Vendor files (local, do not commit):** `~/Volumes/Black 10TB/Agent7even Update/Zernio/` — Signed DPA, NDA, SOC 2 report, GDPR certificate.
+
+**Cross-refs updated:** `zernio_social_evaluation_backlog.md` Q4, `PRODUCTION_LAUNCH_SESSION.md` §3, `PRODUCTION_GREENLIGHT.md` §9.2, `AGENTS.md`.
+
+---
+
 ## Related docs
 
 | Doc | Role |
@@ -179,9 +209,12 @@ Update for `site_audit_master.md` §6 tracker:
 | `phaseC_dashboard_cold_open_handoff.md` | Cold-open + digest + approval count detail |
 | `phaseC_asset_lifecycle_handoff.md` | Lifecycle bar (Review stage) |
 | `a2_capability_ledger.md` | §6 Thread 3 scope — parallel lifecycle models |
+| `zernio_social_evaluation_backlog.md` | Zernio vendor gates + support log |
+| `PRODUCTION_LAUNCH_SESSION.md` | Clerk/Stripe/DPA launch steps |
+| `PRODUCTION_GREENLIGHT.md` | Full production checklist |
 | `per_screen_registry.md` | Screen-by-screen Phase C status |
 | `site_audit_master.md` | Audit spine + Phase C tracker |
 
 ---
 
-*End CONTEXTV22 — July 1, 2026*
+*End CONTEXTV22 — July 2, 2026*

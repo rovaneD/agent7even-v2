@@ -342,7 +342,7 @@ Only if you later bypass Zernio for **direct** Meta Marketing API:
 
 ### 9.2 Zernio (social analytics, inbox, posting)
 
-- [ ] **BLOCKER for real client social accounts — Zernio DPA / data handling** signed (see `zernio_social_evaluation_backlog.md`)
+- [ ] **Zernio DPA / data handling** — Agent7even signed Jul 2026; **await Zernio confirmation**, then check off (see `CONTEXTV22.md` §8, `zernio_social_evaluation_backlog.md`)
 - [ ] **Tenant isolation** — cross-tenant fixes shipped (`b9c416b`); run `scripts/verify-zernio-tenant-fixes.ts` on prod
 - [ ] **BYOK / Meta branding** — decide: stay on shared Zernio OAuth vs Agent7even Meta apps (removes "Social Media Connector" branding)
 - [ ] **Cost cap** — Stripe spending limit on Zernio dashboard as global backstop
@@ -419,7 +419,7 @@ Run on **production** env with real keys, using a **fresh test email** and a **r
 4. [ ] AI Toolkit — run prompt (within trial limit); 6th run blocked with `TRIAL_LIMIT`
 5. [ ] Brand Kit locked during trial
 6. [ ] Connect Google Analytics (if enabled)
-7. [ ] Connect social via Zernio (test account only until DPA)
+7. [ ] Connect social via Zernio — test account until Zernio confirms DPA (signed Jul 2026)
 8. [ ] Analytics tab shows data or honest empty/sync-pending state
 9. [ ] Inbox loads for connected account
 10. [ ] Create + schedule a post (if posting enabled)
@@ -439,7 +439,7 @@ Run on **production** env with real keys, using a **fresh test email** and a **r
 | **2 — Auth** | Clerk Production + webhook | Sign-up creates profile |
 | **3 — Billing** | Stripe Live products, webhook, portal | Real $1 test charge + refund |
 | **4 — Legal** | Meta/Google URLs, data deletion page | Legal review pass |
-| **5 — Integrations** | GA OAuth on `.ai`; Zernio test accounts only | DPA before real social |
+| **5 — Integrations** | GA OAuth on `.ai`; Zernio test accounts only | Await Zernio DPA confirmation before client social |
 | **6 — Crons** | Enable + monitor 48h | No silent failures |
 | **7 — Soft launch** | Invite-only / internal users | QA script green |
 | **8 — Public launch** | Open sign-up, monitor Stripe + Clerk logs | On-call for 72h |
@@ -477,4 +477,4 @@ Run on **production** env with real keys, using a **fresh test email** and a **r
 
 ---
 
-*Update this doc when items ship. After cutover, bump AGENTS.md "Last reviewed" date and add summary to CONTEXTV18.md.*
+*Update this doc when items ship. After cutover, bump AGENTS.md "Last reviewed" date and add summary to CONTEXTV22.md.*

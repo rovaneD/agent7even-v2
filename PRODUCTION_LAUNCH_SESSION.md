@@ -17,7 +17,7 @@ npx tsx scripts/verify-production-readiness.ts
 | Legal pages on `.ai` | Yes (fix `.com` refs in this session) | None — pages live |
 | Clerk Production | Webhook route ready | **Switch to `pk_live_` / `sk_live_` on Vercel** |
 | Stripe Live | Checkout + webhook code ready | **Create live products/prices + webhook** |
-| Zernio DPA | Connect works on test accounts | **Sign DPA before client social accounts** |
+| Zernio DPA | Connect works on test accounts | **Agent7even signed Jul 2026 — await Zernio confirmation; then client social OK** |
 | Pre-launch QA | Script + checklist below | Run after Clerk + Stripe live |
 
 ---
@@ -128,17 +128,22 @@ STRIPE_CREDITS_SMALL/MEDIUM/LARGE_PRICE_ID=price_...
 
 ### Why
 
-`zernio_social_evaluation_backlog.md` — Q4 data handling / DPA was **OPEN**. Owner test accounts (`@rovanedurso`) are fine; **do not onboard paying clients' social accounts** until DPA is signed.
+`zernio_social_evaluation_backlog.md` Q4 — **Agent7even signed and returned DPA Jul 2026** (`Data-Processing-Agreement-ARBICHAT.pdf`, §13 California/LA County). Owner test accounts (`@rovanedurso`) are fine. **Await Zernio written confirmation of fully executed DPA** before treating client social onboarding as fully cleared.
+
+### Compliance materials on file (trust-center NDA, Jun 15, 2026)
+
+- SOC 2 Type II — Jan 20 – Apr 20, 2026 — Securance Pro — unqualified
+- GDPR attestation — DPLMC — Feb 2, 2026 (expires Feb 2, 2027)
+- Local path: `~/Volumes/Black 10TB/Agent7even Update/Zernio/` — do not commit to repo
 
 ### Steps
 
-1. Email Zernio (Ana / support) requesting:
-   - Signed DPA covering OAuth tokens, connected-account data, retention, subprocessors, breach notification
-   - Confirmation tenant isolation model (profileId scoping + your API key)
-2. Set Stripe spending cap on [zernio.com/dashboard/billing](https://zernio.com/dashboard/billing) as global backstop.
-3. Until DPA signed: QA social connect with **your test accounts only**.
+1. **Done:** Sign DPA; return to Zernio.
+2. **Pending:** Email Zernio confirming receipt + return fully executed copy (optional: processing schedule / sub-processor list referencing trust.zernio.com).
+3. Set Stripe spending cap on [zernio.com/dashboard/billing](https://zernio.com/dashboard/billing) as global backstop.
+4. Until Zernio confirms: QA social connect with **test accounts**; client accounts OK after confirmation.
 
-### Optional env gate (after DPA signed)
+### Optional env gate (after Zernio confirms)
 
 Add to Vercel when ready:
 
@@ -179,7 +184,7 @@ Run on **production** after Clerk + Stripe live. Use a **fresh email** and **rea
 | 4 | AI Toolkit — 5 runs OK, 6th blocked (`TRIAL_LIMIT`) | ☐ |
 | 5 | Brand Kit locked during trial | ☐ |
 | 6 | Connect Google Analytics (if enabled) | ☐ |
-| 7 | Connect social via Zernio (**test account only** until DPA) | ☐ |
+| 7 | Connect social via Zernio — **test account until Zernio confirms DPA** (Agent7even signed Jul 2026) | ☐ |
 | 8 | Meta connect modal → OAuth → analytics or honest empty state | ☐ |
 | 9 | Analytics → Posting + Inbox tabs load (no silent failures) | ☐ |
 | 10 | Inbox `/dashboard/inbox` loads for connected account | ☐ |

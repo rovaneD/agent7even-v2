@@ -343,7 +343,7 @@ acceptable output. This is a **dependency limitation**, so:
   + `deductCredits()` only.
 - **Not building the 100-video library into v1.** Note the brief-composition integration point;
   ship Foundation-grounded briefs alone (spike-proven sufficient).
-- **Not live client publish before Zernio Q4.** Test accounts only, same gate as all publishing.
+- **Not live client publish before Zernio DPA confirmation.** Test accounts only, same gate as all publishing (`CONTEXTV22.md` §8).
 
 ---
 
