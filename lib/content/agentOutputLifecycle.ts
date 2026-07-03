@@ -48,6 +48,7 @@ export async function countApprovedPostPipelineOutputs(
     .select('id, agent, content, task_id')
     .eq('user_id', userId)
     .eq('lifecycle_stage', 'approved')
+    .is('zernio_post_id', null)
 
   if (error) throw error
   if (!data?.length) return 0

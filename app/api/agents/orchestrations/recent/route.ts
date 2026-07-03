@@ -20,7 +20,7 @@ export async function GET() {
 
   const { data } = await supabase
     .from('orchestration_sessions')
-    .select('id, triggered_by, status, total_tasks, completed_tasks, total_cost_usd, budget_exceeded, completed_at')
+    .select('id, triggered_by, status, total_tasks, completed_tasks, budget_exceeded, completed_at')
     .eq('user_id', profile.id)
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
