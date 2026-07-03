@@ -542,7 +542,6 @@ export default function AgentCommandCenter({
     triggered_by: string
     total_tasks: number
     completed_tasks: number
-    total_cost_usd: number
     budget_exceeded: boolean
     completed_at: string | null
   }>>([])
@@ -1307,7 +1306,6 @@ export default function AgentCommandCenter({
                   triggered_by: session.triggered_by,
                   total_tasks: session.total_tasks,
                   completed_tasks: session.completed_tasks,
-                  total_cost_usd: session.total_cost_usd,
                   budget_exceeded: session.budget_exceeded,
                   completed_at: session.completed_at,
                 }, ...prev].slice(0, 5))

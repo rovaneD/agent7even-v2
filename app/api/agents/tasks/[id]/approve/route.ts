@@ -15,6 +15,9 @@ export async function POST(
 
   const { id: taskId } = await params
   const { outputId, editedContent } = await req.json()
+  if (typeof outputId !== 'string' || !outputId) {
+    return NextResponse.json({ error: 'Missing outputId' }, { status: 400 })
+  }
 
   const supabase = createServiceClient()
 
@@ -28,22 +31,34 @@ export async function POST(
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
+  const { data: existingOutput, error: existingOutputErr } = await supabase
+    .from('agent_outputs')
+    .select('content, lifecycle_stage, zernio_post_id')
+    .eq('id', outputId)
+    .eq('user_id', profile.id)
+    .maybeSingle()
+
+  if (existingOutputErr) {
+    return NextResponse.json({ error: existingOutputErr.message }, { status: 500 })
+  }
+  if (!existingOutput) {
+    return NextResponse.json({ error: 'Output not found' }, { status: 404 })
+  }
+
   const now = new Date().toISOString()
+  const linkedPostId = typeof existingOutput.zernio_post_id === 'string' && existingOutput.zernio_post_id
+    ? existingOutput.zernio_post_id
+    : null
 
   const outputUpdate: Record<string, unknown> = {
     status: 'approved',
     approved_at: now,
-    lifecycle_stage: 'approved',
+    lifecycle_stage: linkedPostId
+      ? (existingOutput.lifecycle_stage ?? 'draft')
+      : 'approved',
   }
   if (typeof editedContent === 'string') {
-    const { data: existing } = await supabase
-      .from('agent_outputs')
-      .select('content')
-      .eq('id', outputId)
-      .eq('user_id', profile.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-    const prev = (existing?.[0]?.content ?? {}) as Record<string, unknown>
+    const prev = (existingOutput.content ?? {}) as Record<string, unknown>
     outputUpdate.content = { ...prev, raw: editedContent }
   }
 
@@ -63,12 +78,14 @@ export async function POST(
   if (outputRes.error) return NextResponse.json({ error: outputRes.error.message }, { status: 500 })
   if (taskRes.error) return NextResponse.json({ error: taskRes.error.message }, { status: 500 })
 
-  const [{ data: task }, { data: output }] = await Promise.all([
-    supabase.from('agent_tasks').select('agent, input').eq('id', taskId).eq('user_id', profile.id).single(),
-    supabase.from('agent_outputs').select('content').eq('id', outputId).eq('user_id', profile.id).single(),
-  ])
+  const { data: task } = await supabase
+    .from('agent_tasks')
+    .select('agent, input')
+    .eq('id', taskId)
+    .eq('user_id', profile.id)
+    .single()
 
-  const outputContent = (outputUpdate.content ?? output?.content ?? {}) as Record<string, unknown>
+  const outputContent = (outputUpdate.content ?? existingOutput.content ?? {}) as Record<string, unknown>
   const caption = typeof outputContent.raw === 'string' ? outputContent.raw : ''
 
   const publishOpts = {
@@ -80,7 +97,9 @@ export async function POST(
 
   let publish: Awaited<ReturnType<typeof publishApprovedImageCaption>> | null = null
   const publishBlocked = singlePostPublishBlockReason(publishOpts)
-  if (shouldPublishApprovedPost(publishOpts)) {
+  if (linkedPostId && shouldPublishApprovedPost(publishOpts)) {
+    publish = { scheduled: true, postId: linkedPostId, detail: 'already_linked' }
+  } else if (shouldPublishApprovedPost(publishOpts)) {
     publish = await publishApprovedImageCaption({
       profileId: profile.id,
       outputId,
@@ -90,12 +109,23 @@ export async function POST(
       taskId,
     })
     if (publish?.scheduled && publish.postId) {
-      await linkOutputToZernioPost(supabase, {
-        userId: profile.id,
-        outputId,
-        zernioPostId: publish.postId,
-        stage: 'draft',
-      })
+      try {
+        await linkOutputToZernioPost(supabase, {
+          userId: profile.id,
+          outputId,
+          zernioPostId: publish.postId,
+          stage: 'draft',
+        })
+      } catch (err) {
+        console.error('[approve] failed to link approved output to Zernio post:', err)
+        const { error: stageErr } = await supabase
+          .from('agent_outputs')
+          .update({ lifecycle_stage: 'draft' })
+          .eq('id', outputId)
+          .eq('user_id', profile.id)
+        if (stageErr) console.error('[approve] failed to preserve draft lifecycle stage:', stageErr)
+        publish = { ...publish, detail: 'draft_created_link_pending' }
+      }
     }
   }
 

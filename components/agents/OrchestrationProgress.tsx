@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useRef, useState } from 'react'
 
 interface OrchestrationSession {
   id:              string
@@ -9,8 +8,6 @@ interface OrchestrationSession {
   status:          string
   total_tasks:     number
   completed_tasks: number
-  total_cost_usd:  number
-  budget_cap_usd:  number | null
   budget_exceeded: boolean
   agent_ids:       string[]
   agent_status:    Record<string, 'pending' | 'running' | 'completed' | 'failed'>
@@ -50,35 +47,52 @@ export default function OrchestrationProgress({
   compact = false,
 }: Props) {
   const [session, setSession] = useState<OrchestrationSession | null>(null)
-  const supabase = createClient()
+  const onCompleteRef = useRef(onComplete)
+  const onBudgetExceededRef = useRef(onBudgetExceeded)
 
   useEffect(() => {
-    supabase
-      .from('orchestration_sessions')
-      .select('*')
-      .eq('id', orchestrationId)
-      .single()
-      .then(({ data }) => {
-        if (data) setSession(data as OrchestrationSession)
-      })
+    onCompleteRef.current = onComplete
+    onBudgetExceededRef.current = onBudgetExceeded
+  }, [onComplete, onBudgetExceeded])
 
-    const channel = supabase
-      .channel(`orchestration-${orchestrationId}`)
-      .on('postgres_changes', {
-        event:  'UPDATE',
-        schema: 'public',
-        table:  'orchestration_sessions',
-        filter: `id=eq.${orchestrationId}`,
-      }, payload => {
-        const updated = payload.new as OrchestrationSession
+  useEffect(() => {
+    let stopped = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let completionNotified = false
+
+    async function loadStatus() {
+      try {
+        const res = await fetch(`/api/agents/orchestrations/${encodeURIComponent(orchestrationId)}`)
+        const data = await res.json().catch(() => ({}))
+        if (stopped || !res.ok || !data.orchestration) return
+
+        const updated = data.orchestration as OrchestrationSession
         setSession(updated)
-        if (updated.status === 'completed') onComplete?.(updated)
-        if (updated.budget_exceeded) onBudgetExceeded?.()
-      })
-      .subscribe()
+        if (updated.budget_exceeded) onBudgetExceededRef.current?.()
 
-    return () => { supabase.removeChannel(channel) }
-  }, [orchestrationId]) // eslint-disable-line react-hooks/exhaustive-deps
+        if (updated.status === 'completed') {
+          if (!completionNotified) {
+            completionNotified = true
+            onCompleteRef.current?.(updated)
+          }
+          return
+        }
+
+        if (updated.status !== 'failed') {
+          timer = setTimeout(loadStatus, 1500)
+        }
+      } catch {
+        if (!stopped) timer = setTimeout(loadStatus, 3000)
+      }
+    }
+
+    loadStatus()
+
+    return () => {
+      stopped = true
+      if (timer) clearTimeout(timer)
+    }
+  }, [orchestrationId])
 
   if (!session) return <OrchestrationSkeleton compact={compact} />
 

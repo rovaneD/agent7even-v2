@@ -1,7 +1,7 @@
 # CONTEXTV22 — Product integrity, structured approvals, Phase C close-out
-*Snapshot: July 2, 2026 — supersedes `CONTEXTV21.md` for logged-in product work; marketing hero/channel sections in V21 remain valid unless noted here*
+*Snapshot: July 3, 2026 — supersedes `CONTEXTV21.md` for logged-in product work; marketing hero/channel sections in V21 remain valid unless noted here*
 
-Session log: `SESSION_2026-07-01.md` (+ July 2 vendor/compliance updates in §8).
+Session log: `SESSION_2026-07-01.md` (+ July 2 vendor/compliance updates in §8; July 3 critical fixes in §9).
 
 ---
 
@@ -39,6 +39,7 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 | **Approval count SSOT** | `b889cc6` | **This file §5** |
 | **Thread 3 lifecycle v1 + crop** | `5879ebd` | **This file §7** |
 | **Zernio DPA + compliance** | Jul 2, 2026 (vendor) | **This file §8** |
+| **Critical bug fixes** | Jul 3, 2026 automation | **This file §9** |
 
 ---
 
@@ -200,6 +201,13 @@ Update for `site_audit_master.md` §6 tracker:
 
 ---
 
+## 9. Critical bug fixes (July 3, 2026)
+
+- **Customer COGS leak closed:** customer-facing orchestration routes/components no longer return or subscribe directly to `total_cost_usd` / `budget_cap_usd`. Live progress now polls sanitized `/api/agents/orchestrations/[id]`; admin cost surfaces remain unchanged.
+- **Approve-to-Zernio retry hardening:** approve route preserves existing `zernio_post_id`, skips repeat Zernio publish on linked retries, catches post-link write failures after draft creation, and falls back to draft lifecycle state where possible. Approved pipeline counts now only include unlinked outputs.
+
+---
+
 ## Related docs
 
 | Doc | Role |
@@ -217,4 +225,4 @@ Update for `site_audit_master.md` §6 tracker:
 
 ---
 
-*End CONTEXTV22 — July 2, 2026*
+*End CONTEXTV22 — July 3, 2026*
