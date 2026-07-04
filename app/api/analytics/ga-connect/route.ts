@@ -1,9 +1,10 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createOAuthState } from '@/lib/oauth-state'
 import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
 import { gaOAuthRedirectUri, oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
 async function revokeGoogleRefreshToken(token: string) {
   try {
@@ -23,11 +24,21 @@ export async function GET(req: Request) {
 
   // Drop stale Google grants so reconnect returns a fresh refresh token.
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('ga_refresh_token')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await resolveClerkProfile<{
+    id: string
+    ga_refresh_token: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(
+    supabase,
+    userId,
+    'id, ga_refresh_token',
+    email,
+  )
 
   if (profile?.ga_refresh_token) {
     await revokeGoogleRefreshToken(profile.ga_refresh_token)
