@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { useRegisterMayaFormSurface } from '@/context/MayaFormActuationContext'
@@ -62,6 +62,7 @@ export default function AgentRunClient({ agentId, companyName, profileWebsiteUrl
   )
   const [taskCreateError, setTaskCreateError] = useState<string | null>(null)
   const [runTracker, setRunTracker] = useState<RunTracker | null>(null)
+  const createTaskInFlightRef = useRef(false)
 
   const [constraints, setConstraints] = useState('')
   const [savedConstraints, setSavedConstraints] = useState('')
@@ -208,6 +209,8 @@ export default function AgentRunClient({ agentId, companyName, profileWebsiteUrl
   }
 
   async function handleCreateTask() {
+    if (createTaskInFlightRef.current) return
+    createTaskInFlightRef.current = true
     setTaskCreateError(null)
     setSubmitting(true)
     try {
@@ -243,6 +246,7 @@ export default function AgentRunClient({ agentId, companyName, profileWebsiteUrl
         void pollTaskRun(data.taskId)
       }
     } finally {
+      createTaskInFlightRef.current = false
       setSubmitting(false)
     }
   }

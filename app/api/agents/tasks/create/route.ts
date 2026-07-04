@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -8,6 +8,8 @@ import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { AgentId } from '@/lib/agents/registry'
 import { readPostMediaRef } from '@/lib/postAssets'
 import { logActivity } from '@/lib/activity'
+import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
+import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -15,13 +17,12 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await getDashboardProfileForClerkUser(supabase, userId, email)
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const workspaceId = await resolveWorkspaceProfileId(supabase, profile.id)
 
   const body = await req.json()
   const { agent, input = {}, priority = 'normal', scheduledFor } = body
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
 
   try {
     const task = await createTask({
-      userId: profile.id,
+      userId: workspaceId,
       agent: agent as AgentId,
       input: taskInput,
       triggerType: 'user',
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
           taskId: task.id,
           agent,
           input: taskInput,
-          userId: profile.id,
+          userId: workspaceId,
         })
       )
     }

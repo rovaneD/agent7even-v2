@@ -1,26 +1,30 @@
 import { z } from 'zod'
 
+const snapshotText = z.string().trim().max(2000)
+const snapshotShortText = z.string().trim().max(240)
+const snapshotList = z.array(snapshotShortText).max(10)
+
 export const SiteSnapshotSchema = z.object({
-  businessOverview: z.string(),
+  businessOverview: snapshotText,
   marketPositioning: z.object({
-    primary: z.string(),
-    secondary: z.string().optional(),
-    tertiary: z.string().optional(),
+    primary: snapshotText,
+    secondary: snapshotText.optional(),
+    tertiary: snapshotText.optional(),
   }),
   competitors: z.object({
-    local: z.array(z.string()).optional(),
-    international: z.array(z.string()).optional(),
+    local: snapshotList.optional(),
+    international: snapshotList.optional(),
   }),
-  competitiveAdvantages: z.array(z.string()),
+  competitiveAdvantages: snapshotList,
   customerSegments: z.array(
     z.object({
-      label: z.string(),
-      shareHint: z.string().optional(),
-      description: z.string(),
+      label: snapshotShortText,
+      shareHint: snapshotShortText.optional(),
+      description: snapshotText,
     }),
-  ),
-  fetchedAt: z.string(),
-  sourceUrl: z.string(),
+  ).max(10),
+  fetchedAt: z.string().trim().max(64),
+  sourceUrl: z.string().trim().url().max(2048),
 })
 
 export type SiteSnapshot = z.infer<typeof SiteSnapshotSchema>

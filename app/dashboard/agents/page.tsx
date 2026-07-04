@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
 import { COMMAND_CENTER_AGENTS, type AgentId } from '@/lib/agents/registry'
 import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
+import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
+import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 import AgentCommandCenter from './AgentCommandCenter'
 import AgentsLegacyRedirects from './AgentsLegacyRedirects'
 
@@ -70,15 +72,12 @@ export default async function AgentsPage() {
 
   const supabase = createServiceClient()
 
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id, company_name, website_url, plan')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const profile = profileRows?.[0] ?? null
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await getDashboardProfileForClerkUser(supabase, userId, email)
 
   if (!profile) redirect('/foundation')
+  const workspaceId = await resolveWorkspaceProfileId(supabase, profile.id)
 
   const [
     { count: colorCount },
@@ -87,22 +86,22 @@ export default async function AgentsPage() {
     { count: styleRefCount },
     { data: imageryStyleDoc },
   ] = await Promise.all([
-    supabase.from('brand_kit_colors').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
-    supabase.from('brand_kit_fonts').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
+    supabase.from('brand_kit_colors').select('id', { count: 'exact', head: true }).eq('user_id', workspaceId),
+    supabase.from('brand_kit_fonts').select('id', { count: 'exact', head: true }).eq('user_id', workspaceId),
     supabase
       .from('brand_kit_assets')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
       .in('asset_type', ['logo_primary', 'logo_alternate', 'logo_icon']),
     supabase
       .from('brand_kit_assets')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
       .eq('asset_type', 'style_reference'),
     supabase
       .from('foundation_documents')
       .select('markdown')
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
       .eq('type', 'imagery_style')
       .limit(1)
       .maybeSingle(),
@@ -127,40 +126,40 @@ export default async function AgentsPage() {
     supabase
       .from('agent_tasks')
       .select('*')
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
       .in('status', ['running', 'pending'])
       .order('created_at', { ascending: false }),
 
-    listPendingApprovalTasks(supabase, profile.id),
+    listPendingApprovalTasks(supabase, workspaceId),
 
     supabase
       .from('agent_tasks')
       .select('*, error')
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
       .order('created_at', { ascending: false })
       .limit(30),
 
     supabase
       .from('agent_tasks')
       .select('agent, status, completed_at, updated_at, created_at, error')
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
       .in('agent', SCORECARD_AGENT_IDS)
       .order('created_at', { ascending: false }),
 
     supabase
       .from('agent_schedules')
       .select('*')
-      .eq('user_id', profile.id),
+      .eq('user_id', workspaceId),
 
     supabase
       .from('agent_outputs')
       .select('agent, status, created_at')
-      .eq('user_id', profile.id),
+      .eq('user_id', workspaceId),
 
     supabase
       .from('agent_outputs')
       .select('id, task_id, agent, output_type, title, content, status, created_at')
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
       .order('created_at', { ascending: false })
       .limit(50),
   ])
@@ -203,7 +202,7 @@ export default async function AgentsPage() {
     <Suspense fallback={<div className="mx-auto max-w-6xl px-4 py-8 text-sm text-text-sec">Loading agents…</div>}>
       <AgentsLegacyRedirects />
       <AgentCommandCenter
-        profileId={profile.id}
+        profileId={workspaceId}
         companyName={profile.company_name ?? 'Your business'}
         activeTasks={activeTasks ?? []}
         pendingApprovals={pendingApprovalsData}

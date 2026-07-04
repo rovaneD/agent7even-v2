@@ -5,13 +5,15 @@ import {
   formatFoundationObserverContextForAgents,
 } from '@/lib/foundation/changelogContext'
 import { parseSiteSnapshot, formatSiteSnapshotForAgent } from '@/lib/foundation/siteSnapshot'
+import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 
 export async function buildAgentContext(userId: string): Promise<string> {
   const supabase = createServiceClient()
+  const profileId = await resolveWorkspaceProfileId(supabase, userId)
 
   // Brand context + Foundation run in parallel.
   // loadFoundationContext queries profiles.foundation_answers + foundation_documents.
-  // profileId = userId here (both are the Supabase profiles.id UUID).
+  // profileId is the workspace owner profile UUID for team accounts.
   const [
     { data: docs },
     { data: profile },
@@ -23,24 +25,24 @@ export async function buildAgentContext(userId: string): Promise<string> {
     supabase
       .from('brand_documents')
       .select('type, content')
-      .eq('user_id', userId)
+      .eq('user_id', profileId)
       .in('type', ['voice', 'positioning', 'persona', 'story']),
 
     supabase
       .from('profiles')
       .select('company_name, business_type, website_url, instagram_handle, site_snapshot, site_snapshot_enabled')
-      .eq('id', userId)
+      .eq('id', profileId)
       .single(),
 
     supabase
       .from('brand_answers')
       .select('answers')
-      .eq('user_id', userId)
+      .eq('user_id', profileId)
       .single(),
 
-    loadFoundationContext(userId),
-    loadFoundationMemory(userId),
-    loadFoundationChangelog(userId),
+    loadFoundationContext(profileId),
+    loadFoundationMemory(profileId),
+    loadFoundationChangelog(profileId),
   ])
 
   if (!docs?.length && !profile && !foundation.hasFoundation) return ''
