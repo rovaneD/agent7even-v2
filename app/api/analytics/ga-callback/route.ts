@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { consumeOAuthState } from '@/lib/oauth-state'
 import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
 import { gaOAuthRedirectUri, oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
+import { saveGaOAuthTokensForClerkUser } from '@/lib/analytics/gaOAuthProfile'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -16,7 +17,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=access_denied`)
   }
 
-  // Validate nonce — single-use, bound to this provider, expires in 10 min
   const clerkId = await consumeOAuthState(nonce, 'google')
   if (!clerkId) {
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=invalid_state`)
@@ -28,7 +28,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=invalid_client`)
   }
 
-  // Exchange authorization code for tokens
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -59,24 +58,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=no_refresh_token`)
   }
 
-  // Get Google account email
   const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   })
   const userInfo = await userInfoRes.json()
+  const oauthEmail = (userInfo.email as string | undefined) ?? null
 
-  // Save tokens to profile — scoped to the verified clerk_id from the nonce
   const supabase = createServiceClient()
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({
-      ga_refresh_token: tokens.refresh_token,
-      ga_oauth_email:   userInfo.email ?? null,
-      ga_connected:     false, // true once property is also selected
-    })
-    .eq('clerk_user_id', clerkId)
+  const saved = await saveGaOAuthTokensForClerkUser(
+    supabase,
+    clerkId,
+    { refreshToken: tokens.refresh_token, oauthEmail },
+    oauthEmail,
+  )
 
-  if (updateError) {
+  if (!saved.ok) {
+    console.error('[ga-callback] save tokens failed:', saved.reason)
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=save_failed`)
   }
 

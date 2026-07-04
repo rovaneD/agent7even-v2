@@ -4,7 +4,7 @@ import { createOAuthState } from '@/lib/oauth-state'
 import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
 import { gaOAuthRedirectUri, oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { getGaProfileForClerkUser } from '@/lib/analytics/gaOAuthProfile'
 
 async function revokeGoogleRefreshToken(token: string) {
   try {
@@ -26,19 +26,7 @@ export async function GET(req: Request) {
   const supabase = createServiceClient()
   const user = await currentUser()
   const email = user?.emailAddresses?.[0]?.emailAddress ?? null
-  const profile = await resolveClerkProfile<{
-    id: string
-    ga_refresh_token: string | null
-    stripe_customer_id: string | null
-    stripe_subscription_id: string | null
-    plan: string | null
-    created_at: string
-  }>(
-    supabase,
-    userId,
-    'id, ga_refresh_token',
-    email,
-  )
+  const profile = await getGaProfileForClerkUser(supabase, userId, email)
 
   if (profile?.ga_refresh_token) {
     await revokeGoogleRefreshToken(profile.ga_refresh_token)

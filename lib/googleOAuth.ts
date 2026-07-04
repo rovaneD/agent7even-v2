@@ -134,9 +134,17 @@ export async function probeGoogleOAuthLive(refreshToken: string | null | undefin
   }
 }
 
-export async function refreshGoogleAccessToken(refreshToken: string): Promise<string | null> {
+export type GoogleTokenRefreshResult = {
+  accessToken: string | null
+  error?: string
+  errorCode?: string
+}
+
+export async function refreshGoogleAccessToken(refreshToken: string): Promise<GoogleTokenRefreshResult> {
   const creds = getGoogleOAuthCredentials()
-  if (!creds) return null
+  if (!creds) {
+    return { accessToken: null, error: 'OAuth credentials not configured', errorCode: 'missing_credentials' }
+  }
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -148,6 +156,19 @@ export async function refreshGoogleAccessToken(refreshToken: string): Promise<st
       grant_type: 'refresh_token',
     }),
   })
-  const data = await res.json()
-  return (data.access_token as string | undefined) ?? null
+  const data = (await res.json()) as {
+    access_token?: string
+    error?: string
+    error_description?: string
+  }
+
+  if (data.access_token) {
+    return { accessToken: data.access_token }
+  }
+
+  return {
+    accessToken: null,
+    error: data.error_description ?? data.error ?? 'Token refresh failed',
+    errorCode: data.error,
+  }
 }
