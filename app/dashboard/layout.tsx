@@ -2,7 +2,9 @@ import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
 import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
+import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 import { getPendingApprovalCount } from '@/lib/agents/pendingApprovals'
+import { getTeamPermissions } from '@/lib/teamPermissions'
 import DashboardShell from './DashboardShell'
 
 export default async function DashboardLayout({
@@ -27,6 +29,7 @@ export default async function DashboardLayout({
   let initialSessions: { id: string; title: string | null; canvas_context: string | null; updated_at: string }[] = []
   let brandKitCompleted = 0
   let pendingApprovalsCount = 0
+  let teamPermissions = null
 
   if (userId) {
     const user = await currentUser()
@@ -36,6 +39,9 @@ export default async function DashboardLayout({
     if (p?.id) {
       profile = p
       profileId = p.id
+
+      const workspaceId = await resolveWorkspaceProfileId(supabase, p.id)
+      teamPermissions = await getTeamPermissions(p.id)
 
       const [{ data: notifs }, { data: sessionRows }, { data: brandKitRows }, approvalsCount] = await Promise.all([
         supabase
@@ -48,16 +54,16 @@ export default async function DashboardLayout({
         supabase
           .from('maya_sessions')
           .select('id, title, canvas_context, updated_at')
-          .eq('user_id', p.id)
+          .eq('user_id', workspaceId)
           .order('updated_at', { ascending: false })
           .limit(20),
 
         supabase
           .from('brand_kit_sections')
           .select('completed')
-          .eq('user_id', p.id),
+          .eq('user_id', workspaceId),
 
-        getPendingApprovalCount(supabase, p.id),
+        getPendingApprovalCount(supabase, workspaceId),
 
         logActivity(p.id, 'page_view'),
       ])
@@ -80,6 +86,7 @@ export default async function DashboardLayout({
       pendingApprovalsCount={pendingApprovalsCount}
       role={profile?.role ?? null}
       isAdmin={['admin', 'owner'].includes(profile?.role ?? '')}
+      teamPermissions={teamPermissions}
     >
       {children}
     </DashboardShell>

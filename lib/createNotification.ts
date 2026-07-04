@@ -12,6 +12,12 @@ export type NotificationType =
   | 'plan_activated'
   | 'trial_ending'
   | 'credit_topup'
+  | 'approval_pending'
+  | 'payment_failed'
+  | 'subscription_canceled'
+  | 'team_member_joined'
+  | 'maya_nudge'
+  | 'foundation_milestone'
 
 interface CreateNotificationParams {
   userId: string          // profiles.id of recipient

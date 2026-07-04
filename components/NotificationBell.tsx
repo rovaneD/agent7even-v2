@@ -38,6 +38,10 @@ function typeColor(type: string): string {
   if (type === 'brand_kit_generated') return '#10B981'
   if (type === 'plan_activated') return '#10B981'
   if (type === 'trial_ending') return '#EF4444'
+  if (type === 'approval_pending') return '#3B82F6'
+  if (type === 'payment_failed' || type === 'subscription_canceled') return '#EF4444'
+  if (type === 'team_member_joined') return '#10B981'
+  if (type === 'credit_topup') return '#10B981'
   return '#64748B'
 }
 
@@ -48,6 +52,11 @@ function typeInitial(type: string): string {
   if (type === 'brand_kit_generated') return 'BK'
   if (type === 'plan_activated') return 'PL'
   if (type === 'trial_ending') return 'TR'
+  if (type === 'approval_pending') return 'AP'
+  if (type === 'payment_failed') return 'BL'
+  if (type === 'subscription_canceled') return 'BL'
+  if (type === 'team_member_joined') return 'TM'
+  if (type === 'credit_topup') return 'CR'
   return 'NT'
 }
 

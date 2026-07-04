@@ -29,15 +29,17 @@ export async function POST(req: Request) {
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   if (!profile.is_account_owner) return NextResponse.json({ error: 'Only account owners can invite members' }, { status: 403 })
 
-  // Check if already invited
+  // Check if already invited (allow re-invite after removal)
   const { data: existing } = await supabase
     .from('team_members')
-    .select('id')
+    .select('id, status')
     .eq('account_id', profile.id)
     .eq('invited_email', email.toLowerCase())
-    .single()
+    .maybeSingle()
 
-  if (existing) return NextResponse.json({ error: 'This email has already been invited' }, { status: 400 })
+  if (existing && existing.status !== 'removed') {
+    return NextResponse.json({ error: 'This email has already been invited' }, { status: 400 })
+  }
 
   // Count current members
   const { count: currentMembers } = await supabase
@@ -85,19 +87,34 @@ export async function POST(req: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
   const inviteUrl = `${appUrl}/api/team/accept?token=${inviteToken}`
 
-  // Create team member record
-  const { data: member, error } = await supabase
-    .from('team_members')
-    .insert({
-      account_id: profile.id,
-      role: role ?? 'member',
-      permissions: permissions ?? {},
-      status: 'pending',
-      invited_email: email.toLowerCase(),
-      invite_token: inviteToken,
-    })
-    .select()
-    .single()
+  // Create or reactivate team member record
+  const memberPayload = {
+    role: role ?? 'member',
+    permissions: permissions ?? {},
+    status: 'pending',
+    invited_email: email.toLowerCase(),
+    invite_token: inviteToken,
+    member_profile_id: null,
+    updated_at: new Date().toISOString(),
+  }
+
+  const memberResult = existing?.status === 'removed'
+    ? await supabase
+        .from('team_members')
+        .update(memberPayload)
+        .eq('id', existing.id)
+        .select()
+        .single()
+    : await supabase
+        .from('team_members')
+        .insert({
+          account_id: profile.id,
+          ...memberPayload,
+        })
+        .select()
+        .single()
+
+  const { data: member, error } = memberResult
 
   if (error) {
     console.error('Team member insert error:', error)

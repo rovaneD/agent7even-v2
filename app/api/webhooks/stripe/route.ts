@@ -234,6 +234,21 @@ export async function POST(req: Request) {
         })
         .eq('stripe_subscription_id', subscription.id)
     }
+
+    const notifyUserId = cancelledProfile?.id
+    if (notifyUserId) {
+      await createNotification({
+        userId: notifyUserId,
+        title: 'Subscription canceled',
+        body: 'Your subscription has ended. Reactivate anytime from Billing to keep your agents running.',
+        type: 'subscription_canceled',
+        link: '/dashboard/billing',
+        sendEmail: true,
+        emailSubject: 'Your Agent7even subscription has ended',
+      })
+    }
+
+    return NextResponse.json({ received: true })
   }
 
   // ── invoice.payment_failed ──────────────────────────────────────────────────
@@ -247,10 +262,28 @@ export async function POST(req: Request) {
         : undefined
 
     if (subscriptionId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('stripe_subscription_id', subscriptionId)
+        .single()
+
       await supabase
         .from('profiles')
         .update({ status: 'paused', updated_at: new Date().toISOString() })
         .eq('stripe_subscription_id', subscriptionId)
+
+      if (profile?.id) {
+        await createNotification({
+          userId: profile.id,
+          title: 'Payment failed',
+          body: 'We could not process your latest payment. Update your billing details to avoid service interruption.',
+          type: 'payment_failed',
+          link: '/dashboard/billing',
+          sendEmail: true,
+          emailSubject: 'Action required — payment failed on Agent7even',
+        })
+      }
     }
   }
 

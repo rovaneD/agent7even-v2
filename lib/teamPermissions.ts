@@ -9,7 +9,7 @@ export type PermissionKey =
   | 'deliverables'
   | 'support'
 
-interface TeamPermissions {
+export type TeamPermissions = {
   isOwner: boolean
   permissions: Record<PermissionKey, boolean>
   accountId: string | null

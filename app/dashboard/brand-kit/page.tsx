@@ -2,6 +2,8 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createBrandAssetSignedUrl } from '@/lib/brandKit/signAssetUrl'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
+import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import BrandKitView from './BrandKitView'
 
 export default async function BrandKitPage() {
@@ -20,6 +22,11 @@ export default async function BrandKitPage() {
   const profile = profileRows?.[0] ?? null
   if (!profile) redirect('/dashboard')
 
+  const teamPerms = await getTeamPermissions(profile.id)
+  if (!hasPermission(teamPerms, 'brand_kit')) redirect('/dashboard')
+
+  const workspaceId = await resolveWorkspaceProfileId(supabase, profile.id)
+
   // Fetch all brand kit data in parallel
   const [
     { data: sections },
@@ -28,14 +35,14 @@ export default async function BrandKitPage() {
     { data: rawAssets },
     { data: documents },
   ] = await Promise.all([
-    supabase.from('brand_kit_sections').select('*').eq('user_id', profile.id),
-    supabase.from('brand_kit_colors').select('*').eq('user_id', profile.id).order('sort_order'),
-    supabase.from('brand_kit_fonts').select('*').eq('user_id', profile.id),
-    supabase.from('brand_kit_assets').select('*').eq('user_id', profile.id).order('sort_order'),
+    supabase.from('brand_kit_sections').select('*').eq('user_id', workspaceId),
+    supabase.from('brand_kit_colors').select('*').eq('user_id', workspaceId).order('sort_order'),
+    supabase.from('brand_kit_fonts').select('*').eq('user_id', workspaceId),
+    supabase.from('brand_kit_assets').select('*').eq('user_id', workspaceId).order('sort_order'),
     supabase
       .from('foundation_documents')
       .select('*')
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
       .in('type', ['brief', 'icp', 'positioning', 'voice', 'tagline', 'elevator_pitch', 'about_us', 'mission']),
   ])
 
@@ -50,7 +57,7 @@ export default async function BrandKitPage() {
 
   return (
     <BrandKitView
-      profileId={profile.id}
+      profileId={workspaceId}
       companyName={profile.company_name ?? ''}
       plan={profile.plan ?? null}
       initialSections={sections ?? []}

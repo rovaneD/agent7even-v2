@@ -4,6 +4,7 @@ import { WebhookEvent } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { welcomeEmailHtml, welcomeEmailText } from '@/emails/welcome'
 import { getResendClient } from '@/lib/resend'
+import { notifyTeamMemberJoined } from '@/lib/team/notifyTeamMemberJoined'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET
@@ -128,6 +129,12 @@ export async function POST(req: Request) {
           is_account_owner: false,
           updated_at: new Date().toISOString(),
         }).eq('id', newProfile.id)
+
+        await notifyTeamMemberJoined({
+          accountId: pendingInvite.account_id,
+          memberEmail: email,
+          memberName: fullName,
+        }).catch(err => console.error('[clerk/webhook] join notification failed:', err))
       }
     }
 

@@ -42,6 +42,8 @@ import MayChatPanel, { type Profile } from '@/components/maya/MayChatPanel'
 import MayaOrb from '@/components/maya/MayaOrb'
 import NewCampaignModal from '@/components/campaigns/NewCampaignModal'
 import { MayaFormActuationProvider } from '@/context/MayaFormActuationContext'
+import type { PermissionKey, TeamPermissions } from '@/lib/teamPermissions'
+import { hasPermission } from '@/lib/teamPermissions'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -74,6 +76,7 @@ interface Props {
   activeOrdersCount?: number
   role?: string | null
   isAdmin?: boolean
+  teamPermissions?: TeamPermissions | null
 }
 
 // ── Nav ───────────────────────────────────────────────────────────────────
@@ -132,6 +135,42 @@ const NAV = [
     ],
   },
 ]
+
+const NAV_ITEM_ACCESS: Record<string, PermissionKey | 'owner_only'> = {
+  '/dashboard/billing': 'billing',
+  '/dashboard/services': 'services',
+  '/dashboard/deliverables': 'deliverables',
+  '/dashboard/support': 'support',
+  '/dashboard/brand-kit': 'brand_kit',
+  '/dashboard/analytics': 'analytics',
+  '/dashboard/inbox': 'analytics',
+  '/dashboard/posts': 'analytics',
+  '/dashboard/calendar': 'analytics',
+  '/dashboard/assets': 'analytics',
+  '/dashboard/team': 'owner_only',
+}
+
+function canAccessNavItem(
+  href: string,
+  teamPermissions: TeamPermissions | null | undefined,
+): boolean {
+  const rule = NAV_ITEM_ACCESS[href]
+  if (!rule) return true
+  if (!teamPermissions) return true
+  if (rule === 'owner_only') return teamPermissions.isOwner
+  return hasPermission(teamPermissions, rule)
+}
+
+function filterNavForPermissions(
+  teamPermissions: TeamPermissions | null | undefined,
+) {
+  return NAV
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => canAccessNavItem(item.href, teamPermissions)),
+    }))
+    .filter(group => group.items.length > 0)
+}
 
 // ── Contextual page actions ────────────────────────────────────────────────
 
@@ -306,6 +345,7 @@ export default function DashboardShell({
   activeOrdersCount: initialActiveOrdersCount = 0,
   role = null,
   isAdmin: isAdminProp = false,
+  teamPermissions = null,
 }: Props) {
   const pathname     = usePathname()
   const [mayaOpen, setMayaOpen]       = useState(false)
@@ -340,6 +380,7 @@ export default function DashboardShell({
   }
 
   const isAdmin = isAdminProp || role === 'admin' || role === 'owner'
+  const visibleNav = filterNavForPermissions(teamPermissions)
 
   useEffect(() => {
     function onRescored(e: Event) {
@@ -441,7 +482,7 @@ export default function DashboardShell({
 
   const canvasContext = pathname.startsWith('/dashboard/agents/approvals')
     ? 'Approvals'
-    : NAV.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
+    : visibleNav.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
       ?? (pathname === '/dashboard' ? 'Dashboard' : undefined)
 
   // Derive current page key for context menu
@@ -917,7 +958,7 @@ export default function DashboardShell({
 
       {/* Nav */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: sidebarCollapsed ? '4px 0' : '4px 10px' }}>
-        {NAV.map((group) => (
+        {visibleNav.map((group) => (
           <div key={group.section} style={{ marginBottom: sidebarCollapsed ? 8 : 18 }}>
             {!sidebarCollapsed && (
               <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-menu-muted)', padding: '0 3px', marginBottom: 4 }}>

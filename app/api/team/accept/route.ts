@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { notifyTeamMemberJoined } from '@/lib/team/notifyTeamMemberJoined'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -51,6 +52,11 @@ export async function GET(req: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', existingProfile.id)
+
+    await notifyTeamMemberJoined({
+      accountId: invite.account_id,
+      memberEmail: invite.invited_email,
+    }).catch(err => console.error('[team/accept] join notification failed:', err))
 
     return NextResponse.redirect(`${appUrl}/dashboard?team_joined=true`)
   }

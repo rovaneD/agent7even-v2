@@ -350,6 +350,13 @@ export async function runAgent(opts: {
       outputErr.message,
       outputErr.details,
     )
+  } else if (outputStatus === 'pending_approval') {
+    const { notifyApprovalPending } = await import('@/lib/agents/notifyApprovalPending')
+    await notifyApprovalPending({
+      profileId: opts.userId,
+      taskId,
+      agentId: opts.agentId,
+    }).catch(err => console.error('[runAgent] approval notification failed:', err))
   }
 
   // 5. Update task — completed + cost data
@@ -544,5 +551,16 @@ export async function saveAgentOutput({
     .single()
 
   if (error) throw error
+
+  if (outputStatus === 'pending_approval') {
+    const { notifyApprovalPending } = await import('@/lib/agents/notifyApprovalPending')
+    await notifyApprovalPending({
+      profileId: userId,
+      taskId,
+      agentId: agent,
+      title,
+    }).catch(err => console.error('[saveAgentOutput] approval notification failed:', err))
+  }
+
   return data
 }
