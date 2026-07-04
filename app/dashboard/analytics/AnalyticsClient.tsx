@@ -3752,8 +3752,16 @@ function PropertySelectorModal({
     fetch('/api/analytics/ga-properties')
       .then(r => r.json())
       .then(d => {
-        if (d.error) setError(`API error: ${d.error}`)
-        else { setProperties(d.properties ?? []); if (d.properties?.length === 1) setSelected(d.properties[0].id) }
+        if (d.needsReconnect) {
+          setError(d.error ?? 'Your Google sign-in expired. Reconnect to continue.')
+          return
+        }
+        if (d.error) {
+          setError(d.error.startsWith('API error:') ? d.error : `API error: ${d.error}`)
+          return
+        }
+        setProperties(d.properties ?? [])
+        if (d.properties?.length === 1) setSelected(d.properties[0].id)
       })
       .catch(() => setError('Could not load properties.'))
       .finally(() => setLoading(false))
@@ -3792,10 +3800,17 @@ function PropertySelectorModal({
           </div>
         ) : properties.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-sm text-text font-medium mb-2">No GA4 properties found</p>
+            <p className="text-sm text-text font-medium mb-2">
+              {error ? 'Reconnect Google Analytics' : 'No GA4 properties found'}
+            </p>
+            {!error && (
+              <p className="text-xs text-text-sec mb-4">
+                This Google account may not have access to any GA4 properties yet.
+              </p>
+            )}
             <a href="/api/analytics/ga-connect"
               className="inline-flex items-center gap-2 text-xs font-semibold text-white bg-[#3B82F6] px-4 py-2.5 rounded-lg hover:bg-[#2563EB] transition-colors">
-              Try a different Google account
+              {error ? 'Reconnect Google Analytics' : 'Try a different Google account'}
             </a>
           </div>
         ) : (
