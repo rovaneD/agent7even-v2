@@ -1,5 +1,5 @@
 /**
- * Foundation Observer v0 checkpoint — read recent changelog rows for a profile.
+ * Foundation Observer v0.5 checkpoint — read recent changelog rows for a profile.
  *
  * Usage:
  *   npx --yes tsx --env-file=.env.local scripts/verify-foundation-changelog.ts
@@ -61,7 +61,7 @@ async function main() {
     .eq('id', profileId)
     .maybeSingle()
 
-  console.log('=== Foundation Observer changelog checkpoint (v0) ===\n')
+  console.log('=== Foundation Observer changelog checkpoint (v0.5) ===\n')
   console.log(`Profile: ${profile?.company_name ?? profileId}`)
   console.log(`Foundation score: ${profile?.foundation_score ?? '—'}%`)
   console.log(`Limit: ${limit} rows\n`)

@@ -97,7 +97,7 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
     autonomyLevel: 'approval_required',
     outputType: 'campaign',
     model: 'anthropic/claude-sonnet-4',
-    defaultConstraints: `Never promise specific ROI or revenue outcomes. Never recommend ad spend above the client's stated marketing budget. Never build campaigns targeting demographics that conflict with the client's stated audience. Always flag if a campaign strategy requires budget the client hasn't confirmed.`,
+    defaultConstraints: `Never promise specific ROI or revenue outcomes. Never recommend ad spend above the client's stated marketing budget. Never build campaigns targeting demographics that conflict with the client's stated audience. Always flag if a campaign strategy requires budget the client hasn't confirmed. Never invent trial length, subscription pricing, onboarding calls, or discount offers — use task input and OFFER & CTA RULES in the system prompt.`,
     foundationSections: ['business', 'customer', 'position', 'plan', 'memory'],
     warnIfThinSections: [],
   },

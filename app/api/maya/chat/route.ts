@@ -8,6 +8,10 @@ import { logActivity } from '@/lib/activity'
 import { createTask, updateTaskStatus } from '@/lib/agents/runner'
 import { calculateCost, CREDIT_COST } from '@/lib/agents/cost'
 import { loadFoundationContext } from '@/lib/agents/loadFoundationContext'
+import {
+  loadFoundationChangelog,
+  formatFoundationObserverContextForMaya,
+} from '@/lib/foundation/changelogContext'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { buildImageContextCapabilityPrompt } from '@/lib/posts/imageContextCapabilities'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
@@ -114,7 +118,10 @@ You are completing a specific task, not building a new campaign. Never say "spin
     // ── 3. Load Foundation context ─────────────────────────────────────────
     // profile.id is the Supabase UUID — same key as foundation_answers + foundation_documents.
     // Do NOT branch on foundation_complete; that flag is unreliable (can be true with 0 docs).
-    const foundation = await loadFoundationContext(profile.id)
+    const [foundation, changelog] = await Promise.all([
+      loadFoundationContext(profile.id),
+      loadFoundationChangelog(profile.id),
+    ])
     const { hasFoundation, documents, competitorsFreetext, answers: fAnswers } = foundation
 
     // ── 4. Build system prompt ─────────────────────────────────────────────
@@ -216,6 +223,8 @@ Reference these specifics. Ask one focused question to learn more about their bu
         }`
       : ''
 
+    const observerSection = formatFoundationObserverContextForMaya(changelog)
+
     const helpSection = isHelpMode ? `
 PRODUCT KNOWLEDGE — AGENT7EVEN MAYA PLATFORM:
 
@@ -296,7 +305,7 @@ ${helpSection}
 ${sidebarChatSection}
 ${businessFactsSection}
 ${contextSection}
-${canvasSection}${formActuationSection}${foundationSection}
+${canvasSection}${formActuationSection}${foundationSection}${observerSection}
 HOW YOU OPEN:
 One sentence. Pick one specific thing you know — their goal, their main challenge, or their differentiator — and lead with it. Then ask one direct question OR give the next step. Do not summarize or recite their foundation back at them. Do not list everything you know.
 

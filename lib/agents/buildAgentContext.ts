@@ -1,5 +1,9 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { loadFoundationContext, loadFoundationMemory, formatMemoryForAgent } from './loadFoundationContext'
+import {
+  loadFoundationChangelog,
+  formatFoundationObserverContextForAgents,
+} from '@/lib/foundation/changelogContext'
 
 export async function buildAgentContext(userId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -13,6 +17,7 @@ export async function buildAgentContext(userId: string): Promise<string> {
     { data: brandAnswers },
     foundation,
     memory,
+    changelog,
   ] = await Promise.all([
     supabase
       .from('brand_documents')
@@ -34,6 +39,7 @@ export async function buildAgentContext(userId: string): Promise<string> {
 
     loadFoundationContext(userId),
     loadFoundationMemory(userId),
+    loadFoundationChangelog(userId),
   ])
 
   if (!docs?.length && !profile && !foundation.hasFoundation) return ''
@@ -101,6 +107,9 @@ export async function buildAgentContext(userId: string): Promise<string> {
 
   const memorySection = formatMemoryForAgent(memory)
   if (memorySection) sections.push(`\n${memorySection}`)
+
+  const observerSection = formatFoundationObserverContextForAgents(changelog)
+  if (observerSection) sections.push(`\n${observerSection}`)
 
   return sections.filter(Boolean).join('\n')
 }

@@ -14,6 +14,7 @@ import { CREDIT_COST, type RunTier } from '@/lib/agents/cost'
 import { assessTextFairUse } from '@/lib/credits/textFairUse'
 import { buildAgentFlowPrompt, buildAgentUserMessage } from '@/lib/agents/flows'
 import { formatAgentRunDateLong, normalizeSeoScanReportDate } from '@/lib/agents/runMetadata'
+import { buildCampaignOfferGuardrails } from '@/lib/agents/productOfferGuardrails'
 import { parseAndValidateIdeaAnalysis } from '@/lib/agents/ideaAnalysis'
 import { readPostMediaRef } from '@/lib/postAssets'
 import {
@@ -94,12 +95,15 @@ export async function executeAgentRun(opts: {
     await deductCredits(userId, creditsNeeded, `agent_run — ${agentId} reserved`, taskId)
     creditsReserved = true
 
-    const [baseSystem, flowSystem] = await Promise.all([
+    const [baseSystem, flowSystem, offerGuardrails] = await Promise.all([
       buildSystemPrompt(userId, agentId, taskInput),
       buildAgentFlowPrompt(userId, agentId, taskInput),
+      agentId === 'campaign_builder'
+        ? buildCampaignOfferGuardrails(userId, taskInput)
+        : Promise.resolve(''),
     ])
 
-    let system = [baseSystem, flowSystem].filter(Boolean).join('\n\n---\n\n')
+    let system = [baseSystem, flowSystem, offerGuardrails].filter(Boolean).join('\n\n---\n\n')
 
     if (taskInput.rejection_feedback) {
       system += `\n\nIMPORTANT — Previous version was rejected with this feedback: "${taskInput.rejection_feedback}". Address this directly before anything else.`
