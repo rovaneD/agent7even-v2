@@ -43,6 +43,8 @@ import {
 import { FOUNDATION_VISUAL_FIELDS } from '@/lib/foundation/visualFields'
 import type { CreativeDirection } from '@/lib/agents/foundationCreativeDirection/types'
 import { visualHubSectionPreview } from '@/lib/agents/foundationCreativeDirection/hubPreview'
+import SiteSnapshotCard from '@/components/foundation/SiteSnapshotCard'
+import ObserverChangelogPanel from '@/components/foundation/ObserverChangelogPanel'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1148,6 +1150,8 @@ function MemoryTab({ data, loading }: { data: FoundationMemoryResponse | null; l
 
   return (
     <div className="max-w-[860px]">
+      <ObserverChangelogPanel />
+
       {/* Auto-populated banner */}
       <div className="flex items-center gap-2 mb-5 px-0.5">
         <div className="flex items-center gap-1.5 bg-[#F0FDF4] border border-[#BBF7D0] rounded-full px-3 py-1">
@@ -1729,6 +1733,8 @@ export default function FoundationHub({
                   </button>
                 </div>
               )}
+
+              <SiteSnapshotCard websiteUrl={localWebsiteUrl} />
 
               {/* Section cards */}
               <div className="space-y-3">

@@ -1,17 +1,16 @@
 'use client'
 
-import { Fragment, useState, useEffect, useMemo, type ReactNode } from 'react'
+import { useState, useEffect, useMemo, type ReactNode } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
-import { useRegisterMayaFormSurface } from '@/context/MayaFormActuationContext'
 import { buildAgentCommandCenterMayaContext } from '@/lib/maya/summaries/agentsContext'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Loader2, CheckCircle2, AlertCircle, ArrowRight, X } from 'lucide-react'
+import { ExternalLink, ChevronDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { AGENTS, AgentId, AgentDefinition, AGENT_COLORS, COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
+import { agentRunHref } from '@/lib/agents/guidedSetup'
+import { agentDisplayName, friendlyRunError } from '@/lib/agents/agentRunUi'
 import {
-  CONTENT_POSTING_FLOW_LABELS,
-  type ContentPostingFlow,
   contentPostingStatsAgentIds,
   isLegacyContentAgent,
 } from '@/lib/agents/contentPosting'
@@ -66,207 +65,11 @@ interface ScorecardEntry {
 interface Props {
   profileId: string
   companyName: string
-  profileWebsiteUrl?: string | null
-  brandKitAvailable?: boolean
-  hasUploadedLogo?: boolean
   activeTasks: AgentTask[]
   pendingApprovals: AgentTask[]
   recentTasks: AgentTask[]
   recentOutputs: AgentOutput[]
   scorecard: ScorecardEntry[]
-}
-
-type RunTrackerPhase = 'generating' | 'done' | 'error'
-
-interface RunTracker {
-  taskId: string
-  agent: string
-  contentFlow?: ContentPostingFlow
-  phase: RunTrackerPhase
-  message: string
-  detail?: string
-  primaryHref?: string
-  primaryLabel?: string
-}
-
-type GuidedFieldType = 'text' | 'textarea' | 'select'
-
-interface GuidedField {
-  key: string
-  label: string
-  placeholder?: string
-  type?: GuidedFieldType
-  options?: string[]
-  columns?: 1 | 2 | 3
-}
-
-interface AgentGuidedConfig {
-  intro: string
-  fields: GuidedField[]
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-const AGENT_GUIDED_CONFIG: Record<AgentId, AgentGuidedConfig> = {
-  competitor_watcher: {
-    intro: 'Set the competitive angle so the watcher returns a decision-ready read instead of asking who to watch.',
-    fields: [
-      { key: 'watchFocus', label: 'Watch focus', type: 'select', options: ['General market watch', 'Pricing/offers', 'Social content', 'Positioning/messaging', 'Website/landing pages'], columns: 3 },
-      { key: 'timeWindow', label: 'Time window', type: 'select', options: ['This week', 'Last 30 days', 'Current campaigns', 'Always-on watch'], columns: 3 },
-      { key: 'decisionGoal', label: 'Decision this should inform', placeholder: 'What should we change, launch, test, or protect?', columns: 3 },
-      { key: 'competitors', label: 'Competitors to watch', type: 'textarea', placeholder: 'Optional. Leave blank to use Foundation competitors.', columns: 2 },
-      { key: 'channels', label: 'Sources to prioritize', type: 'textarea', placeholder: 'Websites, pricing pages, Instagram, email, ads, reviews...', columns: 2 },
-      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Claims, competitor callouts, tactics, or sensitive areas to avoid.', columns: 1 },
-    ],
-  },
-  content_posting: {
-    intro: 'Choose Single post or Weekly content, then complete the setup for that flow.',
-    fields: [],
-  },
-  weekly_content: {
-    intro: 'Define the week so the agent produces usable posts and emails, not a generic content brainstorm.',
-    fields: [
-      { key: 'weekGoal', label: 'Week goal', placeholder: 'Lead generation, nurture, launch support, retention...', columns: 3 },
-      { key: 'contentMix', label: 'Content mix', type: 'select', options: ['Balanced', 'Education-heavy', 'Sales/promo', 'Community/engagement', 'Launch support'], columns: 3 },
-      { key: 'platforms', label: 'Platforms', placeholder: 'Instagram, LinkedIn, email, blog, Facebook...', columns: 3 },
-      { key: 'audience', label: 'Audience', placeholder: 'Who should this week speak to?', columns: 2 },
-      { key: 'offer', label: 'Offer / product', placeholder: 'What should the content move people toward?', columns: 2 },
-      { key: 'mustInclude', label: 'Must include', type: 'textarea', placeholder: 'Proof, events, links, product details, campaign notes...', columns: 2 },
-      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Topics, phrases, claims, or angles to avoid.', columns: 2 },
-    ],
-  },
-  post_caption: {
-    intro: 'Attach the image you plan to post. Maya reads it and writes one caption to match what is in the frame — then you approve and publish.',
-    fields: [
-      { key: 'platform', label: 'Platform', type: 'select', options: ['Instagram', 'LinkedIn', 'Facebook', 'X'], columns: 3 },
-      { key: 'postGoal', label: 'Post goal', type: 'select', options: ['Awareness', 'Engagement', 'Traffic', 'Leads', 'Sales', 'Community'], columns: 3 },
-      { key: 'audience', label: 'Audience', placeholder: 'Who should this post speak to?', columns: 3 },
-      { key: 'offer', label: 'Offer / CTA', placeholder: 'Link, product, booking page, or action you want...', columns: 2 },
-      { key: 'mustInclude', label: 'Must include', type: 'textarea', placeholder: 'Hashtags, link, promo code, event date...', columns: 2 },
-      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Topics, phrases, or claims to avoid.', columns: 2 },
-    ],
-  },
-  campaign_builder: {
-    intro: 'Give the campaign enough operating constraints to return a real plan with actions, timing, and metrics.',
-    fields: [
-      { key: 'campaignGoal', label: 'Campaign goal', type: 'select', options: ['Leads', 'Trials', 'Sales', 'Awareness', 'Retention', 'Launch'], columns: 3 },
-      { key: 'timeline', label: 'Timeline', type: 'select', options: ['14 days', '30 days', '60 days', '90 days'], columns: 3 },
-      { key: 'successMetric', label: 'Success metric', placeholder: 'Booked calls, trials, purchases, replies, traffic...', columns: 3 },
-      { key: 'audience', label: 'Audience', placeholder: 'Target customer segment or ICP.', columns: 2 },
-      { key: 'offer', label: 'Offer / product', placeholder: 'Primary offer, package, launch, or feature.', columns: 2 },
-      { key: 'channels', label: 'Channels', placeholder: 'Email, paid social, organic social, search, events...', columns: 2 },
-      { key: 'budget', label: 'Budget / constraints', placeholder: 'Budget, team capacity, assets available, timing constraints...', columns: 2 },
-    ],
-  },
-  performance_digest: {
-    intro: 'Point the analyst at the decision you need. If connected analytics are limited, it will use the snapshot you provide.',
-    fields: [
-      { key: 'dateRange', label: 'Date range', type: 'select', options: ['7 days', '30 days', '90 days', 'Current campaign'], columns: 3 },
-      { key: 'decisionNeed', label: 'Decision needed', type: 'select', options: ['Full digest', 'What to double down on', 'What to fix', 'Budget allocation', 'Content performance'], columns: 3 },
-      { key: 'channels', label: 'Channels', placeholder: 'GA, Meta, Instagram, email, ads, website...', columns: 3 },
-      { key: 'campaignFocus', label: 'Campaign focus', placeholder: 'Optional campaign, launch, or funnel to evaluate.', columns: 2 },
-      { key: 'analyticsSnapshot', label: 'Analytics snapshot', type: 'textarea', placeholder: 'Paste any key metrics, observations, or dashboard notes.', columns: 2 },
-    ],
-  },
-  trend_spotter: {
-    intro: 'Set the niche and risk level so trend recommendations stay useful and on brand.',
-    fields: [
-      { key: 'industry', label: 'Industry / niche', placeholder: 'Business category or niche to monitor.', columns: 3 },
-      { key: 'riskTolerance', label: 'Risk level', type: 'select', options: ['Conservative', 'Balanced', 'Aggressive/experimental'], columns: 3 },
-      { key: 'contentFormats', label: 'Useful formats', placeholder: 'Reels, carousels, newsletters, paid ads, blog posts...', columns: 3 },
-      { key: 'trendSources', label: 'Sources to consider', type: 'textarea', placeholder: 'TikTok, Instagram, newsletters, competitors, search, communities...', columns: 2 },
-      { key: 'brandFitRules', label: 'Brand-fit rules', type: 'textarea', placeholder: 'What trends should be excluded even if popular?', columns: 2 },
-    ],
-  },
-  email_sequence_builder: {
-    intro: 'Build draft copy for each email — you paste subject, preview, and body into your email tool (Mailchimp, Klaviyo, etc.) one email at a time.',
-    fields: [
-      { key: 'sequenceType', label: 'Sequence type', type: 'select', options: ['Welcome', 'Lead nurture', 'Prospect response', 'Demo follow-up', 'Abandoned checkout', 'Re-engagement', 'Launch/promo'], columns: 3 },
-      { key: 'emailCount', label: 'Email count', type: 'select', options: ['3', '4', '5', '6', '7'], columns: 3 },
-      { key: 'desiredOutcome', label: 'Goal', type: 'select', options: ['Schedule a demo', 'Start a trial', 'Book a consultation', 'Purchase', 'Reply to email', 'Move to next conversation stage'], columns: 3 },
-      { key: 'leadSource', label: 'Lead/source', placeholder: 'Website form, social DM, referral, demo, existing list...', columns: 2 },
-      { key: 'audience', label: 'Audience / lead type', placeholder: 'Warm lead, new subscriber, trial user, past client...', columns: 2 },
-      { key: 'offer', label: 'Offer / product', placeholder: 'What should the sequence move them toward?', columns: 2 },
-      { key: 'ctaDestination', label: 'CTA destination', placeholder: 'Booking link, pricing page, reply, checkout, trial page...', columns: 2 },
-      { key: 'cadence', label: 'Send cadence', placeholder: 'Every 2 days, daily for 3 days, weekly...', columns: 2 },
-      { key: 'tone', label: 'Tone', placeholder: 'Warm and direct, premium, playful, consultative...', columns: 2 },
-      { key: 'painPoints', label: 'Pain points', type: 'textarea', placeholder: 'What objections or frustrations should it address?', columns: 3 },
-      { key: 'mustInclude', label: 'Must include', type: 'textarea', placeholder: 'Proof, offer details, links, deadlines, product facts...', columns: 3 },
-      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Discounts, guarantees, competitor names, certain claims...', columns: 3 },
-    ],
-  },
-  ad_variations: {
-    intro: 'Set the test conditions so the agent creates platform-ready variants with clear angles.',
-    fields: [
-      { key: 'platform', label: 'Platform', type: 'select', options: ['Meta', 'Instagram', 'Google Search', 'LinkedIn', 'TikTok', 'Multi-platform'], columns: 3 },
-      { key: 'objective', label: 'Objective', type: 'select', options: ['Leads', 'Trials', 'Sales', 'Retargeting', 'Awareness'], columns: 3 },
-      { key: 'format', label: 'Format', type: 'select', options: ['Feed', 'Story/Reel', 'Search', 'Carousel', 'Short video script'], columns: 3 },
-      { key: 'offer', label: 'Offer / product', placeholder: 'What is the ad selling or promoting?', columns: 2 },
-      { key: 'audience', label: 'Audience', placeholder: 'Who should the ad target?', columns: 2 },
-      { key: 'proofPoints', label: 'Proof points', type: 'textarea', placeholder: 'Testimonials, outcomes, differentiators, features, credibility...', columns: 2 },
-      { key: 'mustAvoid', label: 'Must avoid', type: 'textarea', placeholder: 'Claims, phrases, angles, protected attributes, compliance risks...', columns: 2 },
-    ],
-  },
-  seo_scanner: {
-    intro: 'Define the audit lens. The scanner uses your saved website unless you provide an override.',
-    fields: [
-      { key: 'scanFocus', label: 'Scan focus', type: 'select', options: ['Full audit', 'Quick wins', 'Content gaps', 'Technical basics', 'Local SEO'], columns: 3 },
-      { key: 'websiteUrl', label: 'Website URL', placeholder: 'Optional override. Leave blank to use profile website.', columns: 3 },
-      { key: 'businessNiche', label: 'Business niche', placeholder: 'What market should the SEO advice fit?', columns: 3 },
-      { key: 'targetKeywords', label: 'Target keywords', type: 'textarea', placeholder: 'Keywords, services, locations, topics, or search terms.', columns: 2 },
-      { key: 'priorityPages', label: 'Priority pages', type: 'textarea', placeholder: 'Homepage, pricing, product pages, service pages, blog URLs...', columns: 2 },
-      { key: 'competitors', label: 'SEO competitors', type: 'textarea', placeholder: 'Optional competitors to compare against.', columns: 1 },
-    ],
-  },
-  brand_voice_guardian: {
-    intro: 'Paste the content and set the review standard so the guardian can approve, flag, or rewrite.',
-    fields: [
-      { key: 'reviewMode', label: 'Review mode', type: 'select', options: ['Full review', 'Tone only', 'Compliance/risk', 'Rewrite suggestions', 'Approval check'], columns: 3 },
-      { key: 'strictness', label: 'Strictness', type: 'select', options: ['Light', 'Standard', 'Strict'], columns: 3 },
-      { key: 'channel', label: 'Channel', placeholder: 'Email, ad, landing page, Instagram, LinkedIn...', columns: 3 },
-      { key: 'intendedAudience', label: 'Intended audience', placeholder: 'Who is this content for?', columns: 2 },
-      { key: 'mustPreserve', label: 'Must preserve', type: 'textarea', placeholder: 'Lines, claims, tone notes, offer details, or structure to keep.', columns: 2 },
-      { key: 'contentToReview', label: 'Content to review', type: 'textarea', placeholder: 'Paste the draft, caption, email, ad, or page copy here.', columns: 1 },
-    ],
-  },
-  idea_analysis: {
-    intro: 'Paste a post URL or describe your topic. Maya returns a Foundation-grounded analysis you can turn into Viral Hooks — no re-typing.',
-    fields: [
-      { key: 'sourceType', label: 'Source', type: 'select', options: ['Pasted URL', 'My own topic'], columns: 3 },
-      { key: 'platform', label: 'Platform / format', type: 'select', options: ['Instagram Reel', 'TikTok', 'YouTube Short', 'Carousel', 'LinkedIn post', 'Email hook'], columns: 3 },
-      { key: 'sourceUrl', label: 'Post URL', placeholder: 'https://instagram.com/reel/... or any public post link', columns: 3 },
-      { key: 'topic', label: 'Your topic', placeholder: 'The idea you want to adapt — offer, pain point, or angle', columns: 2 },
-      { key: 'contentNotes', label: 'What stood out', type: 'textarea', placeholder: 'Hook, caption snippet, offer, or why this idea is worth adapting (especially if the URL is paywalled).', columns: 2 },
-    ],
-  },
-}
-
-function agentDisplayName(agentId: string): string {
-  if (isLegacyContentAgent(agentId)) return AGENTS.content_posting.name
-  return AGENTS[agentId as AgentId]?.name ?? agentId
-}
-
-const INITIAL_AGENT_FORMS = Object.fromEntries(
-  Object.entries(AGENT_GUIDED_CONFIG).map(([agentId, config]) => [
-    agentId,
-    Object.fromEntries(config.fields.map(field => [field.key, field.options?.[0] ?? ''])),
-  ])
-) as Record<AgentId, Record<string, string>>
-
-function buildGuidedInstructions(agentId: AgentId, form: Record<string, string>, extraInstructions: string): string {
-  const agent = AGENTS[agentId]
-  const config = AGENT_GUIDED_CONFIG[agentId]
-  const details = config.fields
-    .map(field => `${field.label}: ${form[field.key]?.trim() || 'Use best assumption from Foundation/Brand context'}`)
-    .join('\n')
-
-  return `Run ${agent.name} using these setup details.
-
-${details}
-
-Additional instructions: ${extraInstructions.trim() || 'None'}
-
-Return a complete, ready-to-review output that follows this agent's output contract. Do not ask setup questions. If anything is missing, state your assumption and continue.`
 }
 
 function relativeTime(iso: string | null): string {
@@ -281,6 +84,15 @@ function relativeTime(iso: string | null): string {
   if (days === 1) return 'Yesterday'
   if (days < 7) return `${days} days ago`
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function getOutputText(output: AgentOutput): string {
+  const content = output.content
+  if (!content) return ''
+  if (typeof content === 'string') return content
+  if (typeof content.raw === 'string') return content.raw
+  if (content.parsed) return JSON.stringify(content.parsed, null, 2)
+  return JSON.stringify(content, null, 2)
 }
 
 function getContentPreview(output: AgentOutput): string {
@@ -301,221 +113,81 @@ function getOutputDescription(output: AgentOutput): string {
   return getContentPreview(output) || 'Saved agent output'
 }
 
-function getOutputText(output: AgentOutput): string {
-  const content = output.content
-  if (!content) return ''
-  if (typeof content === 'string') return content
-  if (typeof content.raw === 'string') return content.raw
-  if (content.parsed) return JSON.stringify(content.parsed, null, 2)
-  return JSON.stringify(content, null, 2)
-}
-
-function friendlyRunError(error: string | null | undefined): string {
-  if (!error) return 'Agent run failed before producing output.'
-  if (error.includes('Authentication Required') || error.includes('run-route error 401')) {
-    return 'Agent run could not start on this deployment. Try again after the latest deploy finishes.'
-  }
-  if (error.includes('Unknown agent: content-posting')) {
-    return 'Content Posting handler was not reachable on this deployment. Wait for the latest deploy, then try again.'
-  }
-  if (error.includes('INSUFFICIENT_CREDITS')) {
-    return 'Not enough media credits to finish this run. Text agents stay free — top up or upgrade for images and video.'
-  }
-  const match = error.match(/run-route error \d+: (.+)/)
-  if (match) {
-    try {
-      const parsed = JSON.parse(match[1]) as { error?: string }
-      if (parsed.error) return parsed.error
-    } catch {
-      /* use raw error below */
-    }
-  }
-  return error.length > 180 ? `${error.slice(0, 180)}…` : error
-}
-
-function runTrackerGeneratingMessage(agent: string, contentFlow?: ContentPostingFlow, generatedCompose?: boolean): string {
-  if (generatedCompose) {
-    return 'Composing caption and submitting for approval…'
-  }
-  if (agent === 'content_posting' && contentFlow === 'single') {
-    return 'Generating your post caption from your image…'
-  }
-  if (agent === 'content_posting' && contentFlow === 'weekly') {
-    return 'Building your weekly content plan…'
-  }
-  return `Running ${agentDisplayName(agent)}…`
-}
-
-function runTrackerDoneState(
-  taskId: string,
-  agent: string,
-  contentFlow?: ContentPostingFlow,
-  requiresApproval?: boolean,
-): Pick<RunTracker, 'message' | 'detail' | 'primaryHref' | 'primaryLabel'> {
-  if (agent === 'content_posting' && contentFlow === 'single') {
-    return {
-      message: 'Done — your caption is ready.',
-      detail: 'It is in Approvals until you approve it. The Posts page only shows drafts after approval.',
-      primaryHref: `/dashboard/agents/approvals?task=${taskId}&queue=post`,
-      primaryLabel: 'Review in Approvals',
-    }
-  }
-  if (requiresApproval) {
-    return {
-      message: 'Done — output ready for review.',
-      detail: 'Open Approvals to approve or edit before it goes anywhere.',
-      primaryHref: `/dashboard/agents/approvals?task=${taskId}`,
-      primaryLabel: 'Review in Approvals',
-    }
-  }
-  return {
-    message: 'Done — run completed.',
-    detail: 'Open the output archive to read the full result.',
-    primaryHref: `/dashboard/agents/${agent}/outputs`,
-    primaryLabel: 'View output',
+function outputStatusMeta(status: string): { label: string; className: string } {
+  switch (status) {
+    case 'approved':
+      return {
+        label: 'Approved',
+        className: 'border border-status-success/20 bg-status-success/10 text-status-success',
+      }
+    case 'rejected':
+      return {
+        label: 'Rejected',
+        className: 'border border-status-danger/20 bg-status-danger/10 text-status-danger',
+      }
+    case 'pending_approval':
+      return {
+        label: 'In review',
+        className: 'border border-status-warning/25 bg-status-warning/10 text-status-warning',
+      }
+    default:
+      return {
+        label: status.replace(/_/g, ' '),
+        className: 'border border-border bg-surface-2 text-text-sec',
+      }
   }
 }
 
-function AgentRunStatusBanner({
-  tracker,
-  onDismiss,
+function OutputStatusBadge({ status }: { status: string }) {
+  const meta = outputStatusMeta(status)
+  return (
+    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta.className}`}>
+      {meta.label}
+    </span>
+  )
+}
+
+function LiveActivityCollapsible({
+  title,
+  count,
+  defaultOpen = true,
+  className = 'mb-5 last:mb-0',
+  children,
 }: {
-  tracker: RunTracker
-  onDismiss: () => void
+  title: string
+  count?: number
+  defaultOpen?: boolean
+  className?: string
+  children: ReactNode
 }) {
-  const isGenerating = tracker.phase === 'generating'
-  const isDone = tracker.phase === 'done'
-  const isError = tracker.phase === 'error'
+  const [open, setOpen] = useState(defaultOpen)
 
   return (
-    <div
-      className={`sticky top-0 z-30 mb-6 overflow-hidden rounded-2xl border shadow-sm ${
-        isGenerating
-          ? 'border-blue-100 bg-blue-50'
-          : isDone
-            ? 'border-emerald-100 bg-emerald-50'
-            : 'border-red-100 bg-red-50'
-      }`}
-      role="status"
-      aria-live="polite"
-    >
-      <div className="flex items-start gap-4 px-5 py-4">
-        <div className={`mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
-          isGenerating
-            ? 'bg-white text-brand-primary'
-            : isDone
-              ? 'bg-white text-emerald-600'
-              : 'bg-white text-red-600'
-        }`}>
-          {isGenerating && <Loader2 size={20} className="animate-spin" />}
-          {isDone && <CheckCircle2 size={20} />}
-          {isError && <AlertCircle size={20} />}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className={`text-sm font-semibold ${
-            isGenerating ? 'text-blue-900' : isDone ? 'text-emerald-900' : 'text-red-900'
-          }`}>
-            {tracker.message}
-          </p>
-          {tracker.detail && (
-            <p className={`mt-1 text-[13px] leading-relaxed ${
-              isGenerating ? 'text-blue-800/80' : isDone ? 'text-emerald-800/80' : 'text-red-800/80'
-            }`}>
-              {tracker.detail}
-            </p>
-          )}
-          {isGenerating && (
-            <p className="mt-2 text-[12px] text-blue-700/70">
-              Usually 15–45 seconds. Stay on this page — we&apos;ll show a link when it&apos;s ready.
-            </p>
-          )}
-          {isDone && tracker.primaryHref && tracker.primaryLabel && (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Link
-                href={tracker.primaryHref}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#3B82F6] px-4 py-2.5 text-[13px] font-semibold text-white no-underline transition-colors hover:bg-[#2563EB]"
-              >
-                {tracker.primaryLabel}
-                <ArrowRight size={14} />
-              </Link>
-              {tracker.contentFlow === 'single' && (
-                <Link
-                  href="/dashboard/posts"
-                  className="text-[13px] font-medium text-emerald-800 no-underline hover:underline"
-                >
-                  Posts (after you approve)
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
-
-        {!isGenerating && (
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="flex-shrink-0 rounded-lg p-1.5 text-text-soft hover:bg-black/5 hover:text-text-primary"
-            aria-label="Dismiss"
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
+    <div className={className}>
+      <button
+        type="button"
+        onClick={() => setOpen(prev => !prev)}
+        aria-expanded={open}
+        className="mb-2 flex w-full items-center justify-between gap-2 rounded-lg py-1 text-left transition-colors hover:bg-surface-2"
+      >
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">
+          {title}
+          {count !== undefined ? ` (${count})` : ''}
+        </span>
+        <ChevronDown
+          size={14}
+          strokeWidth={2}
+          className={`flex-shrink-0 text-text-muted transition-transform duration-200 ${open ? 'rotate-0' : '-rotate-90'}`}
+          aria-hidden
+        />
+      </button>
+      {open ? children : null}
     </div>
   )
 }
 
-function AgentSetupShell({
-  agentName,
-  onClose,
-  children,
-}: {
-  agentName: string
-  onClose: () => void
-  children: ReactNode
-}) {
-  return (
-    <>
-      {/* Mobile: slide-up drawer */}
-      <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true" aria-label={`${agentName} setup`}>
-        <button
-          type="button"
-          className="absolute inset-0 bg-black/35"
-          aria-label="Close setup"
-          onClick={onClose}
-        />
-        <div className="relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl">
-          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Run agent</p>
-              <h3 className="text-[16px] font-semibold text-text-primary">{agentName}</h3>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg p-2 text-text-soft hover:bg-gray-50 hover:text-text-primary"
-              aria-label="Close"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 pb-8">
-            {children}
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop: inline panel */}
-      <div id="agent-setup-panel" className="hidden scroll-mt-24 border-t border-border pt-5 md:block">
-        {children}
-      </div>
-    </>
-  )
-}
-
 export default function AgentCommandCenter({
-  profileId, companyName, profileWebsiteUrl = null, brandKitAvailable = false, hasUploadedLogo = false,
+  profileId, companyName,
   activeTasks: initActiveTasks,
   pendingApprovals: initPendingApprovals, recentTasks: initRecent, recentOutputs: initRecentOutputs, scorecard,
 }: Props) {
@@ -524,16 +196,6 @@ export default function AgentCommandCenter({
   const [pendingApprovals, setPendingApprovals] = useState(initPendingApprovals)
   const [recentTasks, setRecentTasks] = useState(initRecent)
   const [recentOutputs, setRecentOutputs] = useState(initRecentOutputs)
-  const [runTracker, setRunTracker] = useState<RunTracker | null>(null)
-
-  // New task form state
-  const [selectedAgent, setSelectedAgent] = useState<AgentId | null>(null)
-  const [taskInstructions, setTaskInstructions] = useState('')
-  const [taskPriority, setTaskPriority] = useState<'normal' | 'high'>('normal')
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [agentForms, setAgentForms] = useState<Record<AgentId, Record<string, string>>>(INITIAL_AGENT_FORMS)
-  const [taskCreateError, setTaskCreateError] = useState<string | null>(null)
 
   // Orchestration state
   const [activeOrchestration, setActiveOrchestration] = useState<string | null>(null)
@@ -547,14 +209,6 @@ export default function AgentCommandCenter({
     completed_at: string | null
   }>>([])
 
-  // Constraints state
-  const [constraints, setConstraints] = useState('')
-  const [savedConstraints, setSavedConstraints] = useState('')
-  const [isCustomized, setIsCustomized] = useState(false)
-  const [constraintsLastUpdated, setConstraintsLastUpdated] = useState<string | null>(null)
-  const [savingConstraints, setSavingConstraints] = useState(false)
-  const [constraintsSaved, setConstraintsSaved] = useState(false)
-
   const agentList = useMemo(() => COMMAND_CENTER_AGENTS, [])
 
   function startSinglePostFlow() {
@@ -562,117 +216,15 @@ export default function AgentCommandCenter({
   }
 
   function handleAgentCardClick(agentId: AgentId) {
-    if (agentId === 'content_posting') {
-      router.push('/dashboard/agents/content-posting')
-      return
-    }
-    setSelectedAgent(prev => {
-      const next = prev === agentId ? null : agentId
-      if (next && typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) {
-        requestAnimationFrame(() => {
-          document.getElementById('agent-setup-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        })
-      }
-      return next
-    })
+    router.push(agentRunHref(agentId))
   }
 
-  function closeAgentSetup() {
-    setSelectedAgent(null)
-  }
-
-  useEffect(() => {
-    if (!selectedAgent) return
-    const isMobile = window.matchMedia('(max-width: 767px)').matches
-    if (!isMobile) return
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [selectedAgent])
-
-  const selectedAgentConfig = selectedAgent ? AGENT_GUIDED_CONFIG[selectedAgent] : null
-  const selectedAgentForm = selectedAgent ? agentForms[selectedAgent] : {}
-
-  const CONSTRAINT_TEMPLATES = [
-    { label: 'No discounting', text: 'Never offer discounts, promotions, or reduced pricing without explicit client approval.' },
-    { label: 'No delivery promises', text: 'Never promise specific delivery timelines, turnaround times, or completion dates.' },
-    { label: 'No competitor mentions', text: 'Never name or reference specific competitors by name.' },
-    { label: 'Route pricing to human', text: 'Always direct pricing and cost questions to a human team member.' },
-    { label: 'No guarantees', text: 'Never promise specific results, outcomes, rankings, or revenue figures.' },
-    { label: 'No sensitive topics', text: 'Never engage with political, religious, or controversial social topics.' },
-  ]
-
-  const mayaContext = useMemo(() => {
-    const base = buildAgentCommandCenterMayaContext({
-      companyName,
-      activeTaskCount: activeTasks.length,
-      pendingApprovalCount: pendingApprovals.length,
-      scorecard,
-    })
-
-    if (!selectedAgent || !selectedAgentConfig) return base
-
-    const filled = selectedAgentConfig.fields
-      .filter(field => selectedAgentForm[field.key]?.trim())
-      .map(field => `${field.label}: ${selectedAgentForm[field.key].trim()}`)
-
-    const empty = selectedAgentConfig.fields
-      .filter(field => !selectedAgentForm[field.key]?.trim())
-      .map(field => field.label)
-
-    const agentName = AGENTS[selectedAgent].name
-
-    return {
-      ...base,
-      activeView: {
-        label: `${agentName} setup form`,
-        state: filled.length
-          ? `${filled.join(' · ')}${empty.length ? ` · Empty on screen: ${empty.join(', ')}` : ''}`
-          : `Form open — nothing filled yet (${empty.join(', ')})`,
-      },
-      affordance: `${base.affordance ?? ''} The user has the ${agentName} setup form on screen. Use visible field values — do not ask for information already shown in the form (e.g. website URL in the URL field). They can ask you to fill empty fields — propose values and they will click Apply in chat.${profileWebsiteUrl?.trim() ? ` Canonical website on profile: ${profileWebsiteUrl.trim()} — never change the domain or TLD in websiteUrl.` : ''}`,
-    }
-  }, [
+  const mayaContext = useMemo(() => buildAgentCommandCenterMayaContext({
     companyName,
-    profileWebsiteUrl,
-    activeTasks.length,
-    pendingApprovals.length,
+    activeTaskCount: activeTasks.length,
+    pendingApprovalCount: pendingApprovals.length,
     scorecard,
-    selectedAgent,
-    selectedAgentConfig,
-    selectedAgentForm,
-  ])
-
-  const formSurfaceDescriptor = useMemo(() => {
-    if (!selectedAgent || !selectedAgentConfig) return null
-    return {
-      id: `agent:${selectedAgent}`,
-      label: `${AGENTS[selectedAgent].name} setup form`,
-      canonicalWebsite: profileWebsiteUrl,
-      fields: selectedAgentConfig.fields.map(field => ({
-        key: field.key,
-        label: field.label,
-        type: (field.type === 'select'
-          ? 'select'
-          : field.type === 'textarea'
-            ? 'textarea'
-            : 'text') as 'text' | 'textarea' | 'select',
-        options: field.options,
-      })),
-    }
-  }, [selectedAgent, selectedAgentConfig, profileWebsiteUrl])
-
-  useRegisterMayaFormSurface(
-    formSurfaceDescriptor,
-    () => (selectedAgent ? agentForms[selectedAgent] : {}),
-    patch => {
-      if (!selectedAgent) return
-      setAgentForms(prev => ({
-        ...prev,
-        [selectedAgent]: { ...prev[selectedAgent], ...patch },
-      }))
-    },
-  )
+  }), [companyName, activeTasks.length, pendingApprovals.length, scorecard])
 
   useMayaContext(mayaContext)
 
@@ -769,168 +321,6 @@ export default function AgentCommandCenter({
     return () => { supabase.removeChannel(channel) }
   }, [profileId])
 
-  useEffect(() => {
-    if (!selectedAgent) return
-    setConstraints('')
-    setSavedConstraints('')
-    setIsCustomized(false)
-    setConstraintsLastUpdated(null)
-
-    fetch(`/api/agents/constraints?agentId=${selectedAgent}`)
-      .then(r => r.json())
-      .then(data => {
-        const value = data.constraints ?? ''
-        setConstraints(value)
-        setSavedConstraints(value)
-        setIsCustomized(!!data.constraints)
-        setConstraintsLastUpdated(data.updated_at ?? null)
-      })
-      .catch(() => {})
-  }, [selectedAgent])
-
-  async function handleSaveConstraints() {
-    if (!selectedAgent) return
-    setSavingConstraints(true)
-    try {
-      await fetch('/api/agents/constraints', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId: selectedAgent, constraints }),
-      })
-      setSavedConstraints(constraints)
-      setIsCustomized(true)
-      setConstraintsLastUpdated(new Date().toISOString())
-      setConstraintsSaved(true)
-      setTimeout(() => setConstraintsSaved(false), 2500)
-    } finally {
-      setSavingConstraints(false)
-    }
-  }
-
-  async function pollTaskRun(
-    taskId: string,
-    agent: string,
-    contentFlow?: ContentPostingFlow,
-  ) {
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      const res = await fetch(`/api/agents/tasks/${taskId}`)
-      if (!res.ok) continue
-
-      const data = await res.json().catch(() => ({}))
-      const task = data.task as AgentTask | undefined
-      if (!task) continue
-
-      if (task.status === 'pending' || task.status === 'running') {
-        setRunTracker(prev => prev?.taskId === taskId ? {
-          ...prev,
-          phase: 'generating',
-          message: runTrackerGeneratingMessage(agent, contentFlow),
-          detail: undefined,
-        } : prev)
-        continue
-      }
-
-      setRecentTasks(prev => [task, ...prev.filter(t => t.id !== task.id)].slice(0, 30))
-
-      if (task.status === 'completed') {
-        const outputs = (data.outputs ?? []) as AgentOutput[]
-        if (outputs.length > 0) {
-          setRecentOutputs(prev => {
-            const merged = [...outputs, ...prev.filter(o => !outputs.some(n => n.id === o.id))]
-            return merged.slice(0, 50)
-          })
-        }
-        if (task.requires_approval && !task.approved_at && !task.rejected_at) {
-          setPendingApprovals(prev => {
-            const enriched = { ...task, agent_outputs: outputs }
-            return prev.some(t => t.id === task.id) ? prev : [enriched, ...prev]
-          })
-        }
-        setRunTracker({
-          taskId,
-          agent,
-          contentFlow,
-          phase: 'done',
-          ...runTrackerDoneState(taskId, agent, contentFlow, task.requires_approval),
-        })
-        return
-      }
-
-      if (task.status === 'failed') {
-        setRunTracker({
-          taskId,
-          agent,
-          contentFlow,
-          phase: 'error',
-          message: 'Run failed',
-          detail: friendlyRunError(task.error),
-        })
-        return
-      }
-    }
-
-    setRunTracker({
-      taskId,
-      agent,
-      contentFlow,
-      phase: 'error',
-      message: 'Run is taking longer than expected',
-      detail: 'Refresh the page in a moment, or check Live activity for failed runs.',
-    })
-  }
-
-  async function handleCreateTask() {
-    if (!selectedAgent || selectedAgent === 'content_posting') return
-    setTaskCreateError(null)
-    setSubmitting(true)
-    try {
-      const form = agentForms[selectedAgent] ?? {}
-      const instructions = buildGuidedInstructions(selectedAgent, form, taskInstructions)
-      const input: Record<string, unknown> = { instructions, ...form }
-
-      const res = await fetch('/api/agents/tasks/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agent: selectedAgent,
-          input,
-          priority: taskPriority,
-        }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setTaskCreateError(typeof data.error === 'string' ? data.error : 'Could not queue this agent run.')
-        return
-      }
-      const queuedAgent = selectedAgent
-      setSubmitted(true)
-      setTaskInstructions('')
-      setSelectedAgent(null)
-      setTimeout(() => setSubmitted(false), 3000)
-      if (typeof data.taskId === 'string' && queuedAgent) {
-        setRunTracker({
-          taskId: data.taskId,
-          agent: queuedAgent,
-          phase: 'generating',
-          message: runTrackerGeneratingMessage(queuedAgent),
-        })
-        void pollTaskRun(data.taskId, queuedAgent)
-      }
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  function updateAgentForm(agentId: AgentId, key: string, value: string) {
-    setAgentForms(prev => ({
-      ...prev,
-      [agentId]: {
-        ...prev[agentId],
-        [key]: value,
-      },
-    }))
-  }
 
   const runningTasks = activeTasks.filter(t => t.status === 'running')
   const queuedTasks = activeTasks.filter(t => t.status === 'pending')
@@ -1016,12 +406,6 @@ export default function AgentCommandCenter({
         </div>
       </section>
 
-      {runTracker && (
-        <AgentRunStatusBanner
-          tracker={runTracker}
-          onDismiss={() => setRunTracker(null)}
-        />
-      )}
 
       <div id="run-agent" className="mb-6 rounded-2xl border border-gray-100 bg-white p-6">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
@@ -1030,39 +414,22 @@ export default function AgentCommandCenter({
             <h2 className="mt-1 text-[18px] font-semibold text-text-primary">Choose the specialist for this task</h2>
             <p className="mt-1 text-sm text-text-sec">Each agent has a guided setup so the output comes back ready to review.</p>
           </div>
-          {submitted && (
-            <span className="rounded-full bg-status-success/10 px-3 py-1.5 text-xs font-semibold text-status-success">
-              Task queued
-            </span>
-          )}
-          {runTracker?.phase === 'generating' && (
-            <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-              <Loader2 size={12} className="animate-spin" />
-              Generating…
-            </span>
-          )}
         </div>
 
-        <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {agentList.map((agent: AgentDefinition) => {
-            const isSelected = selectedAgent === agent.id
-            return (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {agentList.map((agent: AgentDefinition) => (
               <button
                 key={agent.id}
                 onClick={() => handleAgentCardClick(agent.id as AgentId)}
-                className={`group flex min-h-[118px] flex-col gap-3 rounded-2xl border p-4 text-left transition-all ${
-                  isSelected
-                    ? 'border-brand-primary bg-brand-primary/5'
-                    : 'border-border bg-surface hover:border-gray-200 hover:bg-surface-2'
-                }`}
+                className="group flex min-h-[118px] flex-col gap-3 rounded-2xl border border-border bg-surface p-4 text-left transition-all hover:border-gray-200 hover:bg-surface-2"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full transition-colors"
-                    style={isSelected
-                      ? { backgroundColor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }
-                      : { backgroundColor: AGENT_COLORS[agent.id as AgentId]?.bg ?? '#F3F4F6', color: AGENT_COLORS[agent.id as AgentId]?.fg ?? '#6B7280' }
-                    }
+                    className="flex h-10 w-10 items-center justify-center rounded-full transition-colors group-hover:bg-brand-primary/10 group-hover:text-brand-primary"
+                    style={{
+                      backgroundColor: AGENT_COLORS[agent.id as AgentId]?.bg ?? '#F3F4F6',
+                      color: AGENT_COLORS[agent.id as AgentId]?.fg ?? '#6B7280',
+                    }}
                   >
                     <AgentIcon agentId={agent.id} size={20} />
                   </span>
@@ -1079,186 +446,8 @@ export default function AgentCommandCenter({
                   <p className="mt-1 text-xs leading-5 text-text-sec">{agent.description}</p>
                 </div>
               </button>
-            )
-          })}
+          ))}
         </div>
-
-        {/* Instructions + submit */}
-        {selectedAgent && selectedAgent !== 'content_posting' && (
-          <AgentSetupShell
-            agentName={AGENTS[selectedAgent].name}
-            onClose={closeAgentSetup}
-          >
-            {selectedAgentConfig && (
-              <div className="mb-4">
-                <div className="mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                  <p className="text-sm font-semibold text-text-primary">
-                    {AGENTS[selectedAgent].name} setup
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-text-sec">
-                    {selectedAgentConfig.intro}
-                  </p>
-                </div>
-
-                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-6">
-                  {selectedAgentConfig.fields.map(field => {
-                    const type = field.type ?? 'text'
-                    const columnSpan = field.columns === 1 ? 6 : field.columns === 3 ? 2 : 3
-                    const spanClass = columnSpan === 6 ? 'sm:col-span-6' : columnSpan === 2 ? 'sm:col-span-2' : 'sm:col-span-3'
-                    const controlClass = 'w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-brand-primary'
-
-                    return (
-                      <label key={field.key} className={`grid gap-1.5 ${spanClass}`}>
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">
-                          {field.label}
-                        </span>
-                        {type === 'select' ? (
-                          <select
-                            value={selectedAgentForm[field.key] ?? ''}
-                            onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
-                            className={controlClass}
-                          >
-                            {(field.options ?? []).map(option => <option key={option}>{option}</option>)}
-                          </select>
-                        ) : type === 'textarea' ? (
-                          <textarea
-                            value={selectedAgentForm[field.key] ?? ''}
-                            onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
-                            rows={field.columns === 1 ? 4 : 3}
-                            placeholder={field.placeholder}
-                            className={`${controlClass} resize-y leading-6`}
-                          />
-                        ) : (
-                          <input
-                            value={selectedAgentForm[field.key] ?? ''}
-                            onChange={e => updateAgentForm(selectedAgent, field.key, e.target.value)}
-                            placeholder={field.placeholder}
-                            className={controlClass}
-                          />
-                        )}
-                      </label>
-                    )
-                  })}
-                </div>
-
-                <label className="grid gap-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">
-                    Additional instructions
-                  </span>
-                  <textarea
-                    value={taskInstructions}
-                    onChange={e => setTaskInstructions(e.target.value)}
-                    placeholder={`Optional: add anything specific ${AGENTS[selectedAgent].name} should know for this run.`}
-                    rows={3}
-                    className="w-full resize-y rounded-xl border border-border bg-surface px-3 py-2.5 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-brand-primary"
-                  />
-                </label>
-              </div>
-            )}
-            <div className="flex flex-wrap items-center gap-3">
-              {taskCreateError && (
-                <p className="w-full text-sm text-red-600">{taskCreateError}</p>
-              )}
-              <div className="flex gap-2">
-                {(['normal', 'high'] as const).map(p => (
-                  <button key={p} onClick={() => setTaskPriority(p)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
-                      taskPriority === p
-                        ? 'border border-brand-primary bg-brand-primary/10 text-brand-primary'
-                        : 'border border-border bg-surface-2 text-text-sec hover:border-border-strong'
-                    }`}>
-                    {p}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={handleCreateTask}
-                disabled={
-                  submitting
-                  || submitted
-                  || runTracker?.phase === 'generating'
-                }
-                className={`ml-auto min-w-[180px] rounded-xl px-5 py-3 text-sm font-semibold text-text-inverse transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                  submitted ? 'bg-status-success' : 'bg-brand-primary hover:bg-[#2563EB]'
-                }`}
-              >
-                {runTracker?.phase === 'generating'
-                  ? 'Generating…'
-                  : submitted
-                    ? 'Task queued'
-                    : submitting
-                      ? 'Queuing...'
-                      : `Run ${AGENTS[selectedAgent].name}`}
-              </button>
-            </div>
-
-            {/* Constraints section */}
-            <div className="mt-6 border-t border-border pt-5">
-              <div className="mb-3 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">
-                    What this agent will never do
-                  </p>
-                  <p className="mt-1 text-xs text-text-sec">
-                    Brand safety guardrails applied to every run.
-                  </p>
-                </div>
-                {isCustomized && (
-                  <span className="flex-shrink-0 rounded-full bg-status-success/10 px-2.5 py-1 text-xs font-semibold text-status-success">
-                    Customized
-                  </span>
-                )}
-              </div>
-
-              {/* Template quick-insert buttons */}
-              <div className="mb-3 flex flex-wrap gap-2">
-                {CONSTRAINT_TEMPLATES.map(t => (
-                  <button
-                    key={t.label}
-                    onClick={() => setConstraints(prev => prev ? `${prev}\n${t.text}` : t.text)}
-                    className="rounded-full border border-border bg-surface-2 px-3 py-1.5 text-xs font-medium text-text-sec transition-colors hover:border-gray-200 hover:text-text-primary"
-                  >
-                    + {t.label}
-                  </button>
-                ))}
-              </div>
-
-              <textarea
-                value={constraints}
-                onChange={e => setConstraints(e.target.value)}
-                rows={4}
-                placeholder={AGENTS[selectedAgent].defaultConstraints}
-                className="w-full resize-none rounded-xl border border-border bg-surface px-3 py-2.5 text-sm leading-6 text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-brand-primary"
-              />
-
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                {constraints !== savedConstraints && (
-                  <button
-                    onClick={handleSaveConstraints}
-                    disabled={savingConstraints}
-                    className="rounded-xl bg-brand-primary px-4 py-2 text-xs font-semibold text-text-inverse transition-colors hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {savingConstraints ? 'Saving…' : 'Save constraints'}
-                  </button>
-                )}
-                {constraintsSaved && (
-                  <span className="text-xs font-medium text-status-success">Constraints saved</span>
-                )}
-                {constraintsLastUpdated && !constraintsSaved && (
-                  <span className="text-xs text-text-muted">
-                    Last updated {relativeTime(constraintsLastUpdated)}
-                  </span>
-                )}
-              </div>
-            </div>
-          </AgentSetupShell>
-        )}
-
-        {!selectedAgent && (
-          <div className="hidden rounded-2xl border border-gray-100 bg-white px-4 py-8 text-center text-sm text-text-sec md:block">
-            Select an agent above to get started
-          </div>
-        )}
       </div>
 
       {/* ═══ ZONE 1: Approval Queue Banner ═══ */}
@@ -1295,7 +484,10 @@ export default function AgentCommandCenter({
 
         {/* Left: Live feed */}
         <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-5">
-          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Live activity</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Live activity</p>
+          <p className="mt-1 mb-4 text-sm text-text-sec">
+            Running and queued tasks show here first — expand completed and orchestration history when you need it.
+          </p>
 
           {activeOrchestration ? (
             <OrchestrationProgress
@@ -1373,8 +565,7 @@ export default function AgentCommandCenter({
               )}
 
               {completedToday.length > 0 && (
-                <div>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Completed today</p>
+                <LiveActivityCollapsible title="Completed today" count={completedToday.length}>
                   {completedToday.map(t => {
                     return (
                       <div key={t.id} className="flex items-center gap-3 border-b border-border py-2 last:border-0">
@@ -1387,7 +578,7 @@ export default function AgentCommandCenter({
                       </div>
                     )
                   })}
-                </div>
+                </LiveActivityCollapsible>
               )}
 
               {activeTasks.length === 0 && completedToday.length === 0 && failedToday.length === 0 && (
@@ -1404,8 +595,11 @@ export default function AgentCommandCenter({
 
           {/* Recent orchestrations */}
           {!activeOrchestration && recentOrchestrations.length > 0 && (
-            <div className="mt-5 border-t border-border pt-4">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-menu-muted">Recent runs</p>
+            <LiveActivityCollapsible
+              title="Recent runs"
+              count={recentOrchestrations.length}
+              className="mt-5 border-t border-border pt-4"
+            >
               {recentOrchestrations.map(orch => (
                 <div key={orch.id} className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-0">
                   <div>
@@ -1427,23 +621,34 @@ export default function AgentCommandCenter({
                   </div>
                 </div>
               ))}
-            </div>
+            </LiveActivityCollapsible>
           )}
         </div>
 
         {/* Right: Scorecard */}
         <div className="min-w-0 max-h-[360px] overflow-y-auto overflow-x-auto rounded-2xl border border-gray-100 bg-white p-5">
-          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Agent scorecard</p>
-          <div className="grid min-w-[440px] grid-cols-[1fr_auto_auto_auto] items-center gap-x-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Agent scorecard</p>
+          <p className="mt-1 mb-4 text-sm text-text-sec">
+            Last run, saved output count, and schedule status per agent — open a row for the full archive.
+          </p>
+          <div className="grid min-w-[460px] grid-cols-[1fr_auto_auto_auto_28px] items-center gap-x-4">
             {/* Header */}
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Agent</span>
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Last run</span>
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Outputs</span>
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Status</span>
+            <span className="border-b border-border pb-2 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted sr-only">
+              Open
+            </span>
 
             {scorecardWithLiveCounts.map(entry => (
-              <Fragment key={entry.agentId}>
-                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className="flex items-center gap-2 border-b border-border py-2.5 no-underline">
+              <Link
+                key={entry.agentId}
+                href={`/dashboard/agents/${entry.agentId}/outputs`}
+                title={`Open ${entry.name} output archive`}
+                className="col-span-5 grid grid-cols-subgrid items-center border-b border-border py-2.5 no-underline transition-colors hover:bg-surface-2 group"
+              >
+                <span className="flex items-center gap-2">
                   <span
                     className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
                     style={{
@@ -1453,15 +658,17 @@ export default function AgentCommandCenter({
                   >
                     <AgentIcon agentId={entry.agentId} size={14} />
                   </span>
-                  <span className="whitespace-nowrap text-sm font-medium text-text-primary">{entry.name}</span>
-                </Link>
-                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className="whitespace-nowrap border-b border-border py-2.5 text-xs text-text-sec no-underline">
+                  <span className="whitespace-nowrap text-sm font-medium text-text-primary group-hover:text-brand-primary">
+                    {entry.name}
+                  </span>
+                </span>
+                <span className="whitespace-nowrap text-xs text-text-sec">
                   {relativeTime(entry.lastRunAt)}
-                </Link>
-                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className={`border-b border-border py-2.5 text-center text-xs no-underline ${entry.totalOutputs > 0 ? 'font-semibold text-brand-primary' : 'text-text-sec'}`}>
+                </span>
+                <span className={`text-center text-xs ${entry.totalOutputs > 0 ? 'font-semibold text-brand-primary' : 'text-text-sec'}`}>
                   {entry.totalOutputs}
-                </Link>
-                <Link href={`/dashboard/agents/${entry.agentId}/outputs`} className="border-b border-border py-2.5 no-underline">
+                </span>
+                <span>
                   {entry.lastRunStatus === 'failed' ? (
                     <span className="rounded-full bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700" title={entry.lastRunError ?? undefined}>
                       Failed
@@ -1471,8 +678,11 @@ export default function AgentCommandCenter({
                   ) : (
                     <span className="rounded-full border border-border bg-surface-2 px-2 py-1 text-[11px] font-semibold text-text-sec">Idle</span>
                   )}
-                </Link>
-              </Fragment>
+                </span>
+                <span className="flex justify-center text-brand-primary opacity-50 transition-opacity group-hover:opacity-100">
+                  <ExternalLink size={14} strokeWidth={2} aria-hidden />
+                </span>
+              </Link>
             ))}
           </div>
         </div>
@@ -1503,15 +713,18 @@ export default function AgentCommandCenter({
                   href={`/dashboard/agents/${output.agent}/outputs?output=${output.id}`}
                   className="flex min-w-0 items-center justify-between gap-4 overflow-hidden rounded-xl border border-gray-100 bg-white px-4 py-3 no-underline transition-colors hover:border-gray-200 hover:bg-surface-2"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-text-primary">
                       {getOutputDescription(output)}
                     </p>
                     <p className="mt-1 text-xs text-text-sec">
-                      {displayName} · {relativeTime(output.created_at)} · {output.status.replace(/_/g, ' ')}
+                      {displayName} · {relativeTime(output.created_at)}
                     </p>
                   </div>
-                  <span className="whitespace-nowrap text-sm font-semibold text-brand-primary">Open</span>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <OutputStatusBadge status={output.status} />
+                    <span className="whitespace-nowrap text-sm font-semibold text-brand-primary">Open</span>
+                  </div>
                 </Link>
               )
             })}

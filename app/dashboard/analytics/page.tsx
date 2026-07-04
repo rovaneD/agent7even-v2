@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import AnalyticsClient from './AnalyticsClient'
@@ -6,6 +6,7 @@ import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import * as publisher from '@/lib/social/publisher'
 import { collectZernioProfileIds, syncTenantConnectedPlatforms } from '@/lib/social/zernioProfileIds'
 import type { ZernioConnectedAccountInfo } from '@/lib/social/zernioShared'
+import { getAnalyticsProfileForClerkUser } from '@/lib/profiles/getAnalyticsProfile'
 
 export type AnalyticsDataState = 'mock' | 'live' | 'empty'
 
@@ -24,24 +25,9 @@ export default async function AnalyticsPage() {
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select(`
-      id,
-      company_name,
-      plan,
-      ga_connected,
-      ga_measurement_id,
-      ga_oauth_email,
-      meta_connected,
-      instagram_handle,
-      meta_ad_account_id,
-      zernio_profile_id,
-      zernio_profile_ids,
-      zernio_connected_platforms
-    `)
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await getAnalyticsProfileForClerkUser(supabase, userId, email)
 
   if (profile?.id) {
     const teamPerms = await getTeamPermissions(profile.id)

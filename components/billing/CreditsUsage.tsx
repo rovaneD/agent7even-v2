@@ -66,6 +66,8 @@ export default function CreditsUsage({ data }: Props) {
     ? Math.round((monthlyUsedCapped / monthlyAllocation) * 100)
     : 0
   const balanceBelowPlanRemaining = totalAvailable < monthlyRemaining
+  const currentMonthLabel = new Date().toLocaleDateString('en-US', { month: 'long' })
+  const hasPriorPeriodActivity = monthlyUsed === 0 && recentActivity.length > 0
 
   return (
     <div className="bg-white rounded-2xl border border-[#E2E8F0] p-6">
@@ -105,15 +107,12 @@ export default function CreditsUsage({ data }: Props) {
           <Bar pct={monthlyPct} color="#3B82F6" />
           <div className="flex justify-between mt-1">
             <span className="text-[11px] text-[#64748B]">
-              {monthlyRemaining.toLocaleString()} remaining on plan
+              {balanceBelowPlanRemaining
+                ? `${planSpendable.toLocaleString()} spendable now · ${monthlyRemaining.toLocaleString()} refreshes ${resetDate}`
+                : `${monthlyRemaining.toLocaleString()} remaining on plan`}
             </span>
             <span className="text-[11px] text-[#64748B]">{monthlyPct}%</span>
           </div>
-          {balanceBelowPlanRemaining && (
-            <p className="text-[11px] text-[#64748B] mt-1.5">
-              {planSpendable.toLocaleString()} credits spendable now · full refresh {resetDate}
-            </p>
-          )}
         </div>
 
         {/* Top-up balance */}
@@ -175,13 +174,17 @@ export default function CreditsUsage({ data }: Props) {
       )}
 
       {breakdown.length === 0 && (
-        <p className="text-sm text-[#64748B] mt-2">No usage this month yet.</p>
+        <p className="text-sm text-[#64748B] mt-2">
+          {hasPriorPeriodActivity
+            ? `No usage in ${currentMonthLabel} yet. Recent transactions below are from earlier billing periods.`
+            : 'No usage this month yet.'}
+        </p>
       )}
 
       {recentActivity.length > 0 && (
         <>
           <p className="text-[10px] font-semibold text-[#64748B] uppercase tracking-widest mt-5 mb-3">
-            Recent activity
+            Recent ledger
           </p>
           <div className="space-y-2">
             {recentActivity.map(item => (

@@ -4,6 +4,7 @@ import {
   loadFoundationChangelog,
   formatFoundationObserverContextForAgents,
 } from '@/lib/foundation/changelogContext'
+import { parseSiteSnapshot, formatSiteSnapshotForAgent } from '@/lib/foundation/siteSnapshot'
 
 export async function buildAgentContext(userId: string): Promise<string> {
   const supabase = createServiceClient()
@@ -27,7 +28,7 @@ export async function buildAgentContext(userId: string): Promise<string> {
 
     supabase
       .from('profiles')
-      .select('company_name, business_type, website_url, instagram_handle')
+      .select('company_name, business_type, website_url, instagram_handle, site_snapshot, site_snapshot_enabled')
       .eq('id', userId)
       .single(),
 
@@ -105,11 +106,23 @@ export async function buildAgentContext(userId: string): Promise<string> {
     }
   }
 
-  const memorySection = formatMemoryForAgent(memory)
-  if (memorySection) sections.push(`\n${memorySection}`)
+  const profileRow = profile as {
+    site_snapshot?: unknown
+    site_snapshot_enabled?: boolean | null
+  } | null
+
+  if (profileRow?.site_snapshot_enabled) {
+    const snapshot = parseSiteSnapshot(profileRow.site_snapshot)
+    if (snapshot) {
+      sections.push(`\n${formatSiteSnapshotForAgent(snapshot)}`)
+    }
+  }
 
   const observerSection = formatFoundationObserverContextForAgents(changelog)
   if (observerSection) sections.push(`\n${observerSection}`)
+
+  const memorySection = formatMemoryForAgent(memory)
+  if (memorySection) sections.push(`\n${memorySection}`)
 
   return sections.filter(Boolean).join('\n')
 }

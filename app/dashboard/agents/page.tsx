@@ -205,9 +205,6 @@ export default async function AgentsPage() {
       <AgentCommandCenter
         profileId={profile.id}
         companyName={profile.company_name ?? 'Your business'}
-        profileWebsiteUrl={profile.website_url ?? null}
-        brandKitAvailable={brandKitAvailable}
-        hasUploadedLogo={hasUploadedLogo}
         activeTasks={activeTasks ?? []}
         pendingApprovals={pendingApprovalsData}
         recentTasks={recentTasks ?? []}

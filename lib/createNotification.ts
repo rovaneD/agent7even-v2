@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { getResendClient } from '@/lib/resend'
+import { buildTransactionalEmailHtml, transactionalFromAddress } from '@/lib/email/transactionalTemplate'
 
 export type NotificationType =
   | 'order_status'
@@ -78,7 +79,7 @@ export async function createNotification({
           : profile.email
 
         await resend.emails.send({
-          from: 'Agent7even <hello@agent7even.com>',
+          from: transactionalFromAddress(),
           to: toEmail,
           subject: emailSubject,
           html: emailHtml ?? buildDefaultEmailHtml(title, body, link),
@@ -100,25 +101,10 @@ export async function createNotification({
 }
 
 function buildDefaultEmailHtml(title: string, body: string, link?: string) {
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #0d0d0d; border-radius: 12px; overflow: hidden;">
-      <div style="padding: 32px 40px 24px; border-bottom: 1px solid #1f1f1f;">
-        <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #c8522a;">Agent7even</span>
-      </div>
-      <div style="padding: 40px;">
-        <h2 style="font-size: 20px; font-weight: 600; color: #f5f4f0; margin: 0 0 12px;">${title}</h2>
-        <p style="font-size: 15px; color: #888; line-height: 1.7; margin: 0 0 32px;">${body}</p>
-        ${link ? `
-          <a href="${appUrl}${link}" style="display: inline-block; background: #c8522a; color: #f5f4f0; text-decoration: none; font-size: 14px; font-weight: 600; padding: 14px 28px; border-radius: 8px;">
-            View in dashboard →
-          </a>
-        ` : ''}
-      </div>
-      <div style="padding: 24px 40px; border-top: 1px solid #1f1f1f;">
-        <p style="font-size: 12px; color: #444; margin: 0;">
-          Questions? <a href="mailto:hello@agent7even.com" style="color: #c8522a;">hello@agent7even.com</a>
-        </p>
-      </div>
-    </div>
-  `
+  return buildTransactionalEmailHtml({
+    title,
+    body,
+    link,
+    appBaseUrl: appUrl,
+  })
 }
