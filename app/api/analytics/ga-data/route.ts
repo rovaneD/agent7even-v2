@@ -3,7 +3,7 @@ import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
-import { refreshGoogleAccessToken } from '@/lib/googleOAuth'
+import { refreshGaAccessTokenForClerkUser } from '@/lib/analytics/gaOAuthProfile'
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
@@ -278,13 +278,17 @@ export async function GET(req: NextRequest) {
     // OAuth-connected tenants: never fall back to the service account — a stale refresh
     // token was previously misclassified as "access pending" when SA also lacked access.
     if (hasOAuth) {
-      const accessToken = await refreshGoogleAccessToken(profile!.ga_refresh_token!)
-      if (!accessToken) {
-        return NextResponse.json({ connected: false, needsReconnect: true })
+      const refreshed = await refreshGaAccessTokenForClerkUser(supabase, userId, email)
+      if (!refreshed.ok) {
+        return NextResponse.json({
+          connected: false,
+          needsReconnect: refreshed.needsReconnect,
+          error: refreshed.reason,
+        })
       }
 
       try {
-        const result = await queryViaOAuth(propertyId, accessToken, range)
+        const result = await queryViaOAuth(propertyId, refreshed.accessToken, range)
         return NextResponse.json({ connected: true, via: 'oauth', ...result })
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Unknown error'
