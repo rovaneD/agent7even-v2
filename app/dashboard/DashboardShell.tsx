@@ -42,8 +42,8 @@ import MayChatPanel, { type Profile } from '@/components/maya/MayChatPanel'
 import MayaOrb from '@/components/maya/MayaOrb'
 import NewCampaignModal from '@/components/campaigns/NewCampaignModal'
 import { MayaFormActuationProvider } from '@/context/MayaFormActuationContext'
-import type { PermissionKey, TeamPermissions } from '@/lib/teamPermissions'
-import { hasPermission } from '@/lib/teamPermissions'
+import type { PermissionKey, TeamPermissions } from '@/lib/teamPermissionsShared'
+import { hasPermission } from '@/lib/teamPermissionsShared'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 

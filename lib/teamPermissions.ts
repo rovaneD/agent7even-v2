@@ -1,19 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import type { PermissionKey, TeamPermissions } from '@/lib/teamPermissionsShared'
 
-export type PermissionKey =
-  | 'billing'
-  | 'services'
-  | 'ai_toolkit'
-  | 'analytics'
-  | 'brand_kit'
-  | 'deliverables'
-  | 'support'
-
-export type TeamPermissions = {
-  isOwner: boolean
-  permissions: Record<PermissionKey, boolean>
-  accountId: string | null
-}
+export type { PermissionKey, TeamPermissions } from '@/lib/teamPermissionsShared'
+export { hasPermission } from '@/lib/teamPermissionsShared'
 
 const DEFAULT_OWNER_PERMISSIONS: Record<PermissionKey, boolean> = {
   billing: true,
@@ -78,9 +67,4 @@ export async function getTeamPermissions(profileId: string): Promise<TeamPermiss
     },
     accountId: profile.account_id,
   }
-}
-
-export function hasPermission(permissions: TeamPermissions, key: PermissionKey): boolean {
-  if (permissions.isOwner) return true
-  return permissions.permissions[key] ?? false
 }

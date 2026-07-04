@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
 import { buildRequeueTaskInput } from '@/lib/agents/requeueTaskInput'
+import {
+  rejectAllPendingOutputsForTask,
+  resolveApprovalActorProfile,
+} from '@/lib/agents/approvalQueueMutations'
+import { logRejectionChangelog } from '@/lib/foundation/changelog'
 
 export async function POST(
   req: Request,
@@ -15,73 +20,52 @@ export async function POST(
   const { outputId, note = '', feedback, feedbackNote, rerun = false } = await req.json()
 
   const supabase = createServiceClient()
-
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const profile = profileRows?.[0] ?? null
-
+  const profile = await resolveApprovalActorProfile(supabase, userId)
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-  const now = new Date().toISOString()
   const rejectionText = feedbackNote ?? note ?? null
 
-  const [outputRes, taskRes] = await Promise.all([
-    supabase
-      .from('agent_outputs')
-      .update({
-        status: 'rejected',
-        lifecycle_stage: 'rejected',
-        feedback: feedback ?? null,
-        feedback_note: rejectionText,
-        feedback_at: now,
-      })
-      .eq('id', outputId)
-      .eq('user_id', profile.id),
+  const result = await rejectAllPendingOutputsForTask(supabase, {
+    profileId: profile.id,
+    taskId,
+    rejectionText,
+    feedback: feedback ?? null,
+  })
 
-    supabase
-      .from('agent_tasks')
-      .update({
-        rejected_at:      now,
-        rejection_note:   rejectionText,
-        rejection_reason: feedback ?? null,
-        reviewed_at:      now,
-        reviewed_by:      profile.id,
-      })
-      .eq('id', taskId)
-      .eq('user_id', profile.id)
-      .select(),
-  ])
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.error === 'Task not found' ? 404 : 400 })
+  }
 
-  if (outputRes.error) return NextResponse.json({ error: outputRes.error.message }, { status: 500 })
-  if (taskRes.error)   return NextResponse.json({ error: taskRes.error.message },   { status: 500 })
+  const task = result.task
+  const primaryOutput =
+    result.outputs.find(row => row.id === outputId) ?? result.outputs[0]
 
-  const task = taskRes.data?.[0] ?? null
+  logRejectionChangelog({
+    actorProfileId: profile.id,
+    taskId,
+    agentId: task.agent as string,
+    outputId: primaryOutput?.id ?? outputId,
+    title: primaryOutput?.title,
+    content: primaryOutput?.content,
+    rejectionReason: feedback ?? null,
+    feedbackNote: rejectionText,
+    rerun,
+  })
 
-  if (task && rerun && rejectionText) {
-    const { data: outputRow } = await supabase
-      .from('agent_outputs')
-      .select('content')
-      .eq('id', outputId)
-      .eq('user_id', profile.id)
-      .maybeSingle()
-
-    const { createTask } = await import('@/lib/agents/runner')
-    const { dispatchAgentTask } = await import('@/lib/agents/dispatch')
+  if (rerun && rejectionText) {
     const requeueInput = buildRequeueTaskInput(
       task.input as Record<string, unknown>,
-      (outputRow?.content ?? null) as Record<string, unknown> | null,
+      (primaryOutput?.content ?? null) as Record<string, unknown> | null,
       rejectionText,
     )
+    const { createTask } = await import('@/lib/agents/runner')
+    const { dispatchAgentTask } = await import('@/lib/agents/dispatch')
     const replacement = await createTask({
-      userId:      profile.id,
-      agent:       task.agent,
-      input:       requeueInput,
+      userId: profile.id,
+      agent: task.agent,
+      input: requeueInput,
       triggerType: 'user',
-      priority:    task.priority,
+      priority: task.priority,
     })
     waitUntil(
       dispatchAgentTask({
@@ -93,5 +77,8 @@ export async function POST(
     )
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({
+    success: true,
+    rejectedOutputCount: result.outputs.length,
+  })
 }

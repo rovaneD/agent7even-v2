@@ -758,6 +758,10 @@ export default function ApprovalsClient({
       body: JSON.stringify(body),
     })
     const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      window.alert(typeof data.error === 'string' ? data.error : 'Approve failed — try again.')
+      return
+    }
     removeTask(taskId)
     if (data.publish?.scheduled && data.publish?.postId) {
       setApproveNotice({
@@ -774,11 +778,16 @@ export default function ApprovalsClient({
   }
 
   async function handleReject(taskId: string, outputId: string, note: string, reason: string, rerun: boolean) {
-    await fetch(`/api/agents/tasks/${taskId}/reject`, {
+    const res = await fetch(`/api/agents/tasks/${taskId}/reject`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ outputId, note, feedback: reason, feedbackNote: note, rerun }),
     })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      window.alert(typeof data.error === 'string' ? data.error : 'Reject failed — try again.')
+      return
+    }
     removeTask(taskId)
   }
 
@@ -796,12 +805,19 @@ export default function ApprovalsClient({
           feedbackNote: action === 'reject' ? bulkNote : undefined,
           rerun:        false,
         }),
+      }).then(async res => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(typeof data.error === 'string' ? data.error : 'Bulk action failed')
+        }
       })
       const done = new Set(checkedIds)
       setTasks(prev => prev.filter(t => !done.has(t.id)))
       setCheckedIds(new Set())
       setBulkAction(null)
       setBulkNote('')
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Bulk action failed')
     } finally {
       setBulkLoading(false)
     }

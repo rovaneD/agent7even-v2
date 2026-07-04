@@ -5,6 +5,8 @@ import { logActivity } from '@/lib/activity'
 import { publishApprovedImageCaption } from '@/lib/agents/publishApprovedOutput'
 import { shouldPublishApprovedPost, singlePostPublishBlockReason } from '@/lib/agents/contentPosting'
 import { linkOutputToZernioPost } from '@/lib/content/agentOutputLifecycle'
+import { logApprovalChangelog } from '@/lib/foundation/changelog'
+import { resolveApprovalActorProfile } from '@/lib/agents/approvalQueueMutations'
 
 export async function POST(
   req: Request,
@@ -17,18 +19,12 @@ export async function POST(
   const { outputId, editedContent } = await req.json()
 
   const supabase = createServiceClient()
-
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const profile = profileRows?.[0] ?? null
+  const profile = await resolveApprovalActorProfile(supabase, userId)
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
   const now = new Date().toISOString()
+  let contentBefore: unknown = null
 
   const outputUpdate: Record<string, unknown> = {
     status: 'approved',
@@ -44,6 +40,7 @@ export async function POST(
       .order('created_at', { ascending: false })
       .limit(1)
     const prev = (existing?.[0]?.content ?? {}) as Record<string, unknown>
+    contentBefore = prev
     outputUpdate.content = { ...prev, raw: editedContent }
   }
 
@@ -65,7 +62,7 @@ export async function POST(
 
   const [{ data: task }, { data: output }] = await Promise.all([
     supabase.from('agent_tasks').select('agent, input').eq('id', taskId).eq('user_id', profile.id).single(),
-    supabase.from('agent_outputs').select('content').eq('id', outputId).eq('user_id', profile.id).single(),
+    supabase.from('agent_outputs').select('title, content').eq('id', outputId).eq('user_id', profile.id).single(),
   ])
 
   const outputContent = (outputUpdate.content ?? output?.content ?? {}) as Record<string, unknown>
@@ -100,5 +97,17 @@ export async function POST(
   }
 
   logActivity(profile.id, 'agent_approved', { taskId, publishScheduled: publish?.scheduled ?? false }).catch(() => {})
+
+  logApprovalChangelog({
+    actorProfileId: profile.id,
+    taskId,
+    agentId: (task?.agent as string) ?? 'unknown',
+    outputId,
+    title: output?.title,
+    contentBefore,
+    contentAfter: outputContent,
+    editedContent: typeof editedContent === 'string' ? editedContent : null,
+  })
+
   return NextResponse.json({ success: true, publish, publishBlocked })
 }
