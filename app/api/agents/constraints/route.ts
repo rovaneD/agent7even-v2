@@ -1,6 +1,8 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
+import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 
 export async function GET(req: Request) {
   const { userId } = await auth()
@@ -12,18 +14,17 @@ export async function GET(req: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await getDashboardProfileForClerkUser(supabase, userId, email)
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const workspaceId = await resolveWorkspaceProfileId(supabase, profile.id)
 
   const { data } = await supabase
     .from('agent_constraints')
     .select('constraints, updated_at')
-    .eq('user_id', profile.id)
+    .eq('user_id', workspaceId)
     .eq('agent_id', agentId)
     .single()
 
@@ -44,19 +45,18 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await getDashboardProfileForClerkUser(supabase, userId, email)
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const workspaceId = await resolveWorkspaceProfileId(supabase, profile.id)
 
   const { error } = await supabase
     .from('agent_constraints')
     .upsert(
       {
-        user_id:    profile.id,
+        user_id:    workspaceId,
         agent_id:   agentId,
         constraints,
         updated_at: new Date().toISOString(),

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, CheckCircle2, AlertCircle, ArrowRight, X } from 'lucide-react'
@@ -310,6 +310,7 @@ export default function ContentPostingFlowClient({
   const [submitted, setSubmitted] = useState(false)
   const [runTracker, setRunTracker] = useState<RunTracker | null>(null)
   const [taskCreateError, setTaskCreateError] = useState<string | null>(null)
+  const createTaskInFlightRef = useRef(false)
 
   const [postImageMedia, setPostImageMedia] = useState<AttachedPostImage | null>(null)
   const [postImageRequiredError, setPostImageRequiredError] = useState<string | null>(null)
@@ -784,6 +785,8 @@ export default function ContentPostingFlowClient({
   }
 
   async function handleCreateTask() {
+    if (createTaskInFlightRef.current) return
+    createTaskInFlightRef.current = true
     setPostImageRequiredError(null)
     setTaskCreateError(null)
     setSubmitting(true)
@@ -912,6 +915,7 @@ export default function ContentPostingFlowClient({
         void pollTaskRun(data.taskId, 'content_posting', queuedFlow)
       }
     } finally {
+      createTaskInFlightRef.current = false
       setSubmitting(false)
     }
   }

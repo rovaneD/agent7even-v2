@@ -1,19 +1,46 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 import { enrichFromWebsite } from '@/lib/foundation/enrichFromWebsite'
 import { parseSiteSnapshot, type SiteSnapshot } from '@/lib/foundation/siteSnapshot'
 import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { UnsafeWebsiteUrlError } from '@/lib/foundation/fetchWebsiteContent'
 
-async function resolveProfile(clerkUserId: string) {
+const SITE_SNAPSHOT_SELECT =
+  'id, company_name, website_url, site_snapshot, site_snapshot_enabled, site_snapshot_generated_at, site_snapshot_source_url'
+
+type SiteSnapshotProfileRow = {
+  id: string
+  company_name: string | null
+  website_url: string | null
+  site_snapshot: unknown
+  site_snapshot_enabled: boolean | null
+  site_snapshot_generated_at: string | null
+  site_snapshot_source_url: string | null
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  plan: string | null
+  created_at: string
+}
+
+async function resolveActorProfile(clerkUserId: string, email?: string | null) {
   const supabase = createServiceClient()
+  return resolveClerkProfile<SiteSnapshotProfileRow>(
+    supabase,
+    clerkUserId,
+    SITE_SNAPSHOT_SELECT,
+    email,
+  )
+}
+
+async function resolveWorkspaceProfile(supabase: ReturnType<typeof createServiceClient>, actorProfileId: string) {
+  const workspaceId = await resolveWorkspaceProfileId(supabase, actorProfileId)
   const { data: profile } = await supabase
     .from('profiles')
-    .select(
-      'id, company_name, website_url, site_snapshot, site_snapshot_enabled, site_snapshot_generated_at, site_snapshot_source_url',
-    )
-    .eq('clerk_user_id', clerkUserId)
+    .select(SITE_SNAPSHOT_SELECT)
+    .eq('id', workspaceId)
     .single()
   return profile
 }
@@ -23,8 +50,14 @@ export async function GET() {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const profile = await resolveProfile(userId)
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    const user = await currentUser()
+    const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+    const actorProfile = await resolveActorProfile(userId, email)
+    if (!actorProfile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+    const supabase = createServiceClient()
+    const profile = await resolveWorkspaceProfile(supabase, actorProfile.id)
+    if (!profile) return NextResponse.json({ error: 'Workspace profile not found' }, { status: 404 })
 
     return NextResponse.json({
       websiteUrl: profile.website_url,
@@ -43,8 +76,14 @@ export async function POST(req: Request) {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const profile = await resolveProfile(userId)
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    const user = await currentUser()
+    const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+    const actorProfile = await resolveActorProfile(userId, email)
+    if (!actorProfile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+    const supabase = createServiceClient()
+    const profile = await resolveWorkspaceProfile(supabase, actorProfile.id)
+    if (!profile) return NextResponse.json({ error: 'Workspace profile not found' }, { status: 404 })
 
     const body = await req.json().catch(() => ({}))
     const urlOverride =
@@ -63,9 +102,6 @@ export async function POST(req: Request) {
       companyName: profile.company_name,
     })
 
-    const supabase = createServiceClient()
-    const workspaceId = await resolveWorkspaceProfileId(supabase, profile.id)
-
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -74,7 +110,7 @@ export async function POST(req: Request) {
         site_snapshot_generated_at: new Date().toISOString(),
         site_snapshot_enabled: true,
       })
-      .eq('id', workspaceId)
+      .eq('id', profile.id)
 
     if (error) {
       if (error.message.includes('site_snapshot')) {
@@ -88,6 +124,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ snapshot, enabled: true })
   } catch (err) {
+    if (err instanceof UnsafeWebsiteUrlError) {
+      return NextResponse.json({ error: err.message }, { status: 400 })
+    }
     const message = err instanceof Error ? err.message : 'Internal error'
     return NextResponse.json({ error: message }, { status: 500 })
   }
@@ -98,12 +137,14 @@ export async function PATCH(req: Request) {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const profile = await resolveProfile(userId)
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    const user = await currentUser()
+    const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+    const actorProfile = await resolveActorProfile(userId, email)
+    if (!actorProfile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     const body = await req.json().catch(() => ({}))
     const supabase = createServiceClient()
-    const workspaceId = await resolveWorkspaceProfileId(supabase, profile.id)
+    const workspaceId = await resolveWorkspaceProfileId(supabase, actorProfile.id)
 
     const patch: Record<string, unknown> = {}
 

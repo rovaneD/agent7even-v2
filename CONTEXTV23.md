@@ -1,7 +1,7 @@
 # CONTEXTV23 — Profile resolution, Agents UX, Foundation site snapshot, GA OAuth fix
-*Snapshot: July 3, 2026 — supersedes `CONTEXTV22.md` for logged-in product work*
+*Snapshot: July 4, 2026 — supersedes `CONTEXTV22.md` for logged-in product work*
 
-Session log: `SESSION_2026-07-03.md`.
+Session logs: `SESSION_2026-07-03.md`, `SESSION_2026-07-04.md`.
 
 ---
 
@@ -11,8 +11,8 @@ Session log: `SESSION_2026-07-03.md`.
 Local workspace: /Users/durso/agent7even-v2-clean
 GitHub: rovaneD/agent7even-v2
 Vercel: agent7even-v2.vercel.app
-Branch: main
-Latest commits: 5a2a2c1 (GA OAuth canonical save, July 4 merge) · 7002bb6 (Agents UX + site snapshot, July 3)
+Branch: main (plus PR #15: `cursor/critical-bug-investigation-6516`)
+Latest commits: fe5bae7 (critical auth/snapshot/agent regressions, PR #15) · 5a2a2c1 (GA OAuth canonical save, July 4 merge) · 7002bb6 (Agents UX + site snapshot, July 3)
 Prior handoff: CONTEXTV22 (July 2 lifecycle + Zernio DPA)
 ```
 
@@ -33,6 +33,7 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 | Duplicate profile / plan drift fix | `0a212f9`, `d18032b` | **This file §4** |
 | GA OAuth canonical token save | `00f5b1d`, `5a2a2c1` | **This file §5** |
 | Credits ledger UX clarity | `7002bb6` | **This file §6** |
+| Critical bug investigation hardening | `fe5bae7` / PR #15 | **This file §7** · `SESSION_2026-07-04.md` |
 
 ---
 
@@ -147,6 +148,25 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 
 ---
 
+## 7. Critical bug investigation hardening (PR #15)
+
+**Bug pass:** July 4 high-severity review of recent GA OAuth, Foundation site snapshot, and Agents run-page changes.
+
+**Shipped in PR #15 (`fe5bae7`):**
+
+| Area | Guardrail |
+|------|-----------|
+| GA OAuth callback | Consumed OAuth state must match the active Clerk session before token save; profile resolution uses nonce-bound Clerk ID + Clerk email, never Google OAuth email fallback. |
+| Foundation website fetch | `fetchWebsiteContent.ts` validates public HTTP(S) URLs, rejects private/internal DNS/IP targets, follows redirects manually with the same validation, and caps direct HTML buffering. |
+| Site snapshot storage | `SiteSnapshotSchema` caps strings/arrays to prevent multi-MB JSON from being stored and injected into agent prompts. |
+| Workspace site snapshot | Site snapshot GET/POST/PATCH and `buildAgentContext` resolve canonical actor profile, then workspace owner profile, so team-seat reads and writes match. |
+| Agent run pages/APIs | Agents hub/run pages and task/constraint/list APIs use `getDashboardProfileForClerkUser` plus `resolveWorkspaceProfileId`; no duplicate-sensitive `.single()` profile reads on these run paths. |
+| Duplicate task submits | Guided agent and Content Posting run buttons use a synchronous in-flight ref guard before `fetch('/api/agents/tasks/create')`. |
+
+**Verified:** `npx tsc --noEmit`, `npm run build`.
+
+---
+
 ## Known open items
 
 | Item | Notes |
@@ -164,6 +184,9 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 - Agent run sub-pages (`/dashboard/agents/[agentId]/run`) — no modal guided setup on hub.
 - `resolveClerkProfile` / canonical profile helpers on integration and analytics API routes.
 - `saveGaOAuthTokensForClerkUser` — GA tokens on canonical profile **by id**, not blind `clerk_user_id` update.
+- GA OAuth callback must verify active Clerk session matches consumed OAuth state; never use Google OAuth email as a profile lookup fallback.
+- Foundation site snapshot direct fetches must keep public URL/DNS/redirect validation and body-size caps before buffering.
+- Agent run/task APIs must keep canonical profile + workspace owner resolution for workspace-scoped data.
 - Credits month-boundary copy (don't show misleading "0 used" without prior-period context).
 - On-brand transactional template for new notification emails.
 
@@ -176,9 +199,10 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 | `CONTEXTV22.md` | Lifecycle v1, Zernio DPA, structured approvals |
 | `FOUNDATION_GUARDIAN_HANDOFF.md` | Observer v0.5 + Guardian v0 |
 | `FOUNDATION_V2_MEMORY_UPLOADS_HANDOFF.md` | Foundation memory/uploads slice |
+| `SESSION_2026-07-04.md` | Critical bug investigation / PR #15 |
 | `SESSION_2026-07-03.md` | This session commit log |
 | `AGENTS.md` | Product rules + deploy + doc index |
 
 ---
 
-*End CONTEXTV23 — July 3, 2026*
+*End CONTEXTV23 — July 4, 2026*

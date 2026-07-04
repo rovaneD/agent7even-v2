@@ -1,3 +1,4 @@
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { consumeOAuthState } from '@/lib/oauth-state'
@@ -21,6 +22,14 @@ export async function GET(req: NextRequest) {
   if (!clerkId) {
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=invalid_state`)
   }
+
+  const { userId } = await auth()
+  if (!userId || userId !== clerkId) {
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=invalid_state`)
+  }
+
+  const user = await currentUser()
+  const clerkEmail = user?.emailAddresses?.[0]?.emailAddress ?? null
 
   const creds = getGoogleOAuthCredentials()
   if (!creds) {
@@ -69,7 +78,7 @@ export async function GET(req: NextRequest) {
     supabase,
     clerkId,
     { refreshToken: tokens.refresh_token, oauthEmail },
-    oauthEmail,
+    clerkEmail,
   )
 
   if (!saved.ok) {
