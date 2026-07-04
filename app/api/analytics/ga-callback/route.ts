@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { consumeOAuthState } from '@/lib/oauth-state'
 import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
@@ -64,12 +65,16 @@ export async function GET(req: NextRequest) {
   const userInfo = await userInfoRes.json()
   const oauthEmail = (userInfo.email as string | undefined) ?? null
 
+  const user = await currentUser()
+  const clerkEmail =
+    user?.id === clerkId ? user.emailAddresses?.[0]?.emailAddress ?? null : null
+
   const supabase = createServiceClient()
   const saved = await saveGaOAuthTokensForClerkUser(
     supabase,
     clerkId,
     { refreshToken: tokens.refresh_token, oauthEmail },
-    oauthEmail,
+    clerkEmail,
   )
 
   if (!saved.ok) {
