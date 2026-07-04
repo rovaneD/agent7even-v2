@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { consumeOAuthState } from '@/lib/oauth-state'
 import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
 import { gaOAuthRedirectUri, oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+
+async function emailForNonceUser(clerkId: string): Promise<string | null> {
+  const user = await currentUser()
+  if (user?.id !== clerkId) return null
+  return user.emailAddresses?.[0]?.emailAddress ?? null
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -65,8 +73,21 @@ export async function GET(req: NextRequest) {
   })
   const userInfo = await userInfoRes.json()
 
-  // Save tokens to profile — scoped to the verified clerk_id from the nonce
+  // Save tokens to the canonical profile scoped to the verified clerk_id from the nonce.
   const supabase = createServiceClient()
+  const email = await emailForNonceUser(clerkId)
+  const profile = await resolveClerkProfile<{
+    id: string
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(supabase, clerkId, 'id', email)
+
+  if (!profile) {
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=save_failed`)
+  }
+
   const { error: updateError } = await supabase
     .from('profiles')
     .update({
@@ -74,7 +95,7 @@ export async function GET(req: NextRequest) {
       ga_oauth_email:   userInfo.email ?? null,
       ga_connected:     false, // true once property is also selected
     })
-    .eq('clerk_user_id', clerkId)
+    .eq('id', profile.id)
 
   if (updateError) {
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=save_failed`)

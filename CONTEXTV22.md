@@ -39,6 +39,7 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 | **Approval count SSOT** | `b889cc6` | **This file §5** |
 | **Thread 3 lifecycle v1 + crop** | `5879ebd` | **This file §7** |
 | **Zernio DPA + compliance** | Jul 2, 2026 (vendor) | **This file §8** |
+| **OAuth callback canonical writes** | PR #12 (`198610b`) | **This file §9** |
 
 ---
 
@@ -197,6 +198,18 @@ Update for `site_audit_master.md` §6 tracker:
 **Vendor files (local, do not commit):** `~/Volumes/Black 10TB/Agent7even Update/Zernio/` — Signed DPA, NDA, SOC 2 report, GDPR certificate.
 
 **Cross-refs updated:** `zernio_social_evaluation_backlog.md` Q4, `PRODUCTION_LAUNCH_SESSION.md` §3, `PRODUCTION_GREENLIGHT.md` §9.2, `AGENTS.md`.
+
+---
+
+## 9. OAuth callback canonical profile writes (July 4, 2026)
+
+**Bug found during PR #11 review:** GA/Zernio initiating routes resolved duplicate profiles through canonical profile helpers, but callbacks still persisted by raw `clerk_user_id` or lacked the same email fallback.
+
+**Impact:** duplicate-profile users could complete provider OAuth but fail to persist the connection, or token/platform state could be written onto multiple duplicate rows.
+
+**Fix:** PR #12 (`198610b`) resolves the canonical profile in `ga-callback` and `zernio/callback`, only using `currentUser()` email fallback when the active Clerk session matches the nonce-bound Clerk ID, then updates by `profiles.id`.
+
+**Verification:** `npx tsc --noEmit`; `npm run build`.
 
 ---
 
