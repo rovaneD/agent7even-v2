@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 2, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 4, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -65,6 +65,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
 - `CONTEXTV22.md` — latest product handoff: Thread 3 lifecycle v1, Phase A crop, Zernio DPA/compliance (§8), structured output views, approval count SSOT (July 2, 2026).
+- `SESSION_2026-07-04.md` — GA OAuth callback profile hardening: nonce-bound Clerk ID is authoritative; Google OAuth email is metadata only.
 - `SESSION_2026-07-01.md` — July 1 session log (commits c949a77 … b889cc6 + doc pass).
 - `CONTEXTV21.md` — lab5 marketing homepage hero (approval-first), FAQ/agents channels, mobile mockup fixes (June 25, 2026).
 - `SESSION_2026-06-25.md` — June 25 session log (5 commits: hero rebuild, mockups, channels, mobile, approval copy).
@@ -103,6 +104,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - **Pending approval count SSOT:** `lib/agents/pendingApprovals.ts` — count/list from `agent_outputs.status = 'pending_approval'`. Used by dashboard brief, lifecycle bar, sidebar badge, Agents Command Center, digest generate, and approvals API. Do not reintroduce `Math.max` with `daily_digests.approvals` or parallel `agent_tasks`-only counts for surfacing.
 - **Foundation competitors:** store as `string[]` via `lib/foundation/competitorsArray.ts` — never comma-split prose into slots.
 - **Structured approval views:** Campaign Builder, Ad Variations, Email Sequence use dedicated parsers + view components in `lib/agents/*Parse.ts` and `components/agents/*OutputView.tsx`.
+- **GA OAuth callback profile writes:** `oauth_states.clerk_id` is the identity authority. Callback saves must resolve canonical `profiles.id` from the nonce-bound Clerk ID and, only when the current Clerk session matches, Clerk email. Never use the selected Google OAuth email as a profile lookup fallback; save it only as `ga_oauth_email` metadata.
 
 ## Current visual-system rules
 - Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.

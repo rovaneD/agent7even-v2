@@ -1,7 +1,7 @@
 # CONTEXTV22 — Product integrity, structured approvals, Phase C close-out
-*Snapshot: July 2, 2026 — supersedes `CONTEXTV21.md` for logged-in product work; marketing hero/channel sections in V21 remain valid unless noted here*
+*Snapshot: July 4, 2026 — supersedes `CONTEXTV21.md` for logged-in product work; marketing hero/channel sections in V21 remain valid unless noted here*
 
-Session log: `SESSION_2026-07-01.md` (+ July 2 vendor/compliance updates in §8).
+Session log: `SESSION_2026-07-01.md` (+ July 2 vendor/compliance updates in §8), `SESSION_2026-07-04.md`.
 
 ---
 
@@ -39,6 +39,7 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 | **Approval count SSOT** | `b889cc6` | **This file §5** |
 | **Thread 3 lifecycle v1 + crop** | `5879ebd` | **This file §7** |
 | **Zernio DPA + compliance** | Jul 2, 2026 (vendor) | **This file §8** |
+| **GA OAuth callback profile hardening** | `b99867a` | **This file §9**, `SESSION_2026-07-04.md` |
 
 ---
 
@@ -200,10 +201,23 @@ Update for `site_audit_master.md` §6 tracker:
 
 ---
 
+## 9. GA OAuth callback profile hardening (July 4, 2026)
+
+**Bug fixed:** PR #13 moved GA OAuth token saves to canonical profile rows, but the callback still passed the selected Google OAuth account email into the profile-resolution fallback. Because OAuth lets the user pick any Google account, that email is not an Agent7even tenant identity.
+
+**Impact:** If the nonce-bound Clerk user had no row linked by `clerk_user_id`, callback fallback could update another active profile whose Agent7even account email matched the selected Google account email, storing the wrong tenant's Google refresh token.
+
+**Fix:** `app/api/analytics/ga-callback/route.ts` now uses `currentUser()` only when `currentUser().id` matches the nonce-bound Clerk ID from `oauth_states`, then passes that Clerk email to `saveGaOAuthTokensForClerkUser()`. `lib/analytics/gaOAuthProfile.ts` no longer falls back to `tokens.oauthEmail` for profile resolution; Google email is saved only as `ga_oauth_email` metadata.
+
+**Do not regress:** OAuth callback writes must resolve canonical `profiles.id` from the nonce-bound Clerk identity. Never use Google OAuth userinfo email as a `profiles` lookup key.
+
+---
+
 ## Related docs
 
 | Doc | Role |
 |-----|------|
+| `SESSION_2026-07-04.md` | GA OAuth callback profile hardening |
 | `CONTEXTV21.md` | Lab5 marketing hero, FAQ channels, mockups (still valid for marketing) |
 | `CONTEXTV20.md` | Content Posting 3-step UX |
 | `phaseC_dashboard_cold_open_handoff.md` | Cold-open + digest + approval count detail |
@@ -217,4 +231,4 @@ Update for `site_audit_master.md` §6 tracker:
 
 ---
 
-*End CONTEXTV22 — July 2, 2026*
+*End CONTEXTV22 — July 4, 2026*
