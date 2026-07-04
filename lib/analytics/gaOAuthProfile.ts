@@ -86,9 +86,9 @@ export async function saveGaOAuthTokensForClerkUser(
   supabase: SupabaseClient,
   clerkUserId: string,
   tokens: GaOAuthTokenPayload,
-  email?: string | null,
+  clerkEmail?: string | null,
 ): Promise<{ ok: true; profileId: string } | { ok: false; reason: string }> {
-  const profile = await getGaProfileForClerkUser(supabase, clerkUserId, email ?? tokens.oauthEmail)
+  const profile = await getGaProfileForClerkUser(supabase, clerkUserId, clerkEmail)
   if (!profile) {
     return { ok: false, reason: 'Profile not found' }
   }
