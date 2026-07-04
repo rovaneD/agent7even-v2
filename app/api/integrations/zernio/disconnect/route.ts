@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import {
   collectZernioProfileIds,
   disconnectAllZernioProfiles,
@@ -17,11 +18,23 @@ export async function DELETE(req: Request) {
   const { platform, accountId } = body as { platform?: string; accountId?: string }
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await resolveClerkProfile<{
+    id: string
+    zernio_profile_id: string | null
+    zernio_profile_ids: string[] | null
+    zernio_connected_platforms: string[] | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(
+    supabase,
+    userId,
+    'id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms',
+    email,
+  )
 
   const zernioProfileIds = profile ? collectZernioProfileIds(profile) : []
   if (zernioProfileIds.length === 0) {

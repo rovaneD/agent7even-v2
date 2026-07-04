@@ -2781,13 +2781,14 @@ function GaDelta({ value }: { value: number | null | undefined }) {
 }
 
 function GoogleAnalyticsContent({
-  isMock, gaId, gaData, gaPending, gaNeedsReconnect, onConnect,
+  isMock, gaId, gaData, gaPending, gaNeedsReconnect, gaFetchError, onConnect,
 }: {
   isMock: boolean
   gaId: string | null
   gaData: GaData | null
   gaPending: boolean
   gaNeedsReconnect: boolean
+  gaFetchError: string
   onConnect: () => void
 }) {
   const data: GaData | null = isMock
@@ -2869,6 +2870,21 @@ function GoogleAnalyticsContent({
 
   // Connected, data still loading
   if (!data) {
+    if (gaFetchError) {
+      return (
+        <div className="rounded-2xl border border-red-100 bg-red-50 px-6 py-5">
+          <p className="text-[13px] font-semibold text-red-700">Couldn&apos;t load Google Analytics</p>
+          <p className="text-[12px] text-red-600 mt-1">{gaFetchError}</p>
+          <button
+            onClick={onConnect}
+            className="mt-4 bg-[#3B82F6] text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl hover:bg-[#2563EB] transition-colors"
+          >
+            Reconnect Google Analytics
+          </button>
+        </div>
+      )
+    }
+
     return (
       <div className="rounded-2xl border border-gray-100 bg-white px-8 py-16 flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-[#3B82F6] border-t-transparent rounded-full animate-spin" />
@@ -3848,6 +3864,7 @@ export default function AnalyticsClient({
   const [gaData, setGaData]                 = useState<GaData | null>(null)
   const [gaPending, setGaPending]           = useState(false)
   const [gaNeedsReconnect, setGaNeedsReconnect] = useState(false)
+  const [gaFetchError, setGaFetchError] = useState('')
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>(zernioConnectedPlatforms)
   const [connectedAccounts, setConnectedAccounts] = useState<ZernioConnectedAccountInfo[]>(zernioConnectedAccounts)
   const [zernioToast, setZernioToast]       = useState('')
@@ -3966,6 +3983,7 @@ export default function AnalyticsClient({
   // Fetch GA data (live/empty state only)
   const fetchGaData = useCallback(async () => {
     if (dataState === 'mock' || !gaId) return
+    setGaFetchError('')
     try {
       const res  = await fetch(`/api/analytics/ga-data?range=${dateRange}`)
       const json = await res.json()
@@ -3981,8 +3999,22 @@ export default function AnalyticsClient({
         setGaData(null)
         setGaPending(true)
         setGaNeedsReconnect(false)
+      } else {
+        setGaData(null)
+        setGaPending(false)
+        setGaNeedsReconnect(false)
+        setGaFetchError(
+          typeof json.error === 'string'
+            ? json.error
+            : "Couldn't load Google Analytics. Try reconnecting your property.",
+        )
       }
-    } catch { /* fail soft */ }
+    } catch {
+      setGaData(null)
+      setGaPending(false)
+      setGaNeedsReconnect(false)
+      setGaFetchError("Couldn't load Google Analytics. Check your connection and try again.")
+    }
   }, [dataState, gaId, dateRange])
 
   useEffect(() => { fetchGaData() }, [fetchGaData])
@@ -4227,6 +4259,7 @@ export default function AnalyticsClient({
               gaData={gaData}
               gaPending={gaPending}
               gaNeedsReconnect={gaNeedsReconnect}
+              gaFetchError={gaFetchError}
               onConnect={handleGAConnect}
             />
           )}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
 import { refreshGoogleAccessToken } from '@/lib/googleOAuth'
 
@@ -241,11 +242,22 @@ export async function GET(req: NextRequest) {
   const range = req.nextUrl.searchParams.get('range') ?? '7d'
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('ga_measurement_id, ga_refresh_token')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await resolveClerkProfile<{
+    id: string
+    ga_measurement_id: string | null
+    ga_refresh_token: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(
+    supabase,
+    userId,
+    'id, ga_measurement_id, ga_refresh_token',
+    email,
+  )
 
   const propertyId = profile?.ga_measurement_id
   if (!propertyId) {

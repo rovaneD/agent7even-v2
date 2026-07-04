@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import * as publisher from '@/lib/social/publisher'
 
 export async function GET(req: NextRequest) {
@@ -12,11 +13,21 @@ export async function GET(req: NextRequest) {
   const platform  = searchParams.get('platform') ?? undefined
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan, zernio_profile_id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await resolveClerkProfile<{
+    id: string
+    plan: string | null
+    zernio_profile_id: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    created_at: string
+  }>(
+    supabase,
+    userId,
+    'id, plan, zernio_profile_id',
+    email,
+  )
 
   if (!profile?.plan) {
     return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })

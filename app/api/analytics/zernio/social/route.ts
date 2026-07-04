@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import * as publisher from '@/lib/social/publisher'
 import { collectZernioProfileIds } from '@/lib/social/zernioProfileIds'
 import { filterPostsByPlatform, parseAnalyticsEnvelope, pickBestAnalyticsPost, platformMatches, postDedupeKey } from '@/lib/social/zernioAnalyticsParse'
@@ -92,11 +93,22 @@ export async function GET(req: NextRequest) {
   const platform = searchParams.get('platform') ?? undefined
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan, zernio_profile_id, zernio_profile_ids')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await resolveClerkProfile<{
+    id: string
+    plan: string | null
+    zernio_profile_id: string | null
+    zernio_profile_ids: string[] | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    created_at: string
+  }>(
+    supabase,
+    userId,
+    'id, plan, zernio_profile_id, zernio_profile_ids',
+    email,
+  )
 
   if (!profile?.plan) {
     return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })

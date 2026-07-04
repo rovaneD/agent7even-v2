@@ -1,18 +1,29 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { refreshGoogleAccessToken } from '@/lib/googleOAuth'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
 export async function GET() {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('ga_refresh_token')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await resolveClerkProfile<{
+    id: string
+    ga_refresh_token: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(
+    supabase,
+    userId,
+    'id, ga_refresh_token',
+    email,
+  )
 
   if (!profile?.ga_refresh_token) {
     return NextResponse.json({ error: 'Not connected' }, { status: 404 })

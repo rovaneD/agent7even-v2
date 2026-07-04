@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { consumeOAuthState } from '@/lib/oauth-state'
 import { oauthCallbackBase } from '@/lib/oauthCallbackBase'
 import * as publisher from '@/lib/social/publisher'
@@ -43,11 +44,20 @@ async function persistConnectedPlatform(opts: {
   returnPath: string
 }): Promise<NextResponse> {
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
-    .eq('clerk_user_id', opts.clerkId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    zernio_profile_id: string | null
+    zernio_profile_ids: string[] | null
+    zernio_connected_platforms: string[] | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(
+    supabase,
+    opts.clerkId,
+    'id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms',
+  )
 
   if (!profile) {
     return NextResponse.redirect(`${APP_URL}${opts.returnPath}?zernio_error=profile_not_found`)

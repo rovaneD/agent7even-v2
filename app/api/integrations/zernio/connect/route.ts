@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { logActivity } from '@/lib/activity'
 import * as publisher from '@/lib/social/publisher'
 import { createOAuthState } from '@/lib/oauth-state'
@@ -36,11 +37,23 @@ export async function POST(req: Request) {
       : '/dashboard/analytics'
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan, company_name, zernio_profile_id, zernio_profile_ids')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const profile = await resolveClerkProfile<{
+    id: string
+    plan: string | null
+    company_name: string | null
+    zernio_profile_id: string | null
+    zernio_profile_ids: string[] | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    created_at: string
+  }>(
+    supabase,
+    userId,
+    'id, plan, company_name, zernio_profile_id, zernio_profile_ids',
+    email,
+  )
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
