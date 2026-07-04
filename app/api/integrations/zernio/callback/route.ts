@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { consumeOAuthState } from '@/lib/oauth-state'
@@ -35,6 +36,12 @@ function parseUserProfile(raw: string | null): Record<string, unknown> | null {
   }
 }
 
+async function emailForNonceUser(clerkId: string): Promise<string | null> {
+  const user = await currentUser()
+  if (user?.id !== clerkId) return null
+  return user.emailAddresses?.[0]?.emailAddress ?? null
+}
+
 async function persistConnectedPlatform(opts: {
   clerkId: string
   platform: string
@@ -44,6 +51,7 @@ async function persistConnectedPlatform(opts: {
   returnPath: string
 }): Promise<NextResponse> {
   const supabase = createServiceClient()
+  const email = await emailForNonceUser(opts.clerkId)
   const profile = await resolveClerkProfile<{
     id: string
     zernio_profile_id: string | null
@@ -57,6 +65,7 @@ async function persistConnectedPlatform(opts: {
     supabase,
     opts.clerkId,
     'id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms',
+    email,
   )
 
   if (!profile) {
