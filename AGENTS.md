@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 3, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 4, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -64,7 +64,8 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV23.md` — latest product handoff: duplicate profile resolution, Agents run sub-pages, Foundation site snapshot, GA OAuth canonical save, credits UX (July 3, 2026).
+- `CONTEXTV23.md` — latest product handoff: duplicate profile resolution, Agents run sub-pages, Foundation site snapshot, GA OAuth canonical save, credits UX, critical July 4 hardening.
+- `SESSION_2026-07-04.md` — July 4 critical bug investigation (PR #15: OAuth callback session binding, safe site fetch, agent workspace/profile fixes).
 - `SESSION_2026-07-03.md` — July 3 session log (commits 7002bb6 … 5a2a2c1 + doc pass).
 - `CONTEXTV22.md` — prior handoff: Thread 3 lifecycle v1, Phase A crop, Zernio DPA/compliance (§8), structured output views, approval count SSOT (July 2, 2026).
 - `SESSION_2026-07-01.md` — July 1 session log (commits c949a77 … b889cc6 + doc pass).
@@ -104,11 +105,13 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Key implementation notes (July 2026)
 - **Canonical profile resolution:** `lib/profiles/resolveClerkProfile.ts` — use for any Clerk-scoped API route or page that reads `profiles`. Billing: `getBillingProfileForClerkUser`. Dashboard: `getDashboardProfileForClerkUser`. Analytics SSR: `getAnalyticsProfileForClerkUser`. GA OAuth: `lib/analytics/gaOAuthProfile.ts` (`saveGaOAuthTokensForClerkUser` saves by profile **id**). Never `.eq('clerk_user_id').single()` when duplicates may exist.
+- **OAuth callback writes:** consume nonce state, then verify the active Clerk session matches the nonce-bound Clerk ID before saving tokens. Never use provider-selected email (for example Google OAuth email) as a tenant profile lookup fallback.
 - **Agent guided setup:** dedicated run pages at `/dashboard/agents/[agentId]/run` — not modals on Command Center hub (`lib/agents/guidedSetup.ts`).
+- **Agent run/task workspace scope:** Agents hub/run pages and task/constraint APIs use `getDashboardProfileForClerkUser` + `resolveWorkspaceProfileId` for workspace-scoped data.
 - **Pending approval count SSOT:** `lib/agents/pendingApprovals.ts` — count/list from `agent_outputs.status = 'pending_approval'`. Used by dashboard brief, lifecycle bar, sidebar badge, Agents Command Center, digest generate, and approvals API. Do not reintroduce `Math.max` with `daily_digests.approvals` or parallel `agent_tasks`-only counts for surfacing.
 - **Foundation competitors:** store as `string[]` via `lib/foundation/competitorsArray.ts` — never comma-split prose into slots.
 - **Structured approval views:** Campaign Builder, Ad Variations, Email Sequence use dedicated parsers + view components in `lib/agents/*Parse.ts` and `components/agents/*OutputView.tsx`.
-- **Foundation site snapshot:** `34_foundation_site_snapshot.sql` + `lib/foundation/siteSnapshot.ts` — separate from guarded Phase 1 answers; enable via `site_snapshot_enabled`.
+- **Foundation site snapshot:** `34_foundation_site_snapshot.sql` + `lib/foundation/siteSnapshot.ts` — separate from guarded Phase 1 answers; enable via `site_snapshot_enabled`. Server-side website fetch must keep public HTTP(S), DNS/IP, redirect-hop validation, and body-size caps in `lib/foundation/fetchWebsiteContent.ts`.
 
 ## Current visual-system rules
 - Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.
