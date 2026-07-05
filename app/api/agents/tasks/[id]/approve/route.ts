@@ -98,7 +98,11 @@ export async function POST(
     }
   }
 
-  logActivity(memberId, 'agent_approved', { taskId, publishScheduled: publish?.scheduled ?? false }, workspaceId).catch(() => {})
+  logActivity(memberId, 'agent_approved', {
+    taskId,
+    agent: (task?.agent as string) ?? undefined,
+    publishScheduled: publish?.scheduled ?? false,
+  }, workspaceId).catch(() => {})
 
   logApprovalChangelog({
     actorProfileId: memberId,

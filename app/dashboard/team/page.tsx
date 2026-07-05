@@ -41,10 +41,14 @@ export default async function TeamPage() {
   const activeMembers = teamMembers?.filter(m => m.status === 'active').length ?? 0
   const pendingMembers = teamMembers?.filter(m => m.status === 'pending').length ?? 0
 
-  let activityItems: Awaited<ReturnType<typeof listWorkspaceActivity>> = []
+  let activityResult: Awaited<ReturnType<typeof listWorkspaceActivity>> = {
+    items: [],
+    teamActionCount: 0,
+    ownerActionCount: 0,
+  }
   let openAssignments: Awaited<ReturnType<typeof listOpenWorkspaceAssignments>> = []
   try {
-    activityItems = await listWorkspaceActivity(supabase, profile.id)
+    activityResult = await listWorkspaceActivity(supabase, profile.id, { teamOnly: false })
     openAssignments = await listOpenWorkspaceAssignments(supabase, profile.id)
   } catch (err) {
     console.error('[team/page] activity fetch failed:', err)
@@ -60,7 +64,9 @@ export default async function TeamPage() {
       activeMembers={activeMembers}
       pendingMembers={pendingMembers}
       teamMembers={teamMembers ?? []}
-      activityItems={activityItems}
+      activityItems={activityResult.items}
+      activityTeamCount={activityResult.teamActionCount}
+      activityOwnerCount={activityResult.ownerActionCount}
       openAssignments={openAssignments}
     />
   )

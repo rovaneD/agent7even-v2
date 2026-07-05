@@ -1,13 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { agentDisplayName } from '@/lib/agents/digestPreview'
 
+export type WorkspaceActivityActorRole = 'owner' | 'member'
+
 export type WorkspaceActivityItem = {
   id: string
   eventType: string
   title: string
+  summary: string
   detail: string | null
   actorName: string
   actorProfileId: string | null
+  actorRole: WorkspaceActivityActorRole
   createdAt: string
   link: string | null
 }
@@ -19,28 +23,48 @@ const EVENT_LABELS: Record<string, string> = {
   agent_bulk_rejected: 'Bulk rejection',
   maya_message: 'Maya chat',
   foundation_updated: 'Foundation update',
-  page_view: 'Page view',
   assignment_created: 'Assignment',
   assignment_submitted: 'Assignment submitted',
   team_member_joined: 'Team member joined',
 }
 
+/** Low-signal owner actions — hidden from default Team tab. */
+const OWNER_NOISE_EVENTS = new Set(['maya_message', 'page_view'])
+
 function actorDisplayName(profile: { full_name?: string | null; email?: string | null } | null): string {
-  if (!profile) return 'Someone'
+  if (!profile) return 'Team member'
   return profile.full_name?.trim() || profile.email?.trim() || 'Team member'
+}
+
+function parseJoinerNameFromBody(body: string | null | undefined): string | null {
+  if (!body?.trim()) return null
+  const match = body.match(/^(.+?)\s+accepted your team invitation/i)
+  return match?.[1]?.trim() ?? null
 }
 
 function formatActivityDetail(
   eventType: string,
   metadata: Record<string, unknown> | null,
+  taskAgentMap: Map<string, string>,
 ): string | null {
   if (!metadata) return null
+
   if (eventType === 'agent_run' && typeof metadata.agent === 'string') {
     return agentDisplayName(metadata.agent)
   }
-  if (eventType === 'agent_approved' && metadata.publishScheduled === true) {
-    return 'Approved and scheduled for publish'
+
+  if (eventType === 'agent_approved') {
+    const taskId = typeof metadata.taskId === 'string' ? metadata.taskId : null
+    const agentId = typeof metadata.agent === 'string'
+      ? metadata.agent
+      : taskId
+        ? taskAgentMap.get(taskId)
+        : null
+    if (agentId) return agentDisplayName(agentId)
+    if (metadata.publishScheduled === true) return 'Scheduled for publish after approval'
+    return null
   }
+
   if (eventType === 'agent_bulk_approved' && typeof metadata.count === 'number') {
     return `${metadata.count} item${metadata.count === 1 ? '' : 's'} approved`
   }
@@ -56,41 +80,145 @@ function formatActivityDetail(
   if (eventType === 'foundation_updated' && typeof metadata.score === 'number') {
     return `Foundation score ${metadata.score}`
   }
+  if (eventType === 'assignment_created' && typeof metadata.assigneeProfileId === 'string') {
+    return 'Waiting for assignee to start'
+  }
+
   return null
 }
 
+function buildActivitySummary(
+  eventType: string,
+  actorName: string,
+  actorRole: WorkspaceActivityActorRole,
+  metadata: Record<string, unknown> | null,
+  taskAgentMap: Map<string, string>,
+  joinBody?: string | null,
+): string {
+  const roleLabel = actorRole === 'owner' ? 'Account owner' : actorName
+
+  switch (eventType) {
+    case 'agent_run': {
+      const agent = typeof metadata?.agent === 'string'
+        ? agentDisplayName(metadata.agent)
+        : 'an agent'
+      return actorRole === 'owner'
+        ? `You ran ${agent}`
+        : `${actorName} ran ${agent}`
+    }
+    case 'agent_approved': {
+      const taskId = typeof metadata?.taskId === 'string' ? metadata.taskId : null
+      const agentId = typeof metadata?.agent === 'string'
+        ? metadata.agent
+        : taskId
+          ? taskAgentMap.get(taskId)
+          : null
+      const target = agentId ? agentDisplayName(agentId) : 'agent output'
+      const publish = metadata?.publishScheduled === true ? ' and scheduled publish' : ''
+      return actorRole === 'owner'
+        ? `You approved ${target}${publish}`
+        : `${actorName} approved ${target}${publish}`
+    }
+    case 'agent_bulk_approved': {
+      const count = typeof metadata?.count === 'number' ? metadata.count : 0
+      return actorRole === 'owner'
+        ? `You bulk-approved ${count} item${count === 1 ? '' : 's'}`
+        : `${actorName} bulk-approved ${count} item${count === 1 ? '' : 's'}`
+    }
+    case 'agent_bulk_rejected': {
+      const count = typeof metadata?.count === 'number' ? metadata.count : 0
+      return actorRole === 'owner'
+        ? `You bulk-rejected ${count} item${count === 1 ? '' : 's'}`
+        : `${actorName} bulk-rejected ${count} item${count === 1 ? '' : 's'}`
+    }
+    case 'maya_message':
+      return actorRole === 'owner'
+        ? 'You chatted with Maya'
+        : `${actorName} chatted with Maya`
+    case 'foundation_updated':
+      return actorRole === 'owner'
+        ? 'You updated Foundation'
+        : `${actorName} updated Foundation`
+    case 'assignment_created': {
+      const agent = typeof metadata?.agent === 'string'
+        ? agentDisplayName(metadata.agent)
+        : 'agent work'
+      return actorRole === 'owner'
+        ? `You assigned ${agent} to a team member`
+        : `${roleLabel} assigned ${agent}`
+    }
+    case 'assignment_submitted': {
+      const agent = typeof metadata?.agent === 'string'
+        ? agentDisplayName(metadata.agent)
+        : 'assigned work'
+      return `${actorName} submitted ${agent} for your review`
+    }
+    case 'team_member_joined': {
+      const joiner = parseJoinerNameFromBody(joinBody) ?? actorName
+      return `${joiner} joined the workspace`
+    }
+    default:
+      return EVENT_LABELS[eventType] ?? eventType.replace(/_/g, ' ')
+  }
+}
+
 function activityLink(eventType: string, metadata: Record<string, unknown> | null): string | null {
-  if (eventType === 'agent_run' || eventType === 'agent_approved') {
+  if (metadata && typeof metadata.taskId === 'string') {
+    if (eventType === 'agent_run' || eventType === 'assignment_submitted') {
+      return `/dashboard/agents/approvals?task=${metadata.taskId}`
+    }
+    if (eventType === 'agent_approved') {
+      return `/dashboard/agents/approvals?task=${metadata.taskId}`
+    }
+  }
+  if (eventType === 'agent_run') return '/dashboard/agents'
+  if (eventType === 'agent_approved' || eventType === 'agent_bulk_approved') {
     return '/dashboard/agents/approvals'
   }
-  if (eventType === 'assignment_created' || eventType === 'assignment_submitted') {
-    return '/dashboard/team'
-  }
-  if (eventType === 'team_member_joined') {
-    return '/dashboard/team'
-  }
-  if (eventType === 'maya_message') {
-    return '/maya'
-  }
-  if (eventType === 'foundation_updated') {
-    return '/foundation'
-  }
-  if (metadata && typeof metadata.taskId === 'string') {
-    return `/dashboard/agents/approvals?task=${metadata.taskId}`
-  }
+  if (eventType === 'assignment_created') return '/dashboard/team'
+  if (eventType === 'assignment_submitted') return '/dashboard/agents/approvals'
+  if (eventType === 'team_member_joined') return '/dashboard/team'
+  if (eventType === 'maya_message') return '/maya'
+  if (eventType === 'foundation_updated') return '/foundation'
   return null
+}
+
+async function loadTeamMemberProfileIds(
+  supabase: SupabaseClient,
+  workspaceId: string,
+): Promise<Set<string>> {
+  const { data } = await supabase
+    .from('team_members')
+    .select('member_profile_id')
+    .eq('account_id', workspaceId)
+    .eq('status', 'active')
+
+  return new Set(
+    (data ?? [])
+      .map(row => row.member_profile_id as string | null)
+      .filter(Boolean) as string[],
+  )
+}
+
+export type WorkspaceActivityResult = {
+  items: WorkspaceActivityItem[]
+  teamActionCount: number
+  ownerActionCount: number
 }
 
 /** Owner Team Activity feed — last 7 days by default. */
 export async function listWorkspaceActivity(
   supabase: SupabaseClient,
   workspaceId: string,
-  opts?: { limit?: number; sinceDays?: number },
-): Promise<WorkspaceActivityItem[]> {
+  opts?: { limit?: number; sinceDays?: number; teamOnly?: boolean },
+): Promise<WorkspaceActivityResult> {
   const limit = opts?.limit ?? 40
   const sinceDays = opts?.sinceDays ?? 7
+  const teamOnly = opts?.teamOnly ?? false
   const since = new Date()
   since.setDate(since.getDate() - sinceDays)
+
+  const teamMemberIds = await loadTeamMemberProfileIds(supabase, workspaceId)
 
   const { data: logRows, error: logErr } = await supabase
     .from('client_activity_log')
@@ -99,7 +227,7 @@ export async function listWorkspaceActivity(
     .gte('created_at', since.toISOString())
     .neq('event_type', 'page_view')
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .limit(limit * 2)
 
   if (logErr) throw logErr
 
@@ -111,6 +239,22 @@ export async function listWorkspaceActivity(
     .gte('created_at', since.toISOString())
     .order('created_at', { ascending: false })
     .limit(10)
+
+  const approvalTaskIds = (logRows ?? [])
+    .filter(row => row.event_type === 'agent_approved')
+    .map(row => (row.metadata as Record<string, unknown> | null)?.taskId)
+    .filter((id): id is string => typeof id === 'string')
+
+  const taskAgentMap = new Map<string, string>()
+  if (approvalTaskIds.length > 0) {
+    const { data: tasks } = await supabase
+      .from('agent_tasks')
+      .select('id, agent')
+      .in('id', [...new Set(approvalTaskIds)])
+    for (const task of tasks ?? []) {
+      taskAgentMap.set(task.id as string, task.agent as string)
+    }
+  }
 
   const actorIds = new Set<string>()
   for (const row of logRows ?? []) {
@@ -131,33 +275,68 @@ export async function listWorkspaceActivity(
     }
   }
 
-  const fromLog: WorkspaceActivityItem[] = (logRows ?? []).map(row => {
-    const metadata = (row.metadata ?? null) as Record<string, unknown> | null
-    const eventType = row.event_type as string
+  function resolveActorRole(actorProfileId: string | null): WorkspaceActivityActorRole {
+    if (!actorProfileId || actorProfileId === workspaceId) return 'owner'
+    return teamMemberIds.has(actorProfileId) ? 'member' : 'owner'
+  }
+
+  const fromLog: WorkspaceActivityItem[] = (logRows ?? [])
+    .filter(row => !OWNER_NOISE_EVENTS.has(row.event_type as string))
+    .map(row => {
+      const metadata = (row.metadata ?? null) as Record<string, unknown> | null
+      const eventType = row.event_type as string
+      const actorProfileId = (row.user_id as string) ?? null
+      const actorRole = resolveActorRole(actorProfileId)
+      const actorName = actorDisplayName(profileMap.get(actorProfileId ?? '') ?? null)
+      const detail = formatActivityDetail(eventType, metadata, taskAgentMap)
+
+      return {
+        id: `log-${row.id}`,
+        eventType,
+        title: EVENT_LABELS[eventType] ?? eventType.replace(/_/g, ' '),
+        summary: buildActivitySummary(eventType, actorName, actorRole, metadata, taskAgentMap),
+        detail,
+        actorName,
+        actorProfileId,
+        actorRole,
+        createdAt: row.created_at as string,
+        link: activityLink(eventType, metadata),
+      }
+    })
+
+  const fromJoins: WorkspaceActivityItem[] = (joinNotifications ?? []).map(row => {
+    const joinerFromBody = parseJoinerNameFromBody(row.body as string)
+    const actorProfileId = (row.sender_id as string) ?? null
+    const actorName = joinerFromBody
+      ?? actorDisplayName(actorProfileId ? profileMap.get(actorProfileId) ?? null : null)
+
     return {
-      id: `log-${row.id}`,
-      eventType,
-      title: EVENT_LABELS[eventType] ?? eventType.replace(/_/g, ' '),
-      detail: formatActivityDetail(eventType, metadata),
-      actorName: actorDisplayName(profileMap.get(row.user_id as string) ?? null),
-      actorProfileId: (row.user_id as string) ?? null,
+      id: `notif-${row.id}`,
+      eventType: 'team_member_joined',
+      title: EVENT_LABELS.team_member_joined,
+      summary: `${actorName} joined the workspace`,
+      detail: row.body as string,
+      actorName,
+      actorProfileId,
+      actorRole: 'member' as const,
       createdAt: row.created_at as string,
-      link: activityLink(eventType, metadata),
+      link: '/dashboard/team',
     }
   })
 
-  const fromJoins: WorkspaceActivityItem[] = (joinNotifications ?? []).map(row => ({
-    id: `notif-${row.id}`,
-    eventType: 'team_member_joined',
-    title: EVENT_LABELS.team_member_joined,
-    detail: row.body as string,
-    actorName: actorDisplayName(row.sender_id ? profileMap.get(row.sender_id as string) ?? null : null),
-    actorProfileId: (row.sender_id as string) ?? null,
-    createdAt: row.created_at as string,
-    link: '/dashboard/team',
-  }))
-
-  return [...fromLog, ...fromJoins]
+  const allItems = [...fromLog, ...fromJoins]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, limit)
+
+  const teamActionCount = allItems.filter(item => item.actorRole === 'member').length
+  const ownerActionCount = allItems.filter(item => item.actorRole === 'owner').length
+
+  const filtered = teamOnly
+    ? allItems.filter(item => item.actorRole === 'member')
+    : allItems
+
+  return {
+    items: filtered.slice(0, limit),
+    teamActionCount,
+    ownerActionCount,
+  }
 }
