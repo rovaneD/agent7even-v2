@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { resolveWorkspaceClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
 import { refreshGaAccessTokenForClerkUser } from '@/lib/analytics/gaOAuthProfile'
 
@@ -244,7 +244,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
   const user = await currentUser()
   const email = user?.emailAddresses?.[0]?.emailAddress ?? null
-  const profile = await resolveClerkProfile<{
+  const profile = await resolveWorkspaceClerkProfile<{
     id: string
     ga_measurement_id: string | null
     ga_refresh_token: string | null

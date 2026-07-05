@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { resolveWorkspaceClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import * as publisher from '@/lib/social/publisher'
 import {
   mapZernioInboxToUi,
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceClient()
   const user = await currentUser()
   const email = user?.emailAddresses?.[0]?.emailAddress ?? null
-  const profile = await resolveClerkProfile<{
+  const profile = await resolveWorkspaceClerkProfile<{
     id: string
     plan: string | null
     zernio_profile_id: string | null

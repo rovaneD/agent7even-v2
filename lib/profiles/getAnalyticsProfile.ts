@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { pickCanonicalProfile } from './ensureProfile'
+import { resolveClerkProfile, resolveWorkspaceClerkProfile } from './resolveClerkProfile'
+import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 
 const ANALYTICS_SELECT = `
   id,
@@ -43,26 +44,15 @@ export async function getAnalyticsProfileForClerkUser(
   clerkUserId: string,
   email?: string | null,
 ): Promise<AnalyticsProfile | null> {
-  const { data: byClerk } = await supabase
-    .from('profiles')
-    .select(ANALYTICS_SELECT)
-    .eq('clerk_user_id', clerkUserId)
-
-  if (byClerk?.length) {
-    return pickCanonicalProfile(byClerk as AnalyticsProfile[])
+  const member = await resolveClerkProfile(supabase, clerkUserId, 'id', email)
+  if (member && email?.trim()) {
+    await activateTeamInviteForProfile(supabase, member.id, email)
   }
 
-  const normalizedEmail = email?.trim()
-  if (!normalizedEmail) return null
-
-  const { data: byEmail } = await supabase
-    .from('profiles')
-    .select(ANALYTICS_SELECT)
-    .ilike('email', normalizedEmail)
-    .neq('status', 'churned')
-    .order('created_at', { ascending: true })
-
-  if (!byEmail?.length) return null
-
-  return pickCanonicalProfile(byEmail as AnalyticsProfile[])
+  return resolveWorkspaceClerkProfile<AnalyticsProfile>(
+    supabase,
+    clerkUserId,
+    ANALYTICS_SELECT,
+    email,
+  )
 }

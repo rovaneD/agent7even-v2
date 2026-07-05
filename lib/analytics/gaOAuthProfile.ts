@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { resolveWorkspaceClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { refreshGoogleAccessToken, type GoogleTokenRefreshResult } from '@/lib/googleOAuth'
 
 const GA_PROFILE_SELECT =
@@ -22,7 +22,7 @@ export async function getGaProfileForClerkUser(
   clerkUserId: string,
   email?: string | null,
 ): Promise<GaProfileRow | null> {
-  return resolveClerkProfile<GaProfileRow>(supabase, clerkUserId, GA_PROFILE_SELECT, email)
+  return resolveWorkspaceClerkProfile<GaProfileRow>(supabase, clerkUserId, GA_PROFILE_SELECT, email)
 }
 
 /** Refresh GA access token; if canonical token is stale, try sibling profile rows and migrate. */

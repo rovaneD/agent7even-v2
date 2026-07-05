@@ -8,14 +8,26 @@ type CanonicalProfileRow = {
   plan: string | null
   created_at: string
   role?: string | null
+  is_account_owner?: boolean | null
+  account_id?: string | null
 }
 
 const CANONICAL_SUFFIX =
   'stripe_customer_id, stripe_subscription_id, plan, created_at, role'
 
+const WORKSPACE_SUFFIX = 'is_account_owner, account_id'
+
 function withCanonicalFields(select: string): string {
   const fields = select.split(',').map((f) => f.trim())
   for (const required of CANONICAL_SUFFIX.split(', ')) {
+    if (!fields.includes(required)) fields.push(required)
+  }
+  return fields.join(', ')
+}
+
+function withWorkspaceFields(select: string): string {
+  const fields = withCanonicalFields(select).split(',').map((f) => f.trim())
+  for (const required of WORKSPACE_SUFFIX.split(', ')) {
     if (!fields.includes(required)) fields.push(required)
   }
   return fields.join(', ')
@@ -52,4 +64,31 @@ export async function resolveClerkProfile<T extends CanonicalProfileRow>(
   if (!byEmail?.length) return null
 
   return pickCanonicalProfile(byEmail as unknown as T[])
+}
+
+/**
+ * Resolve workspace-scoped profile data for a Clerk user.
+ * Team members inherit the account owner's integrations, plan, and analytics connections.
+ */
+export async function resolveWorkspaceClerkProfile<T extends CanonicalProfileRow>(
+  supabase: SupabaseClient,
+  clerkUserId: string,
+  select: string,
+  email?: string | null,
+): Promise<T | null> {
+  const selectFields = withWorkspaceFields(select)
+  const member = await resolveClerkProfile<T>(supabase, clerkUserId, selectFields, email)
+  if (!member) return null
+
+  if (member.is_account_owner !== false || !member.account_id) {
+    return member
+  }
+
+  const { data: owner } = await supabase
+    .from('profiles')
+    .select(selectFields)
+    .eq('id', member.account_id)
+    .maybeSingle()
+
+  return (owner as T | null) ?? member
 }

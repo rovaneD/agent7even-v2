@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import AnalyticsClient from './AnalyticsClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import * as publisher from '@/lib/social/publisher'
 import { collectZernioProfileIds, syncTenantConnectedPlatforms } from '@/lib/social/zernioProfileIds'
 import type { ZernioConnectedAccountInfo } from '@/lib/social/zernioShared'
@@ -27,12 +28,16 @@ export default async function AnalyticsPage() {
   const supabase = createServiceClient()
   const user = await currentUser()
   const email = user?.emailAddresses?.[0]?.emailAddress ?? null
-  const profile = await getAnalyticsProfileForClerkUser(supabase, userId, email)
 
-  if (profile?.id) {
-    const teamPerms = await getTeamPermissions(profile.id)
+  let canManageConnections = true
+  const memberProfile = await resolveClerkProfile(supabase, userId, 'id', email)
+  if (memberProfile?.id) {
+    const teamPerms = await getTeamPermissions(memberProfile.id)
     if (!hasPermission(teamPerms, 'analytics')) redirect('/dashboard')
+    canManageConnections = teamPerms.isOwner
   }
+
+  const profile = await getAnalyticsProfileForClerkUser(supabase, userId, email)
 
   const zernioProfileIds = profile ? collectZernioProfileIds(profile) : []
   const zernioProfileId = zernioProfileIds[0] ?? null
@@ -76,6 +81,7 @@ export default async function AnalyticsPage() {
       gaOAuthEmail={profile?.ga_oauth_email ?? null}
       zernioConnectedPlatforms={zernioConnectedPlatforms}
       zernioConnectedAccounts={zernioConnectedAccounts}
+      canManageConnections={canManageConnections}
     />
   )
 }

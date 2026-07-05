@@ -1106,6 +1106,7 @@ interface Props {
   gaOAuthEmail: string | null
   zernioConnectedPlatforms: string[]
   zernioConnectedAccounts: ZernioConnectedAccountInfo[]
+  canManageConnections?: boolean
 }
 
 function formatConnectedAccountLabel(account: ZernioConnectedAccountInfo | undefined): string {
@@ -3850,6 +3851,7 @@ export default function AnalyticsClient({
   gaOAuthEmail,
   zernioConnectedPlatforms,
   zernioConnectedAccounts,
+  canManageConnections = true,
 }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -4110,7 +4112,12 @@ export default function AnalyticsClient({
 
   useEffect(() => { fetchInboxData() }, [fetchInboxData])
 
+  const requestConnect = () => {
+    if (canManageConnections) setConnectPanelOpen(true)
+  }
+
   const handleGAConnect = () => {
+    if (!canManageConnections) return
     if (gaNeedsReconnect) {
       window.location.href = '/api/analytics/ga-connect'
       return
@@ -4194,12 +4201,14 @@ export default function AnalyticsClient({
             <h1 className="text-[22px] font-[500] text-text">Analytics</h1>
             <p className="text-[13px] text-text-sec mt-0.5">View post performance metrics</p>
           </div>
-          <button
-            onClick={() => setConnectPanelOpen(true)}
-            className="flex items-center gap-1.5 text-[12px] font-semibold text-[#3B82F6] bg-blue-50 border border-[#BFDBFE] px-3.5 py-2 rounded-xl hover:bg-blue-100 transition-colors"
-          >
-            <Plus size={13} /> Connect accounts
-          </button>
+          {canManageConnections && (
+            <button
+              onClick={() => setConnectPanelOpen(true)}
+              className="flex items-center gap-1.5 text-[12px] font-semibold text-[#3B82F6] bg-blue-50 border border-[#BFDBFE] px-3.5 py-2 rounded-xl hover:bg-blue-100 transition-colors"
+            >
+              <Plus size={13} /> Connect accounts
+            </button>
+          )}
         </div>
 
         {/* Tabs */}
@@ -4254,7 +4263,7 @@ export default function AnalyticsClient({
               fetchError={postingFetchError}
               loading={postingLoading}
               syncPending={analyticsSyncPending}
-              onConnect={() => setConnectPanelOpen(true)}
+              onConnect={requestConnect}
             />
           )}
           {activeTab === 'inbox'   && (
@@ -4264,7 +4273,7 @@ export default function AnalyticsClient({
               fetchError={inboxFetchError}
               loading={inboxLoading}
               inbox={inboxData}
-              onConnect={() => setConnectPanelOpen(true)}
+              onConnect={requestConnect}
             />
           )}
           {activeTab === 'ga'      && (
