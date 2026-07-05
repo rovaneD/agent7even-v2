@@ -1,7 +1,7 @@
 # CONTEXTV24 — Transactional email complete, Guardian proposal surface
 *Snapshot: July 4, 2026 — supersedes `CONTEXTV23.md` for logged-in product work*
 
-Session log: `SESSION_2026-07-04.md`.
+Session logs: `SESSION_2026-07-04.md`; July 5 critical team hardening addendum in `SESSION_2026-07-05.md`.
 
 ---
 
@@ -31,6 +31,7 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 | Profile merge tooling + DB status | **§3** |
 | Guardian checkpoint + threshold hold | **§4** |
 | Proposal surface + layers v0 (Build Sequence 3–4) | **§5** |
+| July 5 team workspace critical hardening | **§6** |
 
 ---
 
@@ -109,12 +110,27 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 
 ---
 
+## 6. July 5 addendum — team workspace critical hardening
+
+**Branch:** `cursor/critical-bug-investigation-8f63`.
+
+**Fixed:**
+- Team invite acceptance now requires the signed-in Clerk user to match the invited existing profile/email before `profiles.account_id` is changed.
+- Team invite API responses no longer expose `invite_token`; the token is only used in the email link.
+- Assignment starts atomically claim pending tasks before dispatch, preventing duplicate runs/credit deductions from double submits.
+- Approval queue list/approve/reject/bulk APIs and `/dashboard/agents/approvals` are owner-only, matching `TEAM_WORKSPACE_SPEC.md`'s conservative approval rule.
+
+**Validated:** `npx tsc --noEmit` and `npm run build` passed on July 5.
+
+---
+
 ## Do not revert
 
 - All CONTEXTV23 “do not revert” items (run sub-pages, canonical profile, GA OAuth save, credits copy).
 - Transactional email on-brand template across migrated routes.
 - Guardian `reject_internal` for clusters below threshold.
 - Proposal surface — user must approve before layers enter agent context.
+- Owner-only approval gates and authenticated invite acceptance from the July 5 addendum.
 
 ---
 
@@ -124,10 +140,11 @@ Before every push: `git remote -v` must show `rovaneD/agent7even-v2`.
 |-----|------|
 | `CONTEXTV23.md` | July 3 handoff (profile resolution, Agents UX, GA fix) |
 | `SESSION_2026-07-04.md` | This session log + changelog/proposal review |
+| `SESSION_2026-07-05.md` | Critical team workspace hardening addendum |
 | `FOUNDATION_GUARDIAN_HANDOFF.md` | Observer + Guardian build spec |
 | `foundation_intelligence_vision.md` | Vision + build sequence |
 | `AGENTS.md` | Product rules + deploy |
 
 ---
 
-*End CONTEXTV24 — July 4, 2026*
+*End CONTEXTV24 — July 5 addendum*

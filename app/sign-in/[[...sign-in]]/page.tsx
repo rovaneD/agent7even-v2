@@ -1,5 +1,6 @@
 import AuthMarketingShell from '@/components/auth/AuthMarketingShell'
 import AuthSignInForm from '@/components/auth/AuthSignInForm'
+import { Suspense } from 'react'
 
 export default function SignInPage() {
   return (
@@ -19,7 +20,9 @@ export default function SignInPage() {
         </>
       }
     >
-      <AuthSignInForm />
+      <Suspense fallback={null}>
+        <AuthSignInForm />
+      </Suspense>
     </AuthMarketingShell>
   )
 }

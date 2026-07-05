@@ -125,12 +125,14 @@ export async function POST(req: Request) {
       subject: `You've been invited to join ${profile.company_name ?? 'a team'} on Agent7even`,
       title: "You've been invited",
       body: `${profile.company_name ?? 'Your team'} has invited you to join their Agent7even dashboard.\n\nThis invitation expires in 7 days. If you did not expect this, you can ignore this email.`,
-      link: `/api/team/accept?token=${member.invite_token}`,
+      link: `/api/team/accept?token=${inviteToken}`,
       ctaLabel: 'Accept invitation →',
     })
   } catch (err) {
     console.error('Invite email failed:', err)
   }
 
-  return NextResponse.json({ member })
+  const safeMember = { ...(member as Record<string, unknown>) }
+  delete safeMember.invite_token
+  return NextResponse.json({ member: safeMember })
 }
