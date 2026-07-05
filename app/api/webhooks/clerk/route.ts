@@ -6,6 +6,7 @@ import { welcomeEmailHtml, welcomeEmailText } from '@/emails/welcome'
 import { getResendClient } from '@/lib/resend'
 import { transactionalFromAddress } from '@/lib/email/transactionalTemplate'
 import { notifyTeamMemberJoined } from '@/lib/team/notifyTeamMemberJoined'
+import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET
@@ -85,6 +86,15 @@ export async function POST(req: Request) {
           await supabase.from('profiles').delete().in('id', orphanIds)
         }
 
+        const teamActivation = await activateTeamInviteForProfile(supabase, canonical.id, email)
+        if (teamActivation?.activated) {
+          await notifyTeamMemberJoined({
+            accountId: teamActivation.accountId,
+            memberEmail: email,
+            memberName: fullName,
+          }).catch(err => console.error('[clerk/webhook] join notification failed:', err))
+        }
+
         console.warn('[clerk/webhook] Blocked duplicate profile for email', email, {
           clerkUserId: id,
           canonicalProfileId: canonical.id,
@@ -110,36 +120,21 @@ export async function POST(req: Request) {
     }
 
     // Activate any pending team invite for this email
+    let joinedViaTeamInvite = false
     if (newProfile?.id && email) {
-      const { data: pendingInvite } = await supabase
-        .from('team_members')
-        .select('id, account_id')
-        .eq('invited_email', email.toLowerCase())
-        .eq('status', 'pending')
-        .single()
-
-      if (pendingInvite) {
-        await supabase.from('team_members').update({
-          member_profile_id: newProfile.id,
-          status: 'active',
-        }).eq('id', pendingInvite.id)
-
-        await supabase.from('profiles').update({
-          account_id: pendingInvite.account_id,
-          is_account_owner: false,
-          updated_at: new Date().toISOString(),
-        }).eq('id', newProfile.id)
-
+      const teamActivation = await activateTeamInviteForProfile(supabase, newProfile.id, email)
+      if (teamActivation?.activated) {
+        joinedViaTeamInvite = true
         await notifyTeamMemberJoined({
-          accountId: pendingInvite.account_id,
+          accountId: teamActivation.accountId,
           memberEmail: email,
           memberName: fullName,
         }).catch(err => console.error('[clerk/webhook] join notification failed:', err))
       }
     }
 
-    // Send welcome email
-    if (email) {
+    // Welcome email — skip for team invitees (they already got an invite email)
+    if (email && !joinedViaTeamInvite) {
       try {
         const resend = getResendClient()
         if (!resend) throw new Error('Missing RESEND_API_KEY')

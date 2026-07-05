@@ -33,7 +33,6 @@ export async function GET(req: Request) {
     .single()
 
   if (existingProfile) {
-    // Link existing profile as team member
     await supabase
       .from('team_members')
       .update({
@@ -42,7 +41,6 @@ export async function GET(req: Request) {
       })
       .eq('id', invite.id)
 
-    // Update profile to mark as team member
     await supabase
       .from('profiles')
       .update({

@@ -1,8 +1,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
-import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
-import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { getPendingApprovalCount } from '@/lib/agents/pendingApprovals'
 import { getTeamPermissions } from '@/lib/teamPermissions'
 import DashboardShell from './DashboardShell'
@@ -30,17 +29,20 @@ export default async function DashboardLayout({
   let brandKitCompleted = 0
   let pendingApprovalsCount = 0
   let teamPermissions = null
+  let workspaceFoundationScore: number | null = null
 
   if (userId) {
     const user = await currentUser()
     const email = user?.emailAddresses?.[0]?.emailAddress ?? null
-    const p = await getDashboardProfileForClerkUser(supabase, userId, email)
+    const { profile: p, workspace } = await loadDashboardSession(supabase, userId, email)
 
     if (p?.id) {
       profile = p
       profileId = p.id
+      workspaceFoundationScore =
+        workspace?.workspaceProfile.foundation_score ?? p.foundation_score ?? null
 
-      const workspaceId = await resolveWorkspaceProfileId(supabase, p.id)
+      const workspaceId = workspace?.workspaceId ?? p.id
       teamPermissions = await getTeamPermissions(p.id)
 
       const [{ data: notifs }, { data: sessionRows }, { data: brandKitRows }, approvalsCount] = await Promise.all([
@@ -81,7 +83,7 @@ export default async function DashboardLayout({
       profileId={profileId}
       initialNotifications={notifications}
       initialSessions={initialSessions}
-      foundationScore={profile?.foundation_score ?? null}
+      foundationScore={workspaceFoundationScore}
       brandKitCompleted={brandKitCompleted}
       pendingApprovalsCount={pendingApprovalsCount}
       role={profile?.role ?? null}

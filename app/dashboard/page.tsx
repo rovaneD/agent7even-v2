@@ -1,8 +1,8 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import { createServiceClient } from '@/lib/supabase/server'
-import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
-import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { isAnalyticsConnected } from '@/lib/analytics/isAnalyticsConnected'
 import Link from 'next/link'
 import {
@@ -25,6 +25,7 @@ import MorningDigest from '@/components/dashboard/MorningDigest'
 import ContentLifecycleBar from '@/components/dashboard/ContentLifecycleBar'
 import PlanUsageCallout from '@/components/dashboard/PlanUsageCallout'
 import GettingStarted from '@/components/dashboard/GettingStarted'
+import TeamJoinedBanner from '@/components/dashboard/TeamJoinedBanner'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { getPendingApprovalCount, listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
 
@@ -35,11 +36,10 @@ export default async function DashboardPage() {
   const supabase = createServiceClient()
   const user = await currentUser()
   const email = user?.emailAddresses?.[0]?.emailAddress ?? null
-  const profile = await getDashboardProfileForClerkUser(supabase, userId, email)
-  const workspaceId = profile
-    ? await resolveWorkspaceProfileId(supabase, profile.id)
-    : null
-  const dataUserId = workspaceId ?? profile?.id
+  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
+  const workspaceProfile = workspace?.workspaceProfile ?? profile
+  const dataUserId = workspace?.workspaceId ?? profile?.id
+  const isTeamMember = workspace?.isTeamMember ?? false
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -108,28 +108,33 @@ export default async function DashboardPage() {
   const digestStale = !!digest
     && (digest.approvals?.length ?? 0) !== pendingApprovals
 
-  const analyticsConnected = isAnalyticsConnected(profile)
+  const analyticsConnected = isAnalyticsConnected(workspaceProfile)
 
   const checklistCompleted: boolean[] = [
-    !!profile?.foundation_complete,
+    !!workspaceProfile?.foundation_complete,
     (campaignResult.count ?? 0) > 0,
     (agentResult.count ?? 0) > 0,
     (brandKitResult.count ?? 0) > 0,
     analyticsConnected,
   ]
 
-  const gettingStartedDismissed = !!profile?.getting_started_dismissed
+  const gettingStartedDismissed =
+    !!workspaceProfile?.getting_started_dismissed || isTeamMember
 
-  const displayName = profile?.company_name || profile?.full_name || 'there'
+  const displayName = isTeamMember
+    ? (workspace?.ownerCompanyName ?? workspaceProfile?.company_name ?? 'your team')
+    : (profile?.company_name || profile?.full_name || 'there')
   const firstName   = profile?.full_name?.split(' ')[0] ?? undefined
-  const hasPlan = !!profile?.plan
+  const hasPlan = !!workspaceProfile?.plan
 
   const activeCampaigns = campaignResult.count ?? 0
   const agentsRun = agentResult.count ?? 0
   const creditBalance = creditResult.data?.[0]?.balance ?? null
   const activeOrders = orderResult.count ?? 0
   const brandKitPct = Math.round(((brandKitResult.count ?? 0) / 6) * 100)
-  const topGoal = Array.isArray(profile?.top_goals) && profile.top_goals.length > 0 ? profile.top_goals[0] : null
+  const topGoal = Array.isArray(workspaceProfile?.top_goals) && workspaceProfile.top_goals.length > 0
+    ? workspaceProfile.top_goals[0]
+    : null
 
   const agentCount = Object.keys(AGENTS).length
 
@@ -190,7 +195,7 @@ export default async function DashboardPage() {
 
   const mayaPayload = buildDashboardOverviewMayaContext({
     displayName,
-    plan: profile?.plan,
+    plan: workspaceProfile?.plan,
     hasPlan,
     pendingApprovals,
     activeCampaigns,
@@ -211,13 +216,19 @@ export default async function DashboardPage() {
   const lifecycleCounts = dataUserId
     ? await getContentLifecycleCounts(
         dataUserId,
-        profile?.zernio_profile_id ?? null,
+        workspaceProfile?.zernio_profile_id ?? null,
       )
     : null
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
       <CanvasContextDispatcher payload={mayaPayload} />
+
+      {profile && (
+        <Suspense fallback={null}>
+          <TeamJoinedBanner companyName={workspace?.ownerCompanyName ?? null} />
+        </Suspense>
+      )}
 
       {profile && (
         <MorningDigest
@@ -238,7 +249,7 @@ export default async function DashboardPage() {
       {profile && (
         <div className="mb-6">
           <PlanUsageCallout
-            plan={profile.plan ?? null}
+            plan={workspaceProfile?.plan ?? null}
             creditBalance={creditBalance}
             activeServiceRequests={activeOrders}
           />
@@ -247,10 +258,24 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-6">
-          <GettingStarted
-            completed={checklistCompleted}
-            dismissed={gettingStartedDismissed}
-          />
+          {!isTeamMember && (
+            <GettingStarted
+              completed={checklistCompleted}
+              dismissed={gettingStartedDismissed}
+            />
+          )}
+
+          {isTeamMember && (
+            <section className="rounded-2xl border border-gray-100 bg-white p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Team workspace</p>
+              <h2 className="mt-1 text-[17px] font-semibold text-text-primary">
+                {workspace?.ownerCompanyName ?? 'Shared workspace'}
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed text-text-sec">
+                You are viewing {workspace?.ownerCompanyName ?? 'the account owner'}&apos;s marketing system. Foundation and billing are managed by the account owner; your sidebar access follows your team permissions.
+              </p>
+            </section>
+          )}
 
           <section className="rounded-2xl border border-gray-100 bg-white p-5">
             <div className="mb-4 flex items-center justify-between">

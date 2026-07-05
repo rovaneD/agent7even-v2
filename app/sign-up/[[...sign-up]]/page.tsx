@@ -1,5 +1,6 @@
 import AuthMarketingShell from '@/components/auth/AuthMarketingShell'
 import AuthSignUpForm from '@/components/auth/AuthSignUpForm'
+import { Suspense } from 'react'
 
 export default function SignUpPage() {
   return (
@@ -19,7 +20,9 @@ export default function SignUpPage() {
         </>
       }
     >
-      <AuthSignUpForm redirectUrl="/dashboard" />
+      <Suspense fallback={null}>
+        <AuthSignUpForm redirectUrl="/dashboard" />
+      </Suspense>
     </AuthMarketingShell>
   )
 }

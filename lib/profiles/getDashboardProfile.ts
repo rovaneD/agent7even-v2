@@ -9,6 +9,7 @@ export const DASHBOARD_PROFILE_SELECT = `
   foundation_complete, foundation_score, avatar_url,
   clerk_user_id, stripe_customer_id, stripe_subscription_id,
   status, created_at, getting_started_dismissed,
+  is_account_owner, account_id,
   ga_connected, ga_refresh_token, ga_measurement_id,
   meta_connected, meta_ad_account_id,
   zernio_profile_id, zernio_profile_ids, zernio_connected_platforms
@@ -39,6 +40,8 @@ export type DashboardProfile = {
   status: string | null
   created_at: string
   getting_started_dismissed: boolean | null
+  is_account_owner: boolean | null
+  account_id: string | null
   ga_connected: boolean | null
   ga_refresh_token: string | null
   ga_measurement_id: string | null
