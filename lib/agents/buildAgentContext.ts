@@ -4,6 +4,10 @@ import {
   loadFoundationChangelog,
   formatFoundationObserverContextForAgents,
 } from '@/lib/foundation/changelogContext'
+import {
+  loadFoundationLayers,
+  formatFoundationLayersForAgents,
+} from '@/lib/foundation/layersContext'
 import { parseSiteSnapshot, formatSiteSnapshotForAgent } from '@/lib/foundation/siteSnapshot'
 
 export async function buildAgentContext(userId: string): Promise<string> {
@@ -19,6 +23,7 @@ export async function buildAgentContext(userId: string): Promise<string> {
     foundation,
     memory,
     changelog,
+    layers,
   ] = await Promise.all([
     supabase
       .from('brand_documents')
@@ -41,6 +46,7 @@ export async function buildAgentContext(userId: string): Promise<string> {
     loadFoundationContext(userId),
     loadFoundationMemory(userId),
     loadFoundationChangelog(userId),
+    loadFoundationLayers(userId),
   ])
 
   if (!docs?.length && !profile && !foundation.hasFoundation) return ''
@@ -120,6 +126,9 @@ export async function buildAgentContext(userId: string): Promise<string> {
 
   const observerSection = formatFoundationObserverContextForAgents(changelog)
   if (observerSection) sections.push(`\n${observerSection}`)
+
+  const layersSection = formatFoundationLayersForAgents(layers)
+  if (layersSection) sections.push(`\n${layersSection}`)
 
   const memorySection = formatMemoryForAgent(memory)
   if (memorySection) sections.push(`\n${memorySection}`)

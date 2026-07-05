@@ -139,9 +139,11 @@ Separate system prompts. Separate model calls. Guardian must not receive Observe
 
 ---
 
-## Connection to proposal surface (Build Sequence item 3 — out of scope here)
+## Connection to proposal surface (Build Sequence item 3)
 
-Surfaced rows (`guardian_verdict = surface`) feed a future Approvals-like UI: Approve → creates `foundation_layers` row (item 4). Reject → cooldown signal back to Observer.
+**Shipped July 4, 2026** — see `CONTEXTV24.md` §5.
+
+Surfaced rows (`guardian_verdict = surface`, `user_decision = pending`) appear in Foundation Hub via `FoundationProposalsPanel.tsx`. Approve → `foundation_layers` row (item 4 v0). Reject/defer → stored on proposal; no layer created.
 
 ---
 

@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 3, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 4, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -26,7 +26,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV23.md > CONTEXTV22.md > CONTEXTV21.md > MAYA_CONTEXT_V10.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -64,7 +64,9 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV23.md` — latest product handoff: duplicate profile resolution, Agents run sub-pages, Foundation site snapshot, GA OAuth canonical save, credits UX (July 3, 2026).
+- `CONTEXTV24.md` — latest product handoff: transactional email complete, Guardian proposal surface, layers v0, profile DB clean (July 4, 2026).
+- `SESSION_2026-07-04.md` — July 4 session log (email migration, Guardian checkpoint, proposal UI).
+- `CONTEXTV23.md` — prior handoff: duplicate profile resolution, Agents run sub-pages, Foundation site snapshot, GA OAuth fix (July 3, 2026).
 - `SESSION_2026-07-03.md` — July 3 session log (commits 7002bb6 … 5a2a2c1 + doc pass).
 - `CONTEXTV22.md` — prior handoff: Thread 3 lifecycle v1, Phase A crop, Zernio DPA/compliance (§8), structured output views, approval count SSOT (July 2, 2026).
 - `SESSION_2026-07-01.md` — July 1 session log (commits c949a77 … b889cc6 + doc pass).
@@ -100,7 +102,10 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - `21_creative_asset_folders.sql` — asset folders (**run if not applied**).
 - `22_post_assets_allow_video.sql` — add `video/mp4` to post-assets bucket (**run before enabling video flag**).
 - `23_creative_direction_cache.sql` — cache Creative Direction on profiles (**applied in Supabase June 23, 2026**).
-- `34_foundation_site_snapshot.sql` — site snapshot columns on `profiles` (**run if not applied**).
+- `34_foundation_site_snapshot.sql` — site snapshot columns on `profiles` (**applied**).
+- `35_notifications_type_check.sql` — `approval_pending` in notifications CHECK (**applied**).
+- `36_foundation_proposal_decisions.sql` — proposal user decisions (**run if not applied**).
+- `37_foundation_layers.sql` — approved Foundation evolution layers (**run if not applied**).
 
 ## Key implementation notes (July 2026)
 - **Canonical profile resolution:** `lib/profiles/resolveClerkProfile.ts` — use for any Clerk-scoped API route or page that reads `profiles`. Billing: `getBillingProfileForClerkUser`. Dashboard: `getDashboardProfileForClerkUser`. Analytics SSR: `getAnalyticsProfileForClerkUser`. GA OAuth: `lib/analytics/gaOAuthProfile.ts` (`saveGaOAuthTokensForClerkUser` saves by profile **id**). Never `.eq('clerk_user_id').single()` when duplicates may exist.
@@ -109,6 +114,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - **Foundation competitors:** store as `string[]` via `lib/foundation/competitorsArray.ts` — never comma-split prose into slots.
 - **Structured approval views:** Campaign Builder, Ad Variations, Email Sequence use dedicated parsers + view components in `lib/agents/*Parse.ts` and `components/agents/*OutputView.tsx`.
 - **Foundation site snapshot:** `34_foundation_site_snapshot.sql` + `lib/foundation/siteSnapshot.ts` — separate from guarded Phase 1 answers; enable via `site_snapshot_enabled`.
+- **Foundation Intelligence:** Observer changelog (`32_foundation_changelog.sql`) → Guardian proposals (`33_foundation_proposals.sql`) → user proposal surface (`36`/`37` + `FoundationProposalsPanel.tsx`). Thresholds: `lib/foundation/guardian/guardianConfig.ts`. Batch: `scripts/run-foundation-guardian.ts`.
 
 ## Current visual-system rules
 - Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.

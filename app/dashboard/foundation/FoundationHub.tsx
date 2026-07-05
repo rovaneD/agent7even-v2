@@ -45,6 +45,7 @@ import type { CreativeDirection } from '@/lib/agents/foundationCreativeDirection
 import { visualHubSectionPreview } from '@/lib/agents/foundationCreativeDirection/hubPreview'
 import SiteSnapshotCard from '@/components/foundation/SiteSnapshotCard'
 import ObserverChangelogPanel from '@/components/foundation/ObserverChangelogPanel'
+import FoundationProposalsPanel from '@/components/foundation/FoundationProposalsPanel'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1150,6 +1151,7 @@ function MemoryTab({ data, loading }: { data: FoundationMemoryResponse | null; l
 
   return (
     <div className="max-w-[860px]">
+      <FoundationProposalsPanel />
       <ObserverChangelogPanel />
 
       {/* Auto-populated banner */}

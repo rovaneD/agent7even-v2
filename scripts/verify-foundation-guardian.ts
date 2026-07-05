@@ -56,7 +56,7 @@ async function main() {
   const { data: rows, error } = await sb
     .from('foundation_proposals')
     .select(
-      'state, guardian_verdict, proposal_title, proposal_body, phase1_excerpt, signal_summary, theme, rationale, source_changelog_ids, created_at',
+      'state, guardian_verdict, user_decision, proposal_title, proposal_body, phase1_excerpt, signal_summary, theme, rationale, source_changelog_ids, created_at',
     )
     .eq('profile_id', profileId)
     .order('created_at', { ascending: false })
@@ -100,7 +100,8 @@ async function main() {
       hour: 'numeric',
       minute: '2-digit',
     })
-    console.log(`--- ${index + 1}. [${row.state}] ${row.guardian_verdict} · ${when} ---`)
+    const decision = (row as { user_decision?: string }).user_decision ?? 'pending'
+    console.log(`--- ${index + 1}. [${row.state}] ${row.guardian_verdict} · ${decision} · ${when} ---`)
     console.log(`Title: ${row.proposal_title}`)
     console.log(`Theme: ${row.theme ?? '—'}`)
     console.log(`Signal: ${row.signal_summary}`)
