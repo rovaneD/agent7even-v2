@@ -20,6 +20,8 @@ const EVENT_LABELS: Record<string, string> = {
   maya_message: 'Maya chat',
   foundation_updated: 'Foundation update',
   page_view: 'Page view',
+  assignment_created: 'Assignment',
+  assignment_submitted: 'Assignment submitted',
   team_member_joined: 'Team member joined',
 }
 
@@ -45,6 +47,12 @@ function formatActivityDetail(
   if (eventType === 'agent_bulk_rejected' && typeof metadata.count === 'number') {
     return `${metadata.count} item${metadata.count === 1 ? '' : 's'} rejected`
   }
+  if (eventType === 'assignment_created' && typeof metadata.agent === 'string') {
+    return agentDisplayName(metadata.agent)
+  }
+  if (eventType === 'assignment_submitted' && typeof metadata.agent === 'string') {
+    return agentDisplayName(metadata.agent)
+  }
   if (eventType === 'foundation_updated' && typeof metadata.score === 'number') {
     return `Foundation score ${metadata.score}`
   }
@@ -54,6 +62,9 @@ function formatActivityDetail(
 function activityLink(eventType: string, metadata: Record<string, unknown> | null): string | null {
   if (eventType === 'agent_run' || eventType === 'agent_approved') {
     return '/dashboard/agents/approvals'
+  }
+  if (eventType === 'assignment_created' || eventType === 'assignment_submitted') {
+    return '/dashboard/team'
   }
   if (eventType === 'team_member_joined') {
     return '/dashboard/team'

@@ -34,6 +34,7 @@ function typeColor(type: string): string {
   if (type === 'approval_pending') return '#3B82F6'
   if (type === 'payment_failed' || type === 'subscription_canceled') return '#EE533B'
   if (type === 'team_member_joined') return '#10B981'
+  if (type === 'assignment_created' || type === 'assignment_submitted') return '#3B82F6'
   if (type === 'credit_topup') return '#10B981'
   return '#9BA1AE'
 }
@@ -49,6 +50,8 @@ function typeInitial(type: string): string {
   if (type === 'payment_failed') return 'BL'
   if (type === 'subscription_canceled') return 'BL'
   if (type === 'team_member_joined') return 'TM'
+  if (type === 'assignment_created') return 'AS'
+  if (type === 'assignment_submitted') return 'SB'
   if (type === 'credit_topup') return 'CR'
   return 'NT'
 }
@@ -67,6 +70,8 @@ function typeLabel(type: string) {
     payment_failed: 'Billing',
     subscription_canceled: 'Billing',
     team_member_joined: 'Team',
+    assignment_created: 'Assignment',
+    assignment_submitted: 'Submitted',
     credit_topup: 'Credits',
     maya_nudge: 'Maya',
     foundation_milestone: 'Foundation',

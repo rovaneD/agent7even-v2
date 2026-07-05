@@ -26,8 +26,10 @@ import ContentLifecycleBar from '@/components/dashboard/ContentLifecycleBar'
 import PlanUsageCallout from '@/components/dashboard/PlanUsageCallout'
 import GettingStarted from '@/components/dashboard/GettingStarted'
 import TeamJoinedBanner from '@/components/dashboard/TeamJoinedBanner'
+import AssignedToYou from '@/components/dashboard/AssignedToYou'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { getPendingApprovalCount, listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
+import { listTasksAssignedToMember } from '@/lib/team/taskAssignments'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -220,6 +222,10 @@ export default async function DashboardPage() {
       )
     : null
 
+  const assignedTasks = isTeamMember && profile?.id && dataUserId
+    ? await listTasksAssignedToMember(supabase, profile.id, dataUserId)
+    : []
+
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8">
       <CanvasContextDispatcher payload={mayaPayload} />
@@ -228,6 +234,12 @@ export default async function DashboardPage() {
         <Suspense fallback={null}>
           <TeamJoinedBanner companyName={workspace?.ownerCompanyName ?? null} />
         </Suspense>
+      )}
+
+      {assignedTasks.length > 0 && (
+        <div className="mb-6">
+          <AssignedToYou tasks={assignedTasks} />
+        </div>
       )}
 
       {profile && (

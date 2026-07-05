@@ -194,6 +194,10 @@ export async function createTask(opts: {
   triggerType?: string
   priority?: string
   scheduledFor?: Date
+  assignedToProfileId?: string
+  assignedByProfileId?: string
+  assignmentNote?: string
+  assignmentDueAt?: Date
 }): Promise<{ id: string; status: string; [key: string]: unknown }> {
   const supabase = createServiceClient()
   const agentValue = opts.agent ?? opts.agentId
@@ -214,6 +218,10 @@ export async function createTask(opts: {
       requires_approval: agentDef?.autonomyLevel === 'approval_required',
       scheduled_for:    opts.scheduledFor?.toISOString() ?? null,
       orchestration_id: opts.orchestrationId ?? null,
+      assigned_to_profile_id: opts.assignedToProfileId ?? null,
+      assigned_by_profile_id: opts.assignedByProfileId ?? null,
+      assignment_note:  opts.assignmentNote ?? null,
+      assignment_due_at: opts.assignmentDueAt?.toISOString() ?? null,
     })
     .select()
     .single()
@@ -579,6 +587,14 @@ export async function saveAgentOutput({
       agentId: agent,
       title,
     }).catch(err => console.error('[saveAgentOutput] approval notification failed:', err))
+
+    const { maybeNotifyAssignmentSubmitted } = await import('@/lib/team/taskAssignments')
+    await maybeNotifyAssignmentSubmitted({
+      supabase,
+      taskId,
+      workspaceId: userId,
+      outputTitle: title,
+    }).catch(err => console.error('[saveAgentOutput] assignment submit notify failed:', err))
   }
 
   return data

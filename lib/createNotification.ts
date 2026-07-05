@@ -19,6 +19,8 @@ export type NotificationType =
   | 'team_member_joined'
   | 'maya_nudge'
   | 'foundation_milestone'
+  | 'assignment_created'
+  | 'assignment_submitted'
 
 interface CreateNotificationParams {
   userId: string          // profiles.id of recipient

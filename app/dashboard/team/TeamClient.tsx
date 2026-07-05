@@ -4,10 +4,13 @@ import { useState, useMemo } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildTeamMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import type { WorkspaceActivityItem } from '@/lib/team/workspaceActivity'
+import type { AssignedTaskRow } from '@/lib/team/taskAssignments'
+import { COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
+import { agentDisplayName } from '@/lib/agents/digestPreview'
 import {
   Users, Plus, Mail, Trash2, Loader2, CheckCircle,
   AlertCircle, X, Shield, Settings, Eye, EyeOff,
-  Clock, UserCheck, Activity,
+  Clock, UserCheck, Activity, ClipboardList,
 } from 'lucide-react'
 
 interface Permission {
@@ -47,6 +50,7 @@ interface Props {
   pendingMembers: number
   teamMembers: TeamMember[]
   activityItems?: WorkspaceActivityItem[]
+  openAssignments?: AssignedTaskRow[]
 }
 
 const PERMISSION_LABELS: Record<keyof Permission, string> = {
@@ -85,9 +89,17 @@ export default function TeamClient({
   pendingMembers,
   teamMembers: initial,
   activityItems = [],
+  openAssignments: initialOpenAssignments = [],
 }: Props) {
   const [activeTab, setActiveTab] = useState<'members' | 'activity'>('members')
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initial)
+  const [openAssignments, setOpenAssignments] = useState<AssignedTaskRow[]>(initialOpenAssignments)
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [assigneeProfileId, setAssigneeProfileId] = useState('')
+  const [assignAgent, setAssignAgent] = useState('competitor_watcher')
+  const [assignNote, setAssignNote] = useState('')
+  const [assignDueAt, setAssignDueAt] = useState('')
+  const [assigning, setAssigning] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
@@ -239,6 +251,40 @@ export default function TeamClient({
     setShowPermissionsModal(true)
   }
 
+  const assignableMembers = teamMembers.filter(
+    m => m.status === 'active' && m.member_profile_id,
+  )
+
+  async function handleAssignWork() {
+    if (!assigneeProfileId || !assignNote.trim()) return
+    setAssigning(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/agents/tasks/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assigneeProfileId,
+          agent: assignAgent,
+          assignmentNote: assignNote.trim(),
+          assignmentDueAt: assignDueAt || null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to assign work')
+      setSuccess('Assignment sent')
+      setShowAssignModal(false)
+      setAssignNote('')
+      setAssignDueAt('')
+      setTimeout(() => setSuccess(null), 4000)
+      window.location.reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to assign work')
+    } finally {
+      setAssigning(false)
+    }
+  }
+
   const totalSeats = activeMembers + pendingMembers
 
   function formatActivityTime(iso: string) {
@@ -265,11 +311,20 @@ export default function TeamClient({
               {companyName} — invite team members and control what each person can access.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-soft">Seats</p>
               <p className="mt-1 text-2xl font-semibold text-text">{totalSeats + 1}</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowAssignModal(true)}
+              disabled={assignableMembers.length === 0}
+              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-text transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ClipboardList size={15} />
+              Assign work
+            </button>
             <button
               onClick={() => { setInviteStep('details'); setShowInviteModal(true) }}
               className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#2563EB]"
@@ -407,6 +462,32 @@ export default function TeamClient({
         </div>
       </div>
 
+      {openAssignments.length > 0 && (
+        <div className="rounded-2xl border border-gray-100 bg-white p-6">
+          <h2 className="text-sm font-semibold text-text">Open assignments</h2>
+          <p className="mt-0.5 text-xs text-text-soft">Waiting for a team member to start.</p>
+          <ul className="mt-4 divide-y divide-gray-100">
+            {openAssignments.map(item => (
+              <li key={item.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-text">
+                    {agentDisplayName(item.agent)} → {item.assigneeName ?? 'Team member'}
+                  </p>
+                  {item.assignment_note && (
+                    <p className="mt-1 text-xs text-text-sec">{item.assignment_note}</p>
+                  )}
+                </div>
+                {item.assignment_due_at && (
+                  <span className="text-xs text-text-soft">
+                    Due {new Date(item.assignment_due_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Team members list */}
       <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
         <div className="border-b border-border px-6 py-4">
@@ -503,6 +584,86 @@ export default function TeamClient({
       </div>
 
         </>
+      )}
+
+      {/* Assign work modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+              <h3 className="text-[17px] font-semibold text-text">Assign agent work</h3>
+              <button type="button" onClick={() => setShowAssignModal(false)}>
+                <X size={18} className="text-gray-400 hover:text-gray-600" />
+              </button>
+            </div>
+            <div className="space-y-4 p-6">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-soft">Team member</label>
+                <select
+                  value={assigneeProfileId}
+                  onChange={e => setAssigneeProfileId(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-text"
+                >
+                  <option value="">Select member</option>
+                  {assignableMembers.map(member => (
+                    <option key={member.id} value={member.member_profile_id ?? ''}>
+                      {member.profiles?.full_name ?? member.invited_email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-soft">Agent</label>
+                <select
+                  value={assignAgent}
+                  onChange={e => setAssignAgent(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-text"
+                >
+                  {COMMAND_CENTER_AGENTS.map(agent => (
+                    <option key={agent.id} value={agent.id}>{agent.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-soft">Instructions</label>
+                <textarea
+                  value={assignNote}
+                  onChange={e => setAssignNote(e.target.value)}
+                  rows={4}
+                  placeholder="What should they do? e.g. Run a competitor watch focused on pricing this week."
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-text"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-soft">Due date (optional)</label>
+                <input
+                  type="date"
+                  value={assignDueAt}
+                  onChange={e => setAssignDueAt(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-text"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAssignModal(false)}
+                  className="flex-1 rounded-xl bg-gray-50 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssignWork}
+                  disabled={!assigneeProfileId || !assignNote.trim() || assigning}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2563EB] disabled:opacity-50"
+                >
+                  {assigning ? <Loader2 size={14} className="animate-spin" /> : <ClipboardList size={14} />}
+                  {assigning ? 'Assigning…' : 'Assign'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Invite Modal */}
