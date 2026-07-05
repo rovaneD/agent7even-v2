@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/createNotification'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
-import { getResendClient } from '@/lib/resend'
+import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
 
 const SERVICE_TYPE_LABELS: Record<string, string> = {
   uiux: 'UI/UX Design',
@@ -66,37 +66,30 @@ export async function POST(req: Request) {
   }
 
   const serviceLabel = SERVICE_TYPE_LABELS[serviceType] ?? serviceType
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
   const notifyEmail = await getNotifyEmail()
+
+  const inquiryBody = [
+    `Client: ${profile.full_name} — ${profile.company_name ?? ''}`,
+    `Email: ${profile.email}`,
+    `Service: ${serviceLabel}`,
+    `Project: ${projectName}`,
+    `Timeline: ${timeline ?? 'Not specified'}`,
+    `Budget: ${budgetRange ?? 'Not specified'}`,
+    '',
+    'Description:',
+    description,
+    ...(additionalNotes ? ['', 'Additional notes:', additionalNotes] : []),
+  ].join('\n')
 
   // Email admin
   try {
-    const resend = getResendClient()
-    if (!resend) throw new Error('Missing RESEND_API_KEY')
-
-    await resend.emails.send({
-      from: 'Agent7even <hello@agent7even.com>',
+    await sendTransactionalEmail({
       to: notifyEmail,
       subject: `New project inquiry — ${projectName} (${serviceLabel})`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #c8522a;">New Project Inquiry</h2>
-          <p><strong>Client:</strong> ${profile.full_name} — ${profile.company_name ?? ''}</p>
-          <p><strong>Email:</strong> ${profile.email}</p>
-          <p><strong>Service:</strong> ${serviceLabel}</p>
-          <p><strong>Project:</strong> ${projectName}</p>
-          <p><strong>Timeline:</strong> ${timeline ?? 'Not specified'}</p>
-          <p><strong>Budget:</strong> ${budgetRange ?? 'Not specified'}</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-          <p><strong>Description:</strong></p>
-          <p style="color: #444;">${description}</p>
-          ${additionalNotes ? `<p><strong>Additional notes:</strong></p><p style="color: #444;">${additionalNotes}</p>` : ''}
-          <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-          <a href="${appUrl}/admin/inquiries/${inquiry.id}" style="background: #c8522a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-            View inquiry →
-          </a>
-        </div>
-      `,
+      title: 'New project inquiry',
+      body: inquiryBody,
+      link: `/admin/inquiries/${inquiry.id}`,
+      ctaLabel: 'View inquiry →',
     })
   } catch (err) {
     console.error('Inquiry email failed:', err)

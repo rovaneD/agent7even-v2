@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { createNotification } from '@/lib/createNotification'
-import { getResendClient } from '@/lib/resend'
+import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -92,33 +92,18 @@ export async function POST(req: Request) {
     })))
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
-
   if (isAdmin) {
     const clientEmail = (ticket.profiles as { email: string })?.email
     const ticketClientName = (ticket.profiles as { full_name: string })?.full_name ?? 'there'
     if (clientEmail) {
       try {
-        const resend = getResendClient()
-        if (!resend) throw new Error('Missing RESEND_API_KEY')
-
-        await resend.emails.send({
-          from: 'Agent7even Support <hello@agent7even.com>',
+        await sendTransactionalEmail({
           to: clientEmail,
           subject: `Re: ${ticket.subject}`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #c8522a;">${isServiceOrder ? 'New reply on your service order' : 'New reply on your support ticket'}</h2>
-              <p>Hi ${ticketClientName},</p>
-              <p>The Agent7even team has replied to your ${isServiceOrder ? 'service order' : 'ticket'}: <strong>${serviceTitle}</strong></p>
-              <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-              <p style="white-space: pre-wrap; color: #444;">${body}</p>
-              <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-              <a href="${appUrl}${isServiceOrder ? `/dashboard/services?order=${serviceOrderId}` : '/dashboard/support'}" style="background: #c8522a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                View conversation →
-              </a>
-            </div>
-          `,
+          title: isServiceOrder ? 'New reply on your service order' : 'New reply on your support ticket',
+          body: `Hi ${ticketClientName},\n\nThe Agent7even team has replied to your ${isServiceOrder ? 'service order' : 'ticket'}: ${serviceTitle}\n\n${body}`,
+          link: isServiceOrder ? `/dashboard/services?order=${serviceOrderId}` : '/dashboard/support',
+          ctaLabel: 'View conversation →',
         })
       } catch (err) {
         console.error('Client reply email failed:', err)
@@ -127,26 +112,13 @@ export async function POST(req: Request) {
   } else {
     const notifyEmail = await getNotifyEmail()
     try {
-      const resend = getResendClient()
-      if (!resend) throw new Error('Missing RESEND_API_KEY')
-
-      await resend.emails.send({
-        from: 'Agent7even <hello@agent7even.com>',
+      await sendTransactionalEmail({
         to: notifyEmail,
         subject: `Re: ${ticket.subject} — ${profile.company_name ?? profile.full_name}`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #c8522a;">${isServiceOrder ? 'Client replied to service order' : 'Client replied to support ticket'}</h2>
-            <p><strong>From:</strong> ${profile.full_name} (${profile.company_name ?? ''})</p>
-            <p><strong>${isServiceOrder ? 'Order' : 'Ticket'}:</strong> ${serviceTitle}</p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-            <p style="white-space: pre-wrap; color: #444;">${body}</p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-            <a href="${appUrl}${isServiceOrder ? `/admin/orders?order=${serviceOrderId}` : `/admin/support/${ticketId}`}" style="background: #c8522a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-              View &amp; Reply →
-            </a>
-          </div>
-        `,
+        title: isServiceOrder ? 'Client replied to service order' : 'Client replied to support ticket',
+        body: `From: ${profile.full_name} (${profile.company_name ?? ''})\n${isServiceOrder ? 'Order' : 'Ticket'}: ${serviceTitle}\n\n${body}`,
+        link: isServiceOrder ? `/admin/orders?order=${serviceOrderId}` : `/admin/support/${ticketId}`,
+        ctaLabel: 'View & reply →',
       })
     } catch (err) {
       console.error('Admin reply email failed:', err)

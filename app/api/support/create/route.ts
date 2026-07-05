@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
-import { getResendClient } from '@/lib/resend'
+import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -49,34 +49,17 @@ export async function POST(req: Request) {
     .select()
     .single()
 
-  const priorityLabel = priority === 'urgent' ? '🚨 URGENT' : priority === 'medium' ? '⚠️ Medium' : 'Low'
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
-
+  const priorityLabel = priority === 'urgent' ? 'URGENT' : priority === 'medium' ? 'Medium' : 'Low'
   const notifyEmail = await getNotifyEmail()
 
   try {
-    const resend = getResendClient()
-    if (!resend) throw new Error('Missing RESEND_API_KEY')
-
-    await resend.emails.send({
-      from: 'Agent7even <hello@agent7even.com>',
+    await sendTransactionalEmail({
       to: notifyEmail,
       subject: `[${priorityLabel}] New support ticket — ${subject}`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #c8522a;">New Support Ticket</h2>
-          <p><strong>From:</strong> ${profile.full_name ?? 'Unknown'} (${profile.company_name ?? ''})</p>
-          <p><strong>Email:</strong> ${profile.email}</p>
-          <p><strong>Priority:</strong> ${priorityLabel}</p>
-          <p><strong>Subject:</strong> ${subject}</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-          <p style="white-space: pre-wrap; color: #444;">${body}</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;" />
-          <a href="${appUrl}/admin/support/${ticket.id}" style="background: #c8522a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-            View &amp; Reply →
-          </a>
-        </div>
-      `,
+      title: 'New support ticket',
+      body: `From: ${profile.full_name ?? 'Unknown'} (${profile.company_name ?? ''})\nEmail: ${profile.email}\nPriority: ${priorityLabel}\nSubject: ${subject}\n\n${body}`,
+      link: `/admin/support/${ticket.id}`,
+      ctaLabel: 'View and reply →',
     })
   } catch (err) {
     console.error('Admin email failed:', err)

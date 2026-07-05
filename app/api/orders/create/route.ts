@@ -7,7 +7,7 @@ import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import { openRouterCompleteWithFallback } from '@/lib/agents/openrouter'
 import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK, VIRAL_HOOKS_OUTPUT_MARKER } from '@/lib/services/viralHooks'
 import { saveViralHooksDeliverable } from '@/lib/services/saveViralHooksDeliverable'
-import { getResendClient } from '@/lib/resend'
+import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
 
 function displayBrief(brief: string) {
   return displayServiceBrief(brief)
@@ -334,32 +334,13 @@ ${brief}`
     const notifyEmail = await getNotifyEmail()
     if (notifyEmail) {
       try {
-        const resend = getResendClient()
-        if (!resend) throw new Error('Missing RESEND_API_KEY')
-
-        await resend.emails.send({
-          from: 'Agent7even App <hello@agent7even.com>',
+        await sendTransactionalEmail({
           to: notifyEmail,
           subject: `New service request ${orderNumber}: ${title}`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
-              <div style="background: #0d0d0d; padding: 24px; border-radius: 12px 12px 0 0;">
-                <h2 style="color: #f0ece6; margin: 0; font-size: 18px;">New service request</h2>
-              </div>
-              <div style="background: #f9f9f9; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #eee;">
-                <p style="margin: 0 0 8px; font-size: 13px; color: #555;"><strong>Service:</strong> ${title}</p>
-                <p style="margin: 0 0 8px; font-size: 13px; color: #555;"><strong>Order:</strong> ${orderNumber}</p>
-                <p style="margin: 0 0 8px; font-size: 13px; color: #555;"><strong>Client:</strong> ${profile.company_name || profile.full_name || profile.email}</p>
-                <p style="margin: 0 0 16px; font-size: 13px; color: #555;"><strong>Email:</strong> ${profile.email}</p>
-                <div style="background: white; border: 1px solid #eee; border-radius: 8px; padding: 16px; font-size: 13px; color: #333; line-height: 1.6;">
-                  <strong>Brief:</strong><br/>${visibleBrief}
-                </div>
-                <p style="margin: 16px 0 0; font-size: 13px;">
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'}/admin/orders?order=${order.id}" style="color: #c8522a; font-weight: 600;">Open admin order →</a>
-                </p>
-              </div>
-            </div>
-          `,
+          title: 'New service request',
+          body: `Service: ${title}\nOrder: ${orderNumber}\nClient: ${profile.company_name || profile.full_name || profile.email}\nEmail: ${profile.email}\n\nBrief:\n${visibleBrief}`,
+          link: `/admin/orders?order=${order.id}`,
+          ctaLabel: 'Open admin order →',
         })
       } catch (emailErr) {
         console.error('Admin notification email failed:', emailErr)

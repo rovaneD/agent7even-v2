@@ -4,6 +4,7 @@ import { WebhookEvent } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { welcomeEmailHtml, welcomeEmailText } from '@/emails/welcome'
 import { getResendClient } from '@/lib/resend'
+import { transactionalFromAddress } from '@/lib/email/transactionalTemplate'
 import { notifyTeamMemberJoined } from '@/lib/team/notifyTeamMemberJoined'
 
 export async function POST(req: Request) {
@@ -145,7 +146,7 @@ export async function POST(req: Request) {
         if (!resend) throw new Error('Missing RESEND_API_KEY')
 
         await resend.emails.send({
-          from: 'Agent7even <hello@agent7even.com>',
+          from: transactionalFromAddress(),
           to: email,
           subject: 'Welcome to Agent7even — your portal is ready',
           html: welcomeEmailHtml(first_name ?? ''),

@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { getResendClient } from '@/lib/resend'
+import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
 import { getStripeClient } from '@/lib/stripe'
 import { randomUUID } from 'crypto'
 
@@ -84,8 +84,6 @@ export async function POST(req: Request) {
 
   // Generate invite token
   const inviteToken = randomUUID()
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
-  const inviteUrl = `${appUrl}/api/team/accept?token=${inviteToken}`
 
   // Create or reactivate team member record
   const memberPayload = {
@@ -123,35 +121,13 @@ export async function POST(req: Request) {
 
   // Send invite email
   try {
-    const resend = getResendClient()
-    if (!resend) throw new Error('Missing RESEND_API_KEY')
-
-    await resend.emails.send({
-      from: 'Agent7even <hello@agent7even.com>',
+    await sendTransactionalEmail({
       to: email,
       subject: `You've been invited to join ${profile.company_name ?? 'a team'} on Agent7even`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #0d0d0d; border-radius: 12px; overflow: hidden;">
-          <div style="padding: 32px 40px 24px; border-bottom: 1px solid #1f1f1f;">
-            <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #c8522a;">Agent7even</span>
-          </div>
-          <div style="padding: 40px;">
-            <h2 style="font-size: 22px; font-weight: 600; color: #f5f4f0; margin: 0 0 12px;">You've been invited</h2>
-            <p style="font-size: 15px; color: #888; line-height: 1.7; margin: 0 0 8px;">
-              <strong style="color: #f5f4f0;">${profile.company_name ?? 'Your team'}</strong> has invited you to join their Agent7even dashboard.
-            </p>
-            <p style="font-size: 15px; color: #888; line-height: 1.7; margin: 0 0 32px;">
-              Click the button below to accept your invitation and set up your account.
-            </p>
-            <a href="${inviteUrl}" style="display: inline-block; background: #c8522a; color: #f5f4f0; text-decoration: none; font-size: 14px; font-weight: 600; padding: 14px 28px; border-radius: 8px;">
-              Accept invitation →
-            </a>
-            <p style="font-size: 12px; color: #444; margin-top: 24px;">
-              This invitation expires in 7 days. If you didn't expect this, you can ignore this email.
-            </p>
-          </div>
-        </div>
-      `,
+      title: "You've been invited",
+      body: `${profile.company_name ?? 'Your team'} has invited you to join their Agent7even dashboard.\n\nThis invitation expires in 7 days. If you did not expect this, you can ignore this email.`,
+      link: `/api/team/accept?token=${member.invite_token}`,
+      ctaLabel: 'Accept invitation →',
     })
   } catch (err) {
     console.error('Invite email failed:', err)
