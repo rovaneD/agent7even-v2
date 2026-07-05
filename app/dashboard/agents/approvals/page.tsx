@@ -19,6 +19,7 @@ export default async function ApprovalsPage() {
   const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
   if (!profile) redirect('/foundation')
+  if (workspace?.isTeamMember) redirect('/dashboard?error=owner_approval_required')
 
   const workspaceProfile = workspace?.workspaceProfile ?? profile
   const dataUserId = workspace?.workspaceId ?? profile.id

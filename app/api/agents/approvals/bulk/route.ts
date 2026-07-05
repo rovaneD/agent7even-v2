@@ -30,6 +30,9 @@ export async function POST(req: Request) {
 
   const workspaceId = workspaceDataUserId(session)
   const memberId = workspaceActorId(session)
+  if (memberId !== workspaceId) {
+    return NextResponse.json({ error: 'Only account owners can review approvals' }, { status: 403 })
+  }
 
   const now = new Date().toISOString()
 
