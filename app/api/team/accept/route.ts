@@ -1,3 +1,4 @@
+import { currentUser } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { notifyTeamMemberJoined } from '@/lib/team/notifyTeamMemberJoined'
@@ -33,6 +34,24 @@ export async function GET(req: Request) {
     .single()
 
   if (existingProfile) {
+    const user = await currentUser()
+    const acceptPath = `/api/team/accept?token=${encodeURIComponent(token)}`
+
+    if (!user) {
+      return NextResponse.redirect(
+        `${appUrl}/sign-in?redirect_url=${encodeURIComponent(acceptPath)}&error=sign_in_to_accept_invite`,
+      )
+    }
+
+    const signedInEmail = user.emailAddresses?.[0]?.emailAddress?.trim().toLowerCase()
+    const invitedEmail = String(invite.invited_email ?? '').trim().toLowerCase()
+    const profileClerkUserId = existingProfile.clerk_user_id as string | null
+    const isInvitedClerkUser = profileClerkUserId ? profileClerkUserId === user.id : true
+
+    if (!signedInEmail || signedInEmail !== invitedEmail || !isInvitedClerkUser) {
+      return NextResponse.redirect(`${appUrl}/dashboard?error=invite_email_mismatch`)
+    }
+
     await supabase
       .from('team_members')
       .update({
@@ -45,6 +64,7 @@ export async function GET(req: Request) {
       .from('profiles')
       .update({
         account_id: invite.account_id,
+        ...(profileClerkUserId ? {} : { clerk_user_id: user.id }),
         is_account_owner: false,
         updated_at: new Date().toISOString(),
       })
