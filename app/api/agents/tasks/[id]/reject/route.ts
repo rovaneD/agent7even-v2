@@ -64,6 +64,7 @@ export async function POST(
     const { dispatchAgentTask } = await import('@/lib/agents/dispatch')
     const replacement = await createTask({
       userId: workspaceId,
+      actorProfileId: memberId,
       agent: task.agent,
       input: requeueInput,
       triggerType: 'user',

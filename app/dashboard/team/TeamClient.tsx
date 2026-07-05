@@ -3,10 +3,11 @@
 import { useState, useMemo } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildTeamMayaContext } from '@/lib/maya/summaries/workspaceContext'
+import type { WorkspaceActivityItem } from '@/lib/team/workspaceActivity'
 import {
   Users, Plus, Mail, Trash2, Loader2, CheckCircle,
   AlertCircle, X, Shield, Settings, Eye, EyeOff,
-  Clock, UserCheck
+  Clock, UserCheck, Activity,
 } from 'lucide-react'
 
 interface Permission {
@@ -45,6 +46,7 @@ interface Props {
   activeMembers: number
   pendingMembers: number
   teamMembers: TeamMember[]
+  activityItems?: WorkspaceActivityItem[]
 }
 
 const PERMISSION_LABELS: Record<keyof Permission, string> = {
@@ -82,7 +84,9 @@ export default function TeamClient({
   activeMembers,
   pendingMembers,
   teamMembers: initial,
+  activityItems = [],
 }: Props) {
+  const [activeTab, setActiveTab] = useState<'members' | 'activity'>('members')
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initial)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
@@ -237,6 +241,18 @@ export default function TeamClient({
 
   const totalSeats = activeMembers + pendingMembers
 
+  function formatActivityTime(iso: string) {
+    const date = new Date(iso)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    if (diffHours < 1) return 'Just now'
+    if (diffHours < 24) return `${diffHours}h ago`
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
   return (
     <div className="mx-auto max-w-[1240px] space-y-6 px-4 py-8 sm:px-8">
 
@@ -265,7 +281,72 @@ export default function TeamClient({
         </div>
       </section>
 
-      {/* Alerts */}
+      <div className="flex gap-2 border-b border-gray-100">
+        <button
+          type="button"
+          onClick={() => setActiveTab('members')}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+            activeTab === 'members'
+              ? 'border-brand-primary text-brand-primary'
+              : 'border-transparent text-text-sec hover:text-text'
+          }`}
+        >
+          <Users size={15} />
+          Members
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('activity')}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+            activeTab === 'activity'
+              ? 'border-brand-primary text-brand-primary'
+              : 'border-transparent text-text-sec hover:text-text'
+          }`}
+        >
+          <Activity size={15} />
+          Activity
+        </button>
+      </div>
+
+      {activeTab === 'activity' ? (
+        <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+          <div className="border-b border-gray-100 px-6 py-4">
+            <h2 className="text-base font-semibold text-text">Team activity</h2>
+            <p className="mt-1 text-sm text-text-sec">What your team did in the last 7 days.</p>
+          </div>
+          {activityItems.length === 0 ? (
+            <div className="px-6 py-12 text-center text-sm text-text-sec">
+              No team activity yet. Agent runs, approvals, and joins will show up here.
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {activityItems.map(item => (
+                <li key={item.id} className="flex items-start gap-4 px-6 py-4">
+                  <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
+                    <Activity size={16} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-text">{item.title}</p>
+                    <p className="mt-0.5 text-sm text-text-sec">
+                      {item.actorName}
+                      {item.detail ? ` · ${item.detail}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                    <span className="text-xs text-text-soft">{formatActivityTime(item.createdAt)}</span>
+                    {item.link && (
+                      <a href={item.link} className="text-xs font-semibold text-brand-primary hover:underline">
+                        View
+                      </a>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : (
+        <>
       {success && (
         <div className="flex items-center gap-3 rounded-xl border border-status-success/20 bg-status-success/10 px-4 py-3">
           <CheckCircle size={15} className="flex-shrink-0 text-status-success" />
@@ -420,6 +501,9 @@ export default function TeamClient({
           </div>
         )}
       </div>
+
+        </>
+      )}
 
       {/* Invite Modal */}
       {showInviteModal && (

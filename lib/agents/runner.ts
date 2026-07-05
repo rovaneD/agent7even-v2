@@ -184,6 +184,7 @@ export async function completeOrchestration(orchestrationId: string) {
 
 export async function createTask(opts: {
   userId: string
+  actorProfileId?: string
   agent?: AgentId | string     // used by external route callers
   agentId?: string             // used by runAgent internally
   jobType?: string             // finer-grained job label for wedge analysis
@@ -202,6 +203,7 @@ export async function createTask(opts: {
     .from('agent_tasks')
     .insert({
       user_id:          opts.userId,
+      actor_profile_id: opts.actorProfileId ?? opts.userId,
       agent:            agentValue,
       job_type:         opts.jobType ?? null,
       model:            opts.model ?? null,
@@ -265,6 +267,7 @@ export async function runAgent(opts: {
     orchestrationId: opts.orchestrationId,
   })
   const taskId = task.id
+  const actorProfileId = (task.actor_profile_id as string | undefined) ?? opts.userId
   await updateTaskStatus(taskId, 'running')
 
   if (opts.orchestrationId) {
@@ -333,6 +336,7 @@ export async function runAgent(opts: {
   const { error: outputErr } = await supabase.from('agent_outputs').insert({
     task_id:         taskId,
     user_id:         opts.userId,
+    actor_profile_id: actorProfileId,
     agent:           opts.agentId,
     output_type:     outputType,
     content:         { raw: raw.content },
@@ -353,10 +357,11 @@ export async function runAgent(opts: {
   } else if (outputStatus === 'pending_approval') {
     const { notifyApprovalPending } = await import('@/lib/agents/notifyApprovalPending')
     await notifyApprovalPending({
-      profileId: opts.userId,
+      workspaceId: opts.userId,
+      actorProfileId,
       taskId,
       agentId: opts.agentId,
-    }).catch(err => console.error('[runAgent] approval notification failed:', err))
+    }).catch((err: unknown) => console.error('[runAgent] approval notification failed:', err))
   }
 
   // 5. Update task — completed + cost data
@@ -517,6 +522,7 @@ export async function chargeAgentRun(opts: {
 export async function saveAgentOutput({
   taskId,
   userId,
+  actorProfileId,
   agent,
   outputType,
   title,
@@ -524,6 +530,7 @@ export async function saveAgentOutput({
 }: {
   taskId: string
   userId: string
+  actorProfileId?: string | null
   agent: string
   outputType: string
   title: string
@@ -535,11 +542,22 @@ export async function saveAgentOutput({
     ? 'pending_approval'
     : 'approved'
 
+  let actorId = actorProfileId ?? null
+  if (!actorId) {
+    const { data: taskRow } = await supabase
+      .from('agent_tasks')
+      .select('actor_profile_id')
+      .eq('id', taskId)
+      .maybeSingle()
+    actorId = (taskRow?.actor_profile_id as string | null) ?? userId
+  }
+
   const { data, error } = await supabase
     .from('agent_outputs')
     .insert({
       task_id:         taskId,
       user_id:         userId,
+      actor_profile_id: actorId,
       agent,
       output_type:     outputType,
       title,
@@ -555,7 +573,8 @@ export async function saveAgentOutput({
   if (outputStatus === 'pending_approval') {
     const { notifyApprovalPending } = await import('@/lib/agents/notifyApprovalPending')
     await notifyApprovalPending({
-      profileId: userId,
+      workspaceId: userId,
+      actorProfileId: actorId,
       taskId,
       agentId: agent,
       title,

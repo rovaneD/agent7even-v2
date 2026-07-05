@@ -3,7 +3,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 export async function logActivity(
   profileId: string,
   eventType: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
+  workspaceId?: string,
 ) {
   const supabase = createServiceClient()
   await Promise.all([
@@ -13,7 +14,12 @@ export async function logActivity(
       .eq('id', profileId),
     supabase
       .from('client_activity_log')
-      .insert({ user_id: profileId, event_type: eventType, metadata: metadata ?? null }),
+      .insert({
+        user_id: profileId,
+        workspace_id: workspaceId ?? profileId,
+        event_type: eventType,
+        metadata: metadata ?? null,
+      }),
   ])
 }
 
@@ -21,7 +27,8 @@ export async function logActivity(
 export async function trackActivity(
   clerkUserId: string,
   eventType: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
+  workspaceId?: string,
 ) {
   const supabase = createServiceClient()
   const { data: profile } = await supabase
@@ -30,5 +37,5 @@ export async function trackActivity(
     .eq('clerk_user_id', clerkUserId)
     .single()
   if (!profile) return
-  await logActivity(profile.id, eventType, metadata)
+  await logActivity(profile.id, eventType, metadata, workspaceId)
 }

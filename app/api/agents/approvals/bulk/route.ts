@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     ])
     if (tasksRes.error) return NextResponse.json({ error: tasksRes.error.message }, { status: 500 })
     if (outputsRes.error) return NextResponse.json({ error: outputsRes.error.message }, { status: 500 })
-    logActivity(memberId, 'agent_bulk_approved', { count: taskIds.length }).catch(() => {})
+    logActivity(memberId, 'agent_bulk_approved', { count: taskIds.length }, workspaceId).catch(() => {})
     void logBulkApprovalChangelog(memberId, taskIds).catch(err => {
       console.error('[foundation-changelog] bulk approve log failed:', err)
     })
@@ -96,6 +96,7 @@ export async function POST(req: Request) {
           )
           const replacement = await createTask({
             userId: workspaceId,
+            actorProfileId: memberId,
             agent: task.agent,
             input: requeueInput,
             triggerType: 'user',
@@ -112,7 +113,7 @@ export async function POST(req: Request) {
         })
       )
     }
-    logActivity(memberId, 'agent_bulk_rejected', { count: taskIds.length }).catch(() => {})
+    logActivity(memberId, 'agent_bulk_rejected', { count: taskIds.length }, workspaceId).catch(() => {})
     void logBulkRejectionChangelog(
       memberId,
       taskIds,

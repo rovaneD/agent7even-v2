@@ -97,6 +97,8 @@ export type PendingApprovalTaskRow = {
   approved_at: string | null
   rejected_at: string | null
   rejection_note: string | null
+  actor_profile_id?: string | null
+  actorName?: string
   error?: string | null
   created_at: string
   started_at: string | null

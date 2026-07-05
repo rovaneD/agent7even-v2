@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
+import { resolveProfileDisplayNames } from '@/lib/profiles/resolveActorName'
 import ApprovalsClient from './ApprovalsClient'
 
 export default async function ApprovalsPage() {
@@ -12,34 +14,48 @@ export default async function ApprovalsPage() {
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id, company_name, ideal_customer, zernio_profile_id')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const profile = profileRows?.[0] ?? null
   if (!profile) redirect('/foundation')
 
+  const workspaceProfile = workspace?.workspaceProfile ?? profile
+  const dataUserId = workspace?.workspaceId ?? profile.id
+
   const lifecycleCounts = await getContentLifecycleCounts(
-    profile.id,
-    (profile.zernio_profile_id as string | null) ?? null,
+    dataUserId,
+    (workspaceProfile.zernio_profile_id as string | null) ?? null,
   )
 
   const [tasks, { data: runningVideoRows }] = await Promise.all([
-    listPendingApprovalTasks(supabase, profile.id),
+    listPendingApprovalTasks(supabase, dataUserId),
 
     supabase
       .from('agent_tasks')
       .select('id, input, created_at')
-      .eq('user_id', profile.id)
+      .eq('user_id', dataUserId)
       .eq('agent', 'video_generation')
       .eq('status', 'running')
       .order('created_at', { ascending: false }),
   ])
 
-  const enrichedTasks = await Promise.all(tasks.map(async task => {
+  const actorIds = tasks
+    .map(task => (task as { actor_profile_id?: string | null }).actor_profile_id)
+    .filter((id): id is string => Boolean(id))
+  const actorNames = await resolveProfileDisplayNames(supabase, actorIds)
+
+  const tasksWithActors = tasks.map(task => {
+    const row = task as { actor_profile_id?: string | null }
+    const actorProfileId = row.actor_profile_id ?? null
+    return {
+      ...task,
+      actor_profile_id: actorProfileId,
+      actorName: actorProfileId ? actorNames.get(actorProfileId) ?? 'Team member' : 'You',
+    }
+  })
+
+  const enrichedTasks = await Promise.all(tasksWithActors.map(async task => {
     const outputs = await Promise.all((task.agent_outputs ?? []).map(async (output: Record<string, unknown>) => {
       const content = (output.content ?? {}) as Record<string, unknown>
       const media = readPostMediaRef(content)
@@ -60,13 +76,13 @@ export default async function ApprovalsPage() {
   return (
     <Suspense>
       <ApprovalsClient
-        profileId={profile.id}
+        profileId={dataUserId}
         initialTasks={enrichedTasks}
         runningVideoTasks={runningVideoTasks}
         draftPostCount={lifecycleCounts.draft}
         postsConnected={lifecycleCounts.postsConnected}
         viralHooksHints={{
-          audience: profile.ideal_customer ?? undefined,
+          audience: workspaceProfile.ideal_customer ?? undefined,
         }}
       />
     </Suspense>

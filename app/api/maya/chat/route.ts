@@ -120,7 +120,7 @@ You are completing a specific task, not building a new campaign. Never say "spin
     profile = fullRow ?? null
   }
 
-  logActivity(memberId, 'maya_message').catch(() => {})
+  logActivity(memberId, 'maya_message', undefined, workspaceId).catch(() => {})
 
   // ── 2. Cost tracking — runs regardless of foundation status ───────────────
   // Task creation and credit deduction happen here, before foundation fetch,
@@ -344,6 +344,7 @@ Never use markdown in conversation. Save structure for the plan.`
 
     const task = await createTask({
       userId:  workspaceId,
+      actorProfileId: memberId,
       agent:   'maya',
       jobType: 'maya_chat',
       model:   MAYA_MODEL,

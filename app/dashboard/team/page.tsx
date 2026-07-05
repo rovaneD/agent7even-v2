@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { listWorkspaceActivity } from '@/lib/team/workspaceActivity'
 import TeamClient from './TeamClient'
 
 const PLAN_SEAT_LIMITS: Record<string, number> = {
@@ -39,6 +40,13 @@ export default async function TeamPage() {
   const activeMembers = teamMembers?.filter(m => m.status === 'active').length ?? 0
   const pendingMembers = teamMembers?.filter(m => m.status === 'pending').length ?? 0
 
+  let activityItems: Awaited<ReturnType<typeof listWorkspaceActivity>> = []
+  try {
+    activityItems = await listWorkspaceActivity(supabase, profile.id)
+  } catch (err) {
+    console.error('[team/page] activity fetch failed:', err)
+  }
+
   return (
     <TeamClient
       profileId={profile.id}
@@ -49,6 +57,7 @@ export default async function TeamPage() {
       activeMembers={activeMembers}
       pendingMembers={pendingMembers}
       teamMembers={teamMembers ?? []}
+      activityItems={activityItems}
     />
   )
 }

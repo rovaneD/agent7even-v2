@@ -53,6 +53,7 @@ export async function GET(req: Request) {
     await notifyTeamMemberJoined({
       accountId: invite.account_id,
       memberEmail: invite.invited_email,
+      memberProfileId: existingProfile.id,
     }).catch(err => console.error('[team/accept] join notification failed:', err))
 
     return NextResponse.redirect(`${appUrl}/dashboard?team_joined=true`)

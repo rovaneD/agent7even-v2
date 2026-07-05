@@ -41,6 +41,7 @@ export async function POST(req: Request) {
   try {
     const task = await createTask({
       userId: workspaceId,
+      actorProfileId: memberId,
       agent: agent as AgentId,
       input: taskInput,
       triggerType: 'user',
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
       )
     }
 
-    logActivity(memberId, 'agent_run', { agent }).catch(() => {})
+    logActivity(memberId, 'agent_run', { agent }, workspaceId).catch(() => {})
     return NextResponse.json({ taskId: task.id, status: task.status })
   } catch (err) {
     console.error('Create task error:', err)

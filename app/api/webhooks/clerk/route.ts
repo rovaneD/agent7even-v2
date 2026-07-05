@@ -92,6 +92,7 @@ export async function POST(req: Request) {
             accountId: teamActivation.accountId,
             memberEmail: email,
             memberName: fullName,
+            memberProfileId: canonical.id,
           }).catch(err => console.error('[clerk/webhook] join notification failed:', err))
         }
 
@@ -129,6 +130,7 @@ export async function POST(req: Request) {
           accountId: teamActivation.accountId,
           memberEmail: email,
           memberName: fullName,
+          memberProfileId: newProfile.id,
         }).catch(err => console.error('[clerk/webhook] join notification failed:', err))
       }
     }

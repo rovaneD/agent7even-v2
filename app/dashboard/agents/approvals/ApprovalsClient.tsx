@@ -54,6 +54,8 @@ interface ApprovalTask {
   approved_at: string | null
   rejected_at: string | null
   rejection_note: string | null
+  actor_profile_id?: string | null
+  actorName?: string
   created_at: string
   completed_at: string | null
   agent_outputs: AgentOutput[]
@@ -226,6 +228,9 @@ function ApprovalItem({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
             <AgentIcon agentId={task.agent} size={14} className="text-[#888]" />
             <span style={{ fontSize: 13, fontWeight: 600, color: '#2D3748' }}>{agentDisplayName(task.agent)}</span>
+            {task.actorName && (
+              <span style={{ fontSize: 11, color: '#718096' }}>· Submitted by {task.actorName}</span>
+            )}
             <span style={{
               fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '2px 8px',
               background: kindStyle.bg, color: kindStyle.color,

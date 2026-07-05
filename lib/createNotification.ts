@@ -22,6 +22,7 @@ export type NotificationType =
 
 interface CreateNotificationParams {
   userId: string          // profiles.id of recipient
+  senderId?: string | null
   title: string
   body: string
   type: NotificationType
@@ -35,6 +36,7 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
 
 export async function createNotification({
   userId,
+  senderId,
   title,
   body,
   type,
@@ -48,6 +50,7 @@ export async function createNotification({
   // Create in-app notification
   const { error } = await supabase.from('notifications').insert({
     user_id: userId,
+    sender_id: senderId ?? null,
     title,
     body,
     type,
