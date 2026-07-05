@@ -1,7 +1,7 @@
-import { auth } from '@clerk/nextjs/server'
 import { randomUUID } from 'crypto'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolvePostsWorkspace } from '@/lib/profiles/resolvePostsWorkspace'
 import { pollVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
 import { logProviderError } from '@/lib/agents/sanitizeProviderError'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
@@ -16,23 +16,15 @@ type ReconcileResult = {
 }
 
 export async function POST(): Promise<NextResponse> {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const ws = await resolvePostsWorkspace(supabase)
+  if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { workspaceId } = ws
 
   const { data: tasks } = await supabase
     .from('agent_tasks')
     .select('id, user_id, input')
-    .eq('user_id', profile.id as string)
+    .eq('user_id', workspaceId)
     .eq('agent', 'video_generation')
     .eq('status', 'running')
 

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import * as publisher from '@/lib/social/publisher'
 import { parseQueueList } from '@/lib/social/zernioQueuesParse'
+import { getAnalyticsProfileForClerkUser } from '@/lib/profiles/getAnalyticsProfile'
+import {
+  getWorkspaceAuthContext,
+  workspaceDataUserId,
+} from '@/lib/profiles/workspaceSession'
 
 export async function GET(req: NextRequest) {
   if (!process.env.ZERNIO_API_KEY) {
@@ -12,15 +16,12 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan, zernio_profile_id, zernio_profile_ids')
-    .eq('clerk_user_id', userId)
-    .single()
+  const ctx = await getWorkspaceAuthContext(supabase)
+  if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const profile = await getAnalyticsProfileForClerkUser(supabase, ctx.clerkUserId, ctx.email)
+  const workspaceId = workspaceDataUserId(ctx.session)
 
   if (!profile?.plan) {
     return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
   }
 
   return publisher.withZernioUsageContext(
-    { userId: profile.id as string, zernioProfileId: profileId },
+    { userId: workspaceId, zernioProfileId: profileId },
     async () => {
       const raw = await publisher.listQueueSlots(profileId)
       if (!raw) {

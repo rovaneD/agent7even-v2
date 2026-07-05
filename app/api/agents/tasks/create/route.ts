@@ -1,4 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -8,20 +7,19 @@ import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { AgentId } from '@/lib/agents/registry'
 import { readPostMediaRef } from '@/lib/postAssets'
 import { logActivity } from '@/lib/activity'
+import {
+  getWorkspaceSessionFromRequest,
+  workspaceActorId,
+  workspaceDataUserId,
+} from '@/lib/profiles/workspaceSession'
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
+  const session = await getWorkspaceSessionFromRequest(supabase)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const workspaceId = workspaceDataUserId(session)
+  const memberId = workspaceActorId(session)
 
   const body = await req.json()
   const { agent, input = {}, priority = 'normal', scheduledFor } = body
@@ -42,7 +40,7 @@ export async function POST(req: Request) {
 
   try {
     const task = await createTask({
-      userId: profile.id,
+      userId: workspaceId,
       agent: agent as AgentId,
       input: taskInput,
       triggerType: 'user',
@@ -59,12 +57,12 @@ export async function POST(req: Request) {
           taskId: task.id,
           agent,
           input: taskInput,
-          userId: profile.id,
+          userId: workspaceId,
         })
       )
     }
 
-    logActivity(profile.id, 'agent_run', { agent }).catch(() => {})
+    logActivity(memberId, 'agent_run', { agent }).catch(() => {})
     return NextResponse.json({ taskId: task.id, status: task.status })
   } catch (err) {
     console.error('Create task error:', err)

@@ -1,7 +1,9 @@
 import { Suspense } from 'react'
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
+import { getAnalyticsProfileForClerkUser } from '@/lib/profiles/getAnalyticsProfile'
 import PostsClient from './PostsClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import { approvalQueueKind } from '@/lib/agents/contentPosting'
@@ -25,37 +27,31 @@ export default async function PostsPage() {
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select(`
-      id,
-      company_name,
-      plan,
-      zernio_profile_id,
-      zernio_profile_ids,
-      zernio_connected_platforms
-    `)
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
   if (profile?.id) {
     const teamPerms = await getTeamPermissions(profile.id)
     if (!hasPermission(teamPerms, 'analytics')) redirect('/dashboard')
   }
 
-  const profileIds = (profile?.zernio_profile_ids as string[] | null) ?? []
-  const primaryProfileId = profile?.zernio_profile_id ?? profileIds[0] ?? null
+  const workspaceProfile = await getAnalyticsProfileForClerkUser(supabase, userId, email)
+  const dataUserId = workspace?.workspaceId ?? profile?.id
+
+  const profileIds = (workspaceProfile?.zernio_profile_ids as string[] | null) ?? []
+  const primaryProfileId = workspaceProfile?.zernio_profile_id ?? profileIds[0] ?? null
   if (primaryProfileId && !profileIds.includes(primaryProfileId)) {
     profileIds.unshift(primaryProfileId)
   }
 
-  let zernioConnectedPlatforms = (profile?.zernio_connected_platforms as string[] | null) ?? []
+  let zernioConnectedPlatforms = (workspaceProfile?.zernio_connected_platforms as string[] | null) ?? []
   let accounts: Array<{ id: string; platform: string; username: string }> = []
 
-  if (primaryProfileId && profile?.id) {
+  if (primaryProfileId && dataUserId) {
     try {
       await publisher.withZernioUsageContext(
-        { userId: profile.id, zernioProfileId: primaryProfileId },
+        { userId: dataUserId, zernioProfileId: primaryProfileId },
         async () => {
           accounts = await publisher.getProfileAccounts(primaryProfileId)
           const connectedPlatforms = await publisher.getConnectedPlatforms(primaryProfileId)
@@ -68,17 +64,17 @@ export default async function PostsPage() {
   }
 
   const dataState = getPostsState({
-    plan: profile?.plan ?? null,
+    plan: workspaceProfile?.plan ?? null,
     zernio_profile_id: primaryProfileId,
     zernio_connected_platforms: zernioConnectedPlatforms,
   })
 
   let pendingPostApprovalCount = 0
-  if (profile?.id) {
+  if (dataUserId) {
     const { data: pendingApprovalTasks } = await supabase
       .from('agent_tasks')
       .select('id, agent, input, agent_outputs(content, created_at)')
-      .eq('user_id', profile.id)
+      .eq('user_id', dataUserId)
       .eq('requires_approval', true)
       .eq('status', 'completed')
       .is('approved_at', null)
@@ -89,15 +85,15 @@ export default async function PostsPage() {
     ).length
   }
 
-  const lifecycleCounts = profile?.id
-    ? await getContentLifecycleCounts(profile.id, primaryProfileId)
+  const lifecycleCounts = dataUserId
+    ? await getContentLifecycleCounts(dataUserId, primaryProfileId)
     : undefined
 
   return (
     <Suspense>
       <PostsClient
-        companyName={profile?.company_name ?? ''}
-        plan={profile?.plan ?? ''}
+        companyName={workspaceProfile?.company_name ?? ''}
+        plan={workspaceProfile?.plan ?? ''}
         dataState={dataState}
         zernioProfileId={primaryProfileId}
         zernioProfileIds={profileIds}

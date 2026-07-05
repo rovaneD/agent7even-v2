@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { resolvePostsWorkspace } from '@/lib/profiles/resolvePostsWorkspace'
 import {
   assertPostAssetOwnedByProfile,
   editImageOption,
@@ -26,20 +26,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'feature_disabled' }, { status: 404 })
   }
 
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan, company_name')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-  if (!profile.plan) {
-    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
-  }
+  const ws = await resolvePostsWorkspace(supabase)
+  if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { workspaceId, profile } = ws
+  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
 
   let body: Body
   try {
@@ -63,7 +54,7 @@ export async function POST(req: Request) {
     )
   }
 
-  if (!assertPostAssetOwnedByProfile(sourceStoragePath.trim(), profile.id)) {
+  if (!assertPostAssetOwnedByProfile(sourceStoragePath.trim(), workspaceId)) {
     return NextResponse.json({ error: 'invalid_storage_path' }, { status: 403 })
   }
 
@@ -73,7 +64,7 @@ export async function POST(req: Request) {
 
   try {
     const option = await editImageOption({
-      profileId: profile.id,
+      profileId: workspaceId,
       companyName: (profile.company_name as string | null) ?? 'your business',
       briefId,
       optionIndex,
@@ -84,7 +75,7 @@ export async function POST(req: Request) {
       editMode: body.editMode,
     })
 
-    if (!assertPostAssetOwnedByProfile(option.storagePath, profile.id)) {
+    if (!assertPostAssetOwnedByProfile(option.storagePath, workspaceId)) {
       return NextResponse.json({ error: 'upload_failed' }, { status: 500 })
     }
 

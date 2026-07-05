@@ -41,13 +41,13 @@ export async function resolveApprovalActorProfile(
 export async function assertTaskOwnedByProfile(
   supabase: SupabaseClient,
   taskId: string,
-  profileId: string,
+  workspaceId: string,
 ) {
   const { data: task, error } = await supabase
     .from('agent_tasks')
     .select('id, agent, input, priority, user_id')
     .eq('id', taskId)
-    .eq('user_id', profileId)
+    .eq('user_id', workspaceId)
     .single()
 
   if (error || !task) return null
@@ -58,13 +58,14 @@ export async function assertTaskOwnedByProfile(
 export async function rejectAllPendingOutputsForTask(
   supabase: SupabaseClient,
   opts: {
-    profileId: string
+    workspaceId: string
+    actorProfileId: string
     taskId: string
     rejectionText: string | null
     feedback: string | null
   },
 ) {
-  const task = await assertTaskOwnedByProfile(supabase, opts.taskId, opts.profileId)
+  const task = await assertTaskOwnedByProfile(supabase, opts.taskId, opts.workspaceId)
   if (!task) {
     return { ok: false as const, error: 'Task not found', task: null, outputs: [] }
   }
@@ -99,10 +100,10 @@ export async function rejectAllPendingOutputsForTask(
       rejection_note: opts.rejectionText,
       rejection_reason: opts.feedback,
       reviewed_at: now,
-      reviewed_by: opts.profileId,
+      reviewed_by: opts.actorProfileId,
     })
     .eq('id', opts.taskId)
-    .eq('user_id', opts.profileId)
+    .eq('user_id', opts.workspaceId)
 
   if (taskErr) {
     return { ok: false as const, error: taskErr.message, task: null, outputs: [] }

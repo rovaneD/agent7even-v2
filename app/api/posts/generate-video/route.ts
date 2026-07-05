@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { resolvePostsWorkspace } from '@/lib/profiles/resolvePostsWorkspace'
 import { isVideoGenerationEnabled } from '@/lib/posts/videoGenerationFlag'
 import { assertGenerationFloor } from '@/lib/foundation/sectionStrength'
 import { deductCredits } from '@/lib/credits'
@@ -34,23 +34,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'feature_disabled' }, { status: 404 })
   }
 
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan, company_name')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-  if (!profile.plan) {
-    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
-  }
+  const ws = await resolvePostsWorkspace(supabase)
+  if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { workspaceId, profile } = ws
+  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
 
   // Foundation floor gate — same 70% floor as image generation
-  const floor = await assertGenerationFloor(profile.id)
+  const floor = await assertGenerationFloor(workspaceId)
   if (!floor.ok) {
     return NextResponse.json(
       {
@@ -88,7 +79,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'openrouter_not_configured' }, { status: 503 })
   }
 
-  const profileId = profile.id as string
+  const profileId = workspaceId
   const companyName = (profile.company_name as string | null) ?? 'your business'
   const modelEntry = resolveVideoModel(body.videoModelId)
   const videoCost = videoCreditCost(modelEntry.id, profile.plan as string | null)

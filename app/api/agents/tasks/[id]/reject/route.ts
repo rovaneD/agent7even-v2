@@ -1,32 +1,34 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
 import { buildRequeueTaskInput } from '@/lib/agents/requeueTaskInput'
-import {
-  rejectAllPendingOutputsForTask,
-  resolveApprovalActorProfile,
-} from '@/lib/agents/approvalQueueMutations'
+import { rejectAllPendingOutputsForTask } from '@/lib/agents/approvalQueueMutations'
 import { logRejectionChangelog } from '@/lib/foundation/changelog'
+import {
+  getWorkspaceSessionFromRequest,
+  workspaceActorId,
+  workspaceDataUserId,
+} from '@/lib/profiles/workspaceSession'
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const { id: taskId } = await params
   const { outputId, note = '', feedback, feedbackNote, rerun = false } = await req.json()
 
   const supabase = createServiceClient()
-  const profile = await resolveApprovalActorProfile(supabase, userId)
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const session = await getWorkspaceSessionFromRequest(supabase)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const workspaceId = workspaceDataUserId(session)
+  const memberId = workspaceActorId(session)
 
   const rejectionText = feedbackNote ?? note ?? null
 
   const result = await rejectAllPendingOutputsForTask(supabase, {
-    profileId: profile.id,
+    workspaceId,
+    actorProfileId: memberId,
     taskId,
     rejectionText,
     feedback: feedback ?? null,
@@ -41,7 +43,7 @@ export async function POST(
     result.outputs.find(row => row.id === outputId) ?? result.outputs[0]
 
   logRejectionChangelog({
-    actorProfileId: profile.id,
+    actorProfileId: memberId,
     taskId,
     agentId: task.agent as string,
     outputId: primaryOutput?.id ?? outputId,
@@ -61,7 +63,7 @@ export async function POST(
     const { createTask } = await import('@/lib/agents/runner')
     const { dispatchAgentTask } = await import('@/lib/agents/dispatch')
     const replacement = await createTask({
-      userId: profile.id,
+      userId: workspaceId,
       agent: task.agent,
       input: requeueInput,
       triggerType: 'user',
@@ -72,7 +74,7 @@ export async function POST(
         taskId: replacement.id,
         agent: task.agent,
         input: requeueInput,
-        userId: profile.id,
+        userId: workspaceId,
       })
     )
   }

@@ -1,24 +1,17 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration'
 import { createPostAssetSignedUrl } from '@/lib/postAssets'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolvePostsWorkspace } from '@/lib/profiles/resolvePostsWorkspace'
 
 type Body = { storagePaths?: string[] }
 
 /** Refresh signed preview URLs for stored generation options (session restore). */
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const ws = await resolvePostsWorkspace(supabase)
+  if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { workspaceId } = ws
 
   let body: Body
   try {
@@ -35,7 +28,7 @@ export async function POST(req: Request) {
   const previews: Record<string, string | null> = {}
   await Promise.all(
     paths.map(async path => {
-      if (!assertPostAssetOwnedByProfile(path, profile.id)) {
+      if (!assertPostAssetOwnedByProfile(path, workspaceId)) {
         previews[path] = null
         return
       }

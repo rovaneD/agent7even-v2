@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { resolvePostsWorkspace } from '@/lib/profiles/resolvePostsWorkspace'
 import {
   assertPostAssetOwnedByProfile,
   regenerateImageOption,
@@ -25,20 +25,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'feature_disabled' }, { status: 404 })
   }
 
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-  if (!profile.plan) {
-    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
-  }
+  const ws = await resolvePostsWorkspace(supabase)
+  if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { workspaceId, profile } = ws
+  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
 
   let body: Body
   try {
@@ -68,14 +59,14 @@ export async function POST(req: Request) {
 
   try {
     const option = await regenerateImageOption({
-      profileId: profile.id,
+      profileId: workspaceId,
       briefId,
       optionIndex,
       brief: brief.trim(),
       imageModel: body.imageModel,
     })
 
-    if (!assertPostAssetOwnedByProfile(option.storagePath, profile.id)) {
+    if (!assertPostAssetOwnedByProfile(option.storagePath, workspaceId)) {
       return NextResponse.json({ error: 'upload_failed' }, { status: 500 })
     }
 

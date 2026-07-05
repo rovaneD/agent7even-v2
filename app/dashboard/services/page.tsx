@@ -1,6 +1,7 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import ServicesClient from './ServicesClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 
@@ -15,25 +16,25 @@ export default async function ServicesPage({
   const openViralHooksPrefill = viralHooks === 'prefill'
 
   const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
   if (profile?.id) {
     const teamPerms = await getTeamPermissions(profile.id)
     if (!hasPermission(teamPerms, 'services')) redirect('/dashboard')
   }
 
+  const workspaceProfile = workspace?.workspaceProfile ?? profile
+  const dataUserId = workspace?.workspaceId ?? profile?.id
+
   const { data: orders } = await supabase
     .from('orders')
     .select('*')
-    .eq('user_id', profile?.id)
+    .eq('user_id', dataUserId)
     .order('created_at', { ascending: false })
 
-  const { data: serviceTickets } = profile?.id
+  const { data: serviceTickets } = dataUserId
     ? await supabase
       .from('support_tickets')
       .select(`
@@ -43,7 +44,7 @@ export default async function ServicesPage({
           id, sender_role, body, created_at
         )
       `)
-      .eq('user_id', profile.id)
+      .eq('user_id', dataUserId)
       .or('subject.ilike.Service request:%,subject.ilike.Self-serve service:%')
       .order('updated_at', { ascending: false })
     : { data: [] }
@@ -83,19 +84,21 @@ export default async function ServicesPage({
     support_messages: supportTicketByOrderId.get(order.id)?.support_messages ?? [],
   }))
 
-  const { data: creditRow } = profile?.id
+  const { data: creditRow } = dataUserId
     ? await supabase
         .from('credit_balances')
         .select('balance')
-        .eq('user_id', profile.id)
+        .eq('user_id', dataUserId)
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle()
     : { data: null }
 
+  const displayProfile = workspaceProfile ?? profile
+
   return (
     <ServicesClient
-      profile={profile}
+      profile={displayProfile ? { id: displayProfile.id, plan: displayProfile.plan ?? undefined } : null}
       orders={ordersWithTickets}
       initialOrderId={initialOrderId ?? null}
       openViralHooksPrefill={openViralHooksPrefill}

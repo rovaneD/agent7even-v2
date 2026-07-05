@@ -1,4 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -8,13 +7,14 @@ import {
   logBulkApprovalChangelog,
   logBulkRejectionChangelog,
 } from '@/lib/foundation/changelog'
-import { resolveApprovalActorProfile } from '@/lib/agents/approvalQueueMutations'
 import { rejectAllPendingOutputsForTask } from '@/lib/agents/approvalQueueMutations'
+import {
+  getWorkspaceSessionFromRequest,
+  workspaceActorId,
+  workspaceDataUserId,
+} from '@/lib/profiles/workspaceSession'
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const { action, taskIds, feedback, feedbackNote, rerun = false } = await req.json()
 
   if (!Array.isArray(taskIds) || taskIds.length === 0) {
@@ -25,8 +25,11 @@ export async function POST(req: Request) {
   }
 
   const supabase = createServiceClient()
-  const profile = await resolveApprovalActorProfile(supabase, userId)
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const session = await getWorkspaceSessionFromRequest(supabase)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const workspaceId = workspaceDataUserId(session)
+  const memberId = workspaceActorId(session)
 
   const now = new Date().toISOString()
 
@@ -34,19 +37,19 @@ export async function POST(req: Request) {
     const [tasksRes, outputsRes] = await Promise.all([
       supabase
         .from('agent_tasks')
-        .update({ approved_at: now, reviewed_at: now, reviewed_by: profile.id })
+        .update({ approved_at: now, reviewed_at: now, reviewed_by: memberId })
         .in('id', taskIds)
-        .eq('user_id', profile.id),
+        .eq('user_id', workspaceId),
       supabase
         .from('agent_outputs')
         .update({ status: 'approved', approved_at: now, lifecycle_stage: 'approved' })
         .in('task_id', taskIds)
-        .eq('user_id', profile.id),
+        .eq('user_id', workspaceId),
     ])
     if (tasksRes.error) return NextResponse.json({ error: tasksRes.error.message }, { status: 500 })
     if (outputsRes.error) return NextResponse.json({ error: outputsRes.error.message }, { status: 500 })
-    logActivity(profile.id, 'agent_bulk_approved', { count: taskIds.length }).catch(() => {})
-    void logBulkApprovalChangelog(profile.id, taskIds).catch(err => {
+    logActivity(memberId, 'agent_bulk_approved', { count: taskIds.length }).catch(() => {})
+    void logBulkApprovalChangelog(memberId, taskIds).catch(err => {
       console.error('[foundation-changelog] bulk approve log failed:', err)
     })
   } else {
@@ -54,12 +57,13 @@ export async function POST(req: Request) {
       .from('agent_tasks')
       .select('id, agent, input, priority')
       .in('id', taskIds)
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
 
     let rejectedCount = 0
     for (const taskId of taskIds) {
       const result = await rejectAllPendingOutputsForTask(supabase, {
-        profileId: profile.id,
+        workspaceId,
+        actorProfileId: memberId,
         taskId,
         rejectionText: feedbackNote ?? null,
         feedback: feedback ?? null,
@@ -80,7 +84,7 @@ export async function POST(req: Request) {
             .from('agent_outputs')
             .select('content')
             .eq('task_id', task.id)
-            .eq('user_id', profile.id)
+            .eq('user_id', workspaceId)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
@@ -91,7 +95,7 @@ export async function POST(req: Request) {
             feedbackNote ?? feedback,
           )
           const replacement = await createTask({
-            userId: profile.id,
+            userId: workspaceId,
             agent: task.agent,
             input: requeueInput,
             triggerType: 'user',
@@ -102,15 +106,15 @@ export async function POST(req: Request) {
               taskId: replacement.id,
               agent: task.agent,
               input: requeueInput,
-              userId: profile.id,
+              userId: workspaceId,
             })
           )
         })
       )
     }
-    logActivity(profile.id, 'agent_bulk_rejected', { count: taskIds.length }).catch(() => {})
+    logActivity(memberId, 'agent_bulk_rejected', { count: taskIds.length }).catch(() => {})
     void logBulkRejectionChangelog(
-      profile.id,
+      memberId,
       taskIds,
       feedback ?? null,
       feedbackNote ?? null,

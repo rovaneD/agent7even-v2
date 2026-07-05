@@ -22,6 +22,11 @@ import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { assessTextFairUse } from '@/lib/credits/textFairUse'
 import { MAYA_NO_FAKE_ACTIONS } from '@/lib/maya/voiceRules'
 import { buildFormActuationSystemSection, type FormSurfaceSnapshot } from '@/lib/maya/formActuation'
+import {
+  getWorkspaceSessionFromRequest,
+  workspaceActorId,
+  workspaceDataUserId,
+} from '@/lib/profiles/workspaceSession'
 
 const CHAT_CREDITS = ACTION_CREDIT_COST.maya_chat_turn
 const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
@@ -82,50 +87,52 @@ You are completing a specific task, not building a new campaign. Never say "spin
   })
 
   const supabase = createServiceClient()
+  const session = await getWorkspaceSessionFromRequest(supabase)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // ── 1. Fetch profile ───────────────────────────────────────────────────────
-  // Use .limit(1) + array index instead of .single() so duplicate rows (PGRST116)
-  // don't cause both fetches to fail and drop the request to the no-profile path.
-  let profile: Record<string, any> | null = null
-  const { data: fullRows, error: profileError } = await supabase
+  const workspaceId = workspaceDataUserId(session)
+  const memberId = workspaceActorId(session)
+
+  // ── 1. Fetch workspace profile (Foundation + business facts SSOT) ───────────
+  const PROFILE_SELECT = `
+    id, company_name, business_type,
+    ideal_customer, sell_locations, marketing_budget,
+    competitors, top_goals, marketing_challenge, content_comfort,
+    website_url, instagram_handle, foundation_score
+  `
+  let profile: Record<string, unknown> | null = null
+  const { data: fullRow, error: profileError } = await supabase
     .from('profiles')
-    .select(`
-      id, company_name, business_type,
-      ideal_customer, sell_locations, marketing_budget,
-      competitors, top_goals, marketing_challenge, content_comfort,
-      website_url, instagram_handle, foundation_score
-    `)
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
+    .select(PROFILE_SELECT)
+    .eq('id', workspaceId)
+    .maybeSingle()
 
   if (profileError) {
-    console.error('[maya/chat] full profile fetch error:', profileError.code, profileError.message)
-    const { data: basicRows, error: basicError } = await supabase
+    console.error('[maya/chat] workspace profile fetch error:', profileError.code, profileError.message)
+    const { data: basicRow, error: basicError } = await supabase
       .from('profiles')
       .select('id, company_name, business_type, website_url, instagram_handle')
-      .eq('clerk_user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-    if (basicError) console.error('[maya/chat] basic profile fetch error:', basicError.code, basicError.message)
-    profile = basicRows?.[0] ?? null
+      .eq('id', workspaceId)
+      .maybeSingle()
+    if (basicError) console.error('[maya/chat] basic workspace profile fetch error:', basicError.code, basicError.message)
+    profile = basicRow ?? null
   } else {
-    profile = fullRows?.[0] ?? null
+    profile = fullRow ?? null
   }
 
-  if (profile?.id) logActivity(profile.id, 'maya_message').catch(() => {})
+  logActivity(memberId, 'maya_message').catch(() => {})
 
   // ── 2. Cost tracking — runs regardless of foundation status ───────────────
   // Task creation and credit deduction happen here, before foundation fetch,
   // so a missing/empty foundation never prevents cost recording.
   if (profile?.id) {
     // ── 3. Load Foundation context ─────────────────────────────────────────
-    // profile.id is the Supabase UUID — same key as foundation_answers + foundation_documents.
+    // workspaceId is the Supabase UUID — same key as foundation_answers + foundation_documents.
     // Do NOT branch on foundation_complete; that flag is unreliable (can be true with 0 docs).
     const [foundation, changelog, layers] = await Promise.all([
-      loadFoundationContext(profile.id),
-      loadFoundationChangelog(profile.id),
-      loadFoundationLayers(profile.id),
+      loadFoundationContext(workspaceId),
+      loadFoundationChangelog(workspaceId),
+      loadFoundationLayers(workspaceId),
     ])
     const { hasFoundation, documents, competitorsFreetext, answers: fAnswers } = foundation
 
@@ -330,13 +337,13 @@ Direct. Warm. A little energetic. Never say "Great!" or "Absolutely!" Just respo
 Never use markdown in conversation. Save structure for the plan.`
 
     // ── 5. Create task, stream, record cost ────────────────────────────────
-    const fairUse = await assessTextFairUse(profile.id)
+    const fairUse = await assessTextFairUse(workspaceId)
     if (fairUse.warn) {
       console.warn('[maya/chat] text fair-use:', fairUse.message)
     }
 
     const task = await createTask({
-      userId:  profile.id,
+      userId:  workspaceId,
       agent:   'maya',
       jobType: 'maya_chat',
       model:   MAYA_MODEL,
@@ -345,7 +352,7 @@ Never use markdown in conversation. Save structure for the plan.`
     await updateTaskStatus(task.id, 'running')
 
     try {
-      await deductCredits(profile.id, CHAT_CREDITS, `Maya chat — task ${task.id}`, task.id)
+      await deductCredits(workspaceId, CHAT_CREDITS, `Maya chat — task ${task.id}`, task.id)
     } catch (err) {
       await updateTaskStatus(task.id, 'failed').catch(() => {})
       const msg = err instanceof Error ? err.message : ''
@@ -392,7 +399,7 @@ Never use markdown in conversation. Save structure for the plan.`
     try {
       result = await streamText({ model: models.maya, system, messages: finalMessages as typeof messages, maxOutputTokens: 2000 })
     } catch (err) {
-      await refundCredits(profile.id, CHAT_CREDITS, `Maya chat failed — task ${task.id} refund`, task.id).catch(() => {})
+      await refundCredits(workspaceId, CHAT_CREDITS, `Maya chat failed — task ${task.id} refund`, task.id).catch(() => {})
       await updateTaskStatus(task.id, 'failed').catch(() => {})
       console.error('[maya/chat] stream failed:', err)
       return NextResponse.json({ error: 'Generation failed' }, { status: 500 })

@@ -1,6 +1,7 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect, notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import CampaignDetail from './CampaignDetail'
 
 export default async function CampaignDetailPage({
@@ -13,20 +14,19 @@ export default async function CampaignDetailPage({
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
   if (!profile) redirect('/sign-in')
+
+  const dataUserId = workspace?.workspaceId ?? profile.id
 
   const { data: campaign } = await supabase
     .from('campaigns')
     .select('*')
     .eq('id', id)
-    .eq('user_id', profile.id)
+    .eq('user_id', dataUserId)
     .single()
 
   if (!campaign) notFound()

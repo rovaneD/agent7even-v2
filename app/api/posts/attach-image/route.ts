@@ -1,6 +1,6 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolvePostsWorkspace } from '@/lib/profiles/resolvePostsWorkspace'
 import {
   createPostAssetSignedUrl,
   mimeFromFilename,
@@ -28,20 +28,11 @@ function parseBase64(content: string): Buffer {
 }
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-  if (!profile.plan) {
-    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
-  }
+  const ws = await resolvePostsWorkspace(supabase)
+  if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { workspaceId, profile } = ws
+  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
 
   let body: AttachBody
   try {
@@ -74,7 +65,7 @@ export async function POST(req: Request) {
 
   try {
     const { storagePath } = await uploadPostAsset({
-      profileId: profile.id as string,
+      profileId: workspaceId,
       filename,
       mime: resolvedMime,
       bytes,
@@ -98,7 +89,7 @@ export async function POST(req: Request) {
         .from('agent_outputs')
         .select('id, content')
         .eq('id', outputId)
-        .eq('user_id', profile.id)
+        .eq('user_id', workspaceId)
         .single()
 
       if (!existing) return NextResponse.json({ error: 'output_not_found' }, { status: 404 })
@@ -108,7 +99,7 @@ export async function POST(req: Request) {
         .from('agent_outputs')
         .update({ content: { ...prev, ...mediaFields } })
         .eq('id', outputId)
-        .eq('user_id', profile.id)
+        .eq('user_id', workspaceId)
 
       if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 })
     }
@@ -118,7 +109,7 @@ export async function POST(req: Request) {
         .from('agent_tasks')
         .select('id, input')
         .eq('id', taskId)
-        .eq('user_id', profile.id)
+        .eq('user_id', workspaceId)
         .single()
 
       if (!task) return NextResponse.json({ error: 'task_not_found' }, { status: 404 })
@@ -128,7 +119,7 @@ export async function POST(req: Request) {
         .from('agent_tasks')
         .update({ input: { ...prevInput, ...mediaFields } })
         .eq('id', taskId)
-        .eq('user_id', profile.id)
+        .eq('user_id', workspaceId)
 
       if (taskErr) return NextResponse.json({ error: taskErr.message }, { status: 500 })
     }

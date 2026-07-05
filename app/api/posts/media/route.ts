@@ -1,6 +1,6 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolvePostsWorkspace } from '@/lib/profiles/resolvePostsWorkspace'
 import * as publisher from '@/lib/social/publisher'
 
 const ALLOWED_TYPES = new Set([
@@ -28,19 +28,11 @@ export async function POST(req: Request) {
     )
   }
 
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile?.plan) {
-    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
-  }
+  const ws = await resolvePostsWorkspace(supabase)
+  if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { workspaceId, profile } = ws
+  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -67,7 +59,7 @@ export async function POST(req: Request) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || 'upload'
 
   return publisher.withZernioUsageContext(
-    { userId: profile.id as string },
+    { userId: workspaceId },
     async () => {
       const presign = await publisher.presignMedia({
         filename: safeName,

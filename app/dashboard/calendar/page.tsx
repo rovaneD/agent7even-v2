@@ -1,8 +1,9 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { CalendarDays, Hash, Mail, Megaphone, MousePointer, Plus, Clock } from 'lucide-react'
 import { createServiceClient } from '@/lib/supabase/server'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 import ContentLifecycleBar from '@/components/dashboard/ContentLifecycleBar'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
@@ -145,24 +146,24 @@ export default async function CalendarPage() {
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, company_name, full_name, zernio_profile_id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
   if (!profile) redirect('/sign-in')
 
+  const workspaceProfile = workspace?.workspaceProfile ?? profile
+  const dataUserId = workspace?.workspaceId ?? profile.id
+
   const lifecycleCounts = await getContentLifecycleCounts(
-    profile.id,
-    (profile.zernio_profile_id as string | null) ?? null,
+    dataUserId,
+    (workspaceProfile.zernio_profile_id as string | null) ?? null,
   )
 
   const { data: campaigns, error } = await supabase
     .from('campaigns')
     .select('*')
-    .eq('user_id', profile.id)
+    .eq('user_id', dataUserId)
     .order('created_at', { ascending: false })
 
   if (error) console.error('[calendar] campaigns fetch error:', error.message)
