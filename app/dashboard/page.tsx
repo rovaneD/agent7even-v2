@@ -2,6 +2,8 @@ import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
+import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
+import { isAnalyticsConnected } from '@/lib/analytics/isAnalyticsConnected'
 import Link from 'next/link'
 import {
   ArrowRight,
@@ -34,64 +36,68 @@ export default async function DashboardPage() {
   const user = await currentUser()
   const email = user?.emailAddresses?.[0]?.emailAddress ?? null
   const profile = await getDashboardProfileForClerkUser(supabase, userId, email)
+  const workspaceId = profile
+    ? await resolveWorkspaceProfileId(supabase, profile.id)
+    : null
+  const dataUserId = workspaceId ?? profile?.id
 
   const today = new Date().toISOString().split('T')[0]
 
   const [digestResult, campaignResult, agentResult, brandKitResult, creditResult, pendingApprovalResult, orderResult] = await Promise.all([
-    profile
+    dataUserId
       ? supabase
           .from('daily_digests')
           .select('id, agent_runs, approvals, today_actions')
-          .eq('user_id', profile.id)
+          .eq('user_id', dataUserId)
           .eq('date', today)
           .limit(1)
       : Promise.resolve({ data: null }),
 
-    profile
+    dataUserId
       ? supabase
           .from('campaigns')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', profile.id)
+          .eq('user_id', dataUserId)
       : Promise.resolve({ count: 0 }),
 
-    profile
+    dataUserId
       ? supabase
           .from('agent_tasks')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', profile.id)
+          .eq('user_id', dataUserId)
           .eq('status', 'completed')
           .not('agent', 'like', 'foundation_%')
           .neq('agent', 'maya')
       : Promise.resolve({ count: 0 }),
 
-    profile
+    dataUserId
       ? supabase
           .from('brand_kit_sections')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', profile.id)
+          .eq('user_id', dataUserId)
       : Promise.resolve({ count: 0 }),
 
-    profile
+    dataUserId
       ? supabase
           .from('credit_balances')
           .select('balance')
-          .eq('user_id', profile.id)
+          .eq('user_id', dataUserId)
           .order('updated_at', { ascending: false })
           .limit(1)
       : Promise.resolve({ data: null }),
 
-    profile
+    dataUserId
       ? Promise.all([
-          getPendingApprovalCount(supabase, profile.id),
-          listPendingApprovalDigestItems(supabase, profile.id),
+          getPendingApprovalCount(supabase, dataUserId),
+          listPendingApprovalDigestItems(supabase, dataUserId),
         ]).then(([count, items]) => ({ count, items }))
       : Promise.resolve({ count: 0, items: [] }),
 
-    profile
+    dataUserId
       ? supabase
           .from('orders')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', profile.id)
+          .eq('user_id', dataUserId)
           .not('status', 'in', '(approved,completed,cancelled)')
       : Promise.resolve({ count: 0 }),
   ])
@@ -102,15 +108,17 @@ export default async function DashboardPage() {
   const digestStale = !!digest
     && (digest.approvals?.length ?? 0) !== pendingApprovals
 
+  const analyticsConnected = isAnalyticsConnected(profile)
+
   const checklistCompleted: boolean[] = [
     !!profile?.foundation_complete,
     (campaignResult.count ?? 0) > 0,
     (agentResult.count ?? 0) > 0,
     (brandKitResult.count ?? 0) > 0,
-    !!(profile as Record<string, unknown>)?.ga_connected || !!(profile as Record<string, unknown>)?.meta_connected,
+    analyticsConnected,
   ]
 
-  const gettingStartedDismissed = !!(profile as Record<string, unknown>)?.getting_started_dismissed
+  const gettingStartedDismissed = !!profile?.getting_started_dismissed
 
   const displayName = profile?.company_name || profile?.full_name || 'there'
   const firstName   = profile?.full_name?.split(' ')[0] ?? undefined
@@ -121,7 +129,6 @@ export default async function DashboardPage() {
   const creditBalance = creditResult.data?.[0]?.balance ?? null
   const activeOrders = orderResult.count ?? 0
   const brandKitPct = Math.round(((brandKitResult.count ?? 0) / 6) * 100)
-  const analyticsConnected = !!(profile as Record<string, unknown>)?.ga_connected || !!(profile as Record<string, unknown>)?.meta_connected
   const topGoal = Array.isArray(profile?.top_goals) && profile.top_goals.length > 0 ? profile.top_goals[0] : null
 
   const agentCount = Object.keys(AGENTS).length
@@ -162,7 +169,7 @@ export default async function DashboardPage() {
     {
       href: '/dashboard/analytics',
       label: 'Analytics',
-      desc: analyticsConnected ? 'Performance data is connected.' : 'Connect GA or Meta to close the loop.',
+      desc: analyticsConnected ? 'Performance data is connected.' : 'Connect social accounts or Google Analytics.',
       metric: analyticsConnected ? 'Live' : 'Connect',
       helper: analyticsConnected ? 'tracking' : 'recommended',
       Icon: BarChart3,
@@ -201,10 +208,10 @@ export default async function DashboardPage() {
     primaryAction: { href: primaryAction.href, label: primaryAction.label },
   }
 
-  const lifecycleCounts = profile
+  const lifecycleCounts = dataUserId
     ? await getContentLifecycleCounts(
-        profile.id,
-        (profile as Record<string, unknown>).zernio_profile_id as string | null ?? null,
+        dataUserId,
+        profile?.zernio_profile_id ?? null,
       )
     : null
 

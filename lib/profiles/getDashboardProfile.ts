@@ -8,7 +8,10 @@ export const DASHBOARD_PROFILE_SELECT = `
   top_goals, marketing_challenge, content_comfort,
   foundation_complete, foundation_score, avatar_url,
   clerk_user_id, stripe_customer_id, stripe_subscription_id,
-  status, created_at
+  status, created_at, getting_started_dismissed,
+  ga_connected, ga_refresh_token, ga_measurement_id,
+  meta_connected, meta_ad_account_id,
+  zernio_profile_id, zernio_profile_ids, zernio_connected_platforms
 `
 
 export type DashboardProfile = {
@@ -35,6 +38,15 @@ export type DashboardProfile = {
   stripe_subscription_id: string | null
   status: string | null
   created_at: string
+  getting_started_dismissed: boolean | null
+  ga_connected: boolean | null
+  ga_refresh_token: string | null
+  ga_measurement_id: string | null
+  meta_connected: boolean | null
+  meta_ad_account_id: string | null
+  zernio_profile_id: string | null
+  zernio_profile_ids: string[] | null
+  zernio_connected_platforms: string[] | null
 }
 
 /** Resolve the canonical dashboard profile for a Clerk session (clerk id, then email). */

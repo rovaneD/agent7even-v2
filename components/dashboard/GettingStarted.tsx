@@ -27,7 +27,7 @@ const ITEMS = [
   },
   {
     label: 'Connect Analytics',
-    desc: 'Link Google Analytics or Meta Ads to see your performance',
+    desc: 'Link social accounts or Google Analytics to see performance',
     href: '/dashboard/analytics',
   },
 ]
