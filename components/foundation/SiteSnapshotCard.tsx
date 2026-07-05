@@ -123,7 +123,7 @@ export default function SiteSnapshotCard({ websiteUrl }: Props) {
 
       {!loading && !snapshot && !generating && (
         <p className="text-[13px] text-text-sec leading-relaxed">
-          Generate a Blaze-style strategic profile from your website — tiered positioning, competitors, segments, and advantages. Review it here; agents use it only when enabled (Phase 1 stays guarded).
+          Generate a strategic profile from your website — overview, positioning, segments, and advantages. Competitors stay in Foundation → Position. Review here; agents use this only when enabled.
         </p>
       )}
 
@@ -144,17 +144,6 @@ export default function SiteSnapshotCard({ websiteUrl }: Props) {
                 <p><span className="font-medium text-text">Tertiary:</span> {snapshot.marketPositioning.tertiary}</p>
               )}
             </div>
-            {(snapshot.competitors.local?.length || snapshot.competitors.international?.length) ? (
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft mb-1">Competitors</p>
-                {snapshot.competitors.local?.length ? (
-                  <p><span className="font-medium text-text">Local:</span> {snapshot.competitors.local.join(', ')}</p>
-                ) : null}
-                {snapshot.competitors.international?.length ? (
-                  <p><span className="font-medium text-text">International:</span> {snapshot.competitors.international.join(', ')}</p>
-                ) : null}
-              </div>
-            ) : null}
             {snapshot.competitiveAdvantages.length > 0 && (
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-text-soft mb-1">Advantages</p>

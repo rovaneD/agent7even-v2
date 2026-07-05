@@ -37,7 +37,6 @@ export async function POST(req: Request) {
     .update({
       permissions,
       role,
-      updated_at: new Date().toISOString(),
     })
     .eq('id', memberId)
 

@@ -25,9 +25,17 @@ export const SiteSnapshotSchema = z.object({
 
 export type SiteSnapshot = z.infer<typeof SiteSnapshotSchema>
 
+/** Competitors belong in Foundation Phase 1 — never in website enrichment. */
+export function stripSnapshotCompetitors(snapshot: SiteSnapshot): SiteSnapshot {
+  return {
+    ...snapshot,
+    competitors: { local: [], international: [] },
+  }
+}
+
 export function parseSiteSnapshot(raw: unknown): SiteSnapshot | null {
   const parsed = SiteSnapshotSchema.safeParse(raw)
-  return parsed.success ? parsed.data : null
+  return parsed.success ? stripSnapshotCompetitors(parsed.data) : null
 }
 
 export function formatSiteSnapshotForAgent(snapshot: SiteSnapshot): string {
@@ -47,14 +55,6 @@ export function formatSiteSnapshotForAgent(snapshot: SiteSnapshot): string {
   }
   if (snapshot.marketPositioning.tertiary) {
     lines.push(`- Tertiary: ${snapshot.marketPositioning.tertiary}`)
-  }
-
-  const local = snapshot.competitors.local?.filter(Boolean) ?? []
-  const intl = snapshot.competitors.international?.filter(Boolean) ?? []
-  if (local.length || intl.length) {
-    lines.push('', '### Competitors')
-    if (local.length) lines.push(`- Local: ${local.join(', ')}`)
-    if (intl.length) lines.push(`- International: ${intl.join(', ')}`)
   }
 
   if (snapshot.competitiveAdvantages.length) {

@@ -78,7 +78,7 @@ export async function POST(req: Request) {
   // Remove member
   await supabase
     .from('team_members')
-    .update({ status: 'removed', updated_at: new Date().toISOString() })
+    .update({ status: 'removed' })
     .eq('id', memberId)
 
   // Unlink profile if they had one

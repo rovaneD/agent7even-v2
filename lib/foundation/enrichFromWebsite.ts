@@ -34,10 +34,7 @@ Output ONLY valid JSON matching this schema (no markdown fences):
     "secondary": "optional secondary angle",
     "tertiary": "optional tertiary angle"
   },
-  "competitors": {
-    "local": ["optional local competitor names"],
-    "international": ["optional broader competitor names"]
-  },
+  "competitors": { "local": [], "international": [] },
   "competitiveAdvantages": ["3-5 specific differentiators evidenced on the site"],
   "customerSegments": [
     { "label": "Segment name", "shareHint": "optional e.g. 40%", "description": "who they are and why they buy" }
@@ -48,7 +45,8 @@ Output ONLY valid JSON matching this schema (no markdown fences):
 
 Rules:
 - Ground every claim in the provided website text. Do not invent testimonials, metrics, or pricing not on the site.
-- Infer segments and competitors only when reasonable from context; use empty arrays if unknown.
+- Do NOT infer or list competitors — always leave competitors.local and competitors.international as empty arrays. Competitors are captured separately in Foundation Phase 1.
+- Infer customer segments only when reasonable from context; use an empty array if unknown.
 - Use clear, strategic language comparable to a brand strategist deck — not generic marketing fluff.
 - Set fetchedAt to the current UTC ISO time and sourceUrl to the page URL provided.`
 

@@ -39,7 +39,6 @@ export async function GET(req: Request) {
       .update({
         member_profile_id: existingProfile.id,
         status: 'active',
-        updated_at: new Date().toISOString(),
       })
       .eq('id', invite.id)
 

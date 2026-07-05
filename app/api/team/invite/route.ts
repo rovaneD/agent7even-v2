@@ -93,7 +93,6 @@ export async function POST(req: Request) {
     invited_email: email.toLowerCase(),
     invite_token: inviteToken,
     member_profile_id: null,
-    updated_at: new Date().toISOString(),
   }
 
   const memberResult = existing?.status === 'removed'

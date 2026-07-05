@@ -122,7 +122,6 @@ export async function POST(req: Request) {
         await supabase.from('team_members').update({
           member_profile_id: newProfile.id,
           status: 'active',
-          updated_at: new Date().toISOString(),
         }).eq('id', pendingInvite.id)
 
         await supabase.from('profiles').update({
