@@ -10,6 +10,11 @@ import { buildAgentContext } from './buildAgentContext'
 import { resolveContentPostingFlow } from './contentPosting'
 import { AGENTS, type AgentId } from './registry'
 import { deductCredits, refundCredits } from '@/lib/credits'
+import { loadFieldScores } from '@/lib/foundation/sectionStrength'
+import {
+  evaluateAgentFoundationRelevance,
+  formatRelevanceGradientAdvisory,
+} from '@/lib/foundation/relevanceGradient'
 
 export type TaskStatus =
   | 'pending'
@@ -54,7 +59,9 @@ export async function buildSystemPrompt(
     skillAgentId = resolveContentPostingFlow(taskInput) === 'weekly' ? 'weekly_content' : 'post_caption'
   }
 
-  const [brandContext, skill, { data: userConstraintsRow }] = await Promise.all([
+  const agentDef = AGENTS[agentId as AgentId]
+
+  const [brandContext, skill, { data: userConstraintsRow }, fieldScores] = await Promise.all([
     buildAgentContext(userId),
     getAgentSkill(skillAgentId),
     supabase
@@ -63,12 +70,18 @@ export async function buildSystemPrompt(
       .eq('user_id', userId)
       .eq('agent_id', agentId)
       .single(),
+    agentDef ? loadFieldScores(userId).catch(() => ({})) : Promise.resolve({}),
   ])
 
-  const agentDef = AGENTS[agentId as AgentId]
   const constraints = userConstraintsRow?.constraints ?? agentDef?.defaultConstraints ?? null
 
-  const parts = [brandContext, skill?.skill_prompt].filter(Boolean)
+  let relevanceAdvisory: string | null = null
+  if (agentDef && Object.keys(fieldScores).length > 0) {
+    const evaluation = evaluateAgentFoundationRelevance(agentId as AgentId, fieldScores)
+    relevanceAdvisory = formatRelevanceGradientAdvisory(evaluation)
+  }
+
+  const parts = [brandContext, relevanceAdvisory, skill?.skill_prompt].filter(Boolean)
   const base = parts.join('\n\n---\n\n')
 
   if (!constraints) return base
