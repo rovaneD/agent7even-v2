@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { notifyTeamMemberJoined } from '@/lib/team/notifyTeamMemberJoined'
 
 /** Link a profile to a pending team invite by email (idempotent when already linked). */
 export async function activateTeamInviteForProfile(
@@ -11,7 +12,7 @@ export async function activateTeamInviteForProfile(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, is_account_owner, account_id')
+    .select('id, is_account_owner, account_id, full_name, email')
     .eq('id', profileId)
     .single()
 
@@ -56,6 +57,13 @@ export async function activateTeamInviteForProfile(
     console.error('[team] activate invite profile update failed:', profileError.message)
     return null
   }
+
+  await notifyTeamMemberJoined({
+    accountId: pendingInvite.account_id,
+    memberEmail: profile.email ?? normalizedEmail,
+    memberName: profile.full_name,
+    memberProfileId: profileId,
+  }).catch(err => console.error('[team] join notification failed:', err))
 
   return { accountId: pendingInvite.account_id, activated: true }
 }

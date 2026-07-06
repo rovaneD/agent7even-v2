@@ -5,7 +5,6 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { welcomeEmailHtml, welcomeEmailText } from '@/emails/welcome'
 import { getResendClient } from '@/lib/resend'
 import { transactionalFromAddress } from '@/lib/email/transactionalTemplate'
-import { notifyTeamMemberJoined } from '@/lib/team/notifyTeamMemberJoined'
 import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 
 export async function POST(req: Request) {
@@ -86,15 +85,7 @@ export async function POST(req: Request) {
           await supabase.from('profiles').delete().in('id', orphanIds)
         }
 
-        const teamActivation = await activateTeamInviteForProfile(supabase, canonical.id, email)
-        if (teamActivation?.activated) {
-          await notifyTeamMemberJoined({
-            accountId: teamActivation.accountId,
-            memberEmail: email,
-            memberName: fullName,
-            memberProfileId: canonical.id,
-          }).catch(err => console.error('[clerk/webhook] join notification failed:', err))
-        }
+        await activateTeamInviteForProfile(supabase, canonical.id, email)
 
         console.warn('[clerk/webhook] Blocked duplicate profile for email', email, {
           clerkUserId: id,
@@ -124,15 +115,7 @@ export async function POST(req: Request) {
     let joinedViaTeamInvite = false
     if (newProfile?.id && email) {
       const teamActivation = await activateTeamInviteForProfile(supabase, newProfile.id, email)
-      if (teamActivation?.activated) {
-        joinedViaTeamInvite = true
-        await notifyTeamMemberJoined({
-          accountId: teamActivation.accountId,
-          memberEmail: email,
-          memberName: fullName,
-          memberProfileId: newProfile.id,
-        }).catch(err => console.error('[clerk/webhook] join notification failed:', err))
-      }
+      if (teamActivation?.activated) joinedViaTeamInvite = true
     }
 
     // Welcome email — skip for team invitees (they already got an invite email)
