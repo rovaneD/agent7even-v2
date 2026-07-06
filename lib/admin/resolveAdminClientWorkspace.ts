@@ -1,3 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 export type AdminOwnerWorkspace = {
   id: string
   full_name: string | null
@@ -41,4 +43,50 @@ export function isTeamMemberProfile(profile: ProfileWorkspaceFields): boolean {
 export function resolveAdminWorkspaceId(profile: ProfileWorkspaceFields): string {
   if (isTeamMemberProfile(profile)) return profile.account_id as string
   return profile.id
+}
+
+export async function resolveAdminWorkspaceContext(
+  supabase: SupabaseClient,
+  profile: ProfileWorkspaceFields,
+): Promise<Pick<AdminWorkspaceContext, 'isTeamMember' | 'workspaceId' | 'membership'>> {
+  if (!isTeamMemberProfile(profile)) {
+    return { isTeamMember: false, workspaceId: profile.id, membership: null }
+  }
+
+  const workspaceId = profile.account_id as string
+  const { data: membership } = await supabase
+    .from('team_members')
+    .select('id, role, status, permissions, created_at')
+    .eq('member_profile_id', profile.id)
+    .eq('account_id', workspaceId)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (!membership) {
+    return { isTeamMember: false, workspaceId: profile.id, membership: null }
+  }
+
+  return {
+    isTeamMember: true,
+    workspaceId,
+    membership: membership as AdminTeamMembership,
+  }
+}
+
+export async function resolveAdminWorkspaceTargetId(
+  supabase: SupabaseClient,
+  profileId: string,
+): Promise<string | null> {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, is_account_owner, account_id')
+    .eq('id', profileId)
+    .maybeSingle()
+
+  if (!profile) return null
+  const context = await resolveAdminWorkspaceContext(
+    supabase,
+    profile as ProfileWorkspaceFields,
+  )
+  return context.workspaceId
 }

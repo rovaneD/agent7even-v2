@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { requireAdminApi, adminApiError } from '@/lib/requireAdmin'
+import { resolveAdminWorkspaceTargetId } from '@/lib/admin/resolveAdminClientWorkspace'
 
 export async function POST(
   _req: Request,
@@ -11,11 +12,15 @@ export async function POST(
 
   const { id } = await params
   const supabase = createServiceClient()
+  const targetId = await resolveAdminWorkspaceTargetId(supabase, id)
+  if (!targetId) {
+    return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  }
 
   const { error } = await supabase
     .from('profiles')
     .update({ foundation_complete: false, foundation_score: 0 })
-    .eq('id', id)
+    .eq('id', targetId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

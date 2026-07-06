@@ -3,6 +3,7 @@ import { allocatePlanCredits } from '@/lib/credits'
 import { isPaidPlan, type PaidPlan } from '@/lib/plans'
 import { createServiceClient } from '@/lib/supabase/server'
 import { requireAdminApi, adminApiError } from '@/lib/requireAdmin'
+import { resolveAdminWorkspaceTargetId } from '@/lib/admin/resolveAdminClientWorkspace'
 
 type Body = {
   action: 'grant' | 'revoke'
@@ -20,6 +21,10 @@ export async function POST(
   const { id } = await params
   const body = (await req.json()) as Body
   const supabase = createServiceClient()
+  const targetId = await resolveAdminWorkspaceTargetId(supabase, id)
+  if (!targetId) {
+    return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  }
 
   if (body.action === 'grant') {
     const tier = body.tier ?? 'proagent'
@@ -35,7 +40,7 @@ export async function POST(
         status: 'active',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq('id', targetId)
       .select('id, plan, status, billing_exempt')
       .single()
 
@@ -43,7 +48,7 @@ export async function POST(
 
     let creditsGranted: number | null = null
     if (body.allocateCredits !== false) {
-      creditsGranted = await allocatePlanCredits(id, tier, {
+      creditsGranted = await allocatePlanCredits(targetId, tier, {
         description: `Complimentary access — ${tier} plan`,
       })
     }
@@ -60,7 +65,7 @@ export async function POST(
         status: 'onboarding',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq('id', targetId)
       .select('id, plan, status, billing_exempt')
       .single()
 

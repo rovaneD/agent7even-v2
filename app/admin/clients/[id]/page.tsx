@@ -1,8 +1,7 @@
 import { requireAdmin } from '@/lib/requireAdmin'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
-  isTeamMemberProfile,
-  resolveAdminWorkspaceId,
+  resolveAdminWorkspaceContext,
   type AdminWorkspaceContext,
 } from '@/lib/admin/resolveAdminClientWorkspace'
 import { notFound } from 'next/navigation'
@@ -21,8 +20,11 @@ export default async function AdminClientDetailPage({
   if (!profileResult.data) notFound()
 
   const profile = profileResult.data as Record<string, unknown>
-  const workspaceId = resolveAdminWorkspaceId(profile as { id: string; is_account_owner?: boolean | null; account_id?: string | null })
-  const isTeamMember = isTeamMemberProfile(profile as { id: string; is_account_owner?: boolean | null; account_id?: string | null })
+  const workspaceBase = await resolveAdminWorkspaceContext(
+    supabase,
+    profile as { id: string; is_account_owner?: boolean | null; account_id?: string | null },
+  )
+  const { workspaceId, isTeamMember } = workspaceBase
 
   const [
     creditResult,
@@ -32,7 +34,6 @@ export default async function AdminClientDetailPage({
     notesResult,
     ticketsResult,
     ownerResult,
-    membershipResult,
   ] = await Promise.all([
     supabase.from('credit_balances').select('balance').eq('user_id', workspaceId).single(),
     isTeamMember
@@ -67,14 +68,6 @@ export default async function AdminClientDetailPage({
           .select('id, full_name, email, company_name, plan, status, foundation_score, foundation_complete, foundation_answers, stripe_customer_id, billing_exempt')
           .eq('id', workspaceId)
           .single()
-      : Promise.resolve({ data: null }),
-    isTeamMember
-      ? supabase
-          .from('team_members')
-          .select('id, role, status, permissions, created_at')
-          .eq('member_profile_id', id)
-          .eq('account_id', workspaceId)
-          .maybeSingle()
       : Promise.resolve({ data: null }),
   ])
 
@@ -116,7 +109,7 @@ export default async function AdminClientDetailPage({
     isTeamMember,
     workspaceId,
     owner: (ownerResult.data as AdminWorkspaceContext['owner']) ?? null,
-    membership: (membershipResult.data as AdminWorkspaceContext['membership']) ?? null,
+    membership: workspaceBase.membership,
   }
 
   return (

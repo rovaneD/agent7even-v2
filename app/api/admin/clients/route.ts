@@ -75,13 +75,26 @@ async function enrichTeamMemberClients(
   supabase: ReturnType<typeof createServiceClient>,
   clients: ClientRow[],
 ): Promise<EnrichedClientRow[]> {
-  const ownerIds = [
-    ...new Set(
-      clients
-        .filter(c => c.is_account_owner === false && c.account_id)
-        .map(c => c.account_id as string),
-    ),
-  ]
+  const teamCandidates = clients.filter(c => c.is_account_owner === false && c.account_id)
+  const candidateMemberIds = teamCandidates.map(c => c.id)
+  const activeMembershipKeys = new Set<string>()
+
+  if (candidateMemberIds.length > 0) {
+    const { data: memberships } = await supabase
+      .from('team_members')
+      .select('member_profile_id, account_id')
+      .in('member_profile_id', candidateMemberIds)
+      .eq('status', 'active')
+
+    for (const membership of memberships ?? []) {
+      activeMembershipKeys.add(`${membership.member_profile_id}:${membership.account_id}`)
+    }
+  }
+
+  const activeTeamCandidates = teamCandidates.filter(client =>
+    activeMembershipKeys.has(`${client.id}:${client.account_id}`),
+  )
+  const ownerIds = [...new Set(activeTeamCandidates.map(c => c.account_id as string))]
 
   const ownerMap = new Map<string, Pick<ClientRow, 'company_name' | 'plan' | 'foundation_score' | 'status'>>()
   if (ownerIds.length > 0) {
@@ -101,7 +114,10 @@ async function enrichTeamMemberClients(
   }
 
   return clients.map(client => {
-    const isTeamMember = client.is_account_owner === false && !!client.account_id
+    const isTeamMember =
+      client.is_account_owner === false &&
+      !!client.account_id &&
+      activeMembershipKeys.has(`${client.id}:${client.account_id}`)
     if (!isTeamMember) {
       return {
         ...client,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { requireAdminApi, adminApiError } from '@/lib/requireAdmin'
+import { resolveAdminWorkspaceTargetId } from '@/lib/admin/resolveAdminClientWorkspace'
 
 export async function POST(
   req: Request,
@@ -12,10 +13,14 @@ export async function POST(
   const { id } = await params
   const body = await req.json()
 
-  const allowed = ['plan', 'role', 'status'] as const
+  const workspaceScoped = ['plan', 'status'] as const
+  const profileScoped = ['role'] as const
   const update: Record<string, unknown> = {}
 
-  for (const key of allowed) {
+  for (const key of workspaceScoped) {
+    if (body[key] !== undefined) update[key] = body[key]
+  }
+  for (const key of profileScoped) {
     if (body[key] !== undefined) update[key] = body[key]
   }
 
@@ -29,11 +34,28 @@ export async function POST(
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
   }
 
+  const hasWorkspaceUpdate =
+    workspaceScoped.some(key => body[key] !== undefined) ||
+    body.billing_exempt !== undefined
+  const hasProfileUpdate = profileScoped.some(key => body[key] !== undefined)
+
+  if (hasWorkspaceUpdate && hasProfileUpdate) {
+    return NextResponse.json({ error: 'Workspace and profile fields must be updated separately' }, { status: 400 })
+  }
+
   const supabase = createServiceClient()
+  const targetId = hasWorkspaceUpdate
+    ? await resolveAdminWorkspaceTargetId(supabase, id)
+    : id
+
+  if (!targetId) {
+    return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  }
+
   const { data, error } = await supabase
     .from('profiles')
     .update(update)
-    .eq('id', id)
+    .eq('id', targetId)
     .select('id, plan, role, status, billing_exempt')
     .single()
 
