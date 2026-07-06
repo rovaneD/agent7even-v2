@@ -9,6 +9,7 @@ import {
   workspaceActorId,
   workspaceDataUserId,
 } from '@/lib/profiles/workspaceSession'
+import { getTeamPermissions } from '@/lib/teamPermissions'
 
 export async function POST(
   req: Request,
@@ -23,6 +24,11 @@ export async function POST(
 
   const workspaceId = workspaceDataUserId(session)
   const memberId = workspaceActorId(session)
+
+  const perms = await getTeamPermissions(memberId)
+  if (!perms.isOwner) {
+    return NextResponse.json({ error: 'Only account owners can reject agent output' }, { status: 403 })
+  }
 
   const rejectionText = feedbackNote ?? note ?? null
 

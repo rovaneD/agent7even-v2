@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getStripeClient } from '@/lib/stripe'
 import { requireAdminApi, adminApiError } from '@/lib/requireAdmin'
+import { resolveAdminWorkspaceTargetId } from '@/lib/admin/resolveAdminClientWorkspace'
 
 export async function GET(
   _req: Request,
@@ -12,11 +13,15 @@ export async function GET(
 
   const { id } = await params
   const supabase = createServiceClient()
+  const targetId = await resolveAdminWorkspaceTargetId(supabase, id)
+  if (!targetId) {
+    return NextResponse.json({ invoices: [], subscription: null })
+  }
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('stripe_customer_id, stripe_subscription_id')
-    .eq('id', id)
+    .eq('id', targetId)
     .single()
 
   if (!profile?.stripe_customer_id) {

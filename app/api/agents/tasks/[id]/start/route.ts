@@ -43,13 +43,30 @@ export async function POST(
     return NextResponse.json({ error: 'This assignment is not assigned to you' }, { status: 403 })
   }
 
-  await supabase
+  const now = new Date().toISOString()
+  const { data: claimedTask, error: claimError } = await supabase
     .from('agent_tasks')
     .update({
+      status: 'running',
+      started_at: now,
       actor_profile_id: memberId,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
     .eq('id', taskId)
+    .eq('user_id', workspaceId)
+    .eq('trigger_type', 'assignment')
+    .eq('status', 'pending')
+    .is('started_at', null)
+    .select('id')
+    .maybeSingle()
+
+  if (claimError) {
+    return NextResponse.json({ error: claimError.message }, { status: 500 })
+  }
+
+  if (!claimedTask) {
+    return NextResponse.json({ error: 'Assignment was already started' }, { status: 409 })
+  }
 
   waitUntil(
     dispatchAgentTask({
