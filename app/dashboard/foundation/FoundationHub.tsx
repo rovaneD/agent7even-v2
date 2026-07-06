@@ -44,7 +44,6 @@ import { FOUNDATION_VISUAL_FIELDS } from '@/lib/foundation/visualFields'
 import type { CreativeDirection } from '@/lib/agents/foundationCreativeDirection/types'
 import { visualHubSectionPreview } from '@/lib/agents/foundationCreativeDirection/hubPreview'
 import SiteSnapshotCard from '@/components/foundation/SiteSnapshotCard'
-import ObserverChangelogPanel from '@/components/foundation/ObserverChangelogPanel'
 import FoundationProposalsPanel from '@/components/foundation/FoundationProposalsPanel'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -1151,9 +1150,6 @@ function MemoryTab({ data, loading }: { data: FoundationMemoryResponse | null; l
 
   return (
     <div className="max-w-[860px]">
-      <FoundationProposalsPanel />
-      <ObserverChangelogPanel />
-
       {/* Auto-populated banner */}
       <div className="flex items-center gap-2 mb-5 px-0.5">
         <div className="flex items-center gap-1.5 bg-[#F0FDF4] border border-[#BBF7D0] rounded-full px-3 py-1">
@@ -1718,6 +1714,10 @@ export default function FoundationHub({
 
         {/* Intelligence tab */}
         {activeTab === 'intelligence' && (
+          <>
+          <div className="max-w-[860px] mb-6">
+            <FoundationProposalsPanel />
+          </div>
           <div className="flex flex-col gap-6 items-start lg:flex-row">
 
             {/* Left — section cards */}
@@ -1839,6 +1839,7 @@ export default function FoundationHub({
               <SuggestionsCard suggestions={suggestions} />
             </div>
           </div>
+          </>
         )}
 
         {activeTab === 'knowledge'   && <KnowledgeTab items={knowledgeItems} loading={knowledgeLoading} onRemove={handleKnowledgeRemoved} />}
