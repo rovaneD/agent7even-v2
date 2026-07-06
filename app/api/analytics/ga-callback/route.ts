@@ -4,6 +4,8 @@ import { consumeOAuthState } from '@/lib/oauth-state'
 import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
 import { gaOAuthRedirectUri, oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
 import { saveGaOAuthTokensForClerkUser } from '@/lib/analytics/gaOAuthProfile'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { getTeamPermissions } from '@/lib/teamPermissions'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
@@ -26,6 +28,13 @@ export async function GET(req: NextRequest) {
   if (!creds) {
     console.error('[ga-callback] GOOGLE_OAUTH_CLIENT_ID/SECRET missing or invalid on this deployment')
     return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=invalid_client`)
+  }
+
+  const supabase = createServiceClient()
+  const actor = await resolveClerkProfile(supabase, clerkId, 'id')
+  const perms = actor?.id ? await getTeamPermissions(actor.id) : null
+  if (!actor?.id || !perms?.isOwner) {
+    return NextResponse.redirect(`${appBase}/dashboard/analytics?ga_error=owner_required`)
   }
 
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -64,12 +73,10 @@ export async function GET(req: NextRequest) {
   const userInfo = await userInfoRes.json()
   const oauthEmail = (userInfo.email as string | undefined) ?? null
 
-  const supabase = createServiceClient()
   const saved = await saveGaOAuthTokensForClerkUser(
     supabase,
     clerkId,
     { refreshToken: tokens.refresh_token, oauthEmail },
-    oauthEmail,
   )
 
   if (!saved.ok) {

@@ -8,11 +8,13 @@ import {
   logBulkRejectionChangelog,
 } from '@/lib/foundation/changelog'
 import { rejectAllPendingOutputsForTask } from '@/lib/agents/approvalQueueMutations'
+import { PENDING_APPROVAL_OUTPUT_STATUS } from '@/lib/agents/pendingApprovals'
 import {
   getWorkspaceSessionFromRequest,
   workspaceActorId,
   workspaceDataUserId,
 } from '@/lib/profiles/workspaceSession'
+import { getTeamPermissions } from '@/lib/teamPermissions'
 
 export async function POST(req: Request) {
   const { action, taskIds, feedback, feedbackNote, rerun = false } = await req.json()
@@ -31,6 +33,11 @@ export async function POST(req: Request) {
   const workspaceId = workspaceDataUserId(session)
   const memberId = workspaceActorId(session)
 
+  const perms = await getTeamPermissions(memberId)
+  if (!perms.isOwner) {
+    return NextResponse.json({ error: 'Only account owners can review agent output' }, { status: 403 })
+  }
+
   const now = new Date().toISOString()
 
   if (action === 'approve') {
@@ -44,6 +51,7 @@ export async function POST(req: Request) {
         .from('agent_outputs')
         .update({ status: 'approved', approved_at: now, lifecycle_stage: 'approved' })
         .in('task_id', taskIds)
+        .eq('status', PENDING_APPROVAL_OUTPUT_STATUS)
         .eq('user_id', workspaceId),
     ])
     if (tasksRes.error) return NextResponse.json({ error: tasksRes.error.message }, { status: 500 })

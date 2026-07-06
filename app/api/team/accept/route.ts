@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 import { notifyTeamMemberJoined } from '@/lib/team/notifyTeamMemberJoined'
 
 export async function GET(req: Request) {
@@ -30,25 +32,23 @@ export async function GET(req: Request) {
     .from('profiles')
     .select('id, clerk_user_id')
     .eq('email', invite.invited_email)
-    .single()
+    .maybeSingle()
 
   if (existingProfile) {
-    await supabase
-      .from('team_members')
-      .update({
-        member_profile_id: existingProfile.id,
-        status: 'active',
-      })
-      .eq('id', invite.id)
+    const { userId } = await auth()
+    if (!userId || existingProfile.clerk_user_id !== userId) {
+      return NextResponse.redirect(`${appUrl}/sign-in?error=sign_in_to_accept_invite`)
+    }
 
-    await supabase
-      .from('profiles')
-      .update({
-        account_id: invite.account_id,
-        is_account_owner: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existingProfile.id)
+    const activation = await activateTeamInviteForProfile(
+      supabase,
+      existingProfile.id,
+      invite.invited_email,
+    )
+
+    if (!activation?.activated) {
+      return NextResponse.redirect(`${appUrl}/dashboard?team_join_error=account_conflict`)
+    }
 
     await notifyTeamMemberJoined({
       accountId: invite.account_id,

@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   getWorkspaceSessionFromRequest,
+  workspaceActorId,
   workspaceDataUserId,
 } from '@/lib/profiles/workspaceSession'
+import { getTeamPermissions } from '@/lib/teamPermissions'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -39,7 +41,12 @@ export async function POST(req: Request) {
   const session = await getWorkspaceSessionFromRequest(supabase)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const memberId = workspaceActorId(session)
   const workspaceId = workspaceDataUserId(session)
+  const perms = await getTeamPermissions(memberId)
+  if (!perms.isOwner) {
+    return NextResponse.json({ error: 'Only account owners can update agent constraints' }, { status: 403 })
+  }
 
   const { error } = await supabase
     .from('agent_constraints')

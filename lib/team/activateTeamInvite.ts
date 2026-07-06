@@ -1,5 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+function hasMeaningfulJson(value: unknown): boolean {
+  if (!value) return false
+  if (Array.isArray(value)) return value.length > 0
+  if (typeof value === 'object') return Object.keys(value as Record<string, unknown>).length > 0
+  return true
+}
+
 /** Link a profile to a pending team invite by email (idempotent when already linked). */
 export async function activateTeamInviteForProfile(
   supabase: SupabaseClient,
@@ -11,7 +18,20 @@ export async function activateTeamInviteForProfile(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, is_account_owner, account_id')
+    .select(`
+      id,
+      is_account_owner,
+      account_id,
+      stripe_customer_id,
+      stripe_subscription_id,
+      plan,
+      status,
+      onboarding_complete,
+      foundation_complete,
+      foundation_answers,
+      company_name,
+      business_type
+    `)
     .eq('id', profileId)
     .single()
 
@@ -19,6 +39,24 @@ export async function activateTeamInviteForProfile(
 
   if (profile.is_account_owner === false && profile.account_id) {
     return { accountId: profile.account_id, activated: false }
+  }
+
+  const hasExistingOwnerState =
+    profile.is_account_owner !== false &&
+    Boolean(
+      profile.stripe_customer_id ||
+      profile.stripe_subscription_id ||
+      profile.plan ||
+      (profile.status && profile.status !== 'onboarding') ||
+      profile.onboarding_complete ||
+      profile.foundation_complete ||
+      hasMeaningfulJson(profile.foundation_answers) ||
+      profile.company_name ||
+      profile.business_type,
+    )
+
+  if (hasExistingOwnerState) {
+    return null
   }
 
   const { data: pendingInvite } = await supabase
