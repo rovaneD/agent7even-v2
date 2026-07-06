@@ -1,5 +1,8 @@
 import type { GuardianState, GuardianVerdict } from '@/lib/foundation/observer/types'
 
+/** Days before Guardian re-surfaces a theme the user dismissed. */
+export const PROPOSAL_REJECT_COOLDOWN_DAYS = 30
+
 /** Tune after human checkpoint — not hardcoded in LLM prompts. */
 export const GUARDIAN_THRESHOLDS = {
   /** Below this count → reject_internal regardless of state */

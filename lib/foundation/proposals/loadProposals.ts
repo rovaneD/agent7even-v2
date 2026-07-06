@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SurfacedFoundationProposal } from '@/lib/foundation/proposals/types'
+import {
+  loadProposalThemePolicy,
+  shouldBlockProposalTheme,
+} from '@/lib/foundation/proposals/proposalThemePolicy'
 
 type ProposalRow = {
   id: string
@@ -19,6 +23,9 @@ export async function loadPendingSurfacedProposals(
   profileId: string,
   limit = 4,
 ): Promise<SurfacedFoundationProposal[]> {
+  const cappedLimit = Math.min(Math.max(limit, 1), 10)
+  const themePolicy = await loadProposalThemePolicy(supabase, profileId)
+
   const { data, error } = await supabase
     .from('foundation_proposals')
     .select(
@@ -28,7 +35,7 @@ export async function loadPendingSurfacedProposals(
     .eq('guardian_verdict', 'surface')
     .eq('user_decision', 'pending')
     .order('created_at', { ascending: false })
-    .limit(Math.min(Math.max(limit, 1), 10))
+    .limit(Math.min(cappedLimit * 3, 30))
 
   if (error) {
     if (error.message.includes('user_decision')) {
@@ -39,7 +46,10 @@ export async function loadPendingSurfacedProposals(
     throw new Error(error.message)
   }
 
-  return (data ?? []).map(mapProposalRow)
+  return (data ?? [])
+    .filter(row => !shouldBlockProposalTheme(row.theme, themePolicy))
+    .slice(0, cappedLimit)
+    .map(mapProposalRow)
 }
 
 export async function loadRecentProposalDecisions(

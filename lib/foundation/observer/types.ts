@@ -31,5 +31,6 @@ export type GuardianBatchResult = {
   candidatesFormalized: number
   proposalsPersisted: number
   skippedDuplicate: number
+  skippedThemeBlocked: number
   dryRun: boolean
 }

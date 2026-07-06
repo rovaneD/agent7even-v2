@@ -12,6 +12,10 @@ import {
   parseGuardianEvaluation,
 } from '@/lib/foundation/guardian/evaluateCandidate'
 import { loadPhase1Bundle } from '@/lib/foundation/guardian/loadPhase1Bundle'
+import {
+  loadProposalThemePolicy,
+  themeBlockReason,
+} from '@/lib/foundation/proposals/proposalThemePolicy'
 
 export type RunGuardianBatchOptions = {
   actorProfileId: string
@@ -49,10 +53,11 @@ export async function runGuardianBatch(
   const dryRun = opts.dryRun ?? false
   const skipExisting = opts.skipExisting ?? true
 
-  const [rows, phase1Bundle, existingSigs] = await Promise.all([
+  const [rows, phase1Bundle, existingSigs, themePolicy] = await Promise.all([
     loadFoundationChangelogRows(profileId, opts.changelogLimit ?? 50),
     loadPhase1Bundle(profileId),
     skipExisting ? loadExistingSignatures(profileId) : Promise.resolve(new Set<string>()),
+    loadProposalThemePolicy(supabase, profileId),
   ])
 
   const candidates = formalizeCandidates(rows)
@@ -60,11 +65,17 @@ export async function runGuardianBatch(
 
   let proposalsPersisted = 0
   let skippedDuplicate = 0
+  let skippedThemeBlocked = 0
 
   for (const candidate of candidates) {
     const sig = changelogIdSignature(candidate.changelog_ids)
     if (existingSigs.has(sig)) {
       skippedDuplicate++
+      continue
+    }
+
+    if (themeBlockReason(candidate.theme, themePolicy)) {
+      skippedThemeBlocked++
       continue
     }
 
@@ -132,6 +143,7 @@ export async function runGuardianBatch(
     candidatesFormalized: candidates.length,
     proposalsPersisted,
     skippedDuplicate,
+    skippedThemeBlocked,
     dryRun,
   }
 }

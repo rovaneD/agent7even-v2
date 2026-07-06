@@ -64,6 +64,7 @@ async function main() {
   console.log('Candidates formalized:', result.candidatesFormalized)
   console.log('Proposals persisted:  ', result.proposalsPersisted)
   console.log('Skipped (duplicate):  ', result.skippedDuplicate)
+  console.log('Skipped (theme block):', result.skippedThemeBlocked)
   console.log('\nNext: npx --yes tsx --env-file=.env.local scripts/verify-foundation-guardian.ts')
 }
 
