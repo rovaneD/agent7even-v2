@@ -24,6 +24,11 @@ import {
 import { dismissStalePendingProposals } from '../lib/foundation/proposals/dismissStalePendingProposals'
 import { loadPendingSurfacedProposals } from '../lib/foundation/proposals/loadProposals'
 import { loadWorkspaceTeamContext } from '../lib/maya/summaries/workspaceTeamContext'
+import {
+  loadFoundationKnowledgeContext,
+  formatFoundationKnowledgeForAgents,
+  formatFoundationKnowledgeForMaya,
+} from '../lib/foundation/knowledgeContext'
 import type { FoundationChangelogRow } from '../lib/foundation/observer/types'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -129,6 +134,18 @@ async function main() {
       'Foundation memory loads for workspace',
       memory.hasData || observations.length > 0,
       `${memory.totalOutputs} outputs · ${observations.length} observations`,
+    ),
+  )
+
+  // Knowledge context (Piece 3)
+  const knowledgeRows = await loadFoundationKnowledgeContext(sb, ownerId)
+  const agentKnowledge = formatFoundationKnowledgeForAgents(knowledgeRows)
+  const mayaKnowledge = formatFoundationKnowledgeForMaya(knowledgeRows)
+  checks.push(
+    check(
+      'Knowledge context formats for agents/Maya',
+      knowledgeRows.length === 0 || (agentKnowledge.includes('Uploaded knowledge') && mayaKnowledge.includes('UPLOADED KNOWLEDGE')),
+      `${knowledgeRows.length} row(s) · agent ${agentKnowledge.length > 0 ? 'ok' : 'empty'} · maya ${mayaKnowledge.length > 0 ? 'ok' : 'empty'}`,
     ),
   )
 

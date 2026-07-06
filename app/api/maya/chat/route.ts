@@ -31,6 +31,10 @@ import {
   loadWorkspaceTeamContext,
   formatWorkspaceTeamContextForMaya,
 } from '@/lib/maya/summaries/workspaceTeamContext'
+import {
+  loadFoundationKnowledgeContext,
+  formatFoundationKnowledgeForMaya,
+} from '@/lib/foundation/knowledgeContext'
 
 const CHAT_CREDITS = ACTION_CREDIT_COST.maya_chat_turn
 const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
@@ -133,11 +137,12 @@ You are completing a specific task, not building a new campaign. Never say "spin
     // ── 3. Load Foundation context ─────────────────────────────────────────
     // workspaceId is the Supabase UUID — same key as foundation_answers + foundation_documents.
     // Do NOT branch on foundation_complete; that flag is unreliable (can be true with 0 docs).
-    const [foundation, changelog, layers, teamContext] = await Promise.all([
+    const [foundation, changelog, layers, teamContext, knowledgeRows] = await Promise.all([
       loadFoundationContext(workspaceId),
       loadFoundationChangelog(workspaceId),
       loadFoundationLayers(workspaceId),
       loadWorkspaceTeamContext(supabase, memberId, workspaceId).catch(() => null),
+      loadFoundationKnowledgeContext(supabase, workspaceId),
     ])
     const { hasFoundation, documents, competitorsFreetext, answers: fAnswers } = foundation
 
@@ -242,6 +247,7 @@ Reference these specifics. Ask one focused question to learn more about their bu
 
     const observerSection = formatFoundationObserverContextForMaya(changelog)
     const layersSection = formatFoundationLayersForAgents(layers)
+    const knowledgeSection = formatFoundationKnowledgeForMaya(knowledgeRows)
     const teamSection = teamContext ? formatWorkspaceTeamContextForMaya(teamContext) : ''
 
     const helpSection = isHelpMode ? `
@@ -324,7 +330,7 @@ ${helpSection}
 ${sidebarChatSection}
 ${businessFactsSection}
 ${contextSection}
-${canvasSection}${formActuationSection}${foundationSection}${observerSection}${layersSection ? `\n${layersSection}` : ''}${teamSection ? `\n\n${teamSection}` : ''}
+${canvasSection}${formActuationSection}${foundationSection}${knowledgeSection}${observerSection}${layersSection ? `\n${layersSection}` : ''}${teamSection ? `\n\n${teamSection}` : ''}
 HOW YOU OPEN:
 One sentence. Pick one specific thing you know — their goal, their main challenge, or their differentiator — and lead with it. Then ask one direct question OR give the next step. Do not summarize or recite their foundation back at them. Do not list everything you know.
 

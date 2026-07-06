@@ -10,6 +10,10 @@ import {
 } from '@/lib/foundation/layersContext'
 import { parseSiteSnapshot, formatSiteSnapshotForAgent } from '@/lib/foundation/siteSnapshot'
 import {
+  loadFoundationKnowledgeContext,
+  formatFoundationKnowledgeForAgents,
+} from '@/lib/foundation/knowledgeContext'
+import {
   loadWorkspaceTeamContext,
   formatWorkspaceTeamContextForAgents,
 } from '@/lib/maya/summaries/workspaceTeamContext'
@@ -35,6 +39,7 @@ export async function buildAgentContext(
     changelog,
     layers,
     teamContext,
+    knowledgeRows,
   ] = await Promise.all([
     supabase
       .from('brand_documents')
@@ -59,6 +64,7 @@ export async function buildAgentContext(
     loadFoundationChangelog(userId),
     loadFoundationLayers(userId),
     teamContextPromise,
+    loadFoundationKnowledgeContext(supabase, userId),
   ])
 
   if (!docs?.length && !profile && !foundation.hasFoundation) return ''
@@ -135,6 +141,9 @@ export async function buildAgentContext(
       sections.push(`\n${formatSiteSnapshotForAgent(snapshot)}`)
     }
   }
+
+  const knowledgeSection = formatFoundationKnowledgeForAgents(knowledgeRows)
+  if (knowledgeSection) sections.push(`\n${knowledgeSection}`)
 
   const observerSection = formatFoundationObserverContextForAgents(changelog)
   if (observerSection) sections.push(`\n${observerSection}`)

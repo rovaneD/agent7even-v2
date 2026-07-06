@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { resolveClerkProfile, resolveWorkspaceClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { requireWorkspaceOwner } from '@/lib/team/requireWorkspaceOwner'
 import { logActivity } from '@/lib/activity'
 import * as publisher from '@/lib/social/publisher'
 import { createOAuthState } from '@/lib/oauth-state'
@@ -39,7 +40,19 @@ export async function POST(req: Request) {
   const supabase = createServiceClient()
   const user = await currentUser()
   const email = user?.emailAddresses?.[0]?.emailAddress ?? null
-  const profile = await resolveClerkProfile<{
+
+  const member = await resolveClerkProfile(supabase, userId, 'id', email)
+  if (!member?.id) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+  const ownerCheck = await requireWorkspaceOwner(supabase, member.id, 'connect_owner_only')
+  if (!ownerCheck.ok) {
+    return NextResponse.json(
+      { error: ownerCheck.code, message: ownerCheck.error },
+      { status: ownerCheck.status },
+    )
+  }
+
+  const profile = await resolveWorkspaceClerkProfile<{
     id: string
     plan: string | null
     company_name: string | null
