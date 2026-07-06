@@ -19,6 +19,14 @@ type ClientRow = {
   engagement_updated_at: string | null
   foundation_score: number | null
   created_at: string
+  is_account_owner?: boolean | null
+  account_id?: string | null
+}
+
+type EnrichedClientRow = ClientRow & {
+  is_team_member: boolean
+  workspace_owner_id: string | null
+  workspace_company: string | null
 }
 
 function profilePriority(p: ClientRow): number {
@@ -63,6 +71,60 @@ function dedupeClientsByEmail(clients: ClientRow[]): {
   return { clients: picked, duplicates }
 }
 
+async function enrichTeamMemberClients(
+  supabase: ReturnType<typeof createServiceClient>,
+  clients: ClientRow[],
+): Promise<EnrichedClientRow[]> {
+  const ownerIds = [
+    ...new Set(
+      clients
+        .filter(c => c.is_account_owner === false && c.account_id)
+        .map(c => c.account_id as string),
+    ),
+  ]
+
+  const ownerMap = new Map<string, Pick<ClientRow, 'company_name' | 'plan' | 'foundation_score' | 'status'>>()
+  if (ownerIds.length > 0) {
+    const { data: owners } = await supabase
+      .from('profiles')
+      .select('id, company_name, plan, foundation_score, status')
+      .in('id', ownerIds)
+
+    for (const owner of owners ?? []) {
+      ownerMap.set(owner.id as string, {
+        company_name: owner.company_name as string | null,
+        plan: owner.plan as string | null,
+        foundation_score: owner.foundation_score as number | null,
+        status: owner.status as string | null,
+      })
+    }
+  }
+
+  return clients.map(client => {
+    const isTeamMember = client.is_account_owner === false && !!client.account_id
+    if (!isTeamMember) {
+      return {
+        ...client,
+        is_team_member: false,
+        workspace_owner_id: null,
+        workspace_company: null,
+      }
+    }
+
+    const owner = ownerMap.get(client.account_id as string)
+    return {
+      ...client,
+      is_team_member: true,
+      workspace_owner_id: client.account_id ?? null,
+      workspace_company: owner?.company_name ?? null,
+      company_name: owner?.company_name ?? client.company_name,
+      plan: owner?.plan ?? client.plan,
+      foundation_score: owner?.foundation_score ?? client.foundation_score,
+      status: owner?.status ?? client.status,
+    }
+  })
+}
+
 export async function GET(req: Request) {
   const authResult = await requireAdminApi()
   if ('error' in authResult) return adminApiError(authResult)
@@ -82,7 +144,7 @@ export async function GET(req: Request) {
       company_name, website_url, instagram_handle,
       plan, status, role, stripe_customer_id,
       last_active_at, engagement_score, engagement_updated_at, foundation_score,
-      created_at
+      created_at, is_account_owner, account_id
     `)
     .eq('role', 'client')
     .neq('status', 'churned')
@@ -104,7 +166,8 @@ export async function GET(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const rows = (data ?? []) as ClientRow[]
-  const { clients, duplicates } = dedupeClientsByEmail(rows)
+  const { clients: deduped, duplicates } = dedupeClientsByEmail(rows)
+  const clients = await enrichTeamMemberClients(supabase, deduped)
 
   return NextResponse.json({ clients, duplicates })
 }

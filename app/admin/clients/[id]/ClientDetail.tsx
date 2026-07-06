@@ -15,6 +15,7 @@ import {
   labelAnnualRevenueBucket,
   labelEmployeeCountBucket,
 } from '@/lib/profile/businessSizing'
+import type { AdminWorkspaceContext } from '@/lib/admin/resolveAdminClientWorkspace'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -46,7 +47,14 @@ type ClientProfile = {
   created_at: string
 }
 
-type ActivityEvent = { id: string; event_type: string; metadata: unknown; created_at: string }
+type ActivityEvent = {
+  id: string
+  event_type: string
+  metadata: unknown
+  created_at: string
+  user_id?: string | null
+  actor_name?: string | null
+}
 type AdminNote = { id: string; body: string; created_at: string; profiles?: { full_name: string | null; avatar_url: string | null } }
 type SupportTicket = { id: string; subject: string; status: string; priority: string; created_at: string }
 type TeamMember = { id: string; role: string; status: string; created_at: string; profiles?: { id: string; full_name: string | null; email: string | null; avatar_url: string | null } }
@@ -185,6 +193,7 @@ export default function ClientDetail({
   initialTickets,
   fieldScores,
   duplicateAccount,
+  workspaceContext,
 }: {
   clientId: string
   initialProfile: ClientProfile
@@ -195,6 +204,7 @@ export default function ClientDetail({
   initialTickets: SupportTicket[]
   fieldScores: FieldScore[]
   duplicateAccount: { id: string; full_name: string | null } | null
+  workspaceContext: AdminWorkspaceContext
 }) {
   const [profile, setProfile] = useState(initialProfile)
   const [tab, setTab] = useState<Tab>('activity')
@@ -235,15 +245,19 @@ export default function ClientDetail({
     setTimeout(() => setToast(null), 3000)
   }
 
+  const billingClientId = workspaceContext.isTeamMember
+    ? workspaceContext.workspaceId
+    : clientId
+
   useEffect(() => {
     if (tab === 'billing' && !billingData && !billingLoading) {
       setBillingLoading(true)
-      fetch(`/api/admin/clients/${clientId}/billing`)
+      fetch(`/api/admin/clients/${billingClientId}/billing`)
         .then(r => r.json())
         .then(d => { setBillingData(d); setBillingLoading(false) })
         .catch(() => setBillingLoading(false))
     }
-  }, [tab, clientId, billingData, billingLoading])
+  }, [tab, billingClientId, billingData, billingLoading])
 
   const mayaContext = useMemo(
     () =>
@@ -403,8 +417,21 @@ export default function ClientDetail({
 
   // ── Derived values ────────────────────────────────────────────────────────
 
-  const status = derivedStatus(profile)
-  const planMax = PLAN_CREDITS[profile.plan ?? ''] ?? 100
+  const owner = workspaceContext.owner
+  const membership = workspaceContext.membership
+  const isTeamMember = workspaceContext.isTeamMember
+  const workspacePlan = owner?.plan ?? profile.plan
+  const workspaceFoundationScore = owner?.foundation_score ?? profile.foundation_score
+  const workspaceFoundationComplete = owner?.foundation_complete ?? profile.foundation_complete
+  const workspaceFoundationAnswers = (owner?.foundation_answers ?? profile.foundation_answers) as Record<string, unknown> | null
+  const workspaceCompany = owner?.company_name ?? profile.company_name
+
+  const status = derivedStatus(
+    isTeamMember && owner
+      ? { ...profile, plan: owner.plan, status: owner.status }
+      : profile,
+  )
+  const planMax = PLAN_CREDITS[workspacePlan ?? ''] ?? 100
 
   const STATUS_DOT: Record<string, string> = {
     healthy: 'bg-green-400', drifting: 'bg-yellow-400', at_risk: 'bg-red-400',
@@ -445,6 +472,30 @@ export default function ClientDetail({
         </div>
       )}
 
+      {isTeamMember && owner && (
+        <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 flex items-center justify-between gap-4">
+          <div className="flex items-start gap-2 min-w-0">
+            <Users className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-blue-900">
+                Team member of {owner.company_name ?? 'this workspace'}
+              </p>
+              <p className="text-xs text-blue-700 mt-0.5">
+                Work, Foundation, credits, and activity roll up to{' '}
+                <strong>{owner.full_name ?? owner.email ?? 'the account owner'}</strong>
+                {owner.email ? ` (${owner.email})` : ''}.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/admin/clients/${owner.id}`}
+            className="text-sm font-medium text-blue-700 hover:text-blue-900 whitespace-nowrap flex-shrink-0"
+          >
+            Open owner profile →
+          </Link>
+        </div>
+      )}
+
       {/* Two-panel layout */}
       <div className="flex gap-6 items-start">
 
@@ -479,8 +530,15 @@ export default function ClientDetail({
                 {profile.email ?? '—'}
               </IdentityRow>
               <IdentityRow icon={<Building2 size={13} />} label="Company">
-                {profile.company_name ?? '—'}
+                {workspaceCompany ?? '—'}
               </IdentityRow>
+              {isTeamMember && owner && (
+                <IdentityRow icon={<Users size={13} />} label="Workspace owner">
+                  <Link href={`/admin/clients/${owner.id}`} className="text-blue-500 hover:underline truncate block max-w-[240px]">
+                    {owner.full_name ?? owner.email ?? owner.id}
+                  </Link>
+                </IdentityRow>
+              )}
               {profile.business_type && (
                 <IdentityRow icon={<BookOpen size={13} />} label="Business type">
                   {profile.business_type}
@@ -527,12 +585,17 @@ export default function ClientDetail({
 
             {/* Badges */}
             <div className="flex gap-2 pt-4 border-t border-gray-100 mt-4 flex-wrap">
-              {profile.plan && (
-                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${PLAN_COLORS[profile.plan] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {PLAN_LABELS[profile.plan] ?? profile.plan}
+              {isTeamMember && (
+                <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">
+                  Team member
                 </span>
               )}
-              {profile.billing_exempt && (
+              {workspacePlan && (
+                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${PLAN_COLORS[workspacePlan] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {PLAN_LABELS[workspacePlan] ?? workspacePlan}
+                </span>
+              )}
+              {(owner?.billing_exempt ?? profile.billing_exempt) && (
                 <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand-primary/10 text-brand-primary">
                   Complimentary
                 </span>
@@ -555,9 +618,14 @@ export default function ClientDetail({
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Health</h3>
             <div className="space-y-4">
               <ScoreRow label="Engagement" score={profile.engagement_score} />
-              <ScoreRow label="Foundation" score={profile.foundation_score} />
+              <ScoreRow label="Foundation" score={workspaceFoundationScore} />
               <ScoreRow label="Credits" score={initialCreditBalance} max={planMax} unit="cr" />
             </div>
+            {isTeamMember && (
+              <p className="text-[10px] text-gray-400 mt-4 leading-relaxed">
+                Foundation and credits reflect the shared workspace, not this member&apos;s personal profile.
+              </p>
+            )}
           </div>
 
           {/* Quick actions */}
@@ -603,13 +671,18 @@ export default function ClientDetail({
             {/* ── Activity ── */}
             {tab === 'activity' && (
               <div className="p-6">
+                {isTeamMember && (
+                  <p className="text-xs text-gray-500 mb-4">
+                    Workspace activity for {owner?.company_name ?? 'this account'} — includes actions by all team members.
+                  </p>
+                )}
                 {initialActivity.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-10">No activity recorded yet</p>
                 ) : (
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-100">
-                        {['Event', 'Description', 'Time'].map(h => (
+                        {['Event', 'Actor', 'Description', 'Time'].map(h => (
                           <th key={h} className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest pb-3 pr-6 last:pr-0">{h}</th>
                         ))}
                       </tr>
@@ -621,6 +694,9 @@ export default function ClientDetail({
                             <span className="text-[10px] font-medium bg-gray-100 text-gray-500 px-2 py-1 rounded-full whitespace-nowrap">
                               {ev.event_type.replace(/_/g, ' ')}
                             </span>
+                          </td>
+                          <td className="py-3 pr-6 text-sm text-gray-600 whitespace-nowrap">
+                            {ev.actor_name ?? '—'}
                           </td>
                           <td className="py-3 pr-6 text-sm text-gray-600">
                             {ACTIVITY_LABELS[ev.event_type] ?? ev.event_type.replace(/_/g, ' ')}
@@ -643,14 +719,23 @@ export default function ClientDetail({
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    {isTeamMember && owner && (
+                      <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                        Billing is managed on the workspace owner&apos;s account.{' '}
+                        <Link href={`/admin/clients/${owner.id}`} className="font-medium underline">
+                          Open {owner.full_name ?? owner.email ?? 'owner profile'}
+                        </Link>{' '}
+                        to change plan or complimentary access.
+                      </div>
+                    )}
                     {/* Plan + credits */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-xl p-4">
                         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Current plan</p>
                         <p className="text-[17px] font-semibold text-[#2D3748] capitalize">
-                          {profile.billing_exempt && profile.plan
-                            ? `Complimentary · ${PLAN_LABELS[profile.plan] ?? profile.plan}`
-                            : profile.plan ?? '—'}
+                          {(owner?.billing_exempt ?? profile.billing_exempt) && workspacePlan
+                            ? `Complimentary · ${PLAN_LABELS[workspacePlan] ?? workspacePlan}`
+                            : workspacePlan ?? '—'}
                         </p>
                         {billingData?.subscription?.current_period_end && (
                           <p className="text-xs text-gray-400 mt-1">
@@ -666,10 +751,12 @@ export default function ClientDetail({
                     </div>
 
                     {/* Stripe ID */}
-                    {profile.stripe_customer_id && (
+                    {(owner?.stripe_customer_id ?? profile.stripe_customer_id) && (
                       <div className="flex items-center gap-2">
                         <p className="text-xs text-gray-400">Stripe customer:</p>
-                        <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono select-all">{profile.stripe_customer_id}</code>
+                        <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono select-all">
+                          {owner?.stripe_customer_id ?? profile.stripe_customer_id}
+                        </code>
                       </div>
                     )}
 
@@ -709,6 +796,8 @@ export default function ClientDetail({
                       </div>
                     )}
 
+                    {!isTeamMember && (
+                    <>
                     {/* Complimentary access */}
                     <div className="rounded-xl border border-brand-primary/20 bg-brand-primary/5 p-4">
                       <p className="text-[10px] font-semibold text-brand-primary uppercase tracking-widest mb-1">
@@ -781,6 +870,8 @@ export default function ClientDetail({
                         </button>
                       </div>
                     </div>
+                    </>
+                    )}
                   </div>
                 )}
               </div>
@@ -789,7 +880,62 @@ export default function ClientDetail({
             {/* ── Team ── */}
             {tab === 'team' && (
               <div className="p-6">
-                {initialTeamMembers.length === 0 ? (
+                {isTeamMember && membership && owner ? (
+                  <div className="space-y-6">
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Workspace membership</p>
+                      <p className="text-sm text-gray-700">
+                        <strong>{profile.full_name ?? profile.email}</strong> is an active team member of{' '}
+                        <Link href={`/admin/clients/${owner.id}`} className="text-blue-500 hover:underline">
+                          {owner.company_name ?? owner.full_name ?? owner.email ?? 'this workspace'}
+                        </Link>.
+                      </p>
+                    </div>
+                    <table className="w-full max-w-xl">
+                      <tbody>
+                        <tr className="border-b border-gray-100">
+                          <td className="py-3 pr-4 text-xs text-gray-400 uppercase tracking-widest">Role</td>
+                          <td className="py-3 text-sm text-gray-700 capitalize">{membership.role}</td>
+                        </tr>
+                        <tr className="border-b border-gray-100">
+                          <td className="py-3 pr-4 text-xs text-gray-400 uppercase tracking-widest">Status</td>
+                          <td className="py-3">
+                            <span className={`text-[10px] font-semibold uppercase px-2 py-1 rounded-full ${membership.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'}`}>
+                              {membership.status}
+                            </span>
+                          </td>
+                        </tr>
+                        <tr className="border-b border-gray-100">
+                          <td className="py-3 pr-4 text-xs text-gray-400 uppercase tracking-widest">Joined workspace</td>
+                          <td className="py-3 text-sm text-gray-700">{formatDate(membership.created_at)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    {membership.permissions && (
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">Permissions</p>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(membership.permissions).map(([key, allowed]) => (
+                            <span
+                              key={key}
+                              className={`text-[10px] font-semibold uppercase px-2.5 py-1 rounded-full ${
+                                allowed ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'
+                              }`}
+                            >
+                              {key.replace(/_/g, ' ')}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-400">
+                      To manage the full team roster, open the{' '}
+                      <Link href={`/admin/clients/${owner.id}?tab=team`} className="text-blue-500 hover:underline">
+                        owner profile Team tab
+                      </Link>.
+                    </p>
+                  </div>
+                ) : initialTeamMembers.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-10">No team members</p>
                 ) : (
                   <table className="w-full">
@@ -837,20 +983,23 @@ export default function ClientDetail({
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900">Foundation Answers</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Read-only — admin cannot edit</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Read-only — admin cannot edit
+                      {isTeamMember && owner ? ` · Shared workspace Foundation (${owner.company_name ?? owner.email ?? 'owner'})` : ''}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                       <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full ${(profile.foundation_score ?? 0) >= 80 ? 'bg-green-400' : (profile.foundation_score ?? 0) >= 60 ? 'bg-yellow-400' : 'bg-red-400'}`}
-                          style={{ width: `${profile.foundation_score ?? 0}%` }}
+                          className={`h-full rounded-full ${(workspaceFoundationScore ?? 0) >= 80 ? 'bg-green-400' : (workspaceFoundationScore ?? 0) >= 60 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                          style={{ width: `${workspaceFoundationScore ?? 0}%` }}
                         />
                       </div>
-                      <span className="text-sm font-semibold text-gray-700">{profile.foundation_score ?? 0}%</span>
+                      <span className="text-sm font-semibold text-gray-700">{workspaceFoundationScore ?? 0}%</span>
                     </div>
-                    <span className={`text-[10px] font-semibold uppercase px-2 py-1 rounded-full ${profile.foundation_complete ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'}`}>
-                      {profile.foundation_complete ? 'Complete' : 'In progress'}
+                    <span className={`text-[10px] font-semibold uppercase px-2 py-1 rounded-full ${workspaceFoundationComplete ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'}`}>
+                      {workspaceFoundationComplete ? 'Complete' : 'In progress'}
                     </span>
                   </div>
                 </div>
@@ -869,9 +1018,9 @@ export default function ClientDetail({
                   </div>
                 )}
 
-                {profile.foundation_answers ? (
+                {workspaceFoundationAnswers ? (
                   <div className="space-y-3">
-                    {Object.entries(profile.foundation_answers).map(([key, value]) => {
+                    {Object.entries(workspaceFoundationAnswers).map(([key, value]) => {
                       if (!value || (Array.isArray(value) && value.length === 0)) return null
                       return (
                         <div key={key} className="border border-gray-100 rounded-xl p-4">

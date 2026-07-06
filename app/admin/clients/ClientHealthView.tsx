@@ -29,6 +29,9 @@ type Client = {
   engagement_updated_at: string | null
   foundation_score: number | null
   created_at: string
+  is_team_member?: boolean
+  workspace_owner_id?: string | null
+  workspace_company?: string | null
 }
 
 type SortKey = 'last_active_at' | 'engagement_score' | 'foundation_score' | 'plan' | 'created_at'
@@ -364,6 +367,11 @@ export default function ClientHealthView() {
                       <div>
                         <p className="text-sm font-medium text-gray-900">{client.full_name || '—'}</p>
                         <p className="text-xs text-gray-400">{client.email}</p>
+                        {client.is_team_member && (
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-500 mt-1">
+                            Team member
+                          </p>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -371,6 +379,9 @@ export default function ClientHealthView() {
                     <div>
                       {client.company_name && (
                         <p className="text-sm text-gray-700">{client.company_name}</p>
+                      )}
+                      {client.is_team_member && client.workspace_company && client.workspace_company !== client.company_name && (
+                        <p className="text-xs text-blue-500">via {client.workspace_company}</p>
                       )}
                       {client.instagram_handle && (
                         <p className="text-xs text-gray-400">@{client.instagram_handle}</p>

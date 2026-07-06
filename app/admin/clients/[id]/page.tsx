@@ -1,5 +1,10 @@
 import { requireAdmin } from '@/lib/requireAdmin'
 import { createServiceClient } from '@/lib/supabase/server'
+import {
+  isTeamMemberProfile,
+  resolveAdminWorkspaceId,
+  type AdminWorkspaceContext,
+} from '@/lib/admin/resolveAdminClientWorkspace'
 import { notFound } from 'next/navigation'
 import ClientDetail from './ClientDetail'
 
@@ -12,29 +17,38 @@ export default async function AdminClientDetailPage({
   await requireAdmin()
   const supabase = createServiceClient()
 
+  const profileResult = await supabase.from('profiles').select('*').eq('id', id).single()
+  if (!profileResult.data) notFound()
+
+  const profile = profileResult.data as Record<string, unknown>
+  const workspaceId = resolveAdminWorkspaceId(profile as { id: string; is_account_owner?: boolean | null; account_id?: string | null })
+  const isTeamMember = isTeamMemberProfile(profile as { id: string; is_account_owner?: boolean | null; account_id?: string | null })
+
   const [
-    profileResult,
     creditResult,
     teamResult,
     activityResult,
     fieldScoresResult,
     notesResult,
     ticketsResult,
+    ownerResult,
+    membershipResult,
   ] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', id).single(),
-    supabase.from('credit_balances').select('balance').eq('user_id', id).single(),
-    supabase
-      .from('team_members')
-      .select('*, profiles!team_members_member_profile_id_fkey(id, full_name, email, avatar_url)')
-      .eq('account_id', id)
-      .order('created_at', { ascending: false }),
+    supabase.from('credit_balances').select('balance').eq('user_id', workspaceId).single(),
+    isTeamMember
+      ? Promise.resolve({ data: [] as unknown[] })
+      : supabase
+          .from('team_members')
+          .select('*, profiles!team_members_member_profile_id_fkey(id, full_name, email, avatar_url)')
+          .eq('account_id', id)
+          .order('created_at', { ascending: false }),
     supabase
       .from('client_activity_log')
-      .select('id, event_type, metadata, created_at')
-      .eq('user_id', id)
+      .select('id, event_type, metadata, created_at, user_id')
+      .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false })
       .limit(50),
-    supabase.from('foundation_field_scores').select('field_name, score').eq('user_id', id),
+    supabase.from('foundation_field_scores').select('field_name, score').eq('user_id', workspaceId),
     supabase
       .from('admin_notes')
       .select('id, body, created_at, profiles!admin_notes_admin_id_fkey(full_name, avatar_url)')
@@ -47,11 +61,23 @@ export default async function AdminClientDetailPage({
       .eq('user_id', id)
       .order('created_at', { ascending: false })
       .limit(10),
+    isTeamMember
+      ? supabase
+          .from('profiles')
+          .select('id, full_name, email, company_name, plan, status, foundation_score, foundation_complete, foundation_answers, stripe_customer_id, billing_exempt')
+          .eq('id', workspaceId)
+          .single()
+      : Promise.resolve({ data: null }),
+    isTeamMember
+      ? supabase
+          .from('team_members')
+          .select('id, role, status, permissions, created_at')
+          .eq('member_profile_id', id)
+          .eq('account_id', workspaceId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
 
-  if (!profileResult.data) notFound()
-
-  // Duplicate check
   let duplicateAccount = null
   if (profileResult.data.email) {
     const { data: dupes } = await supabase
@@ -63,20 +89,51 @@ export default async function AdminClientDetailPage({
     if (dupes && dupes.length > 0) duplicateAccount = dupes[0]
   }
 
-  const profile = profileResult.data as any
+  const activityRows = (activityResult.data ?? []) as Array<{
+    id: string
+    event_type: string
+    metadata: unknown
+    created_at: string
+    user_id: string | null
+  }>
+
+  const actorIds = [...new Set(activityRows.map(row => row.user_id).filter(Boolean))] as string[]
+  const actorNameById = new Map<string, string>()
+  if (actorIds.length > 0) {
+    const { data: actors } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', actorIds)
+    for (const actor of actors ?? []) {
+      actorNameById.set(
+        actor.id as string,
+        (actor.full_name as string | null)?.trim() || (actor.email as string | null)?.trim() || 'Team member',
+      )
+    }
+  }
+
+  const workspaceContext: AdminWorkspaceContext = {
+    isTeamMember,
+    workspaceId,
+    owner: (ownerResult.data as AdminWorkspaceContext['owner']) ?? null,
+    membership: (membershipResult.data as AdminWorkspaceContext['membership']) ?? null,
+  }
+
   return (
-    <>
-      <ClientDetail
-        clientId={id}
-        initialProfile={profileResult.data as any}
-        initialCreditBalance={creditResult.data?.balance ?? 0}
-        initialNotes={(notesResult.data ?? []) as any}
-        initialActivity={(activityResult.data ?? []) as any}
-        initialTeamMembers={(teamResult.data ?? []) as any}
-        initialTickets={(ticketsResult.data ?? []) as any}
-        fieldScores={(fieldScoresResult.data ?? []) as any}
-        duplicateAccount={duplicateAccount}
-      />
-    </>
+    <ClientDetail
+      clientId={id}
+      initialProfile={profileResult.data as any}
+      initialCreditBalance={creditResult.data?.balance ?? 0}
+      initialNotes={(notesResult.data ?? []) as any}
+      initialActivity={activityRows.map(row => ({
+        ...row,
+        actor_name: row.user_id ? actorNameById.get(row.user_id) ?? null : null,
+      }))}
+      initialTeamMembers={(teamResult.data ?? []) as any}
+      initialTickets={(ticketsResult.data ?? []) as any}
+      fieldScores={(fieldScoresResult.data ?? []) as any}
+      duplicateAccount={duplicateAccount}
+      workspaceContext={workspaceContext}
+    />
   )
 }
