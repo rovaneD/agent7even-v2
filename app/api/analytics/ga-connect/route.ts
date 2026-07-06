@@ -5,6 +5,8 @@ import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
 import { gaOAuthRedirectUri, oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getGaProfileForClerkUser } from '@/lib/analytics/gaOAuthProfile'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { requireWorkspaceOwner } from '@/lib/team/requireWorkspaceOwner'
 
 async function revokeGoogleRefreshToken(token: string) {
   try {
@@ -26,6 +28,16 @@ export async function GET(req: Request) {
   const supabase = createServiceClient()
   const user = await currentUser()
   const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+
+  const member = await resolveClerkProfile(supabase, userId, 'id', email)
+  if (!member?.id) return redirect('/sign-in')
+
+  const ownerCheck = await requireWorkspaceOwner(supabase, member.id, 'connect_owner_only')
+  if (!ownerCheck.ok) {
+    const appBase = oauthCallbackBaseFromRequest(req)
+    return redirect(`${appBase}/dashboard/analytics?ga_error=owner_required`)
+  }
+
   const profile = await getGaProfileForClerkUser(supabase, userId, email)
 
   if (profile?.ga_refresh_token) {

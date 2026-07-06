@@ -5,6 +5,7 @@ import type { GuardianVerdict } from '@/lib/foundation/observer/types'
 import {
   applyGuardianVerdict,
   GUARDIAN_THRESHOLDS,
+  MIN_SURFACE_CONTRADICTING,
   type GuardianThresholdConfig,
 } from '@/lib/foundation/guardian/guardianConfig'
 
@@ -115,7 +116,9 @@ function buildRecommendation(report: Omit<GuardianCalibrationReport, 'recommenda
     )
   }
 
-  parts.push('Contradicting proposals remain on hold — vision drift filter (6+ signals) is not wired yet.')
+  parts.push(
+    `Contradicting proposals surface at ≥${MIN_SURFACE_CONTRADICTING} supporting rows; below that they stay on hold.`,
+  )
 
   return parts.join(' ')
 }

@@ -1,12 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { PROPOSAL_REJECT_COOLDOWN_DAYS } from '@/lib/foundation/guardian/guardianConfig'
+import {
+  PROPOSAL_DEFER_COOLDOWN_DAYS,
+  PROPOSAL_REJECT_COOLDOWN_DAYS,
+} from '@/lib/foundation/guardian/guardianConfig'
 
 export type ProposalThemePolicy = {
   approvedThemes: Set<string>
   rejectedThemesInCooldown: Set<string>
+  deferredThemesInCooldown: Set<string>
 }
 
-export type ThemeBlockReason = 'approved_layer' | 'reject_cooldown'
+export type ThemeBlockReason = 'approved_layer' | 'reject_cooldown' | 'defer_cooldown'
 
 function normalizeTheme(theme: string | null | undefined): string | null {
   const trimmed = theme?.trim()
@@ -21,6 +25,7 @@ export function themeBlockReason(
   if (!normalized) return null
   if (policy.approvedThemes.has(normalized)) return 'approved_layer'
   if (policy.rejectedThemesInCooldown.has(normalized)) return 'reject_cooldown'
+  if (policy.deferredThemesInCooldown.has(normalized)) return 'defer_cooldown'
   return null
 }
 
@@ -31,9 +36,9 @@ export function shouldBlockProposalTheme(
   return themeBlockReason(theme, policy) !== null
 }
 
-function cooldownSinceIso(): string {
+function cooldownSinceIso(days: number): string {
   const since = new Date()
-  since.setUTCDate(since.getUTCDate() - PROPOSAL_REJECT_COOLDOWN_DAYS)
+  since.setUTCDate(since.getUTCDate() - days)
   return since.toISOString()
 }
 
@@ -41,16 +46,23 @@ export async function loadProposalThemePolicy(
   supabase: SupabaseClient,
   profileId: string,
 ): Promise<ProposalThemePolicy> {
-  const cooldownSince = cooldownSinceIso()
+  const rejectSince = cooldownSinceIso(PROPOSAL_REJECT_COOLDOWN_DAYS)
+  const deferSince = cooldownSinceIso(PROPOSAL_DEFER_COOLDOWN_DAYS)
 
-  const [layersResult, rejectedResult] = await Promise.all([
+  const [layersResult, rejectedResult, deferredResult] = await Promise.all([
     supabase.from('foundation_layers').select('theme').eq('profile_id', profileId),
     supabase
       .from('foundation_proposals')
       .select('theme')
       .eq('profile_id', profileId)
       .eq('user_decision', 'rejected')
-      .gte('decided_at', cooldownSince),
+      .gte('decided_at', rejectSince),
+    supabase
+      .from('foundation_proposals')
+      .select('theme')
+      .eq('profile_id', profileId)
+      .eq('user_decision', 'deferred')
+      .gte('decided_at', deferSince),
   ])
 
   if (layersResult.error && !layersResult.error.message.includes('foundation_layers')) {
@@ -59,6 +71,10 @@ export async function loadProposalThemePolicy(
 
   if (rejectedResult.error && !rejectedResult.error.message.includes('user_decision')) {
     throw new Error(rejectedResult.error.message)
+  }
+
+  if (deferredResult.error && !deferredResult.error.message.includes('user_decision')) {
+    throw new Error(deferredResult.error.message)
   }
 
   const approvedThemes = new Set<string>()
@@ -73,5 +89,11 @@ export async function loadProposalThemePolicy(
     if (theme) rejectedThemesInCooldown.add(theme)
   }
 
-  return { approvedThemes, rejectedThemesInCooldown }
+  const deferredThemesInCooldown = new Set<string>()
+  for (const row of deferredResult.data ?? []) {
+    const theme = normalizeTheme(row.theme)
+    if (theme) deferredThemesInCooldown.add(theme)
+  }
+
+  return { approvedThemes, rejectedThemesInCooldown, deferredThemesInCooldown }
 }

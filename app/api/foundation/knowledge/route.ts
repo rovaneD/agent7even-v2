@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveFoundationWorkspaceForClerkUser } from '@/lib/foundation/resolveFoundationWorkspace'
 
 export async function GET() {
   try {
@@ -8,17 +9,13 @@ export async function GET() {
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const supabase = createServiceClient()
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('clerk_user_id', userId)
-      .single()
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    const session = await resolveFoundationWorkspaceForClerkUser(supabase, userId)
+    if (!session) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     const { data, error } = await supabase
       .from('foundation_knowledge')
       .select('id, source_type, source_name, extraction_result, confirmed_fields, created_at')
-      .eq('profile_id', profile.id)
+      .eq('profile_id', session.workspaceId)
       .order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

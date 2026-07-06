@@ -4,6 +4,7 @@ import {
   loadProposalThemePolicy,
   shouldBlockProposalTheme,
 } from '@/lib/foundation/proposals/proposalThemePolicy'
+import { dismissStalePendingProposals } from '@/lib/foundation/proposals/dismissStalePendingProposals'
 
 type ProposalRow = {
   id: string
@@ -23,6 +24,10 @@ export async function loadPendingSurfacedProposals(
   profileId: string,
   limit = 4,
 ): Promise<SurfacedFoundationProposal[]> {
+  await dismissStalePendingProposals(supabase, profileId).catch(err => {
+    console.error('[foundation-proposals] stale dismiss failed:', err)
+  })
+
   const cappedLimit = Math.min(Math.max(limit, 1), 10)
   const themePolicy = await loadProposalThemePolicy(supabase, profileId)
 

@@ -1179,6 +1179,53 @@ function MemoryTab({ data, loading }: { data: FoundationMemoryResponse | null; l
           <MemoryStatCard key={stat.agentId} stat={stat} />
         ))}
       </div>
+
+      {(data.observations?.length ?? 0) > 0 && (
+        <div className="mt-8">
+          <h3 className="text-sm font-semibold text-text mb-1">What Maya has noticed</h3>
+          <p className="text-xs text-text-soft mb-4">
+            Observations from your approvals and edits — not changes to Foundation yet. Evolution proposals appear on Intelligence.
+          </p>
+          <div className="space-y-3">
+            {data.observations!.map((item, index) => (
+              <div
+                key={`${item.createdAt}-${index}`}
+                className="rounded-2xl border border-gray-100 bg-white p-4"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span
+                    className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full"
+                    style={{
+                      background:
+                        item.signalType === 'approved'
+                          ? '#D1FAE5'
+                          : item.signalType === 'rejected'
+                            ? '#FEE2E2'
+                            : '#FEF3C7',
+                      color:
+                        item.signalType === 'approved'
+                          ? '#065F46'
+                          : item.signalType === 'rejected'
+                            ? '#991B1B'
+                            : '#92400E',
+                    }}
+                  >
+                    {item.signalType}
+                  </span>
+                  <span className="text-[11px] text-text-soft">
+                    {new Date(item.createdAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                    {item.agentId ? ` · ${item.agentId.replace(/_/g, ' ')}` : ''}
+                  </span>
+                </div>
+                <p className="text-sm text-text-sec leading-relaxed">{item.summary}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

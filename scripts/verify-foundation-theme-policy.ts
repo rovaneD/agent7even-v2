@@ -12,7 +12,10 @@ import {
   loadProposalThemePolicy,
   themeBlockReason,
 } from '../lib/foundation/proposals/proposalThemePolicy'
-import { PROPOSAL_REJECT_COOLDOWN_DAYS } from '../lib/foundation/guardian/guardianConfig'
+import {
+  PROPOSAL_DEFER_COOLDOWN_DAYS,
+  PROPOSAL_REJECT_COOLDOWN_DAYS,
+} from '../lib/foundation/guardian/guardianConfig'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -52,16 +55,21 @@ async function main() {
 
   console.log('=== Foundation theme policy ===\n')
   console.log(`Profile: ${profile?.company_name ?? profileId}`)
-  console.log(`Reject cooldown: ${PROPOSAL_REJECT_COOLDOWN_DAYS} days\n`)
+  console.log(`Reject cooldown: ${PROPOSAL_REJECT_COOLDOWN_DAYS} days`)
+  console.log(`Defer cooldown:  ${PROPOSAL_DEFER_COOLDOWN_DAYS} days\n`)
 
   const policy = await loadProposalThemePolicy(sb, profileId)
   console.log('Approved layer themes:')
   if (policy.approvedThemes.size === 0) console.log('  (none)')
   else for (const theme of policy.approvedThemes) console.log(`  - ${theme}`)
 
-  console.log('\nRejected themes in cooldown:')
+  console.log('Rejected themes in cooldown:')
   if (policy.rejectedThemesInCooldown.size === 0) console.log('  (none)')
   else for (const theme of policy.rejectedThemesInCooldown) console.log(`  - ${theme}`)
+
+  console.log('\nDeferred themes in cooldown:')
+  if (policy.deferredThemesInCooldown.size === 0) console.log('  (none)')
+  else for (const theme of policy.deferredThemesInCooldown) console.log(`  - ${theme}`)
 
   const rows = await loadFoundationChangelogRows(profileId, 50)
   const candidates = formalizeCandidates(rows)

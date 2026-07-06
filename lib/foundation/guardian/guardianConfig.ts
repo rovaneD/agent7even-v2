@@ -3,6 +3,12 @@ import type { GuardianState, GuardianVerdict } from '@/lib/foundation/observer/t
 /** Days before Guardian re-surfaces a theme the user dismissed. */
 export const PROPOSAL_REJECT_COOLDOWN_DAYS = 30
 
+/** Days before a deferred ("Not now") theme can surface again. */
+export const PROPOSAL_DEFER_COOLDOWN_DAYS = 14
+
+/** Strong-signal bar for surfacing contradicting proposals (vision drift filter). */
+export const MIN_SURFACE_CONTRADICTING = 6
+
 export type GuardianThresholdConfig = {
   /** Below this count → reject_internal regardless of state */
   minSupportingRows: number
@@ -33,6 +39,9 @@ export function applyGuardianVerdict(
     return 'reject_internal'
   }
   if (state === 'contradicting') {
+    if (supportingCount >= MIN_SURFACE_CONTRADICTING) {
+      return 'surface'
+    }
     return 'hold'
   }
   if (

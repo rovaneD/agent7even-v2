@@ -18,6 +18,12 @@ export type FoundationMemoryResponse = {
   totalRejected: number
   lastActivityAt: string | null
   hasData: boolean
+  observations?: Array<{
+    signalType: 'approved' | 'rejected' | 'edited'
+    summary: string
+    createdAt: string
+    agentId: string | null
+  }>
 }
 
 type OutputRow = {

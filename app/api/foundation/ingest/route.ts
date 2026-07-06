@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { extractText, interpretExtraction } from '@/lib/foundation/extract'
+import { resolveFoundationWorkspaceForClerkUser } from '@/lib/foundation/resolveFoundationWorkspace'
 
 const BUCKET = 'foundation-knowledge'
 
@@ -37,12 +38,9 @@ export async function POST(req: Request) {
     }
 
     const supabase = createServiceClient()
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('clerk_user_id', userId)
-      .single()
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    const session = await resolveFoundationWorkspaceForClerkUser(supabase, userId)
+    if (!session) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    const workspaceId = session.workspaceId
 
     // Extract raw text
     const rawText = await extractText(type, content, filename)
@@ -65,7 +63,7 @@ export async function POST(req: Request) {
     if (type !== 'url' && type !== 'text' && content.length > 0) {
       await ensureBucket(supabase)
       const ext = filename ? filename.split('.').pop() : type
-      const path = `${profile.id}/${crypto.randomUUID()}.${ext}`
+      const path = `${workspaceId}/${crypto.randomUUID()}.${ext}`
       const buf = Buffer.from(content, 'base64')
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
@@ -84,7 +82,7 @@ export async function POST(req: Request) {
     const { data: knowledgeRow } = await supabase
       .from('foundation_knowledge')
       .insert({
-        profile_id:        profile.id,
+        profile_id:        workspaceId,
         source_type:       type,
         source_name:       sourceName,
         raw_content:       rawText.slice(0, 50000),
@@ -98,7 +96,7 @@ export async function POST(req: Request) {
     await supabase
       .from('profiles')
       .update({ updated_at: new Date().toISOString() })
-      .eq('id', profile.id)
+      .eq('id', workspaceId)
 
     return NextResponse.json({
       id: knowledgeRow?.id ?? null,
