@@ -3,13 +3,23 @@ import type { GuardianState, GuardianVerdict } from '@/lib/foundation/observer/t
 /** Days before Guardian re-surfaces a theme the user dismissed. */
 export const PROPOSAL_REJECT_COOLDOWN_DAYS = 30
 
-/** Tune after human checkpoint — not hardcoded in LLM prompts. */
-export const GUARDIAN_THRESHOLDS = {
+export type GuardianThresholdConfig = {
   /** Below this count → reject_internal regardless of state */
+  minSupportingRows: number
+  minSurfaceConsistent: number
+  minSurfaceExtending: number
+}
+
+/**
+ * Calibrated 2026-07-06 via scripts/calibrate-guardian-thresholds.ts.
+ * Hold at ≥3/≥4 until organic changelog volume grows — surfaced proposals had
+ * strong approve rate on Agent7even checkpoint; lower thresholds add noise.
+ */
+export const GUARDIAN_THRESHOLDS: GuardianThresholdConfig = {
   minSupportingRows: 3,
   minSurfaceConsistent: 3,
   minSurfaceExtending: 4,
-} as const
+}
 
 export const GUARDIAN_MODEL = 'anthropic/claude-sonnet-4'
 
@@ -17,8 +27,9 @@ export const GUARDIAN_MODEL = 'anthropic/claude-sonnet-4'
 export function applyGuardianVerdict(
   state: GuardianState,
   supportingCount: number,
+  thresholds: GuardianThresholdConfig = GUARDIAN_THRESHOLDS,
 ): GuardianVerdict {
-  if (supportingCount < GUARDIAN_THRESHOLDS.minSupportingRows) {
+  if (supportingCount < thresholds.minSupportingRows) {
     return 'reject_internal'
   }
   if (state === 'contradicting') {
@@ -26,13 +37,13 @@ export function applyGuardianVerdict(
   }
   if (
     state === 'consistent' &&
-    supportingCount >= GUARDIAN_THRESHOLDS.minSurfaceConsistent
+    supportingCount >= thresholds.minSurfaceConsistent
   ) {
     return 'surface'
   }
   if (
     state === 'extending' &&
-    supportingCount >= GUARDIAN_THRESHOLDS.minSurfaceExtending
+    supportingCount >= thresholds.minSurfaceExtending
   ) {
     return 'surface'
   }

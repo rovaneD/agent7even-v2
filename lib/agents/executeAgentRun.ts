@@ -65,7 +65,7 @@ export async function executeAgentRun(opts: {
   const supabase = createServiceClient()
   const { data: taskRow } = await supabase
     .from('agent_tasks')
-    .select('user_id')
+    .select('user_id, actor_profile_id')
     .eq('id', taskId)
     .single()
 
@@ -96,7 +96,12 @@ export async function executeAgentRun(opts: {
     creditsReserved = true
 
     const [baseSystem, flowSystem, offerGuardrails] = await Promise.all([
-      buildSystemPrompt(userId, agentId, taskInput),
+      buildSystemPrompt(
+        userId,
+        agentId,
+        taskInput,
+        (taskRow.actor_profile_id as string | null) ?? undefined,
+      ),
       buildAgentFlowPrompt(userId, agentId, taskInput),
       agentId === 'campaign_builder'
         ? buildCampaignOfferGuardrails(userId, taskInput)

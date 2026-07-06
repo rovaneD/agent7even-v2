@@ -9,13 +9,23 @@ import {
   formatFoundationLayersForAgents,
 } from '@/lib/foundation/layersContext'
 import { parseSiteSnapshot, formatSiteSnapshotForAgent } from '@/lib/foundation/siteSnapshot'
+import {
+  loadWorkspaceTeamContext,
+  formatWorkspaceTeamContextForAgents,
+} from '@/lib/maya/summaries/workspaceTeamContext'
 
-export async function buildAgentContext(userId: string): Promise<string> {
+export async function buildAgentContext(
+  userId: string,
+  actorProfileId?: string,
+): Promise<string> {
   const supabase = createServiceClient()
 
   // Brand context + Foundation run in parallel.
   // loadFoundationContext queries profiles.foundation_answers + foundation_documents.
   // profileId = userId here (both are the Supabase profiles.id UUID).
+  const actorId = actorProfileId ?? userId
+  const teamContextPromise = loadWorkspaceTeamContext(supabase, actorId, userId).catch(() => null)
+
   const [
     { data: docs },
     { data: profile },
@@ -24,6 +34,7 @@ export async function buildAgentContext(userId: string): Promise<string> {
     memory,
     changelog,
     layers,
+    teamContext,
   ] = await Promise.all([
     supabase
       .from('brand_documents')
@@ -47,6 +58,7 @@ export async function buildAgentContext(userId: string): Promise<string> {
     loadFoundationMemory(userId),
     loadFoundationChangelog(userId),
     loadFoundationLayers(userId),
+    teamContextPromise,
   ])
 
   if (!docs?.length && !profile && !foundation.hasFoundation) return ''
@@ -132,6 +144,9 @@ export async function buildAgentContext(userId: string): Promise<string> {
 
   const memorySection = formatMemoryForAgent(memory)
   if (memorySection) sections.push(`\n${memorySection}`)
+
+  const teamSection = teamContext ? formatWorkspaceTeamContextForAgents(teamContext) : null
+  if (teamSection) sections.push(`\n${teamSection}`)
 
   return sections.filter(Boolean).join('\n')
 }

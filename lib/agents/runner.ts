@@ -51,6 +51,7 @@ export async function buildSystemPrompt(
   userId: string,
   agentId: string,
   taskInput?: Record<string, unknown>,
+  actorProfileId?: string,
 ): Promise<string> {
   const supabase = createServiceClient()
 
@@ -62,7 +63,7 @@ export async function buildSystemPrompt(
   const agentDef = AGENTS[agentId as AgentId]
 
   const [brandContext, skill, { data: userConstraintsRow }, fieldScores] = await Promise.all([
-    buildAgentContext(userId),
+    buildAgentContext(userId, actorProfileId),
     getAgentSkill(skillAgentId),
     supabase
       .from('agent_constraints')
