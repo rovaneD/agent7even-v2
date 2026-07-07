@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 6, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 7, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -64,7 +64,7 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV25.md` — latest product handoff: Foundation knowledge in agent/Maya context, team workspace guards, Memory observations, Guardian theme policy (July 6, 2026).
+- `CONTEXTV25.md` — latest product handoff: Foundation knowledge in agent/Maya context, team workspace guards, Memory observations, Guardian theme policy, July 7 critical invite/proposal guards.
 - `SESSION_2026-07-06.md` — July 6 session log (knowledge context, Zernio/generation-floor guards, ship validation).
 - `CONTEXTV24.md` — July 4 handoff: transactional email complete, Guardian proposal surface, layers v0, profile DB clean.
 - `CONTEXTV23.md` — prior handoff: duplicate profile resolution, Agents run sub-pages, Foundation site snapshot, GA OAuth fix (July 3, 2026).

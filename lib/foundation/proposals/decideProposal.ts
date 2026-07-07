@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { FoundationProposalDecision } from '@/lib/foundation/proposals/types'
+import type { GuardianState } from '@/lib/foundation/observer/types'
 
 export type DecideFoundationProposalInput = {
   proposalId: string
@@ -11,6 +12,43 @@ export type DecideFoundationProposalInput = {
 export type DecideFoundationProposalResult =
   | { ok: true; layerId?: string }
   | { ok: false; error: string; status: number }
+
+type DecisionUpdateResult =
+  | { ok: true }
+  | { ok: false; error: string; status: number }
+
+function layerStateForProposal(state: GuardianState): 'consistent' | 'extending' {
+  return state === 'consistent' ? 'consistent' : 'extending'
+}
+
+async function updateProposalDecision(
+  supabase: SupabaseClient,
+  input: DecideFoundationProposalInput,
+  decidedAt: string,
+): Promise<DecisionUpdateResult> {
+  const { data, error } = await supabase
+    .from('foundation_proposals')
+    .update({
+      user_decision: input.decision,
+      decided_at: decidedAt,
+      decision_note: input.note?.trim() || null,
+    })
+    .eq('id', input.proposalId)
+    .eq('profile_id', input.workspaceProfileId)
+    .or('user_decision.is.null,user_decision.eq.pending')
+    .select('id')
+    .maybeSingle()
+
+  if (error) {
+    return { ok: false, status: 500, error: error.message }
+  }
+
+  if (!data) {
+    return { ok: false, status: 409, error: 'This proposal was already decided' }
+  }
+
+  return { ok: true }
+}
 
 export async function decideFoundationProposal(
   supabase: SupabaseClient,
@@ -49,21 +87,9 @@ export async function decideFoundationProposal(
 
   const decidedAt = new Date().toISOString()
 
-  const { error: updateError } = await supabase
-    .from('foundation_proposals')
-    .update({
-      user_decision: input.decision,
-      decided_at: decidedAt,
-      decision_note: input.note?.trim() || null,
-    })
-    .eq('id', input.proposalId)
-
-  if (updateError) {
-    return { ok: false, status: 500, error: updateError.message }
-  }
-
   if (input.decision !== 'approved') {
-    return { ok: true }
+    const updateResult = await updateProposalDecision(supabase, input, decidedAt)
+    return updateResult.ok ? { ok: true } : updateResult
   }
 
   const { data: layer, error: layerError } = await supabase
@@ -71,7 +97,7 @@ export async function decideFoundationProposal(
     .insert({
       profile_id: input.workspaceProfileId,
       source_proposal_id: proposal.id,
-      state: proposal.state,
+      state: layerStateForProposal(proposal.state as GuardianState),
       title: proposal.proposal_title,
       body: proposal.proposal_body,
       theme: proposal.theme,
@@ -89,6 +115,20 @@ export async function decideFoundationProposal(
       }
     }
     return { ok: false, status: 500, error: layerError.message }
+  }
+
+  const updateResult = await updateProposalDecision(supabase, input, decidedAt)
+  if (!updateResult.ok) {
+    const { error: cleanupError } = await supabase
+      .from('foundation_layers')
+      .delete()
+      .eq('id', layer.id)
+
+    if (cleanupError) {
+      console.error('[foundation/proposals decide] layer cleanup failed:', cleanupError.message)
+    }
+
+    return updateResult
   }
 
   return { ok: true, layerId: layer.id }
