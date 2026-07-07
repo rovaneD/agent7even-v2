@@ -110,6 +110,15 @@ FOUNDATION_GUARDIAN_PROFILE_ID=bfa73081-3906-4b5b-b24e-d9df3fb07384 \
 
 ---
 
+## 7. July 7 critical guard fixes
+
+| Area | Guard |
+|------|-------|
+| Team invite activation | Public `/api/team/accept` validates invite tokens only; profile linking happens after authenticated Clerk resolution and only for email-matched, fresh onboarding profiles with no billing/company/Foundation state. Established owner workspaces must not be auto-converted to team members. |
+| Foundation proposal approval | Approving a surfaced proposal inserts the Foundation layer before committing `user_decision = 'approved'`; `contradicting` proposals persist as `extending` layers to satisfy `37_foundation_layers.sql`, and the migration now includes a unique index on `source_proposal_id`. |
+
+---
+
 ## Known open items
 
 | Item | Notes |
@@ -137,10 +146,10 @@ FOUNDATION_GUARDIAN_PROFILE_ID=bfa73081-3906-4b5b-b24e-d9df3fb07384 \
 | Doc | Role |
 |-----|------|
 | `CONTEXTV24.md` | July 4 handoff (email, proposals, layers v0) |
-| `SESSION_2026-07-06.md` | This session log |
+| `SESSION_2026-07-06.md` | July 6 session log |
 | `foundation_intelligence_vision.md` | Vision + build sequence |
 | `AGENTS.md` | Product rules + deploy |
 
 ---
 
-*End CONTEXTV25 — July 6, 2026*
+*End CONTEXTV25 — July 7, 2026*

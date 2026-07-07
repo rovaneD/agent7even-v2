@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS public.foundation_layers (
 CREATE INDEX IF NOT EXISTS idx_foundation_layers_profile
   ON public.foundation_layers (profile_id, approved_at DESC);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_foundation_layers_source_proposal_unique
+  ON public.foundation_layers (source_proposal_id)
+  WHERE source_proposal_id IS NOT NULL;
+
 ALTER TABLE public.foundation_layers ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Tenant select own account" ON public.foundation_layers;

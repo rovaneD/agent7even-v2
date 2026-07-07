@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -22,17 +21,6 @@ export async function GET(req: Request) {
 
   if (!invite) {
     return NextResponse.redirect(`${appUrl}/sign-in?error=invite_expired`)
-  }
-
-  const { data: existingProfile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('email', invite.invited_email)
-    .single()
-
-  if (existingProfile) {
-    await activateTeamInviteForProfile(supabase, existingProfile.id, invite.invited_email)
-    return NextResponse.redirect(`${appUrl}/dashboard?team_joined=true`)
   }
 
   const signUpUrl = `${appUrl}/sign-up?invite_token=${token}&email=${encodeURIComponent(invite.invited_email)}`
