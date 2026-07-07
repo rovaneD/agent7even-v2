@@ -123,6 +123,7 @@ export default function MayChatPanel({
   const dragCounterRef = useRef(0)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesRef    = useRef<UIMessage[]>([])
   const modeRef        = useRef<string | null>(initialMode)
   const pageContextStartedRef = useRef(false)
@@ -238,7 +239,9 @@ export default function MayChatPanel({
   useEffect(() => { messagesRef.current = messages }, [messages])
   useEffect(() => { modeRef.current = mode }, [mode])
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const container = messagesContainerRef.current
+    if (!container) return
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
   }, [messages, isLoading])
 
   useEffect(() => {
@@ -359,7 +362,7 @@ export default function MayChatPanel({
 
   return (
     <div
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-surface)', width: panelWidth, maxWidth: '100vw', flexShrink: 0, position: 'relative', borderRight: '1px solid var(--color-border)' }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: 'var(--color-surface)', width: panelWidth, maxWidth: '100vw', flexShrink: 0, position: 'relative', borderRight: '1px solid var(--color-border)' }}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -449,7 +452,7 @@ export default function MayChatPanel({
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px' }}>
+      <div ref={messagesContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '20px 16px', minHeight: 0 }}>
         {showModePicker ? (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: 20 }}>
             <MayaOrb size={44} className="mb-3" />

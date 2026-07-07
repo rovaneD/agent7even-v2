@@ -156,8 +156,17 @@ async function main() {
       'Owner team context',
       Boolean(ownerTeam?.isOwner),
       ownerTeam
-        ? `pending approvals ${ownerTeam.pendingApprovalCount} · open assignments ${ownerTeam.openAssignments.length}`
+        ? `pending approvals ${ownerTeam.pendingApprovalCount} · roster ${ownerTeam.teamMembers.filter(m => m.status === 'active').length} active · open assignments ${ownerTeam.openAssignments.length}`
         : 'failed to load',
+    ),
+  )
+  checks.push(
+    check(
+      'Owner team roster includes active member',
+      (ownerTeam?.teamMembers.filter(m => m.status === 'active').length ?? 0) > 0,
+      ownerTeam
+        ? `${ownerTeam.teamMembers.filter(m => m.status === 'active').length} active · ${ownerTeam.teamMembers.filter(m => m.status === 'pending').length} pending`
+        : 'failed',
     ),
   )
 

@@ -10,6 +10,7 @@ import {
   type AssignedTaskRow,
 } from '@/lib/team/taskAssignments'
 import { listWorkspaceActivity, type WorkspaceActivityItem } from '@/lib/team/workspaceActivity'
+import { listWorkspaceTeamMembers, type WorkspaceTeamMemberRow } from '@/lib/team/teamRoster'
 
 export type WorkspaceTeamContext = {
   memberId: string
@@ -18,6 +19,7 @@ export type WorkspaceTeamContext = {
   isOwner: boolean
   ownerCompanyName: string | null
   permissions: TeamPermissions
+  teamMembers: WorkspaceTeamMemberRow[]
   assignedToMember: AssignedTaskRow[]
   openAssignments: AssignedTaskRow[]
   pendingApprovalCount: number
@@ -75,6 +77,8 @@ function formatOwnerRestrictions(): string {
     'TEAM PERMISSIONS (account owner):',
     '- You can invite/remove team members, connect integrations (Google Analytics, social publishing), and manage billing.',
     '- When asked what the team is working on, cite open assignments and recent team activity below.',
+    '- When asked whether they have team members, cite the team roster below — members can exist with zero assignments.',
+    '- Do NOT say they have no team members when the roster lists active or pending members.',
     '- Pending agent approvals in the shared queue need your sign-off before publish.',
   ].join('\n')
 }
@@ -123,7 +127,7 @@ export async function loadWorkspaceTeamContext(
 
   const isOwner = permissions.isOwner || memberId === workspaceId
 
-  const [assignedToMember, openAssignments, pendingApprovalCount, activityResult] =
+  const [assignedToMember, openAssignments, pendingApprovalCount, activityResult, teamMembers] =
     await Promise.all([
       isOwner ? Promise.resolve([]) : listTasksAssignedToMember(supabase, memberId, workspaceId),
       isOwner ? listOpenWorkspaceAssignments(supabase, workspaceId) : Promise.resolve([]),
@@ -133,6 +137,7 @@ export async function loadWorkspaceTeamContext(
         sinceDays: 7,
         teamOnly: true,
       }),
+      listWorkspaceTeamMembers(supabase, workspaceId),
     ])
 
   return {
@@ -142,6 +147,7 @@ export async function loadWorkspaceTeamContext(
     isOwner,
     ownerCompanyName: ownerProfile?.company_name ?? null,
     permissions,
+    teamMembers,
     assignedToMember,
     openAssignments,
     pendingApprovalCount,
@@ -165,6 +171,28 @@ export function formatWorkspaceTeamContextForMaya(ctx: WorkspaceTeamContext): st
       ctx.isOwner
         ? `Pending approvals in shared queue: ${ctx.pendingApprovalCount} — route owner to Agents → Approvals.`
         : `Shared approval queue has ${ctx.pendingApprovalCount} item(s) awaiting owner review.`,
+    )
+  } else if (ctx.isOwner) {
+    sections.push('Pending approvals in shared queue: 0 — queue is clear.')
+  }
+
+  const activeMembers = ctx.teamMembers.filter(m => m.status === 'active')
+  const pendingMembers = ctx.teamMembers.filter(m => m.status === 'pending')
+  if (ctx.isOwner) {
+    if (activeMembers.length > 0 || pendingMembers.length > 0) {
+      const rosterLines = [
+        ...activeMembers.map(m => `- ${m.name}${m.email ? ` (${m.email})` : ''} — ${m.role}, active`),
+        ...pendingMembers.map(m => `- ${m.email || m.name} — ${m.role}, pending invite`),
+      ]
+      sections.push(
+        `Team roster (${activeMembers.length} active${pendingMembers.length ? `, ${pendingMembers.length} pending` : ''}):\n${rosterLines.join('\n')}`,
+      )
+    } else {
+      sections.push('Team roster: no invited members yet — only the account owner.')
+    }
+  } else {
+    sections.push(
+      `Workspace team size: ${activeMembers.length} active member${activeMembers.length === 1 ? '' : 's'} besides the owner.`,
     )
   }
 
@@ -198,7 +226,7 @@ export function formatWorkspaceTeamContextForMaya(ctx: WorkspaceTeamContext): st
 
   sections.push(
     ctx.isOwner
-      ? 'Owner team prompts: answer "What\'s my team working on?" using assignments + activity above.'
+      ? 'Owner team prompts: "Do I have team members?" → cite roster above. "What\'s my team working on?" → assignments + activity (empty assignments ≠ no members).'
       : 'Member team prompts: answer "What\'s assigned to me?" using assignments above; do not claim owner-only actions.',
   )
 
