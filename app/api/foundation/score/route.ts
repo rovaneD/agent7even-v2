@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { logActivity } from '@/lib/activity'
-import { FIELD_EXPECTATIONS } from '@/lib/foundation/score'
+import { FIELD_EXPECTATIONS, mergeScoredFields, topWeakFieldKeys } from '@/lib/foundation/score'
+import { computeOverallFoundationScore } from '@/lib/foundation/sections'
 import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
 
 export const maxDuration = 30
@@ -87,8 +88,31 @@ Return format exactly:
     return NextResponse.json({ error: 'Score parsing failed' }, { status: 500 })
   }
 
-  // Persist per-field scores
-  const fieldScoreRows = Object.entries(parsed.fieldScores).map(([key, val]) => ({
+  const { data: previousRows } = await supabase
+    .from('foundation_field_scores')
+    .select('field_key, score, feedback')
+    .eq('user_id', profile.id)
+
+  const previousScores = Object.fromEntries(
+    (previousRows ?? []).map(row => [
+      row.field_key as string,
+      { score: row.score as number, feedback: (row.feedback as string | null) ?? null },
+    ]),
+  )
+
+  const completeFieldScores = mergeScoredFields(
+    parsed.fieldScores ?? {},
+    answersForScoring,
+    previousScores,
+  )
+
+  const overallScore = computeOverallFoundationScore(completeFieldScores)
+  const topWeakFields = topWeakFieldKeys(completeFieldScores)
+
+  // Replace per-field scores atomically so rescored rows stay in sync with section pills.
+  await supabase.from('foundation_field_scores').delete().eq('user_id', profile.id)
+
+  const fieldScoreRows = Object.entries(completeFieldScores).map(([key, val]) => ({
     user_id:    profile.id,
     field_key:  key,
     score:      val.score,
@@ -96,33 +120,23 @@ Return format exactly:
     updated_at: new Date().toISOString(),
   }))
 
-  await supabase
-    .from('foundation_field_scores')
-    .upsert(fieldScoreRows, { onConflict: 'user_id,field_key' })
+  if (fieldScoreRows.length > 0) {
+    await supabase.from('foundation_field_scores').insert(fieldScoreRows)
+  }
 
-  const { data: allScores } = await supabase
-    .from('foundation_field_scores')
-    .select('field_key, score, feedback')
-    .eq('user_id', profile.id)
-
-  const fieldScoreMap = Object.fromEntries(
-    (allScores ?? []).map(row => [
-      row.field_key as string,
-      { score: row.score as number, feedback: (row.feedback as string | null) ?? null },
-    ]),
-  )
+  const fieldScoreMap = completeFieldScores
 
   // Update profile
   await supabase
     .from('profiles')
     .update({
-      foundation_score: parsed.overallScore,
+      foundation_score: overallScore,
       foundation_answers: answers,
       foundation_updated_at: new Date().toISOString(),
     })
     .eq('id', profile.id)
 
-  logActivity(profile.id, 'foundation_updated', { score: parsed.overallScore }).catch(() => {})
+  logActivity(profile.id, 'foundation_updated', { score: overallScore }).catch(() => {})
 
   scheduleCreativeDirectionCacheRefresh(
     profile.id,
@@ -131,11 +145,11 @@ Return format exactly:
 
   // Congratulations notification when score crosses 80%
   const prevScore = profile.foundation_score ?? 0
-  if (parsed.overallScore >= 80 && prevScore < 80) {
+  if (overallScore >= 80 && prevScore < 80) {
     await supabase.from('notifications').insert({
       user_id: profile.id,
       title:   'Foundation milestone reached',
-      body:    `Your foundation is now ${parsed.overallScore}% complete. Everything Maya creates for you just got better.`,
+      body:    `Your foundation is now ${overallScore}% complete. Everything Maya creates for you just got better.`,
       type:    'foundation_milestone',
       link:    '/dashboard/foundation',
       read:    false,
@@ -143,8 +157,8 @@ Return format exactly:
   }
 
   return NextResponse.json({
-    overallScore:  parsed.overallScore,
+    overallScore,
     fieldScores:   fieldScoreMap,
-    topWeakFields: parsed.topWeakFields,
+    topWeakFields,
   })
 }

@@ -47,6 +47,18 @@ export function computeSectionScore(
   return Math.round(avg)
 }
 
+/** Headline Foundation score — average of the six hub section scores (matches Strong/Needs work pills). */
+export function computeOverallFoundationScore(
+  fieldScores: Record<string, FieldScoreLike>,
+): number {
+  const sections = Object.keys(FOUNDATION_SECTION_KEY_FIELDS) as FoundationScoredSectionKey[]
+  const scores = sections
+    .map(section => computeSectionScore(fieldScores, section))
+    .filter((score): score is number => score != null)
+  if (scores.length === 0) return 0
+  return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+}
+
 /** Lowest-scored field in a section (for actionable block messages). */
 export function weakestScoredFieldInSection(
   fieldScores: Record<string, FieldScoreLike>,

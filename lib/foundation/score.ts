@@ -21,3 +21,42 @@ export const FIELD_EXPECTATIONS: Record<string, { label: string; minWords: numbe
   visualPaletteWords:    { label: 'Palette in words',            minWords: 0,  weight: 2  },
   visualMustNotDepict:   { label: 'Forbidden visuals',           minWords: 0,  weight: 3  },
 }
+
+export type FoundationFieldScore = { score: number; feedback: string | null }
+
+/** Merge model output with empty-answer zeros; retain previous scores when model omits a filled field. */
+export function mergeScoredFields(
+  parsed: Record<string, FoundationFieldScore>,
+  answersForScoring: Record<string, string>,
+  previous: Record<string, FoundationFieldScore> = {},
+): Record<string, FoundationFieldScore> {
+  const out: Record<string, FoundationFieldScore> = {}
+  for (const key of Object.keys(FIELD_EXPECTATIONS)) {
+    if (parsed[key]) {
+      out[key] = parsed[key]
+      continue
+    }
+    const answer = answersForScoring[key] ?? ''
+    if (!answer.trim()) {
+      out[key] = { score: 0, feedback: null }
+      continue
+    }
+    if (previous[key]) {
+      out[key] = previous[key]
+      continue
+    }
+    out[key] = { score: 0, feedback: null }
+  }
+  return out
+}
+
+export function topWeakFieldKeys(
+  fieldScores: Record<string, FoundationFieldScore>,
+  limit = 5,
+): string[] {
+  return Object.entries(fieldScores)
+    .filter(([, row]) => row.score < 70)
+    .sort((a, b) => a[1].score - b[1].score)
+    .slice(0, limit)
+    .map(([key]) => key)
+}

@@ -46,6 +46,7 @@ import {
 import { AGENTS, AGENT_COLORS } from '@/lib/agents/registry'
 import type { FoundationSectionKey } from '@/lib/agents/registry'
 import { isCommandCenterAgent } from '@/lib/agents/contentPosting'
+import type { FoundationScoredSectionKey } from '@/lib/foundation/sections'
 import {
   computeSectionScore,
   FOUNDATION_SECTION_KEY_FIELDS,
@@ -253,23 +254,19 @@ const AGENT_REGISTRY = Object.values(AGENTS).map(a => ({
 function sectionHealth(answers: Answers, fieldScores: Record<string, FieldScore>, key: SectionKey): Health {
   if (key === 'memory') return 'thin' // rendered as "Building"
 
-  const fields = SECTIONS.find(s => s.key === key)!.keyFields
-  const scored = fields.filter(f => fieldScores[f]?.score != null)
-
-  if (scored.length > 0) {
-    const avg = scored.reduce((s, f) => s + fieldScores[f].score, 0) / scored.length
-    if (avg >= 70) return 'strong'
-    if (avg >= 40) return 'needs_work'
+  const sectionAvg = computeSectionScore(fieldScores, key as FoundationScoredSectionKey)
+  if (sectionAvg != null) {
+    if (sectionAvg >= 70) return 'strong'
+    if (sectionAvg >= 40) return 'needs_work'
     return 'thin'
   }
 
-  // No scores yet — fill check
+  const fields = SECTIONS.find(s => s.key === key)!.keyFields
   const filled = fields.filter(f => {
     const v = (answers as unknown as Record<string, unknown>)[f]
     return Array.isArray(v) ? (v as string[]).filter(Boolean).length > 0 : Boolean(String(v ?? '').trim())
   })
   if (filled.length === 0) return 'thin'
-  if (filled.length >= fields.length) return 'needs_work' // filled — rescore pending
   return 'needs_work'
 }
 
@@ -470,11 +467,12 @@ function coerceHubAnswers(raw: Record<string, unknown>): Answers {
 }
 
 function StrengthCard({
-  score, healthMap, onRescore, rescoring,
+  score, healthMap, fieldScores, onRescore, rescoring,
   answersPreviousAt, onRestore, restoring,
 }: {
   score: number
   healthMap: Record<SectionKey, Health>
+  fieldScores: Record<string, FieldScore>
   onRescore: () => void
   rescoring: boolean
   answersPreviousAt: string | null
@@ -487,10 +485,13 @@ function StrengthCard({
     <div className="rounded-2xl border border-gray-100 bg-white p-5">
       <div className="flex items-center justify-between mb-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Foundation Strength</p>
-        <InfoTooltip text="Scored 0–100 by evaluating the depth and specificity of your answers across all foundation sections. Agents use this score to decide how confidently they can generate content on your behalf — higher score means more autonomous output." />
+        <InfoTooltip text="Your overall score is the average of your six Intelligence sections (numbers shown below). Strong means 70+ in that section. Reaching 100 requires highly specific, vivid answers in every section — not just filled fields." />
       </div>
       <p className="text-[32px] font-[500] leading-none mb-1" style={{ color }}>{score}</p>
-      <p className="text-xs text-text-soft mb-2">out of 100 · {scoreStatus(score)}</p>
+      <p className="text-xs text-text-soft mb-1">out of 100 · {scoreStatus(score)}</p>
+      <p className="text-[11px] text-text-soft leading-relaxed mb-3">
+        Average of your six sections below. Strong = 70+ per section; 100 = excellent specificity everywhere.
+      </p>
       <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden mb-4">
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${score}%`, backgroundColor: color }} />
       </div>
@@ -498,12 +499,16 @@ function StrengthCard({
       <div className="space-y-2 mb-4">
         {SECTIONS.filter(s => s.key !== 'memory').map(s => {
           const h = healthMap[s.key]
+          const sectionNum = computeSectionScore(fieldScores, s.key as FoundationScoredSectionKey)
           const dotColor = h === 'strong' ? '#10B981' : h === 'needs_work' ? '#F59E0B' : '#EF4444'
           const label = h === 'strong' ? 'Strong' : h === 'needs_work' ? 'Needs work' : 'Thin'
           return (
             <div key={s.key} className="flex items-center justify-between">
               <span className="text-xs text-text-sec">{s.title}</span>
               <div className="flex items-center gap-1.5">
+                {sectionNum != null && (
+                  <span className="text-[10px] text-text-soft tabular-nums">{sectionNum}</span>
+                )}
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor }} />
                 <span className="text-[11px] font-medium" style={{ color: dotColor }}>{label}</span>
               </div>
@@ -1805,6 +1810,9 @@ export default function FoundationHub({
               {currentScore} / 100
             </span>
           </div>
+          <p className="text-[11px] text-text-soft mb-4 leading-relaxed">
+            Overall score averages your six sections · Strong = 70+ per section · 100 = excellent specificity in every section
+          </p>
 
           {/* Tabs */}
           <div className="flex gap-1 overflow-x-auto">
@@ -1938,6 +1946,7 @@ export default function FoundationHub({
               <StrengthCard
                 score={currentScore}
                 healthMap={healthMap}
+                fieldScores={localFieldScores}
                 onRescore={handleRescore}
                 rescoring={rescoring}
                 answersPreviousAt={answersPreviousAt}
