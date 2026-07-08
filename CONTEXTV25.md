@@ -3,6 +3,13 @@
 
 Session log: `SESSION_2026-07-06.md`.
 
+**July 8 automation addendum:** Critical bug pass on the July 7 Foundation/team commits found and fixed:
+- Bulk approvals now use `requireWorkspaceOwner`, matching single approve/reject routes; active `team_members` rows are treated as the permission SSOT before stale profile owner flags.
+- Post-asset downloads validate storage paths against the resolved owner workspace id, so team members can download workspace-scoped assets they uploaded/generated without opening cross-tenant paths.
+- Foundation ingest now returns 500 if `foundation_knowledge` insert fails or returns no id; the Hub no longer lets users review/save a non-persisted upload silently.
+
+Validation run: `npx tsc --noEmit`, `npx tsx scripts/verify-knowledge-classification.ts`, `npm run build`.
+
 ---
 
 ## Repository state

@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const { data: knowledgeRow } = await supabase
+    const { data: knowledgeRow, error: knowledgeError } = await supabase
       .from('foundation_knowledge')
       .insert({
         profile_id:        workspaceId,
@@ -106,6 +106,15 @@ export async function POST(req: Request) {
       .select('id')
       .single()
 
+    if (knowledgeError || !knowledgeRow?.id) {
+      console.error('[foundation-ingest-diag] ingest: knowledge insert failed', {
+        type,
+        sourceName,
+        message: knowledgeError?.message ?? 'missing inserted knowledge id',
+      })
+      return NextResponse.json({ error: 'Unable to save uploaded knowledge.' }, { status: 500 })
+    }
+
     // Bump count on profile (best-effort)
     await supabase
       .from('profiles')
@@ -113,7 +122,7 @@ export async function POST(req: Request) {
       .eq('id', workspaceId)
 
     return NextResponse.json({
-      id: knowledgeRow?.id ?? null,
+      id: knowledgeRow.id,
       extractionResult,
       classification,
     })

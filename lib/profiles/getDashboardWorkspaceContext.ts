@@ -32,10 +32,7 @@ export async function getDashboardWorkspaceContext(
     if (owner) workspaceProfile = owner as DashboardProfile
   }
 
-  const isTeamMember =
-    memberProfile.is_account_owner === false &&
-    !!memberProfile.account_id &&
-    workspaceId !== memberProfile.id
+  const isTeamMember = workspaceId !== memberProfile.id
 
   return {
     memberProfile,
