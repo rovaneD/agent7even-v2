@@ -64,21 +64,30 @@ export function runTrackerDoneState(
   agent: string,
   contentFlow?: ContentPostingFlow,
   requiresApproval?: boolean,
+  isTeamMember?: boolean,
 ): Pick<RunTracker, 'message' | 'detail' | 'primaryHref' | 'primaryLabel'> {
   if (agent === 'content_posting' && contentFlow === 'single') {
     return {
       message: 'Done — your caption is ready.',
-      detail: 'It is in Approvals until you approve it. The Posts page only shows drafts after approval.',
-      primaryHref: `/dashboard/agents/approvals?task=${taskId}&queue=post`,
-      primaryLabel: 'Review in Approvals',
+      detail: isTeamMember
+        ? 'It was sent to the account owner\'s approval queue. They will review it before anything publishes.'
+        : 'It is in Approvals until you approve it. The Posts page only shows drafts after approval.',
+      primaryHref: isTeamMember
+        ? `/dashboard/agents/${agent}/outputs?task=${taskId}`
+        : `/dashboard/agents/approvals?task=${taskId}&queue=post`,
+      primaryLabel: isTeamMember ? 'View your output' : 'Review in Approvals',
     }
   }
   if (requiresApproval) {
     return {
       message: 'Done — output ready for review.',
-      detail: 'Open Approvals to approve or edit before it goes anywhere.',
-      primaryHref: `/dashboard/agents/approvals?task=${taskId}`,
-      primaryLabel: 'Review in Approvals',
+      detail: isTeamMember
+        ? 'Sent to the account owner\'s approval queue — they\'ll review and approve before it goes anywhere.'
+        : 'Open Approvals to approve or edit before it goes anywhere.',
+      primaryHref: isTeamMember
+        ? `/dashboard/agents/${agent}/outputs?task=${taskId}`
+        : `/dashboard/agents/approvals?task=${taskId}`,
+      primaryLabel: isTeamMember ? 'View your output' : 'Review in Approvals',
     }
   }
   return {

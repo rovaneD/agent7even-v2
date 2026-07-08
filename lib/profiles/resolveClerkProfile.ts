@@ -81,6 +81,38 @@ export async function resolveWorkspaceClerkProfile<T extends CanonicalProfileRow
   if (!member) return null
 
   if (member.is_account_owner !== false || !member.account_id) {
+    if (member.is_account_owner !== true) {
+      const accountId = await supabase
+        .from('team_members')
+        .select('account_id')
+        .eq('member_profile_id', member.id)
+        .eq('status', 'active')
+        .maybeSingle()
+        .then(({ data }) => (data?.account_id as string | null) ?? null)
+
+      if (accountId) {
+        const { data: owner } = await supabase
+          .from('profiles')
+          .select(selectFields)
+          .eq('id', accountId)
+          .maybeSingle()
+
+        if (owner) {
+          await supabase
+            .from('profiles')
+            .update({
+              account_id: accountId,
+              is_account_owner: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', member.id)
+            .or('account_id.is.null,is_account_owner.is.null,is_account_owner.eq.true')
+
+          return owner as unknown as T
+        }
+      }
+    }
+
     return member
   }
 

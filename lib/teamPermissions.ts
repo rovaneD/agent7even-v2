@@ -32,14 +32,15 @@ export async function getTeamPermissions(profileId: string): Promise<TeamPermiss
     }
   }
 
-  // Team member — fetch their permissions
+  // Team member — fetch their permissions (team_members is SSOT when profile link is stale)
   const { data: membership } = await supabase
     .from('team_members')
-    .select('permissions, role')
-    .eq('account_id', profile.account_id)
+    .select('permissions, role, account_id')
     .eq('member_profile_id', profileId)
     .eq('status', 'active')
-    .single()
+    .maybeSingle()
+
+  const accountId = profile.account_id ?? (membership?.account_id as string | null) ?? null
 
   if (!membership) {
     // No active membership found — default to minimal access
@@ -54,7 +55,7 @@ export async function getTeamPermissions(profileId: string): Promise<TeamPermiss
         deliverables: false,
         support: true,
       },
-      accountId: profile.account_id,
+      accountId,
     }
   }
 
@@ -65,6 +66,6 @@ export async function getTeamPermissions(profileId: string): Promise<TeamPermiss
       ...membership.permissions,
       support: true, // Always visible
     },
-    accountId: profile.account_id,
+    accountId,
   }
 }

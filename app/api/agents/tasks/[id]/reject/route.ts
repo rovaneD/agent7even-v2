@@ -9,6 +9,7 @@ import {
   workspaceActorId,
   workspaceDataUserId,
 } from '@/lib/profiles/workspaceSession'
+import { requireWorkspaceOwner } from '@/lib/team/requireWorkspaceOwner'
 
 export async function POST(
   req: Request,
@@ -23,6 +24,14 @@ export async function POST(
 
   const workspaceId = workspaceDataUserId(session)
   const memberId = workspaceActorId(session)
+
+  const ownerCheck = await requireWorkspaceOwner(supabase, memberId, 'owner_required')
+  if (!ownerCheck.ok) {
+    return NextResponse.json(
+      { error: ownerCheck.code, message: ownerCheck.error },
+      { status: ownerCheck.status },
+    )
+  }
 
   const rejectionText = feedbackNote ?? note ?? null
 

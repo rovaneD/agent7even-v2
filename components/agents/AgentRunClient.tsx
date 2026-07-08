@@ -33,6 +33,7 @@ interface Props {
   agentId: AgentId
   companyName: string
   profileWebsiteUrl?: string | null
+  isTeamMember?: boolean
 }
 
 function relativeTime(iso: string | null): string {
@@ -49,7 +50,12 @@ function relativeTime(iso: string | null): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function AgentRunClient({ agentId, companyName, profileWebsiteUrl = null }: Props) {
+export default function AgentRunClient({
+  agentId,
+  companyName,
+  profileWebsiteUrl = null,
+  isTeamMember = false,
+}: Props) {
   const agent = AGENTS[agentId]
   const config = AGENT_GUIDED_CONFIG[agentId]
 
@@ -181,7 +187,7 @@ export default function AgentRunClient({ agentId, companyName, profileWebsiteUrl
           taskId,
           agent: agentId,
           phase: 'done',
-          ...runTrackerDoneState(taskId, agentId, undefined, task.requires_approval),
+          ...runTrackerDoneState(taskId, agentId, undefined, task.requires_approval, isTeamMember),
         })
         return
       }

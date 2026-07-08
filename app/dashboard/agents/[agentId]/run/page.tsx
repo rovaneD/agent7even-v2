@@ -1,7 +1,8 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { notFound, redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { isAgentRunPageId } from '@/lib/agents/guidedSetup'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import AgentRunShell from '@/components/agents/AgentRunShell'
 import AgentRunClient from '@/components/agents/AgentRunClient'
 
@@ -24,22 +25,20 @@ export default async function AgentRunPage({
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, company_name, website_url')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
+  const user = await currentUser()
+  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
   if (!profile) redirect('/foundation')
+
+  const workspaceProfile = workspace?.workspaceProfile ?? profile
 
   return (
     <AgentRunShell agentId={rawAgentId}>
       <AgentRunClient
         agentId={rawAgentId}
-        companyName={profile.company_name ?? 'Your business'}
-        profileWebsiteUrl={profile.website_url ?? null}
+        companyName={workspaceProfile.company_name ?? 'Your business'}
+        profileWebsiteUrl={workspaceProfile.website_url ?? null}
+        isTeamMember={workspace?.isTeamMember ?? false}
       />
     </AgentRunShell>
   )
