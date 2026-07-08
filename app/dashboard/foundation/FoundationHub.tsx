@@ -481,36 +481,58 @@ function StrengthCard({
 }) {
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
   const color = barColor(score)
+
+  function sectionDot(h: Health): string {
+    if (h === 'strong') return '#10B981'
+    if (h === 'needs_work') return '#F59E0B'
+    return '#EF4444'
+  }
+
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-5">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Foundation Strength</p>
-        <InfoTooltip text="Your overall score is the average of your six Intelligence sections (numbers shown below). Strong means 70+ in that section. Reaching 100 requires highly specific, vivid answers in every section — not just filled fields." />
-      </div>
-      <p className="text-[32px] font-[500] leading-none mb-1" style={{ color }}>{score}</p>
-      <p className="text-xs text-text-soft mb-1">out of 100 · {scoreStatus(score)}</p>
-      <p className="text-[11px] text-text-soft leading-relaxed mb-3">
-        Average of your six sections below. Strong = 70+ per section; 100 = excellent specificity everywhere.
-      </p>
-      <div className="h-1.5 w-full bg-surface-muted rounded-full overflow-hidden mb-4">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${score}%`, backgroundColor: color }} />
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-soft">Foundation Strength</p>
+        <InfoTooltip text="Strong means 70+ in that section. Excellent means 100 — highly specific, vivid answers in every section, not just filled fields." />
       </div>
 
-      <div className="space-y-2 mb-4">
+      <div className="flex items-baseline gap-1 mb-1">
+        <span className="text-[36px] font-bold leading-none tabular-nums" style={{ color }}>{score}</span>
+        <span className="text-[13px] font-normal text-text-soft">/ 100</span>
+      </div>
+      <p className="text-[12px] font-normal text-text-sec mb-2">{scoreStatus(score)}</p>
+      <p className="text-[11px] leading-relaxed mb-3 text-text-sec">
+        <span className="font-bold">Average of your six sections below.</span>
+        <br />
+        <span className="font-bold">Strong</span>
+        <span className="font-normal"> = 70+ per section;</span>
+        <br />
+        <span className="font-bold">Excellent</span>
+        <span className="font-normal"> = 100 specificity everywhere.</span>
+      </p>
+
+      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mb-4">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${Math.min(score, 100)}%`, backgroundColor: color }}
+        />
+      </div>
+
+      <div className="space-y-2.5 mb-5">
         {SECTIONS.filter(s => s.key !== 'memory').map(s => {
           const h = healthMap[s.key]
           const sectionNum = computeSectionScore(fieldScores, s.key as FoundationScoredSectionKey)
-          const dotColor = h === 'strong' ? '#10B981' : h === 'needs_work' ? '#F59E0B' : '#EF4444'
-          const label = h === 'strong' ? 'Strong' : h === 'needs_work' ? 'Needs work' : 'Thin'
           return (
-            <div key={s.key} className="flex items-center justify-between">
-              <span className="text-xs text-text-sec">{s.title}</span>
-              <div className="flex items-center gap-1.5">
-                {sectionNum != null && (
-                  <span className="text-[10px] text-text-soft tabular-nums">{sectionNum}</span>
-                )}
-                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor }} />
-                <span className="text-[11px] font-medium" style={{ color: dotColor }}>{label}</span>
+            <div key={s.key} className="flex items-center justify-between gap-3">
+              <span className="text-[12px] font-normal text-text-sec truncate">{s.title}</span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-[12px] font-bold tabular-nums text-text">
+                  {sectionNum ?? '—'}
+                </span>
+                <div
+                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: sectionDot(h) }}
+                  title={h === 'strong' ? 'Strong' : h === 'needs_work' ? 'Needs work' : 'Thin'}
+                />
               </div>
             </div>
           )
@@ -520,10 +542,10 @@ function StrengthCard({
       <button
         onClick={onRescore}
         disabled={rescoring || restoring}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-text-sec hover:border-gray-400 hover:text-text transition-colors disabled:opacity-40"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-semibold border border-gray-200 text-text-sec hover:border-gray-300 hover:text-text transition-colors disabled:opacity-40"
       >
         {rescoring ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-        Rescore my foundation
+        Rescore foundation
       </button>
 
       {answersPreviousAt && !showRestoreConfirm && (
@@ -531,12 +553,12 @@ function StrengthCard({
           <button
             onClick={() => setShowRestoreConfirm(true)}
             disabled={rescoring || restoring}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-text-sec hover:border-gray-400 hover:text-text transition-colors disabled:opacity-40"
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[12px] font-semibold border border-gray-200 text-text-soft hover:border-gray-300 hover:text-text-sec transition-colors disabled:opacity-40"
           >
             {restoring ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}
             Restore previous version
           </button>
-          <p className="text-[11px] text-text-soft text-center mt-1">
+          <p className="text-[10px] font-normal text-text-soft text-center mt-1">
             from {formatSnapshotRelative(answersPreviousAt)}
           </p>
         </div>
@@ -1797,7 +1819,7 @@ export default function FoundationHub({
             </div>
           </div>
 
-          {/* Strength bar */}
+          {/* Strength bar — compact; full breakdown in sidebar */}
           <div className="flex items-center gap-3 mb-4">
             <span className="text-[12px] text-text-soft whitespace-nowrap">Foundation strength</span>
             <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
@@ -1806,13 +1828,10 @@ export default function FoundationHub({
                 style={{ width: `${currentScore}%`, backgroundColor: fillColor }}
               />
             </div>
-            <span className="text-[12px] font-[500] whitespace-nowrap" style={{ color: fillColor }}>
+            <span className="text-[12px] font-[500] whitespace-nowrap tabular-nums" style={{ color: fillColor }}>
               {currentScore} / 100
             </span>
           </div>
-          <p className="text-[11px] text-text-soft mb-4 leading-relaxed">
-            Overall score averages your six sections · Strong = 70+ per section · 100 = excellent specificity in every section
-          </p>
 
           {/* Tabs */}
           <div className="flex gap-1 overflow-x-auto">
