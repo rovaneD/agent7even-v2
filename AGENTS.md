@@ -56,7 +56,7 @@ Always use `'2026-04-22.dahlia'` cast as `as any`. **Never use `'2025-04-30.basi
 Next.js 16 uses `proxy.ts` not `middleware.ts`.
 
 ## Key third-party notes
-- **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026). Publer is dashboard-first, also not a multi-tenant fit. **Zernio** is the integrated publisher (`lib/social/publisher.ts`). **DPA:** Agent7even signed Jul 2026 — await Zernio confirmation before onboarding client social accounts; SOC 2 Type II + GDPR attestation on file under trust-center NDA. Tenant isolation (scoped keys) still pending written answer. Details: `zernio_social_evaluation_backlog.md`, `CONTEXTV22.md` §8.
+- **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026). Publer is dashboard-first, also not a multi-tenant fit. **Zernio** is the integrated publisher (`lib/social/publisher.ts`). **DPA:** Signed both sides (Trust Center, Jul 2026). **Go-live (Jul 8, 2026):** Zernio (Elean) cleared onboarding paying customers' live social accounts — no longer limited to internal test accounts. Tenant isolation / security questionnaire answers still in progress via direct chat (not portal). Details: `vendor/zernio/`, `zernio_social_evaluation_backlog.md`, `CONTEXTV22.md` §8.
 - **Instagram Lucide icon** — does not exist. Use `Hash` icon instead.
 
 ## This app (agent7even-v2) — experimental
@@ -107,6 +107,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - `35_notifications_type_check.sql` — `approval_pending` in notifications CHECK (**applied**).
 - `36_foundation_proposal_decisions.sql` — proposal user decisions (**run if not applied**).
 - `37_foundation_layers.sql` — approved Foundation evolution layers (**run if not applied**).
+- `41_foundation_knowledge_classification.sql` — upload purpose tags on `foundation_knowledge` (**applied Jul 8, 2026**).
 
 ## Key implementation notes (July 2026)
 - **Canonical profile resolution:** `lib/profiles/resolveClerkProfile.ts` — use for any Clerk-scoped API route or page that reads `profiles`. Billing: `getBillingProfileForClerkUser`. Dashboard: `getDashboardProfileForClerkUser`. Analytics SSR: `getAnalyticsProfileForClerkUser`. GA OAuth: `lib/analytics/gaOAuthProfile.ts` (`saveGaOAuthTokensForClerkUser` saves by profile **id**). Never `.eq('clerk_user_id').single()` when duplicates may exist.

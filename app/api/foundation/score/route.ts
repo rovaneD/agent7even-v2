@@ -100,6 +100,18 @@ Return format exactly:
     .from('foundation_field_scores')
     .upsert(fieldScoreRows, { onConflict: 'user_id,field_key' })
 
+  const { data: allScores } = await supabase
+    .from('foundation_field_scores')
+    .select('field_key, score, feedback')
+    .eq('user_id', profile.id)
+
+  const fieldScoreMap = Object.fromEntries(
+    (allScores ?? []).map(row => [
+      row.field_key as string,
+      { score: row.score as number, feedback: (row.feedback as string | null) ?? null },
+    ]),
+  )
+
   // Update profile
   await supabase
     .from('profiles')
@@ -132,7 +144,7 @@ Return format exactly:
 
   return NextResponse.json({
     overallScore:  parsed.overallScore,
-    fieldScores:   parsed.fieldScores,
+    fieldScores:   fieldScoreMap,
     topWeakFields: parsed.topWeakFields,
   })
 }
