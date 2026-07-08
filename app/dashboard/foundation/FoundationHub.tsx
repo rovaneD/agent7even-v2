@@ -592,6 +592,7 @@ const INGEST_FAILURE_SUMMARIES = new Set([
 ])
 
 const DEFAULT_INGEST_ERROR = "Maya couldn't read this — try another file or paste the text directly."
+const DEFAULT_KNOWLEDGE_SAVE_ERROR = "Maya couldn't save this knowledge item. Please try again."
 
 function UploadCard({
   onKnowledgeAdded,
@@ -660,9 +661,14 @@ function UploadCard({
         return
       }
 
+      if (!data.id) {
+        showIngestError(DEFAULT_KNOWLEDGE_SAVE_ERROR)
+        return
+      }
+
       setResult(er)
       setConfirmSourceName(sourceName)
-      setIngestId(data.id ?? null)
+      setIngestId(data.id)
       const nextClassification = data.classification ?? {
         purpose: 'unknown' as KnowledgeSourcePurpose,
         confidence: 'low' as const,
@@ -718,7 +724,12 @@ function UploadCard({
     result.items.forEach((item, i) => {
       if (checked[i]) confirmedFields[item.field] = item.value
     })
-    if (Object.keys(confirmedFields).length > 0 && ingestId) {
+    if (Object.keys(confirmedFields).length > 0) {
+      if (!ingestId) {
+        setSaving(false)
+        showIngestError(DEFAULT_KNOWLEDGE_SAVE_ERROR)
+        return
+      }
       const res = await fetch(`/api/foundation/knowledge/${encodeURIComponent(ingestId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -750,6 +761,9 @@ function UploadCard({
         setSaving(false)
         return
       }
+      setSaving(false)
+      showIngestError(DEFAULT_KNOWLEDGE_SAVE_ERROR)
+      return
     }
     setSaving(false)
     setPhase('idle')

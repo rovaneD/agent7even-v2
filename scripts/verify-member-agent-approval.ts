@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { resolveWorkspaceProfileId } from '../lib/profiles/workspaceProfile'
 import { listPendingApprovalTasks } from '../lib/agents/pendingApprovals'
+import { getTeamPermissions } from '../lib/teamPermissions'
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -54,6 +55,13 @@ async function main() {
     .eq('id', memberId)
     .single()
   console.log(`Profile link: account_id=${memberProfile?.account_id ?? 'null'} is_account_owner=${memberProfile?.is_account_owner ?? 'null'}`)
+
+  const memberPermissions = await getTeamPermissions(memberId)
+  console.log(`Permission guard: isOwner=${memberPermissions.isOwner} accountId=${memberPermissions.accountId ?? 'null'}`)
+  if (memberPermissions.isOwner || memberPermissions.accountId !== ownerId) {
+    console.log('\nFAIL · active member resolves as owner or wrong account — owner-only approval guards can be bypassed')
+    process.exit(1)
+  }
 
   const pending = await listPendingApprovalTasks(sb, ownerId)
   console.log(`\nOwner pending approval tasks: ${pending.length}`)

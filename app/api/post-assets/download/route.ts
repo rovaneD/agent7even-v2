@@ -1,8 +1,8 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration'
 import { downloadPostAsset } from '@/lib/postAssets'
 import { mimeFromFilename, sanitizeFilename } from '@/lib/postAssetLimits'
+import { requireWorkspaceDataUserId } from '@/lib/profiles/workspaceSession'
 import { createServiceClient } from '@/lib/supabase/server'
 
 type Body = {
@@ -13,17 +13,9 @@ type Body = {
 
 /** Download an owned post-assets file (generated images, uploads, saved assets). */
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const workspaceId = await requireWorkspaceDataUserId(supabase)
+  if (!workspaceId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let body: Body
   try {
@@ -37,7 +29,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'storagePath required' }, { status: 400 })
   }
 
-  if (!assertPostAssetOwnedByProfile(storagePath, profile.id)) {
+  if (!assertPostAssetOwnedByProfile(storagePath, workspaceId)) {
     return NextResponse.json({ error: 'invalid_storage_path' }, { status: 403 })
   }
 
