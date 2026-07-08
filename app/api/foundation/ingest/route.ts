@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { extractText, interpretExtraction } from '@/lib/foundation/extract'
+import { classifyKnowledgeSource } from '@/lib/foundation/classifyKnowledge'
 import { resolveFoundationWorkspaceForClerkUser } from '@/lib/foundation/resolveFoundationWorkspace'
 
 const BUCKET = 'foundation-knowledge'
@@ -42,6 +43,12 @@ export async function POST(req: Request) {
     if (!session) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     const workspaceId = session.workspaceId
 
+    const { data: workspaceProfile } = await supabase
+      .from('profiles')
+      .select('website_url')
+      .eq('id', workspaceId)
+      .maybeSingle()
+
     // Extract raw text
     const rawText = await extractText(type, content, filename)
     if (!rawText.trim()) {
@@ -54,9 +61,13 @@ export async function POST(req: Request) {
       })
     }
 
-    // Interpret into Foundation fields
+    // Interpret into Foundation fields + classify source purpose (parallel)
     const sourceName = type === 'url' ? content : (filename ?? `${type} upload`)
-    const extractionResult = await interpretExtraction(rawText, sourceName)
+    const ownerWebsiteUrl = (workspaceProfile?.website_url as string | null) ?? null
+    const [extractionResult, classification] = await Promise.all([
+      interpretExtraction(rawText, sourceName),
+      classifyKnowledgeSource(rawText, type, sourceName, ownerWebsiteUrl),
+    ])
 
     // Store the knowledge item (no file binary stored — only extracted text)
     let storagePath: string | null = null
@@ -88,6 +99,9 @@ export async function POST(req: Request) {
         raw_content:       rawText.slice(0, 50000),
         extraction_result: extractionResult,
         storage_path:      storagePath,
+        source_purpose:    classification.purpose,
+        purpose_confidence: classification.confidence,
+        purpose_reason:    classification.reason,
       })
       .select('id')
       .single()
@@ -101,6 +115,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       id: knowledgeRow?.id ?? null,
       extractionResult,
+      classification,
     })
   } catch (e) {
     console.error('[ingest] error:', e)

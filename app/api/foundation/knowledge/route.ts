@@ -14,7 +14,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('foundation_knowledge')
-      .select('id, source_type, source_name, extraction_result, confirmed_fields, created_at')
+      .select('id, source_type, source_name, source_purpose, purpose_confidence, purpose_reason, extraction_result, confirmed_fields, created_at')
       .eq('profile_id', session.workspaceId)
       .order('created_at', { ascending: false })
 

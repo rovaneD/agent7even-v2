@@ -149,6 +149,15 @@ async function main() {
     ),
   )
 
+  const classifiedRows = knowledgeRows.filter(row => row.source_purpose)
+  checks.push(
+    check(
+      'Knowledge classification tags present',
+      knowledgeRows.length === 0 || classifiedRows.length === knowledgeRows.length || agentKnowledge.includes('Classification:'),
+      `${classifiedRows.length}/${knowledgeRows.length} rows tagged · competitor blocks ${knowledgeRows.filter(r => r.source_purpose === 'competitor').length}`,
+    ),
+  )
+
   // Team context (owner)
   const ownerTeam = await loadWorkspaceTeamContext(sb, ownerId, ownerId)
   checks.push(

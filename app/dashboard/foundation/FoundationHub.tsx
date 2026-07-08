@@ -8,6 +8,13 @@ import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
 import { displayFieldValue } from '@/lib/maya/formStateContext'
 import type { FoundationMemoryResponse, AgentMemoryStat } from '@/lib/foundation/memory'
 import { competitorEntries, normalizeCompetitorSlots } from '@/lib/foundation/competitorsArray'
+import {
+  KNOWLEDGE_PURPOSE_BADGE_CLASS,
+  KNOWLEDGE_PURPOSE_LABELS,
+  KNOWLEDGE_SOURCE_PURPOSES,
+  type KnowledgeClassification,
+  type KnowledgeSourcePurpose,
+} from '@/lib/foundation/knowledgePurpose'
 
 // Client-side extraction types (mirrored from lib/foundation/extract.ts)
 type ExtractionItem = {
@@ -22,6 +29,9 @@ type KnowledgeItem = {
   id: string
   source_type: string
   source_name: string | null
+  source_purpose?: KnowledgeSourcePurpose | null
+  purpose_confidence?: string | null
+  purpose_reason?: string | null
   extraction_result: ExtractionResult | null
   confirmed_fields: unknown
   created_at: string
@@ -588,7 +598,10 @@ function UploadCard({
   onKnowledgeConfirmed,
 }: {
   onKnowledgeAdded: (item: KnowledgeItem) => void
-  onKnowledgeConfirmed: (id: string, confirmedFields: Record<string, unknown>) => void
+  onKnowledgeConfirmed: (id: string, patch: {
+    confirmed_fields: Record<string, unknown>
+    source_purpose?: KnowledgeSourcePurpose
+  }) => void
 }) {
   const [phase, setPhase] = useState<'idle' | 'url-input' | 'processing' | 'confirm' | 'success' | 'error'>('idle')
   const [dragOver, setDragOver] = useState(false)
@@ -599,6 +612,8 @@ function UploadCard({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [checked, setChecked] = useState<Record<number, boolean>>({})
+  const [classification, setClassification] = useState<KnowledgeClassification | null>(null)
+  const [purposeOverride, setPurposeOverride] = useState<KnowledgeSourcePurpose>('unknown')
   const [saving, setSaving] = useState(false)
   const [ingesting, setIngesting] = useState(false)
   const ingestInFlight = useRef(false)
@@ -624,6 +639,7 @@ function UploadCard({
       })
       const data = await res.json().catch(() => ({})) as {
         extractionResult?: ExtractionResult
+        classification?: KnowledgeClassification
         id?: string
         error?: string
       }
@@ -647,6 +663,13 @@ function UploadCard({
       setResult(er)
       setConfirmSourceName(sourceName)
       setIngestId(data.id ?? null)
+      const nextClassification = data.classification ?? {
+        purpose: 'unknown' as KnowledgeSourcePurpose,
+        confidence: 'low' as const,
+        reason: 'Classification pending.',
+      }
+      setClassification(nextClassification)
+      setPurposeOverride(nextClassification.purpose)
       const initial: Record<number, boolean> = {}
       er.items.forEach((item, i) => { initial[i] = item.confidence !== 'low' })
       setChecked(initial)
@@ -656,6 +679,9 @@ function UploadCard({
           id: data.id,
           source_type: type,
           source_name: sourceName,
+          source_purpose: nextClassification.purpose,
+          purpose_confidence: nextClassification.confidence,
+          purpose_reason: nextClassification.reason,
           extraction_result: er,
           confirmed_fields: null,
           created_at: new Date().toISOString(),
@@ -696,18 +722,29 @@ function UploadCard({
       const res = await fetch(`/api/foundation/knowledge/${encodeURIComponent(ingestId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ confirmed_fields: confirmedFields }),
+        body: JSON.stringify({
+          confirmed_fields: confirmedFields,
+          source_purpose: purposeOverride,
+          purpose_confidence: 'high',
+          purpose_reason: classification?.reason ?? KNOWLEDGE_PURPOSE_LABELS[purposeOverride],
+        }),
       }).catch(() => null)
       if (res?.ok) {
-        onKnowledgeConfirmed(ingestId, confirmedFields)
+        onKnowledgeConfirmed(ingestId, {
+          confirmed_fields: confirmedFields,
+          source_purpose: purposeOverride,
+        })
         const n = Object.keys(confirmedFields).length
         setSuccessMessage(
-          `${n} field${n !== 1 ? 's' : ''} saved to Knowledge — agents will pull from this when generating content. Open Intelligence to edit your business profile directly.`,
+          purposeOverride === 'competitor'
+            ? `${n} competitor reference field${n !== 1 ? 's' : ''} saved to Knowledge — reference only, not your Foundation profile. Agents will treat this as competitor intel.`
+            : `${n} field${n !== 1 ? 's' : ''} saved to Knowledge — agents will pull from this when generating content. Open Intelligence to edit your business profile directly.`,
         )
         setPhase('success')
         setResult(null)
         setConfirmSourceName(null)
         setIngestId(null)
+        setClassification(null)
         setUrlValue('')
         setErrorMessage(null)
         setSaving(false)
@@ -728,7 +765,11 @@ function UploadCard({
     setResult(null)
     setConfirmSourceName(null)
     setIngestId(null)
+    setClassification(null)
   }
+
+  const activePurpose = purposeOverride
+  const purposeBadgeClass = KNOWLEDGE_PURPOSE_BADGE_CLASS[activePurpose]
 
   const confirmedCount = Object.values(checked).filter(Boolean).length
 
@@ -796,6 +837,32 @@ function UploadCard({
           <p className="text-[11px] font-medium text-text-soft mb-2 truncate" title={confirmSourceName}>
             From: <span className="text-text-sec">{confirmSourceName}</span>
           </p>
+        )}
+        {classification && (
+          <div className={`rounded-xl border px-3 py-2.5 mb-3 ${purposeBadgeClass}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+              <p className="text-[11px] font-semibold">
+                Classified as: {KNOWLEDGE_PURPOSE_LABELS[activePurpose]}
+              </p>
+              <select
+                value={activePurpose}
+                onChange={e => setPurposeOverride(e.target.value as KnowledgeSourcePurpose)}
+                className="text-[11px] rounded-lg border border-gray-200 bg-white px-2 py-1 text-text-sec"
+              >
+                {KNOWLEDGE_SOURCE_PURPOSES.map(purpose => (
+                  <option key={purpose} value={purpose}>{KNOWLEDGE_PURPOSE_LABELS[purpose]}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-[11px] leading-relaxed opacity-90">
+              {classification.reason}
+            </p>
+            {activePurpose === 'competitor' && (
+              <p className="text-[11px] mt-1.5 leading-relaxed font-medium">
+                Competitor material stays reference-only — it will not update your Foundation profile.
+              </p>
+            )}
+          </div>
         )}
         <p className="text-[11px] text-text-sec mb-3 leading-relaxed">{result.summary}</p>
         {result.items.length === 0 ? (
@@ -1011,11 +1078,16 @@ function KnowledgeTab({
                       : <FileText size={14} className="text-text-soft" />}
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                       <p className="text-[13px] font-semibold text-text truncate">{item.source_name ?? 'Untitled'}</p>
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-text-soft bg-surface-muted px-1.5 py-0.5 rounded flex-shrink-0">
                         {SOURCE_TYPE_LABEL[item.source_type] ?? item.source_type}
                       </span>
+                      {item.source_purpose && (
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border flex-shrink-0 ${KNOWLEDGE_PURPOSE_BADGE_CLASS[item.source_purpose]}`}>
+                          {KNOWLEDGE_PURPOSE_LABELS[item.source_purpose]}
+                        </span>
+                      )}
                     </div>
                     {item.extraction_result?.summary && (
                       <p className="text-[12px] text-text-sec leading-relaxed">{item.extraction_result.summary}</p>
@@ -1560,9 +1632,16 @@ export default function FoundationHub({
     setKnowledgeItems(prev => prev.filter(k => k.id !== id))
   }, [])
 
-  const handleKnowledgeConfirmed = useCallback((id: string, confirmedFields: Record<string, unknown>) => {
+  const handleKnowledgeConfirmed = useCallback((id: string, patch: {
+    confirmed_fields: Record<string, unknown>
+    source_purpose?: KnowledgeSourcePurpose
+  }) => {
     setKnowledgeItems(prev =>
-      prev.map(item => (item.id === id ? { ...item, confirmed_fields: confirmedFields } : item)),
+      prev.map(item => (item.id === id ? {
+        ...item,
+        confirmed_fields: patch.confirmed_fields,
+        ...(patch.source_purpose ? { source_purpose: patch.source_purpose } : {}),
+      } : item)),
     )
   }, [])
 
