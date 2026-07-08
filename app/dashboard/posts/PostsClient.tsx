@@ -68,6 +68,7 @@ interface Props {
   accounts: Account[]
   pendingPostApprovalCount?: number
   lifecycleCounts?: ContentLifecycleCounts
+  isTeamMember?: boolean
 }
 
 // ── Platform meta ─────────────────────────────────────────────────────────────
@@ -143,6 +144,7 @@ export default function PostsClient({
   accounts: initialAccounts,
   pendingPostApprovalCount = 0,
   lifecycleCounts,
+  isTeamMember = false,
 }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -341,6 +343,8 @@ export default function PostsClient({
       if (!res.ok) {
         if (json.error === 'zernio_not_configured') {
           setError('Social publishing is not configured on this server. Contact support if this persists.')
+        } else if (json.error === 'active_plan_required') {
+          setError('Your workspace plan is not active. Ask the account owner to check billing in Settings.')
         } else if (json.error === 'zernio_api_error') {
           setError('Could not load your posts. Try again in a moment.')
         } else {
@@ -690,7 +694,7 @@ export default function PostsClient({
           <p className="text-[14px] text-text-sec mt-1">Manage your scheduled and published content</p>
         </div>
         <div className="flex items-center gap-2">
-          {isLive && (
+          {isLive && !isTeamMember && (
             <button
               type="button"
               onClick={() => setConnectOpen(true)}

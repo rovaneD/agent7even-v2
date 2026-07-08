@@ -101,6 +101,7 @@ export default async function PostsPage() {
         accounts={accounts}
         pendingPostApprovalCount={pendingPostApprovalCount}
         lifecycleCounts={lifecycleCounts}
+        isTeamMember={workspace?.isTeamMember ?? false}
       />
     </Suspense>
   )

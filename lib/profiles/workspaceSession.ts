@@ -54,7 +54,7 @@ export type WorkspaceAuthContext = {
   email: string | null
 }
 
-/** Session plus Clerk identifiers — use when loading workspace-scoped profile rows by Clerk user. */
+/** Resolve session plus Clerk identifiers — use when loading workspace-scoped profile rows by Clerk user. */
 export async function getWorkspaceAuthContext(
   supabase: SupabaseClient,
 ): Promise<WorkspaceAuthContext | null> {
@@ -65,4 +65,24 @@ export async function getWorkspaceAuthContext(
   const session = await getWorkspaceSessionForClerkUser(supabase, userId, email)
   if (!session) return null
   return { session, clerkUserId: userId, email }
+}
+
+/** Workspace data tenancy key for the signed-in Clerk user (API routes). */
+export async function resolveWorkspaceDataUserIdForClerkUser(
+  supabase: SupabaseClient,
+  clerkUserId: string,
+  email?: string | null,
+): Promise<string | null> {
+  const session = await getWorkspaceSessionForClerkUser(supabase, clerkUserId, email)
+  if (!session) return null
+  return workspaceDataUserId(session)
+}
+
+/** Workspace data tenancy key from the current request (API routes). */
+export async function requireWorkspaceDataUserId(
+  supabase: SupabaseClient,
+): Promise<string | null> {
+  const ctx = await getWorkspaceAuthContext(supabase)
+  if (!ctx) return null
+  return workspaceDataUserId(ctx.session)
 }

@@ -1,8 +1,8 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration'
 import { listCreativeAssets, saveCreativeAsset } from '@/lib/creativeAssets'
 import { createServiceClient } from '@/lib/supabase/server'
+import { requireWorkspaceDataUserId } from '@/lib/profiles/workspaceSession'
 
 type SaveBody = {
   storagePath?: string
@@ -18,34 +18,18 @@ type SaveBody = {
 }
 
 export async function GET() {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const workspaceId = await requireWorkspaceDataUserId(supabase)
+  if (!workspaceId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-
-  const assets = await listCreativeAssets(profile.id)
+  const assets = await listCreativeAssets(workspaceId)
   return NextResponse.json({ assets })
 }
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const workspaceId = await requireWorkspaceDataUserId(supabase)
+  if (!workspaceId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let body: SaveBody
   try {
@@ -59,12 +43,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'storagePath and mime required' }, { status: 400 })
   }
 
-  if (!assertPostAssetOwnedByProfile(storagePath.trim(), profile.id)) {
+  if (!assertPostAssetOwnedByProfile(storagePath.trim(), workspaceId)) {
     return NextResponse.json({ error: 'invalid_path' }, { status: 403 })
   }
 
   const result = await saveCreativeAsset({
-    profileId: profile.id,
+    profileId: workspaceId,
     storagePath: storagePath.trim(),
     mime: mime.trim(),
     briefId: body.briefId ?? null,
