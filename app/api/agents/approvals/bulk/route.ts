@@ -8,11 +8,13 @@ import {
   logBulkRejectionChangelog,
 } from '@/lib/foundation/changelog'
 import { rejectAllPendingOutputsForTask } from '@/lib/agents/approvalQueueMutations'
+import { PENDING_APPROVAL_OUTPUT_STATUS } from '@/lib/agents/pendingApprovals'
 import {
   getWorkspaceSessionFromRequest,
   workspaceActorId,
   workspaceDataUserId,
 } from '@/lib/profiles/workspaceSession'
+import { requireWorkspaceOwner } from '@/lib/team/requireWorkspaceOwner'
 
 export async function POST(req: Request) {
   const { action, taskIds, feedback, feedbackNote, rerun = false } = await req.json()
@@ -31,25 +33,46 @@ export async function POST(req: Request) {
   const workspaceId = workspaceDataUserId(session)
   const memberId = workspaceActorId(session)
 
+  const ownerCheck = await requireWorkspaceOwner(supabase, memberId, 'owner_required')
+  if (!ownerCheck.ok) {
+    return NextResponse.json(
+      { error: ownerCheck.code, message: ownerCheck.error },
+      { status: ownerCheck.status },
+    )
+  }
+
   const now = new Date().toISOString()
+  let affectedCount = taskIds.length
 
   if (action === 'approve') {
-    const [tasksRes, outputsRes] = await Promise.all([
-      supabase
-        .from('agent_tasks')
-        .update({ approved_at: now, reviewed_at: now, reviewed_by: memberId })
-        .in('id', taskIds)
-        .eq('user_id', workspaceId),
-      supabase
-        .from('agent_outputs')
-        .update({ status: 'approved', approved_at: now, lifecycle_stage: 'approved' })
-        .in('task_id', taskIds)
-        .eq('user_id', workspaceId),
-    ])
+    const { data: approvedOutputs, error: outputError } = await supabase
+      .from('agent_outputs')
+      .update({ status: 'approved', approved_at: now, lifecycle_stage: 'approved' })
+      .in('task_id', taskIds)
+      .eq('user_id', workspaceId)
+      .eq('status', PENDING_APPROVAL_OUTPUT_STATUS)
+      .select('task_id')
+
+    if (outputError) return NextResponse.json({ error: outputError.message }, { status: 500 })
+
+    const approvedTaskIds = [
+      ...new Set((approvedOutputs ?? []).map(output => output.task_id).filter(Boolean)),
+    ]
+
+    if (approvedTaskIds.length === 0) {
+      return NextResponse.json({ error: 'No pending outputs to approve' }, { status: 400 })
+    }
+
+    const tasksRes = await supabase
+      .from('agent_tasks')
+      .update({ approved_at: now, reviewed_at: now, reviewed_by: memberId })
+      .in('id', approvedTaskIds)
+      .eq('user_id', workspaceId)
+
     if (tasksRes.error) return NextResponse.json({ error: tasksRes.error.message }, { status: 500 })
-    if (outputsRes.error) return NextResponse.json({ error: outputsRes.error.message }, { status: 500 })
-    logActivity(memberId, 'agent_bulk_approved', { count: taskIds.length }, workspaceId).catch(() => {})
-    void logBulkApprovalChangelog(memberId, taskIds).catch(err => {
+    affectedCount = approvedTaskIds.length
+    logActivity(memberId, 'agent_bulk_approved', { count: approvedTaskIds.length }, workspaceId).catch(() => {})
+    void logBulkApprovalChangelog(memberId, approvedTaskIds).catch(err => {
       console.error('[foundation-changelog] bulk approve log failed:', err)
     })
   } else {
@@ -74,6 +97,7 @@ export async function POST(req: Request) {
     if (rejectedCount === 0) {
       return NextResponse.json({ error: 'No pending outputs to reject' }, { status: 400 })
     }
+    affectedCount = rejectedCount
 
     if (rerun && feedback && tasksToRequeue) {
       const { createTask } = await import('@/lib/agents/runner')
@@ -125,5 +149,5 @@ export async function POST(req: Request) {
     })
   }
 
-  return NextResponse.json({ success: true, count: taskIds.length })
+  return NextResponse.json({ success: true, count: affectedCount })
 }

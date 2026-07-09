@@ -3,12 +3,32 @@ import { listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
 import { agentOutputContentText } from '@/lib/agents/agentOutputText'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import {
+  getWorkspaceSessionFromRequest,
+  workspaceDataUserId,
+} from '@/lib/profiles/workspaceSession'
 
 export async function POST(req: Request) {
   const supabase = createServiceClient()
   const { profileId, forceRegenerate } = await req.json()
 
-  if (!profileId) return NextResponse.json({ error: 'profileId required' }, { status: 400 })
+  if (typeof profileId !== 'string' || !profileId) {
+    return NextResponse.json({ error: 'profileId required' }, { status: 400 })
+  }
+
+  const cronSecret = process.env.CRON_SECRET
+  const cronAuthorized = Boolean(cronSecret)
+    && req.headers.get('authorization') === `Bearer ${cronSecret}`
+
+  if (!cronAuthorized) {
+    const session = await getWorkspaceSessionFromRequest(supabase)
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const workspaceId = workspaceDataUserId(session)
+    if (profileId !== workspaceId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
 
   const today = new Date().toISOString().split('T')[0]
 

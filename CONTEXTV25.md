@@ -122,6 +122,18 @@ FOUNDATION_GUARDIAN_PROFILE_ID=bfa73081-3906-4b5b-b24e-d9df3fb07384 \
 
 ---
 
+## July 9 critical bug hardening addendum
+
+Commit `0cc4d7a` (branch `cursor/critical-bug-investigation-c1be`) fixed three review-escape regressions:
+
+- `POST /api/digest/generate` now binds signed-in callers to their resolved workspace profile id; cron generation is allowed only with a non-empty `CRON_SECRET` bearer. `proxy.ts` exposes this route so route-level auth can handle both Clerk and cron callers, and `api/cron/morning-digest` forwards the bearer.
+- `POST /api/agents/approvals/bulk` now requires workspace owner permissions, matching single approve/reject routes, and only approves outputs still in `pending_approval`.
+- `POST /api/agents/tasks/[id]/approve` now updates only the pending output for the requested task/workspace and returns `409` on retries/stale output ids before any publish side effects. This prevents duplicate Zernio drafts/credit deductions on client retries.
+
+Validation: `npx tsc --noEmit` and `npm run build` passed on July 9.
+
+---
+
 ## Do not revert
 
 - All CONTEXTV24 “do not revert” items.
@@ -129,6 +141,8 @@ FOUNDATION_GUARDIAN_PROFILE_ID=bfa73081-3906-4b5b-b24e-d9df3fb07384 \
 - Knowledge as reference-only layer — must not override Phase 1 Foundation in prompts.
 - Owner-only integration connects (GA, Zernio).
 - Workspace resolution for Foundation APIs (`resolveFoundationWorkspaceForClerkUser`).
+- Owner-only approval actions, including bulk approve/reject.
+- Digest generation route-level auth binding to caller workspace or validated cron bearer.
 
 ---
 
