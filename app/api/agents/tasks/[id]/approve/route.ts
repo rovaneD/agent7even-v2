@@ -6,6 +6,7 @@ import { shouldPublishApprovedPost, singlePostPublishBlockReason } from '@/lib/a
 import { linkOutputToZernioPost } from '@/lib/content/agentOutputLifecycle'
 import { logApprovalChangelog } from '@/lib/foundation/changelog'
 import { recordApprovalDecisionNote } from '@/lib/agents/approvalNotes'
+import { PENDING_APPROVAL_OUTPUT_STATUS } from '@/lib/agents/pendingApprovals'
 import {
   getWorkspaceSessionFromRequest,
   workspaceActorId,
@@ -37,6 +38,22 @@ export async function POST(
 
   const now = new Date().toISOString()
   let contentBefore: unknown = null
+  const { data: existingOutput, error: existingOutputError } = await supabase
+    .from('agent_outputs')
+    .select('content')
+    .eq('id', outputId)
+    .eq('task_id', taskId)
+    .eq('user_id', workspaceId)
+    .eq('status', PENDING_APPROVAL_OUTPUT_STATUS)
+    .maybeSingle()
+
+  if (existingOutputError) {
+    return NextResponse.json({ error: existingOutputError.message }, { status: 500 })
+  }
+
+  if (!existingOutput) {
+    return NextResponse.json({ error: 'No pending output to approve' }, { status: 409 })
+  }
 
   const outputUpdate: Record<string, unknown> = {
     status: 'approved',
@@ -44,38 +61,41 @@ export async function POST(
     lifecycle_stage: 'approved',
   }
   if (typeof editedContent === 'string') {
-    const { data: existing } = await supabase
-      .from('agent_outputs')
-      .select('content')
-      .eq('id', outputId)
-      .eq('user_id', workspaceId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-    const prev = (existing?.[0]?.content ?? {}) as Record<string, unknown>
+    const prev = (existingOutput.content ?? {}) as Record<string, unknown>
     contentBefore = prev
     outputUpdate.content = { ...prev, raw: editedContent }
   }
 
-  const [outputRes, taskRes] = await Promise.all([
-    supabase
-      .from('agent_outputs')
-      .update(outputUpdate)
-      .eq('id', outputId)
-      .eq('user_id', workspaceId),
-    supabase
-      .from('agent_tasks')
-      .update({ approved_at: now, reviewed_at: now, reviewed_by: memberId })
-      .eq('id', taskId)
-      .eq('user_id', workspaceId),
-  ])
+  const { data: updatedOutputs, error: outputError } = await supabase
+    .from('agent_outputs')
+    .update(outputUpdate)
+    .eq('id', outputId)
+    .eq('task_id', taskId)
+    .eq('user_id', workspaceId)
+    .eq('status', PENDING_APPROVAL_OUTPUT_STATUS)
+    .select('title, content, zernio_post_id')
 
-  if (outputRes.error) return NextResponse.json({ error: outputRes.error.message }, { status: 500 })
+  if (outputError) return NextResponse.json({ error: outputError.message }, { status: 500 })
+
+  const output = updatedOutputs?.[0]
+  if (!output) {
+    return NextResponse.json({ error: 'No pending output to approve' }, { status: 409 })
+  }
+
+  const taskRes = await supabase
+    .from('agent_tasks')
+    .update({ approved_at: now, reviewed_at: now, reviewed_by: memberId })
+    .eq('id', taskId)
+    .eq('user_id', workspaceId)
+
   if (taskRes.error) return NextResponse.json({ error: taskRes.error.message }, { status: 500 })
 
-  const [{ data: task }, { data: output }] = await Promise.all([
-    supabase.from('agent_tasks').select('agent, input, actor_profile_id').eq('id', taskId).eq('user_id', workspaceId).single(),
-    supabase.from('agent_outputs').select('title, content').eq('id', outputId).eq('user_id', workspaceId).single(),
-  ])
+  const { data: task } = await supabase
+    .from('agent_tasks')
+    .select('agent, input, actor_profile_id')
+    .eq('id', taskId)
+    .eq('user_id', workspaceId)
+    .single()
 
   const outputContent = (outputUpdate.content ?? output?.content ?? {}) as Record<string, unknown>
   const caption = typeof outputContent.raw === 'string' ? outputContent.raw : ''
@@ -89,7 +109,7 @@ export async function POST(
 
   let publish: Awaited<ReturnType<typeof publishApprovedImageCaption>> | null = null
   const publishBlocked = singlePostPublishBlockReason(publishOpts)
-  if (shouldPublishApprovedPost(publishOpts)) {
+  if (!output.zernio_post_id && shouldPublishApprovedPost(publishOpts)) {
     publish = await publishApprovedImageCaption({
       profileId: workspaceId,
       outputId,

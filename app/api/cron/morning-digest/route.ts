@@ -38,7 +38,12 @@ export async function GET(req: Request) {
       try {
         const res = await fetch(`${appUrl}/api/digest/generate`, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(process.env.CRON_SECRET
+              ? { Authorization: `Bearer ${process.env.CRON_SECRET}` }
+              : {}),
+          },
           body:    JSON.stringify({ profileId: profile.id }),
         })
         const { digestId } = await res.json()

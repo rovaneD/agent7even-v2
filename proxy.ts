@@ -34,6 +34,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/analytics/meta-callback(.*)',
   '/api/integrations/zernio/callback(.*)',
   '/api/team/accept(.*)',
+  // Route-level auth supports both Clerk callers and CRON_SECRET bearer calls.
+  '/api/digest/generate',
   // Internal server-to-server dispatch — authenticated via taskId UUID + userId in body
   '/api/agents/run/(.*)',
   '/api/unsplash/image',
