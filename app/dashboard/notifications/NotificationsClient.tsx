@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildNotificationsMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import { Bell, CheckCheck, Loader2, Filter } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import Link from 'next/link'
 
 interface Notification {
   id: string
@@ -35,6 +35,7 @@ function typeColor(type: string): string {
   if (type === 'payment_failed' || type === 'subscription_canceled') return '#EE533B'
   if (type === 'team_member_joined') return '#10B981'
   if (type === 'assignment_created' || type === 'assignment_submitted') return '#3B82F6'
+  if (type === 'task_note' || type === 'task_note_mention') return '#3B82F6'
   if (type === 'credit_topup') return '#10B981'
   return '#9BA1AE'
 }
@@ -52,6 +53,8 @@ function typeInitial(type: string): string {
   if (type === 'team_member_joined') return 'TM'
   if (type === 'assignment_created') return 'AS'
   if (type === 'assignment_submitted') return 'SB'
+  if (type === 'task_note') return 'NT'
+  if (type === 'task_note_mention') return '@'
   if (type === 'credit_topup') return 'CR'
   return 'NT'
 }
@@ -72,6 +75,8 @@ function typeLabel(type: string) {
     team_member_joined: 'Team',
     assignment_created: 'Assignment',
     assignment_submitted: 'Submitted',
+    task_note: 'Task note',
+    task_note_mention: 'Mention',
     credit_topup: 'Credits',
     maya_nudge: 'Maya',
     foundation_milestone: 'Foundation',
@@ -101,6 +106,7 @@ export default function NotificationsClient({ profileId, initialNotifications }:
   const [marking, setMarking] = useState(false)
   const [markingId, setMarkingId] = useState<string | null>(null)
   const supabase = createClient()
+  const router = useRouter()
 
   const unreadCount = notifications.filter(n => !n.read).length
 
@@ -165,6 +171,12 @@ export default function NotificationsClient({ profileId, initialNotifications }:
     })
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
     setMarking(false)
+  }
+
+  async function openNotification(notif: Notification) {
+    if (!notif.link) return
+    if (!notif.read) await markRead(notif.id)
+    router.push(notif.link)
   }
 
   const filtered = notifications.filter(n => {
@@ -241,7 +253,18 @@ export default function NotificationsClient({ profileId, initialNotifications }:
           {filtered.map(notif => (
             <div
               key={notif.id}
+              role={notif.link ? 'button' : undefined}
+              tabIndex={notif.link ? 0 : undefined}
+              onClick={() => openNotification(notif)}
+              onKeyDown={e => {
+                if (notif.link && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault()
+                  void openNotification(notif)
+                }
+              }}
               className={`rounded-2xl border transition-all ${
+                notif.link ? 'cursor-pointer' : ''
+              } ${
                 !notif.read
                   ? 'border-brand-primary/20 bg-brand-primary/5 hover:border-brand-primary/30'
                   : 'border-gray-100 bg-white hover:border-gray-200'
@@ -280,17 +303,17 @@ export default function NotificationsClient({ profileId, initialNotifications }:
                   {/* Actions */}
                   <div className="flex items-center gap-3 mt-3">
                     {notif.link && (
-                      <Link
-                        href={notif.link}
-                        onClick={() => { if (!notif.read) markRead(notif.id) }}
-                        className="text-xs font-semibold text-brand-primary hover:text-[#2563EB] transition-colors"
-                      >
-                        View →
-                      </Link>
+                      <span className="text-xs font-semibold text-brand-primary">
+                        Open →
+                      </span>
                     )}
                     {!notif.read && (
                       <button
-                        onClick={() => markRead(notif.id)}
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation()
+                          markRead(notif.id)
+                        }}
                         disabled={markingId === notif.id}
                         className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
                       >

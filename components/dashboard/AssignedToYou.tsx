@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { ClipboardList, Loader2, Play } from 'lucide-react'
+import Link from 'next/link'
+import { ClipboardList, Loader2, MessageSquare, Play } from 'lucide-react'
 import { agentDisplayName } from '@/lib/agents/digestPreview'
 import type { AssignedTaskRow } from '@/lib/team/taskAssignments'
 
@@ -76,19 +77,28 @@ export default function AssignedToYou({ tasks: initialTasks }: Props) {
                   </p>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => startTask(task.id)}
-                disabled={startingId === task.id}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#2563EB] disabled:opacity-60"
-              >
-                {startingId === task.id ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Play size={14} />
-                )}
-                Start
-              </button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Link
+                  href={`/dashboard/team/tasks/${task.id}`}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-text-sec hover:border-gray-300 hover:text-text transition-colors"
+                >
+                  <MessageSquare size={14} />
+                  Discussion
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => startTask(task.id)}
+                  disabled={startingId === task.id}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#2563EB] disabled:opacity-60"
+                >
+                  {startingId === task.id ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Play size={14} />
+                  )}
+                  Start
+                </button>
+              </div>
             </li>
           )
         })}

@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildTeamMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import type { WorkspaceActivityItem } from '@/lib/team/workspaceActivity'
 import type { AssignedTaskRow } from '@/lib/team/taskAssignments'
+import type { TaskNoteSummary } from '@/lib/team/taskNotes'
 import { COMMAND_CENTER_AGENTS } from '@/lib/agents/registry'
 import { agentDisplayName } from '@/lib/agents/digestPreview'
 import {
@@ -53,6 +55,7 @@ interface Props {
   activityTeamCount?: number
   activityOwnerCount?: number
   openAssignments?: AssignedTaskRow[]
+  assignmentNoteSummaries?: Record<string, TaskNoteSummary>
 }
 
 const PERMISSION_LABELS: Record<keyof Permission, string> = {
@@ -94,6 +97,7 @@ export default function TeamClient({
   activityTeamCount = 0,
   activityOwnerCount = 0,
   openAssignments: initialOpenAssignments = [],
+  assignmentNoteSummaries = {},
 }: Props) {
   const [activeTab, setActiveTab] = useState<'members' | 'activity'>('members')
   const [activityFilter, setActivityFilter] = useState<'team' | 'all' | 'owner'>('team')
@@ -541,23 +545,41 @@ export default function TeamClient({
           <h2 className="text-sm font-semibold text-text">Open assignments</h2>
           <p className="mt-0.5 text-xs text-text-soft">Waiting for a team member to start.</p>
           <ul className="mt-4 divide-y divide-gray-100">
-            {openAssignments.map(item => (
-              <li key={item.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
+            {openAssignments.map(item => {
+              const summary = assignmentNoteSummaries[item.id]
+              return (
+              <li key={item.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-text">
                     {agentDisplayName(item.agent)} → {item.assigneeName ?? 'Team member'}
                   </p>
                   {item.assignment_note && (
-                    <p className="mt-1 text-xs text-text-sec">{item.assignment_note}</p>
+                    <p className="mt-1 text-xs text-text-sec line-clamp-2">{item.assignment_note}</p>
+                  )}
+                  {summary?.lastBody && (
+                    <p className="mt-1 text-xs text-text-soft line-clamp-1">
+                      Latest: {summary.lastBody}
+                    </p>
                   )}
                 </div>
-                {item.assignment_due_at && (
-                  <span className="text-xs text-text-soft">
-                    Due {new Date(item.assignment_due_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                )}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {summary && summary.count > 0 && (
+                    <span className="text-xs text-text-soft">{summary.count} note{summary.count === 1 ? '' : 's'}</span>
+                  )}
+                  {item.assignment_due_at && (
+                    <span className="text-xs text-text-soft">
+                      Due {new Date(item.assignment_due_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  )}
+                  <Link
+                    href={`/dashboard/team/tasks/${item.id}`}
+                    className="text-xs font-semibold text-brand-primary hover:text-[#2563EB]"
+                  >
+                    Open discussion
+                  </Link>
+                </div>
               </li>
-            ))}
+            )})}
           </ul>
         </div>
       )}

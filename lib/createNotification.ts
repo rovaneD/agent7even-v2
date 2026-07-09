@@ -21,6 +21,8 @@ export type NotificationType =
   | 'foundation_milestone'
   | 'assignment_created'
   | 'assignment_submitted'
+  | 'task_note'
+  | 'task_note_mention'
 
 interface CreateNotificationParams {
   userId: string          // profiles.id of recipient

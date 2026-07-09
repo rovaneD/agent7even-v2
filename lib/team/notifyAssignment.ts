@@ -30,7 +30,7 @@ export async function notifyAssignmentCreated(opts: {
     title: 'New assignment',
     body: `${assignerName} assigned ${agentName} to you — ${notePreview}`,
     type: 'assignment_created',
-    link: '/dashboard',
+    link: `/dashboard/team/tasks/${opts.taskId}`,
   })
 
   await createNotification({

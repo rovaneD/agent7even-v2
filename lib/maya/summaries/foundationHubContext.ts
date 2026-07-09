@@ -5,6 +5,8 @@ import type { MayaPageContext } from '@/lib/maya/contextTypes'
 import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
 import { formatActiveFormState, truncateForMaya } from '@/lib/maya/formStateContext'
 
+export type BrandKitColorRef = { role: string; name: string | null; hex: string }
+
 export type FoundationHubTabId = 'intelligence' | 'knowledge' | 'memory' | 'connections'
 
 type KnowledgeItem = {
@@ -29,9 +31,16 @@ const SECTION_TITLES: Record<string, string> = {
 }
 
 const YOUR_LOOK_MAYA_RULE =
-  'YOUR LOOK COACHING: There are exactly five fields in fixed order. Never invent fields (no "Brand Colors", "logo situation", or hex codes). ' +
+  'YOUR LOOK COACHING: There are exactly five fields in fixed order. Never invent fields (no "Brand Colors", "logo situation", or hex codes on this form). ' +
   `Order: ${FOUNDATION_VISUAL_FIELDS.map((f, i) => `${i + 1}) "${f.label}"`).join('; ')}. ` +
-  'Help one field at a time using the exact label from the form. Field 1 is overall aesthetic; field 4 is palette in words only.'
+  'Help one field at a time using the exact label from the form. Field 1 is overall aesthetic; field 4 is palette in words only (no hex on this form).'
+
+function formatBrandKitPaletteLine(colors: BrandKitColorRef[]): string {
+  if (colors.length === 0) return 'Brand Kit palette: not set yet'
+  return colors
+    .map(c => `${c.role} ${c.name?.trim() || c.hex} (${c.hex})`.trim())
+    .join('; ')
+}
 
 const DOC_LABELS: Record<string, string> = {
   brief: 'Business Brief',
@@ -129,6 +138,7 @@ export function buildFoundationHubMayaContext(input: {
   weakSections: string[]
   answers?: Record<string, unknown>
   fieldScores?: Record<string, { score: number; feedback: string | null }>
+  brandKitColors?: BrandKitColorRef[]
 }): MayaPageContext {
   const healthLine = Object.entries(input.sectionHealth)
     .map(([k, h]) => `${SECTION_TITLES[k] ?? k}: ${h}`)
@@ -162,6 +172,10 @@ export function buildFoundationHubMayaContext(input: {
     metrics.push(...formatVisualFieldsForMaya(input.answers, input.fieldScores))
   }
 
+  if (coachingVisual && input.brandKitColors && input.brandKitColors.length > 0) {
+    metrics.push(`Brand Kit palette (authoritative): ${formatBrandKitPaletteLine(input.brandKitColors)}`)
+  }
+
   let affordance =
     `${MAYA_VOICE_RULE} User manages Foundation intelligence, knowledge uploads, agent memory, and connections. Lead with CURRENTLY VIEWING before page summary.`
 
@@ -172,6 +186,10 @@ export function buildFoundationHubMayaContext(input: {
 
   if (coachingVisual) {
     affordance += ` ${YOUR_LOOK_MAYA_RULE}`
+    if (input.brandKitColors && input.brandKitColors.length > 0) {
+      affordance +=
+        ' Brand Kit already has a locked color palette (see metrics). Never ask the user what their brand colors are — translate that palette into descriptive words for Field 4 "Colors in words (no hex)". Hex codes stay in Brand Kit; this Foundation field is words-only.'
+    }
   }
 
   if (input.editingSection === 'visual') {

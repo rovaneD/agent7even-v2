@@ -29,6 +29,10 @@ function barColor(index: number, inverted: boolean): string {
   return index % 5 === 0 ? '#F5349B' : '#3B82F6'
 }
 
+function svgCoord(n: number): string {
+  return n.toFixed(6)
+}
+
 export default function MayaOrb({
   size = 16,
   active = false,
@@ -71,10 +75,10 @@ export default function MayaOrb({
         return (
           <line
             key={i}
-            x1={x1}
-            y1={y1}
-            x2={x2}
-            y2={y2}
+            x1={svgCoord(x1)}
+            y1={svgCoord(y1)}
+            x2={svgCoord(x2)}
+            y2={svgCoord(y2)}
             stroke={barColor(i, inverted)}
             strokeWidth={2.25}
             strokeLinecap="round"

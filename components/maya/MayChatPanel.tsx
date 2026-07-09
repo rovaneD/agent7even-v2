@@ -124,6 +124,7 @@ export default function MayChatPanel({
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const chatInputRef = useRef<HTMLTextAreaElement>(null)
   const messagesRef    = useRef<UIMessage[]>([])
   const modeRef        = useRef<string | null>(initialMode)
   const pageContextStartedRef = useRef(false)
@@ -156,6 +157,17 @@ export default function MayChatPanel({
   useEffect(() => { canvasDataRef.current = canvasData }, [canvasData])
 
   const sessionIdRef = useRef<string | null>(initialSessionId)
+
+  const adjustChatInputHeight = () => {
+    const el = chatInputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`
+  }
+
+  useEffect(() => {
+    adjustChatInputHeight()
+  }, [chatInput])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const transport = useMemo(() => new DefaultChatTransport({
@@ -639,13 +651,14 @@ export default function MayChatPanel({
           </button>
 
           <textarea
+            ref={chatInputRef}
             value={chatInput}
             onChange={e => setChatInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask Maya anything..."
             rows={1}
             disabled={isLoading}
-            style={{ flex: 1, background: 'transparent', color: 'var(--color-text-primary)', resize: 'none', outline: 'none', fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.5, maxHeight: 128, opacity: isLoading ? 0.5 : 1 }}
+            style={{ flex: 1, background: 'transparent', color: 'var(--color-text-primary)', resize: 'none', outline: 'none', fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.5, minHeight: 20, maxHeight: 128, overflowY: 'auto', opacity: isLoading ? 0.5 : 1 }}
           />
           <button
             onClick={() => submitMessage()}

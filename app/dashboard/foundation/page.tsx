@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 import { CreativeDirectionSchema } from '@/lib/agents/foundationCreativeDirection/types'
 import { normalizeCompetitorSlots } from '@/lib/foundation/competitorsArray'
 import FoundationEditor from './FoundationEditor'
@@ -94,6 +95,13 @@ export default async function FoundationPage() {
     const creativeDirectionParsed = CreativeDirectionSchema.safeParse(profile.creative_direction)
     const creativeDirection = creativeDirectionParsed.success ? creativeDirectionParsed.data : null
 
+    const workspaceId = await resolveWorkspaceProfileId(supabase, profile.id)
+    const { data: brandKitColors } = await supabase
+      .from('brand_kit_colors')
+      .select('role, name, hex')
+      .eq('user_id', workspaceId)
+      .order('sort_order')
+
     return (
       <FoundationHub
         profileId={profile.id}
@@ -106,6 +114,11 @@ export default async function FoundationPage() {
         lastUpdated={profile.foundation_updated_at ?? null}
         answersPreviousAt={profile.foundation_answers_previous_at ?? null}
         creativeDirection={creativeDirection}
+        brandKitColors={(brandKitColors ?? []).map(c => ({
+          role: c.role as string,
+          name: c.name as string | null,
+          hex: c.hex as string,
+        }))}
       />
     )
   }

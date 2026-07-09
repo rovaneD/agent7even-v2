@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { listWorkspaceActivity } from '@/lib/team/workspaceActivity'
 import { listOpenWorkspaceAssignments } from '@/lib/team/taskAssignments'
+import { listTaskNoteSummaries } from '@/lib/team/taskNotes'
 import TeamClient from './TeamClient'
 
 const PLAN_SEAT_LIMITS: Record<string, number> = {
@@ -47,9 +48,14 @@ export default async function TeamPage() {
     ownerActionCount: 0,
   }
   let openAssignments: Awaited<ReturnType<typeof listOpenWorkspaceAssignments>> = []
+  let assignmentNoteSummaries: Awaited<ReturnType<typeof listTaskNoteSummaries>> = {}
   try {
     activityResult = await listWorkspaceActivity(supabase, profile.id, { teamOnly: false })
     openAssignments = await listOpenWorkspaceAssignments(supabase, profile.id)
+    assignmentNoteSummaries = await listTaskNoteSummaries(
+      supabase,
+      openAssignments.map(a => a.id),
+    )
   } catch (err) {
     console.error('[team/page] activity fetch failed:', err)
   }
@@ -68,6 +74,7 @@ export default async function TeamPage() {
       activityTeamCount={activityResult.teamActionCount}
       activityOwnerCount={activityResult.ownerActionCount}
       openAssignments={openAssignments}
+      assignmentNoteSummaries={assignmentNoteSummaries}
     />
   )
 }

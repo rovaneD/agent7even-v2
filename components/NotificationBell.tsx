@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useId } from 'react'
-import { Bell, X, CheckCheck, ExternalLink } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Bell, X, CheckCheck, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
@@ -42,6 +43,7 @@ function typeColor(type: string): string {
   if (type === 'payment_failed' || type === 'subscription_canceled') return '#EF4444'
   if (type === 'team_member_joined') return '#10B981'
   if (type === 'assignment_created' || type === 'assignment_submitted') return '#3B82F6'
+  if (type === 'task_note' || type === 'task_note_mention') return '#3B82F6'
   if (type === 'credit_topup') return '#10B981'
   return '#64748B'
 }
@@ -59,6 +61,8 @@ function typeInitial(type: string): string {
   if (type === 'team_member_joined') return 'TM'
   if (type === 'assignment_created') return 'AS'
   if (type === 'assignment_submitted') return 'SB'
+  if (type === 'task_note') return 'NT'
+  if (type === 'task_note_mention') return '@'
   if (type === 'credit_topup') return 'CR'
   return 'NT'
 }
@@ -70,6 +74,7 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
   const dropdownRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
   const instanceId = useId()
+  const router = useRouter()
 
   const unreadCount = notifications.filter(n => !n.read).length
 
@@ -139,6 +144,12 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
     setMarking(false)
   }
 
+  async function openNotification(notif: Notification) {
+    if (!notif.read) await markRead(notif.id)
+    setOpen(false)
+    if (notif.link) router.push(notif.link)
+  }
+
   const recent = notifications.slice(0, 5)
 
   return (
@@ -195,13 +206,11 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
               </div>
             ) : (
               recent.map(notif => (
-                <div
+                <button
                   key={notif.id}
-                  onClick={() => {
-                    if (!notif.read) markRead(notif.id)
-                    if (notif.link) setOpen(false)
-                  }}
-                  className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${
+                  type="button"
+                  onClick={() => openNotification(notif)}
+                  className={`flex w-full items-start gap-3 px-4 py-3 border-b border-gray-50 last:border-0 text-left cursor-pointer hover:bg-gray-50 transition-colors ${
                     !notif.read ? 'bg-[#2D3748]/5' : ''
                   }`}
                 >
@@ -221,15 +230,9 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
                     <p className="text-[10px] text-gray-300 mt-1">{timeAgo(notif.created_at)}</p>
                   </div>
                   {notif.link && (
-                    <Link
-                      href={notif.link}
-                      onClick={e => e.stopPropagation()}
-                      className="flex-shrink-0 mt-0.5"
-                    >
-                      <ExternalLink size={12} className="text-gray-300 hover:text-gray-500" />
-                    </Link>
+                    <ChevronRight size={14} className="text-gray-300 flex-shrink-0 mt-1" aria-hidden />
                   )}
-                </div>
+                </button>
               ))
             )}
           </div>

@@ -118,6 +118,7 @@ export interface Props {
   lastUpdated: string | null
   answersPreviousAt: string | null
   creativeDirection?: CreativeDirection | null
+  brandKitColors?: { role: string; name: string | null; hex: string }[]
 }
 
 // ── Registry-derived agent connectivity ───────────────────────────────────────
@@ -1513,7 +1514,7 @@ function SectionEditCard({
 
 export default function FoundationHub({
   companyName, websiteUrl: initialWebsiteUrl, answers, score: initialScore, fieldScores: initialFieldScores, lastUpdated, answersPreviousAt: initialAnswersPreviousAt,
-  creativeDirection,
+  creativeDirection, brandKitColors = [],
 }: Props) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabId>('intelligence')
@@ -1717,6 +1718,7 @@ export default function FoundationHub({
         weakSections: weakSections.map(s => s.title),
         answers: localAnswers as unknown as Record<string, unknown>,
         fieldScores: localFieldScores,
+        brandKitColors,
       }),
     [
       companyName,
@@ -1732,6 +1734,7 @@ export default function FoundationHub({
       weakSections,
       localAnswers,
       localFieldScores,
+      brandKitColors,
     ],
   )
   useMayaContext(mayaContext)
