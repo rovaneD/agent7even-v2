@@ -4,13 +4,12 @@ import { logActivity } from '@/lib/activity'
 import { getDashboardProfileForClerkUser } from '@/lib/profiles/getDashboardProfile'
 import DashboardShell from '@/app/dashboard/DashboardShell'
 import type { Profile } from '@/components/maya/MayChatPanel'
-import { currentUser } from '@clerk/nextjs/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await requireAdmin()
   const supabase = createServiceClient()
-  const user = await currentUser()
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const email = await getClerkSessionEmail()
   const p = await getDashboardProfileForClerkUser(supabase, userId, email)
 
   let notifications: { id: string; title: string; body: string; type: string; link: string | null; read: boolean; created_at: string }[] = []

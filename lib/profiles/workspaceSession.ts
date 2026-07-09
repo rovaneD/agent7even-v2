@@ -1,4 +1,5 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
@@ -60,8 +61,7 @@ export async function getWorkspaceAuthContext(
 ): Promise<WorkspaceAuthContext | null> {
   const { userId } = await auth()
   if (!userId) return null
-  const user = await currentUser()
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const email = await getClerkSessionEmail()
   const session = await getWorkspaceSessionForClerkUser(supabase, userId, email)
   if (!session) return null
   return { session, clerkUserId: userId, email }

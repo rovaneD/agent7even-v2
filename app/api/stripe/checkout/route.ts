@@ -1,4 +1,5 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
+import { getClerkUserSafe } from '@/lib/clerk/sessionUser'
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
     const { userId } = await auth()
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const user = await currentUser()
+    const user = await getClerkUserSafe()
     const { plan, annual = false } = await req.json()
     const stripe = getStripeClient()
     if (!stripe) return NextResponse.json({ error: 'Billing is not configured' }, { status: 500 })

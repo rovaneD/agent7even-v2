@@ -1,4 +1,5 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getAnalyticsProfileForClerkUser } from '@/lib/profiles/getAnalyticsProfile'
@@ -23,8 +24,7 @@ export async function requireZernioProfile(): Promise<
   }
 
   const supabase = createServiceClient()
-  const user = await currentUser()
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const email = await getClerkSessionEmail()
   const profile = await getAnalyticsProfileForClerkUser(supabase, userId, email)
 
   if (!profile?.plan) {

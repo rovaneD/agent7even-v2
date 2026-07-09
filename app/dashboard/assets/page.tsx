@@ -1,4 +1,5 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { redirect } from 'next/navigation'
 import { listCreativeAssets, listCreativeAssetFolders } from '@/lib/creativeAssets'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -11,8 +12,7 @@ export default async function AssetsPage() {
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-  const user = await currentUser()
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const email = await getClerkSessionEmail()
   const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
   if (!profile) redirect('/dashboard')

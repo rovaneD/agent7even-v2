@@ -1,4 +1,5 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
+import { getClerkUserSafe } from '@/lib/clerk/sessionUser'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
@@ -14,7 +15,7 @@ export default async function FoundationPage({
 
   const { plan } = await searchParams
   const [user, supabase] = await Promise.all([
-    currentUser(),
+    getClerkUserSafe(),
     Promise.resolve(createServiceClient()),
   ])
 

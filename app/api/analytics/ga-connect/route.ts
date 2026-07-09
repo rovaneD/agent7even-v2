@@ -1,4 +1,5 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { redirect } from 'next/navigation'
 import { createOAuthState } from '@/lib/oauth-state'
 import { getGoogleOAuthCredentials } from '@/lib/googleOAuth'
@@ -26,8 +27,7 @@ export async function GET(req: Request) {
 
   // Drop stale Google grants so reconnect returns a fresh refresh token.
   const supabase = createServiceClient()
-  const user = await currentUser()
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const email = await getClerkSessionEmail()
 
   const member = await resolveClerkProfile(supabase, userId, 'id', email)
   if (!member?.id) return redirect('/sign-in')

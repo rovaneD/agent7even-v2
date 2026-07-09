@@ -1,4 +1,5 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { redirect, notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getWorkspaceSessionForClerkUser } from '@/lib/profiles/workspaceSession'
@@ -21,8 +22,7 @@ export default async function TeamTaskDetailPage({
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const user = await currentUser()
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const email = await getClerkSessionEmail()
   const supabase = createServiceClient()
   const session = await getWorkspaceSessionForClerkUser(supabase, userId, email)
   if (!session) redirect('/dashboard')

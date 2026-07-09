@@ -1,4 +1,5 @@
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { auth } from '@clerk/nextjs/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { redirect } from 'next/navigation'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -13,8 +14,7 @@ export type AdminContext = {
 }
 
 async function resolveAdminProfile(userId: string): Promise<AdminContext | null> {
-  const user = await currentUser()
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? null
+  const email = await getClerkSessionEmail()
 
   const supabase = createServiceClient()
   const profile = await getDashboardProfileForClerkUser(supabase, userId, email)
