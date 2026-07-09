@@ -14,6 +14,8 @@ export type { ZernioUsageContext } from '@/lib/social/zernioUsage'
 export { withZernioUsageContext } from '@/lib/social/zernioUsage'
 
 const ZERNIO_BASE = 'https://zernio.com/api/v1'
+const ZERNIO_FETCH_TIMEOUT_MS = 20_000
+const ZERNIO_FETCH_MAX_ATTEMPTS = 2
 
 function apiKey(): string {
   const key = process.env.ZERNIO_API_KEY
@@ -56,7 +58,7 @@ async function zCall<T = unknown>(path: string, init?: RequestInit, attempt = 0)
   console.log(`[publisher] ${method} ${url}${attempt > 0 ? ` (retry ${attempt})` : ''}`)
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 12_000)
+  const timer = setTimeout(() => controller.abort(), ZERNIO_FETCH_TIMEOUT_MS)
 
   let res: Response
   try {
@@ -71,10 +73,16 @@ async function zCall<T = unknown>(path: string, init?: RequestInit, attempt = 0)
   } catch (fetchErr) {
     clearTimeout(timer)
     const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
-    console.error(`[publisher] fetch failed for ${url}: ${msg}`)
+    const aborted = /abort/i.test(msg)
+    if (aborted && attempt + 1 < ZERNIO_FETCH_MAX_ATTEMPTS) {
+      console.warn(`[publisher] fetch timed out for ${url} — retry ${attempt + 1}`)
+      await sleep(400 * (attempt + 1))
+      return zCall<T>(path, init, attempt + 1)
+    }
     if (attempt === 0) {
       recordZernioCall({ path, method, body: requestBody, statusCode: null })
     }
+    console.warn(`[publisher] fetch failed for ${url}: ${msg}`)
     throw new Error(`[publisher] fetch failed: ${msg}`)
   }
   clearTimeout(timer)
@@ -807,7 +815,7 @@ export async function listPosts(params: ListPostsParams): Promise<unknown> {
     const q = postsQuery(params)
     return await zCall(`/posts?${q}`)
   } catch (err) {
-    console.error('[publisher] listPosts failed:', err)
+    console.warn('[publisher] listPosts failed:', err)
     return null
   }
 }

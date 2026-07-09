@@ -26,6 +26,7 @@ export default async function ApprovalsPage() {
   const lifecycleCounts = await getContentLifecycleCounts(
     dataUserId,
     (workspaceProfile.zernio_profile_id as string | null) ?? null,
+    { zernioStatuses: ['draft'] },
   )
 
   const [tasks, { data: runningVideoRows }] = await Promise.all([
