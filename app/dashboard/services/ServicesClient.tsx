@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
 import ViralHooksOutputView from '@/components/agents/ViralHooksOutputView'
+import { DashboardModalScrollBody, DashboardModalShell } from '@/components/ui/DashboardModal'
 import { displayServiceBrief, extractViralHooksGeneratedOutput, formatViralHooksBrief, readViralHooksPrefill, clearViralHooksPrefill, VIRAL_HOOKS_FRAMEWORK, type ViralHooksFormValues } from '@/lib/services/viralHooks'
 import { buildTextPdf } from '@/lib/pdf/textPdf'
 import PlanUsageCallout from '@/components/dashboard/PlanUsageCallout'
@@ -240,10 +241,8 @@ function ViralHooksGeneratorModal({ service, error, initialValues, onClose, onSu
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-[24px] border border-border bg-surface shadow-2xl">
-        <div className="flex items-start justify-between border-b border-border p-6">
+    <DashboardModalShell onClose={onClose} panelClassName="max-w-3xl">
+        <div className="flex flex-shrink-0 items-start justify-between border-b border-border p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-status-success/10">
               <Icon size={20} className="text-status-success" />
@@ -263,6 +262,7 @@ function ViralHooksGeneratorModal({ service, error, initialValues, onClose, onSu
           </button>
         </div>
 
+        <DashboardModalScrollBody>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px]">
           <div className="p-6 space-y-5">
             <div>
@@ -377,8 +377,9 @@ function ViralHooksGeneratorModal({ service, error, initialValues, onClose, onSu
             </p>
           </div>
         </div>
+        </DashboardModalScrollBody>
 
-        <div className="flex items-center justify-between px-6 py-5 border-t border-gray-100">
+        <div className="flex flex-shrink-0 items-center justify-between border-t border-gray-100 px-6 py-5">
           <button
             onClick={onClose}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
@@ -394,8 +395,7 @@ function ViralHooksGeneratorModal({ service, error, initialValues, onClose, onSu
             {loading ? 'Generating...' : 'Generate hooks'}
           </button>
         </div>
-      </div>
-    </div>
+    </DashboardModalShell>
   )
 }
 
@@ -412,12 +412,9 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-[24px] border border-border bg-surface shadow-2xl">
-
+    <DashboardModalShell onClose={onClose} panelClassName="max-w-lg">
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-border p-6">
+        <div className="flex flex-shrink-0 items-start justify-between border-b border-border p-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-primary/10">
               <Icon size={18} className="text-brand-primary" />
@@ -433,7 +430,7 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
         </div>
 
         {/* Body */}
-        <div className="p-6">
+        <DashboardModalScrollBody className="p-6">
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
             Tell us about your project
           </label>
@@ -453,10 +450,10 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
               <p className="text-xs text-red-700">{error}</p>
             </div>
           )}
-        </div>
+        </DashboardModalScrollBody>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 pb-6 gap-3">
+        <div className="flex flex-shrink-0 items-center justify-between gap-3 border-t border-border px-6 py-5">
           <button
             onClick={onClose}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
@@ -472,8 +469,7 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
             Submit request
           </button>
         </div>
-      </div>
-    </div>
+    </DashboardModalShell>
   )
 }
 

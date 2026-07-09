@@ -10,7 +10,7 @@
 
 ## Before first paying customer connects
 
-1. **Env** — Production has `ZERNIO_API_KEY`, OAuth redirect URLs for `app.agent7even.com` (or v2 preview if piloting there).
+1. **Env** — Production has `ZERNIO_API_KEY`. OAuth callbacks use the request host (`www.agent7even.ai`) — still set `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` on Vercel Production.
 2. **Owner-only connect** — Confirm team member cannot hit `POST /api/integrations/zernio/connect` (guard in place).
 3. **Readiness script** — run locally or in CI smoke:
    ```bash
@@ -21,7 +21,7 @@
 
 ## First customer connect (owner flow)
 
-1. Owner → **Analytics** → Connect social (Zernio OAuth).
+1. Owner → **Analytics** on `https://www.agent7even.ai` → Connect social (Zernio OAuth).
 2. Verify `profiles.zernio_profile_id` populated for workspace owner row.
 3. Publish test draft via **Posts** or approve a content-posting agent output → confirm draft appears in Zernio + Posts lifecycle bar.
 4. Check `zernio_usage_log` (if enabled) for tenant-scoped calls under correct `userId`.

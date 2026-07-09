@@ -224,7 +224,7 @@ function PromptRunner({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-surface rounded-[24px] w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-surface rounded-[24px] w-full max-w-2xl shadow-2xl max-h-[90dvh] overflow-y-auto overscroll-contain">
 
         <div className="flex items-start justify-between p-6 border-b border-border sticky top-0 bg-surface rounded-t-[24px]">
           <div>

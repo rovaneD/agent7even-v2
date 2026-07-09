@@ -51,7 +51,7 @@ export function MetaConnectDisclosureModal({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90dvh] overflow-y-auto overscroll-contain">
         <p className="text-[15px] font-semibold text-text mb-1">
           {isReconnect ? `Reconnect ${label}` : `Before you connect ${label}`}
         </p>

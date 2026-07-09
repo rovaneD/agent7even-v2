@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { consumeOAuthState } from '@/lib/oauth-state'
-import { oauthCallbackBase } from '@/lib/oauthCallbackBase'
+import { oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
 import * as publisher from '@/lib/social/publisher'
-
-const APP_URL = oauthCallbackBase()
 
 function safeReturnPath(returnTo: string | null): string {
   if (
@@ -36,6 +34,7 @@ function parseUserProfile(raw: string | null): Record<string, unknown> | null {
 }
 
 async function persistConnectedPlatform(opts: {
+  appBase: string
   clerkId: string
   platform: string
   profileId: string | null
@@ -60,7 +59,7 @@ async function persistConnectedPlatform(opts: {
   )
 
   if (!profile) {
-    return NextResponse.redirect(`${APP_URL}${opts.returnPath}?zernio_error=profile_not_found`)
+    return NextResponse.redirect(`${opts.appBase}${opts.returnPath}?zernio_error=profile_not_found`)
   }
 
   const existingIds = (profile.zernio_profile_ids as string[] | null) ?? []
@@ -81,7 +80,7 @@ async function persistConnectedPlatform(opts: {
       .eq('id', profile.id)
     if (profileUpdateErr) {
       console.error('[zernio/callback] failed to store zernio_profile_id / zernio_profile_ids:', profileUpdateErr)
-      return NextResponse.redirect(`${APP_URL}${opts.returnPath}?zernio_error=save_failed`)
+      return NextResponse.redirect(`${opts.appBase}${opts.returnPath}?zernio_error=save_failed`)
     }
   }
 
@@ -97,17 +96,18 @@ async function persistConnectedPlatform(opts: {
 
     if (updateErr) {
       console.error('[zernio/callback] failed to store connected platform:', updateErr)
-      return NextResponse.redirect(`${APP_URL}${opts.returnPath}?zernio_error=save_failed`)
+      return NextResponse.redirect(`${opts.appBase}${opts.returnPath}?zernio_error=save_failed`)
     }
   }
 
   const q = new URLSearchParams({ zernio_connected: opts.platform })
   if (opts.accountId) q.set('zernio_account_id', opts.accountId)
   if (opts.username) q.set('zernio_username', opts.username)
-  return NextResponse.redirect(`${APP_URL}${opts.returnPath}?${q.toString()}`)
+  return NextResponse.redirect(`${opts.appBase}${opts.returnPath}?${q.toString()}`)
 }
 
 export async function GET(req: NextRequest) {
+  const appBase = oauthCallbackBaseFromRequest(req)
   const { searchParams } = req.nextUrl
 
   const allParams: Record<string, string> = {}
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
   const step = searchParams.get('step')
 
   if (error) {
-    return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=access_denied`)
+    return NextResponse.redirect(`${appBase}${returnPath}?zernio_error=access_denied`)
   }
 
   // Headless Facebook — finish page selection on our domain (never send user to Zernio UI).
@@ -133,18 +133,18 @@ export async function GET(req: NextRequest) {
     const tempToken = searchParams.get('tempToken')
     const userProfile = parseUserProfile(searchParams.get('userProfile'))
     if (!nonce || !tempToken || !userProfile) {
-      return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=invalid_state`)
+      return NextResponse.redirect(`${appBase}${returnPath}?zernio_error=invalid_state`)
     }
 
     const clerkId = await consumeOAuthState(nonce, 'zernio:facebook')
     if (!clerkId) {
-      return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=invalid_state`)
+      return NextResponse.redirect(`${appBase}${returnPath}?zernio_error=invalid_state`)
     }
 
     try {
       const pages = await publisher.listFacebookPages(profileId, tempToken)
       if (pages.length === 0) {
-        return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=no_pages`)
+        return NextResponse.redirect(`${appBase}${returnPath}?zernio_error=no_pages`)
       }
 
       const selected = await publisher.selectFacebookPage({
@@ -152,10 +152,11 @@ export async function GET(req: NextRequest) {
         pageId: pages[0].id,
         tempToken,
         userProfile,
-        redirectUri: `${APP_URL}${returnPath}`,
+        redirectUri: `${appBase}${returnPath}`,
       })
 
       return persistConnectedPlatform({
+        appBase,
         clerkId,
         platform: 'facebook',
         profileId,
@@ -165,21 +166,22 @@ export async function GET(req: NextRequest) {
       })
     } catch (err) {
       console.error('[zernio/callback] headless facebook select failed:', err)
-      return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=save_failed`)
+      return NextResponse.redirect(`${appBase}${returnPath}?zernio_error=save_failed`)
     }
   }
 
   if (!nonce || !platform) {
     console.log('[zernio/callback] missing nonce/platform — redirecting with error. nonce:', nonce, 'platform:', platform)
-    return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=access_denied`)
+    return NextResponse.redirect(`${appBase}${returnPath}?zernio_error=access_denied`)
   }
 
   const clerkId = await consumeOAuthState(nonce, `zernio:${platform}`)
   if (!clerkId) {
-    return NextResponse.redirect(`${APP_URL}${returnPath}?zernio_error=invalid_state`)
+    return NextResponse.redirect(`${appBase}${returnPath}?zernio_error=invalid_state`)
   }
 
   return persistConnectedPlatform({
+    appBase,
     clerkId,
     platform,
     profileId,

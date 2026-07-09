@@ -5,6 +5,7 @@
  * Usage:
  *   npx tsx scripts/verify-production-readiness.ts
  *   npx tsx scripts/verify-production-readiness.ts --url https://www.agent7even.ai
+ *   npx tsx scripts/verify-production-readiness.ts --production-only
  *
  * Loads .env.local when present (never prints secret values).
  */
@@ -13,6 +14,7 @@ import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
 
 const args = process.argv.slice(2)
+const productionOnly = args.includes('--production-only')
 const urlFlag = args.find(a => a.startsWith('--url='))?.split('=')[1]
   ?? (args.includes('--url') ? args[args.indexOf('--url') + 1] : undefined)
 const baseUrl = urlFlag ?? 'https://www.agent7even.ai'
@@ -83,54 +85,58 @@ async function runLiveChecks() {
 }
 
 async function main() {
-  loadDotEnvLocal()
+  if (!productionOnly) {
+    loadDotEnvLocal()
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? ''
   const stripeSk = process.env.STRIPE_SECRET_KEY ?? ''
 
-  envCheck(
-    'NEXT_PUBLIC_APP_URL → .ai',
-    appUrl.includes('agent7even.ai') && !appUrl.includes('app.agent7even.com'),
-    appUrl ? appUrl : '(not set locally — check Vercel Production)',
-  )
+  if (!productionOnly) {
+    envCheck(
+      'NEXT_PUBLIC_APP_URL → .ai',
+      appUrl.includes('agent7even.ai') && !appUrl.includes('app.agent7even.com'),
+      appUrl ? appUrl : '(not set locally — check Vercel Production)',
+    )
 
-  envCheck(
-    'Clerk publishable key (local/.env.local)',
-    keyMode(clerkPk) === 'live',
-    clerkPk
-      ? `${keyMode(clerkPk) === 'live' ? 'pk_live' : 'pk_test'} configured`
-      : '(not set locally — verify Vercel + live sign-up page)',
-  )
+    envCheck(
+      'Clerk publishable key (local/.env.local)',
+      keyMode(clerkPk) === 'live',
+      clerkPk
+        ? `${keyMode(clerkPk) === 'live' ? 'pk_live' : 'pk_test'} configured`
+        : '(not set locally — verify Vercel + live sign-up page)',
+    )
 
-  envCheck(
-    'Stripe secret key (local/.env.local)',
-    keyMode(stripeSk) === 'live',
-    stripeSk
-      ? `${keyMode(stripeSk) === 'live' ? 'sk_live' : 'sk_test'} configured`
-      : '(not set locally — verify Vercel Production)',
-  )
+    envCheck(
+      'Stripe secret key (local/.env.local)',
+      keyMode(stripeSk) === 'live',
+      stripeSk
+        ? `${keyMode(stripeSk) === 'live' ? 'sk_live' : 'sk_test'} configured`
+        : '(not set locally — verify Vercel Production)',
+    )
 
-  const requiredLocal = [
-    'CLERK_SECRET_KEY',
-    'CLERK_WEBHOOK_SIGNING_SECRET',
-    'STRIPE_WEBHOOK_SECRET',
-    'STRIPE_STARTER_MONTHLY_PRICE_ID',
-    'STRIPE_GROWTH_MONTHLY_PRICE_ID',
-    'STRIPE_PROAGENT_MONTHLY_PRICE_ID',
-    'ZERNIO_API_KEY',
-    'RESEND_API_KEY',
-  ]
+    const requiredLocal = [
+      'CLERK_SECRET_KEY',
+      'CLERK_WEBHOOK_SIGNING_SECRET',
+      'STRIPE_WEBHOOK_SECRET',
+      'STRIPE_STARTER_MONTHLY_PRICE_ID',
+      'STRIPE_GROWTH_MONTHLY_PRICE_ID',
+      'STRIPE_PROAGENT_MONTHLY_PRICE_ID',
+      'ZERNIO_API_KEY',
+      'RESEND_API_KEY',
+    ]
 
-  for (const key of requiredLocal) {
-    envCheck(`Env: ${key}`, Boolean(process.env[key]), process.env[key] ? 'set' : 'missing in .env.local')
+    for (const key of requiredLocal) {
+      envCheck(`Env: ${key}`, Boolean(process.env[key]), process.env[key] ? 'set' : 'missing in .env.local')
+    }
+
+    envCheck(
+      'Env: STRIPE_SEAT_PRICE_ID (team seats)',
+      Boolean(process.env.STRIPE_SEAT_PRICE_ID),
+      process.env.STRIPE_SEAT_PRICE_ID ? 'set' : 'missing — team seat billing disabled until set',
+    )
   }
-
-  envCheck(
-    'Env: STRIPE_SEAT_PRICE_ID (team seats)',
-    Boolean(process.env.STRIPE_SEAT_PRICE_ID),
-    process.env.STRIPE_SEAT_PRICE_ID ? 'set' : 'missing — team seat billing disabled until set',
-  )
 
   const legalFiles = [
     'app/privacy/page.tsx',

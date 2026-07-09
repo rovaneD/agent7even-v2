@@ -692,13 +692,14 @@ export default function TeamClient({
       {/* Assign work modal */}
       {showAssignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+          <div className="flex w-full max-w-md max-h-[90dvh] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-6 py-5">
               <h3 className="text-[17px] font-semibold text-text">Assign agent work</h3>
               <button type="button" onClick={() => setShowAssignModal(false)}>
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>
             </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="space-y-4 p-6">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-text-soft">Team member</label>
@@ -765,6 +766,7 @@ export default function TeamClient({
                 </button>
               </div>
             </div>
+            </div>
           </div>
         </div>
       )}
@@ -772,8 +774,8 @@ export default function TeamClient({
       {/* Invite Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div className="flex w-full max-w-md max-h-[90dvh] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-6 py-5">
               <h3 className="text-[17px] font-semibold text-text">
                 {inviteStep === 'confirm' ? 'Confirm extra seat' : 'Invite team member'}
               </h3>
@@ -782,6 +784,7 @@ export default function TeamClient({
               </button>
             </div>
 
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="p-6 space-y-5">
               {inviteStep === 'confirm' ? (
                 <>
@@ -903,6 +906,7 @@ export default function TeamClient({
                 </button>
               </div>
             </div>
+            </div>
           </div>
         </div>
       )}
@@ -910,8 +914,8 @@ export default function TeamClient({
       {/* Permissions Modal */}
       {showPermissionsModal && selectedMember && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div className="flex w-full max-w-md max-h-[90dvh] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-6 py-5">
               <div>
                 <h3 className="text-[17px] font-semibold text-text">Edit permissions</h3>
                 <p className="text-xs text-gray-400 mt-0.5">
@@ -923,6 +927,7 @@ export default function TeamClient({
               </button>
             </div>
 
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="p-6 space-y-5">
               <div>
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-2">Role</label>
@@ -983,6 +988,7 @@ export default function TeamClient({
                   {savingPermissions ? 'Saving...' : 'Save permissions'}
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </div>

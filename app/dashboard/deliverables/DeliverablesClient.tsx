@@ -357,15 +357,15 @@ export default function DeliverablesClient({ profileId: _profileId, companyName,
       {/* Upload modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-[24px] border border-border bg-surface shadow-xl">
-            <div className="flex items-center justify-between border-b border-border px-6 py-5">
+          <div className="flex w-full max-w-md max-h-[90dvh] flex-col overflow-hidden rounded-[24px] border border-border bg-surface shadow-xl">
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-6 py-5">
               <h3 className="text-[17px] font-semibold text-text">Upload file</h3>
               <button onClick={() => setShowUploadModal(false)}>
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 space-y-4">
               {/* File picker */}
               <div>
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-2">

@@ -7,7 +7,7 @@ import { requireWorkspaceOwner } from '@/lib/team/requireWorkspaceOwner'
 import { logActivity } from '@/lib/activity'
 import * as publisher from '@/lib/social/publisher'
 import { createOAuthState } from '@/lib/oauth-state'
-import { oauthCallbackBase } from '@/lib/oauthCallbackBase'
+import { oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
 import {
   collectZernioProfileIds,
   disconnectPlatformFromTenant,
@@ -160,7 +160,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const callbackBase = oauthCallbackBase()
+  const callbackBase = oauthCallbackBaseFromRequest(req)
 
   // Create CSRF nonce — provider is scoped per platform so two simultaneous connects don't collide
   const nonce = await createOAuthState(userId, `zernio:${platform}`)

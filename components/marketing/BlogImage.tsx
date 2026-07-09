@@ -14,6 +14,8 @@ interface BlogImageProps {
   query: string
   aspectRatio?: 'hero' | 'inline' | 'card'
   className?: string
+  /** Plain-text credit when true — required inside another link (e.g. blog index cards). */
+  creditLinks?: boolean
 }
 
 async function fetchUnsplashImage(query: string): Promise<UnsplashImage | null> {
@@ -26,7 +28,12 @@ async function fetchUnsplashImage(query: string): Promise<UnsplashImage | null> 
   }
 }
 
-export default function BlogImage({ query, aspectRatio = 'inline', className = '' }: BlogImageProps) {
+export default function BlogImage({
+  query,
+  aspectRatio = 'inline',
+  className = '',
+  creditLinks = aspectRatio !== 'card',
+}: BlogImageProps) {
   const [image, setImage] = useState<UnsplashImage | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -59,17 +66,25 @@ export default function BlogImage({ query, aspectRatio = 'inline', className = '
       </div>
       <figcaption className="blog-img-credit">
         Photo by{' '}
-        <a href={image.creditUrl} target="_blank" rel="noopener noreferrer">
-          {image.credit}
-        </a>{' '}
+        {creditLinks ? (
+          <a href={image.creditUrl} target="_blank" rel="noopener noreferrer">
+            {image.credit}
+          </a>
+        ) : (
+          <span>{image.credit}</span>
+        )}{' '}
         on{' '}
-        <a
-          href="https://unsplash.com?utm_source=agent7even&utm_medium=referral"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Unsplash
-        </a>
+        {creditLinks ? (
+          <a
+            href="https://unsplash.com?utm_source=agent7even&utm_medium=referral"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Unsplash
+          </a>
+        ) : (
+          <span>Unsplash</span>
+        )}
       </figcaption>
     </figure>
   )

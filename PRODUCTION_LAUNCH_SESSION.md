@@ -6,7 +6,12 @@
 npx tsx scripts/verify-production-readiness.ts
 ```
 
-**Verified June 17, 2026:** Legal routes return HTTP 200 on `www.agent7even.ai`. Production `/sign-up` still serves **`pk_test_`** (Clerk Development). Stripe/Clerk live keys must be set in Vercel before charging real customers.
+**Verified July 9, 2026:** Legal routes HTTP 200 on `www.agent7even.ai`. Production `/sign-up` serves **`pk_live_`** (Clerk Production live). Vercel Production has Stripe + Clerk env vars set — **run billing E2E QA** (§5) to confirm live Checkout + webhooks before first paying customer.
+
+```bash
+# Live site only (ignores local .env.local test keys)
+npx tsx scripts/verify-production-readiness.ts --production-only
+```
 
 ---
 
@@ -14,11 +19,11 @@ npx tsx scripts/verify-production-readiness.ts
 
 | Gate | Code ready? | Dashboard action needed |
 |------|-------------|-------------------------|
-| Legal pages on `.ai` | Yes (fix `.com` refs in this session) | None — pages live |
-| Clerk Production | Webhook route ready | **Switch to `pk_live_` / `sk_live_` on Vercel** |
-| Stripe Live | Checkout + webhook code ready | **Create live products/prices + webhook** |
-| Zernio DPA | Connect works on test accounts | **Agent7even signed Jul 2026 — await Zernio confirmation; then client social OK** |
-| Pre-launch QA | Script + checklist below | Run after Clerk + Stripe live |
+| Legal pages on `.ai` | Yes | None — pages live |
+| Clerk Production | **Live on prod** (`pk_live_` on `/sign-up`) | Verify webhook deliveries in Clerk Production |
+| Stripe Live | Checkout + webhook code ready | **Confirm `sk_live_` + live price IDs** — run §5 billing QA |
+| Zernio DPA | Cleared Jul 8, 2026 | **First pilot connect** on `www.agent7even.ai` (§B below) |
+| Pre-launch QA | Script + checklist below | Run §5 after Stripe QA passes |
 
 ---
 
@@ -26,7 +31,9 @@ npx tsx scripts/verify-production-readiness.ts
 
 ### Why
 
-Production `/sign-up` currently embeds `pk_test_…` (Development instance `ruling-drum-42.clerk.accounts.dev`). Real customers need **`pk_live_`**.
+Production `/sign-up` embeds **`pk_live_…`** (Clerk Production). ✅ Verified July 9, 2026.
+
+If you ever see `pk_test_` again after a deploy, re-check Vercel Production `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`.
 
 ### Steps (Clerk Dashboard)
 
@@ -196,7 +203,33 @@ Run on **production** after Clerk + Stripe live. Use a **fresh email** and **rea
 
 ---
 
-## Recommended order today
+## Recommended order (July 9, 2026)
+
+1. ~~Clerk Production keys on Vercel~~ — **done** (`pk_live_` on prod)
+2. **Stripe live QA** — §5 table with real card on `www.agent7even.ai/pricing`
+3. Confirm Vercel Production `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` (Zernio OAuth uses request host as fallback, but env should still be correct)
+4. **Zernio pilot** — owner connect on production (see `vendor/zernio/go_live_runbook.md`)
+5. Check off `PRODUCTION_GREENLIGHT.md` §16 sign-off
+
+---
+
+## B — Zernio first pilot (production)
+
+**Workspace:** Agent7even owner (`bfa73081-3906-4b5b-b24e-d9df3fb07384`)
+
+1. Sign in at `https://www.agent7even.ai` as workspace owner
+2. **Analytics** → Connect social → pick platform (Instagram/Facebook recommended for first test)
+3. Complete Meta OAuth (may show Zernio shared app — expected for v1)
+4. After redirect, confirm URL has `?zernio_connected=…`
+5. In Supabase, verify `profiles.zernio_profile_id` for owner row
+6. **Posts** → create/approve test draft → confirm lifecycle counts update
+7. Optional regression: `npx tsx --env-file=.env.local scripts/verify-zernio-tenant-fixes.ts`
+
+Readiness (local env): `npx tsx --env-file=.env.local scripts/verify-zernio-go-live-readiness.ts`
+
+---
+
+## Recommended order today (archived June 17)
 
 1. **Legal URL fix** — commit + deploy (this session)
 2. **Clerk Production keys** on Vercel → redeploy → verify `pk_live_`
