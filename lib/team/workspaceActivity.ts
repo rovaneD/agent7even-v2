@@ -26,6 +26,8 @@ const EVENT_LABELS: Record<string, string> = {
   assignment_created: 'Assignment',
   assignment_submitted: 'Assignment submitted',
   team_member_joined: 'Team member joined',
+  task_note: 'Assignment note',
+  approval_note: 'Approval note',
 }
 
 /** Low-signal owner actions — hidden from default Team tab. */
@@ -157,6 +159,33 @@ function buildActivitySummary(
       const joiner = parseJoinerNameFromBody(joinBody) ?? actorName
       return `${joiner} joined the workspace`
     }
+    case 'task_note': {
+      const agent = typeof metadata?.agent === 'string'
+        ? agentDisplayName(metadata.agent)
+        : 'an assignment'
+      return actorRole === 'owner'
+        ? `You commented on ${agent}`
+        : `${actorName} commented on ${agent}`
+    }
+    case 'approval_note': {
+      const agent = typeof metadata?.agent === 'string'
+        ? agentDisplayName(metadata.agent)
+        : 'an approval'
+      const kind = metadata?.noteKind
+      if (kind === 'approved') {
+        return actorRole === 'owner'
+          ? `You approved ${agent} with a note`
+          : `${actorName} approved ${agent} with a note`
+      }
+      if (kind === 'rejected') {
+        return actorRole === 'owner'
+          ? `You rejected ${agent} with feedback`
+          : `${actorName} rejected ${agent} with feedback`
+      }
+      return actorRole === 'owner'
+        ? `You commented on ${agent} approval`
+        : `${actorName} commented on ${agent} approval`
+    }
     default:
       return EVENT_LABELS[eventType] ?? eventType.replace(/_/g, ' ')
   }
@@ -180,6 +209,12 @@ function activityLink(eventType: string, metadata: Record<string, unknown> | nul
   if (eventType === 'team_member_joined') return '/dashboard/team'
   if (eventType === 'maya_message') return '/maya'
   if (eventType === 'foundation_updated') return '/foundation'
+  if (eventType === 'task_note' && typeof metadata?.taskId === 'string') {
+    return `/dashboard/team/tasks/${metadata.taskId}`
+  }
+  if (eventType === 'approval_note' && typeof metadata?.taskId === 'string') {
+    return `/dashboard/agents/approvals?task=${metadata.taskId}`
+  }
   return null
 }
 
@@ -198,6 +233,138 @@ async function loadTeamMemberProfileIds(
       .map(row => row.member_profile_id as string | null)
       .filter(Boolean) as string[],
   )
+}
+
+function truncateNotePreview(body: string, max = 120): string {
+  const trimmed = body.trim()
+  if (trimmed.length <= max) return trimmed
+  return `${trimmed.slice(0, max - 1)}…`
+}
+
+type NoteActivityRow = {
+  id: string
+  task_id: string
+  author_profile_id: string
+  body: string
+  note_kind: string | null
+  created_at: string
+  agent: string | null
+}
+
+async function loadWorkspaceNoteActivityItems(
+  supabase: SupabaseClient,
+  workspaceId: string,
+  sinceIso: string,
+  teamMemberIds: Set<string>,
+  profileMap: Map<string, { full_name: string | null; email: string | null }>,
+  limit: number,
+): Promise<WorkspaceActivityItem[]> {
+  const [assignmentNotes, approvalNotes] = await Promise.all([
+    supabase
+      .from('team_task_notes')
+      .select('id, task_id, author_profile_id, body, created_at, agent_tasks!inner(agent)')
+      .eq('workspace_id', workspaceId)
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+    supabase
+      .from('approval_task_notes')
+      .select('id, task_id, author_profile_id, body, note_kind, created_at, agent_tasks!inner(agent)')
+      .eq('workspace_id', workspaceId)
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+  ])
+
+  const authorIds = new Set<string>()
+  for (const row of [...(assignmentNotes.data ?? []), ...(approvalNotes.data ?? [])]) {
+    if (row.author_profile_id) authorIds.add(row.author_profile_id as string)
+  }
+  const missingAuthorIds = [...authorIds].filter(id => !profileMap.has(id))
+  if (missingAuthorIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', missingAuthorIds)
+    for (const p of profiles ?? []) {
+      profileMap.set(p.id, { full_name: p.full_name, email: p.email })
+    }
+  }
+
+  function resolveActorRole(actorProfileId: string | null): WorkspaceActivityActorRole {
+    if (!actorProfileId || actorProfileId === workspaceId) return 'owner'
+    return teamMemberIds.has(actorProfileId) ? 'member' : 'owner'
+  }
+
+  function mapNoteRow(
+    row: NoteActivityRow,
+    eventType: 'task_note' | 'approval_note',
+    idPrefix: string,
+  ): WorkspaceActivityItem {
+    const actorProfileId = row.author_profile_id
+    const actorRole = resolveActorRole(actorProfileId)
+    const actorName = actorDisplayName(profileMap.get(actorProfileId) ?? null)
+    const agent = row.agent ?? undefined
+    const metadata: Record<string, unknown> = {
+      taskId: row.task_id,
+      agent,
+      noteKind: row.note_kind,
+    }
+    const taskAgentMap = new Map<string, string>()
+
+    return {
+      id: `${idPrefix}-${row.id}`,
+      eventType,
+      title: EVENT_LABELS[eventType] ?? eventType,
+      summary: buildActivitySummary(eventType, actorName, actorRole, metadata, taskAgentMap),
+      detail: truncateNotePreview(row.body),
+      actorName,
+      actorProfileId,
+      actorRole,
+      createdAt: row.created_at,
+      link: activityLink(eventType, metadata),
+    }
+  }
+
+  const items: WorkspaceActivityItem[] = []
+
+  for (const row of assignmentNotes.data ?? []) {
+    const taskJoin = row.agent_tasks as { agent?: string } | { agent?: string }[] | null
+    const agent = Array.isArray(taskJoin) ? taskJoin[0]?.agent : taskJoin?.agent
+    items.push(mapNoteRow(
+      {
+        id: row.id as string,
+        task_id: row.task_id as string,
+        author_profile_id: row.author_profile_id as string,
+        body: row.body as string,
+        note_kind: null,
+        created_at: row.created_at as string,
+        agent: (agent as string | null) ?? null,
+      },
+      'task_note',
+      'task-note',
+    ))
+  }
+
+  for (const row of approvalNotes.data ?? []) {
+    const taskJoin = row.agent_tasks as { agent?: string } | { agent?: string }[] | null
+    const agent = Array.isArray(taskJoin) ? taskJoin[0]?.agent : taskJoin?.agent
+    items.push(mapNoteRow(
+      {
+        id: row.id as string,
+        task_id: row.task_id as string,
+        author_profile_id: row.author_profile_id as string,
+        body: row.body as string,
+        note_kind: (row.note_kind as string | null) ?? null,
+        created_at: row.created_at as string,
+        agent: (agent as string | null) ?? null,
+      },
+      'approval_note',
+      'approval-note',
+    ))
+  }
+
+  return items
 }
 
 export type WorkspaceActivityResult = {
@@ -324,7 +491,21 @@ export async function listWorkspaceActivity(
     }
   })
 
-  const allItems = [...fromLog, ...fromJoins]
+  let noteItems: WorkspaceActivityItem[] = []
+  try {
+    noteItems = await loadWorkspaceNoteActivityItems(
+      supabase,
+      workspaceId,
+      since.toISOString(),
+      teamMemberIds,
+      profileMap,
+      limit,
+    )
+  } catch (err) {
+    console.warn('[workspaceActivity] note feed skipped:', err)
+  }
+
+  const allItems = [...fromLog, ...fromJoins, ...noteItems]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   const teamActionCount = allItems.filter(item => item.actorRole === 'member').length

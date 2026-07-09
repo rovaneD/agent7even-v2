@@ -26,7 +26,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -56,7 +56,7 @@ Always use `'2026-04-22.dahlia'` cast as `as any`. **Never use `'2025-04-30.basi
 Next.js 16 uses `proxy.ts` not `middleware.ts`.
 
 ## Key third-party notes
-- **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026). Publer is dashboard-first, also not a multi-tenant fit. **Zernio** is the integrated publisher (`lib/social/publisher.ts`). **DPA:** Signed both sides (Trust Center, Jul 2026). **Go-live (Jul 8, 2026):** Zernio (Elean) cleared onboarding paying customers' live social accounts — no longer limited to internal test accounts. Tenant isolation / security questionnaire answers still in progress via direct chat (not portal). Details: `vendor/zernio/`, `zernio_social_evaluation_backlog.md`, `CONTEXTV22.md` §8.
+- **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026). Publer is dashboard-first, also not a multi-tenant fit. **Zernio** is the integrated publisher (`lib/social/publisher.ts`). **DPA:** Signed both sides (Trust Center, Jul 2026). **Go-live (Jul 8, 2026):** Zernio cleared paying customers' live social accounts. Runbook: `vendor/zernio/go_live_runbook.md`; readiness: `scripts/verify-zernio-go-live-readiness.ts`. Tenant isolation answers still in chat (non-blocking pilot). Details: `vendor/zernio/`, `zernio_social_evaluation_backlog.md`.
 - **Instagram Lucide icon** — does not exist. Use `Hash` icon instead.
 
 ## This app (agent7even-v2) — experimental
@@ -64,7 +64,8 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV25.md` — latest product handoff: Foundation knowledge in agent/Maya context, team workspace guards, Memory observations, Guardian theme policy (July 6, 2026).
+- `CONTEXTV26.md` — latest handoff: Team Phase 5 notes (assignment + approval), Activity feed previews, Foundation classification backfill, Zernio go-live runbook (July 9, 2026).
+- `CONTEXTV25.md` — July 6 handoff: Foundation knowledge in agent/Maya context, team workspace guards, Memory observations, Guardian theme policy.
 - `SESSION_2026-07-06.md` — July 6 session log (knowledge context, Zernio/generation-floor guards, ship validation).
 - `CONTEXTV24.md` — July 4 handoff: transactional email complete, Guardian proposal surface, layers v0, profile DB clean.
 - `CONTEXTV23.md` — prior handoff: duplicate profile resolution, Agents run sub-pages, Foundation site snapshot, GA OAuth fix (July 3, 2026).

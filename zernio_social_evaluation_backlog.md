@@ -129,13 +129,14 @@ Rules carried from prior architecture decisions:
    external-integration surface until the cheapest grounding test pays off. (Independent
    rationale: social scheduling is a bigger build; sequence behind the validated win.)
 2. Zernio has answered the OPEN questions acceptably - tenant isolation (Q1) still pending
-   scoped-key written guarantee; data handling/DPA (Q4) **Agent7even signed Jul 2026** pending
-   Zernio countersign - or a fallback vendor has. (Q2 cost caps answered; Q3 support trending OK.)
+   scoped-key written guarantee in chat (non-blocking for first paying pilot); data handling/DPA (Q4)
+   **cleared Jul 8, 2026** — paying customer live social OK. (Q2 cost caps answered; Q3 support trending OK.)
 
 Validation approach when unblocked: build the publisher interface, wire Zernio behind it on
 the FREE tier (2 accounts), validate the full schedule->publish->reconcile loop AND Zernio's
-support responsiveness with test accounts, before any real client depends on it. Mirror the
-Exa free-tier-first discipline.
+support responsiveness with test accounts, before any real client depends on it. **Jul 2026:**
+DPA + paying-customer clearance received — first live connects use `vendor/zernio/go_live_runbook.md`
+and `scripts/verify-zernio-go-live-readiness.ts`.
 
 ## AGENTS.md rule update (apply now)
 

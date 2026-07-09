@@ -462,8 +462,15 @@ export default function TeamClient({
                     </div>
                     <p className="mt-1 text-xs text-text-sec">
                       {item.title}
-                      {item.detail ? ` · ${item.detail}` : ''}
+                      {item.detail && !['task_note', 'approval_note'].includes(item.eventType)
+                        ? ` · ${item.detail}`
+                        : ''}
                     </p>
+                    {item.detail && ['task_note', 'approval_note'].includes(item.eventType) && (
+                      <p className="mt-1 text-xs text-text-soft line-clamp-2 italic">
+                        “{item.detail}”
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-shrink-0 flex-col items-end gap-1">
                     <span className="text-xs text-text-soft">{formatActivityTime(item.createdAt)}</span>
