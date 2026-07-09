@@ -1111,9 +1111,13 @@ function KnowledgeTab({
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-text-soft bg-surface-muted px-1.5 py-0.5 rounded flex-shrink-0">
                         {SOURCE_TYPE_LABEL[item.source_type] ?? item.source_type}
                       </span>
-                      {item.source_purpose && (
+                      {item.source_purpose ? (
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border flex-shrink-0 ${KNOWLEDGE_PURPOSE_BADGE_CLASS[item.source_purpose]}`}>
                           {KNOWLEDGE_PURPOSE_LABELS[item.source_purpose]}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border flex-shrink-0 bg-amber-50 text-amber-800 border-amber-200">
+                          Needs classification
                         </span>
                       )}
                     </div>

@@ -7,7 +7,9 @@ import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContex
 import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
-import { resolveProfileDisplayNames } from '@/lib/profiles/resolveActorName'
+import { formatProfileDisplayName, resolveProfileDisplayNames } from '@/lib/profiles/resolveActorName'
+import { listWorkspaceTeamMembers } from '@/lib/team/teamRoster'
+import { buildApprovalMentionHints } from '@/lib/team/taskNoteUi'
 import ApprovalsClient from './ApprovalsClient'
 
 export default async function ApprovalsPage() {
@@ -29,7 +31,7 @@ export default async function ApprovalsPage() {
     { zernioStatuses: ['draft'] },
   )
 
-  const [tasks, { data: runningVideoRows }] = await Promise.all([
+  const [tasks, { data: runningVideoRows }, teamRoster, { data: ownerProfile }] = await Promise.all([
     listPendingApprovalTasks(supabase, dataUserId),
 
     supabase
@@ -39,6 +41,14 @@ export default async function ApprovalsPage() {
       .eq('agent', 'video_generation')
       .eq('status', 'running')
       .order('created_at', { ascending: false }),
+
+    listWorkspaceTeamMembers(supabase, dataUserId),
+
+    supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', dataUserId)
+      .maybeSingle(),
   ])
 
   const actorIds = tasks
@@ -74,6 +84,15 @@ export default async function ApprovalsPage() {
     input: (t.input ?? {}) as Record<string, unknown>,
   }))
 
+  const mentionHints = buildApprovalMentionHints(
+    {
+      id: dataUserId,
+      name: formatProfileDisplayName(ownerProfile),
+      email: ownerProfile?.email ?? '',
+    },
+    teamRoster,
+  )
+
   return (
     <Suspense>
       <ApprovalsClient
@@ -85,6 +104,7 @@ export default async function ApprovalsPage() {
         viralHooksHints={{
           audience: workspaceProfile.ideal_customer ?? undefined,
         }}
+        mentionHints={mentionHints}
       />
     </Suspense>
   )

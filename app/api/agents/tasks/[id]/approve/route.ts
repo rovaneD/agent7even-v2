@@ -5,6 +5,7 @@ import { publishApprovedImageCaption } from '@/lib/agents/publishApprovedOutput'
 import { shouldPublishApprovedPost, singlePostPublishBlockReason } from '@/lib/agents/contentPosting'
 import { linkOutputToZernioPost } from '@/lib/content/agentOutputLifecycle'
 import { logApprovalChangelog } from '@/lib/foundation/changelog'
+import { recordApprovalDecisionNote } from '@/lib/agents/approvalNotes'
 import {
   getWorkspaceSessionFromRequest,
   workspaceActorId,
@@ -17,7 +18,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: taskId } = await params
-  const { outputId, editedContent } = await req.json()
+  const { outputId, editedContent, comment } = await req.json()
 
   const supabase = createServiceClient()
   const session = await getWorkspaceSessionFromRequest(supabase)
@@ -72,7 +73,7 @@ export async function POST(
   if (taskRes.error) return NextResponse.json({ error: taskRes.error.message }, { status: 500 })
 
   const [{ data: task }, { data: output }] = await Promise.all([
-    supabase.from('agent_tasks').select('agent, input').eq('id', taskId).eq('user_id', workspaceId).single(),
+    supabase.from('agent_tasks').select('agent, input, actor_profile_id').eq('id', taskId).eq('user_id', workspaceId).single(),
     supabase.from('agent_outputs').select('title, content').eq('id', outputId).eq('user_id', workspaceId).single(),
   ])
 
@@ -123,6 +124,20 @@ export async function POST(
     contentAfter: outputContent,
     editedContent: typeof editedContent === 'string' ? editedContent : null,
   })
+
+  const approvalComment = typeof comment === 'string' ? comment.trim() : ''
+  if (approvalComment) {
+    await recordApprovalDecisionNote({
+      supabase,
+      workspaceId,
+      authorProfileId: memberId,
+      taskId,
+      agentId: (task?.agent as string) ?? 'unknown',
+      noteKind: 'approved',
+      body: approvalComment,
+      actorProfileId: (task?.actor_profile_id as string | null) ?? null,
+    })
+  }
 
   return NextResponse.json({ success: true, publish, publishBlocked })
 }

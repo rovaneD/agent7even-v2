@@ -45,7 +45,7 @@ export async function assertTaskOwnedByProfile(
 ) {
   const { data: task, error } = await supabase
     .from('agent_tasks')
-    .select('id, agent, input, priority, user_id')
+    .select('id, agent, input, priority, user_id, actor_profile_id')
     .eq('id', taskId)
     .eq('user_id', workspaceId)
     .single()

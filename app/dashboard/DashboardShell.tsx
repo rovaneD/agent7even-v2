@@ -761,10 +761,10 @@ export default function DashboardShell({
             AGENT<span style={{ color: 'var(--color-brand-accent)' }}>7</span>EVEN
           </span>
         )}
-        {!sidebarCollapsed && (
+        {mobileOpen && !sidebarCollapsed && (
           <button
             onClick={() => setMobileOpen(false)}
-            className="lg:hidden"
+            aria-label="Close navigation"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 2, display: 'flex' }}
           >
             <X size={14} />

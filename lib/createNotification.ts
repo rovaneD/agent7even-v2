@@ -23,6 +23,8 @@ export type NotificationType =
   | 'assignment_submitted'
   | 'task_note'
   | 'task_note_mention'
+  | 'approval_note'
+  | 'approval_note_mention'
 
 interface CreateNotificationParams {
   userId: string          // profiles.id of recipient

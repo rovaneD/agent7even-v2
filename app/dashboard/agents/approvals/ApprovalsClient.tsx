@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, CheckCircle2, RotateCcw, ArrowLeft, Filter, SortDesc, Image as ImageIcon, CalendarDays, FileText } from 'lucide-react'
 import { AGENTS, AgentId } from '@/lib/agents/registry'
 import AgentIcon from '@/components/agents/AgentIcon'
+import ApprovalDiscussion from '@/components/dashboard/ApprovalDiscussion'
 import AdVariationsOutputView from '@/components/agents/AdVariationsOutputView'
 import CampaignOutputView from '@/components/agents/CampaignOutputView'
 import EmailSequenceOutputView from '@/components/agents/EmailSequenceOutputView'
@@ -74,6 +75,7 @@ interface Props {
   draftPostCount?: number
   postsConnected?: boolean
   viralHooksHints?: ViralHooksDraftHints
+  mentionHints?: string[]
 }
 
 // ── Quick rejection reasons ────────────────────────────────────────────────
@@ -128,6 +130,7 @@ function ApprovalItem({
   isChecked,
   hasReviewedOne,
   viralHooksHints,
+  mentionHints = [],
   onToggleExpand,
   onToggleCheck,
   onApprove,
@@ -139,9 +142,10 @@ function ApprovalItem({
   isChecked: boolean
   hasReviewedOne: boolean
   viralHooksHints?: ViralHooksDraftHints
+  mentionHints?: string[]
   onToggleExpand: () => void
   onToggleCheck: () => void
-  onApprove: (taskId: string, outputId: string, edited?: string) => Promise<void>
+  onApprove: (taskId: string, outputId: string, edited?: string, comment?: string) => Promise<void>
   onReject: (taskId: string, outputId: string, note: string, reason: string, rerun: boolean) => Promise<void>
   onMarkReviewed: () => void
 }) {
@@ -161,6 +165,7 @@ function ApprovalItem({
   const [isEditing,   setIsEditing]   = useState(false)
   const [editVal,     setEditVal]     = useState(raw)
   const [rejectNote,  setRejectNote]  = useState('')
+  const [approveComment, setApproveComment] = useState('')
   const [activeChip,  setActiveChip]  = useState<string | null>(null)
   const [showReject,  setShowReject]  = useState(false)
 
@@ -188,7 +193,12 @@ function ApprovalItem({
     if (!output) return
     setApproving(true)
     try {
-      await onApprove(task.id, output.id, isEditing ? editVal : undefined)
+      await onApprove(
+        task.id,
+        output.id,
+        isEditing ? editVal : undefined,
+        approveComment.trim() || undefined,
+      )
     } finally {
       setApproving(false)
     }
@@ -372,6 +382,15 @@ function ApprovalItem({
             {isExpanded ? 'Collapse' : 'Read full output'}
           </button>
 
+          {/* Discussion thread */}
+          {isExpanded && (
+            <ApprovalDiscussion
+              taskId={task.id}
+              enabled={isExpanded}
+              mentionHints={mentionHints}
+            />
+          )}
+
           {/* Quick rejection chips */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
             {REJECTION_CHIPS.map(chip => (
@@ -390,6 +409,23 @@ function ApprovalItem({
               </button>
             ))}
           </div>
+
+          {/* Optional approve note */}
+          {isExpanded && !showReject && (
+            <div style={{ marginBottom: 12 }}>
+              <textarea
+                value={approveComment}
+                onChange={e => setApproveComment(e.target.value)}
+                placeholder="Optional note when approving (visible to submitter)"
+                rows={2}
+                style={{
+                  width: '100%', border: '0.5px solid #E2E8F0', borderRadius: 8, padding: '8px 12px',
+                  fontSize: 12.5, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+                  color: '#555',
+                }}
+              />
+            </div>
+          )}
 
           {/* Reject note (shown when chip selected or manually opened) */}
           {showReject && (
@@ -622,6 +658,7 @@ export default function ApprovalsClient({
   draftPostCount = 0,
   postsConnected = false,
   viralHooksHints,
+  mentionHints = [],
 }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
@@ -752,11 +789,12 @@ export default function ApprovalsClient({
     setCheckedIds(prev => { const n = new Set(prev); n.delete(taskId); return n })
   }, [])
 
-  async function handleApprove(taskId: string, outputId: string, edited?: string) {
+  async function handleApprove(taskId: string, outputId: string, edited?: string, comment?: string) {
     const task = tasks.find(t => t.id === taskId)
     const kind = task ? approvalQueueKind(task) : 'other'
     const body: Record<string, unknown> = { outputId }
     if (edited !== undefined) body.editedContent = edited
+    if (comment) body.comment = comment
     const res = await fetch(`/api/agents/tasks/${taskId}/approve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1108,6 +1146,7 @@ export default function ApprovalsClient({
                     isChecked={checkedIds.has(task.id)}
                     hasReviewedOne={hasReviewedOne}
                     viralHooksHints={viralHooksHints}
+                    mentionHints={mentionHints}
                     onToggleExpand={() => toggleExpand(task.id)}
                     onToggleCheck={() => toggleCheck(task.id)}
                     onApprove={handleApprove}

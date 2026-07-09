@@ -22,3 +22,10 @@ export function rosterForMentions(
   }
   return labels
 }
+
+export function buildApprovalMentionHints(
+  owner: { id: string; name: string; email: string },
+  teamRoster: WorkspaceTeamMemberRow[],
+): string[] {
+  return rosterForMentions(owner, teamRoster)
+}

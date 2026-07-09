@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { buildRequeueTaskInput } from '@/lib/agents/requeueTaskInput'
 import { rejectAllPendingOutputsForTask } from '@/lib/agents/approvalQueueMutations'
 import { logRejectionChangelog } from '@/lib/foundation/changelog'
+import { recordApprovalDecisionNote } from '@/lib/agents/approvalNotes'
 import {
   getWorkspaceSessionFromRequest,
   workspaceActorId,
@@ -62,6 +63,19 @@ export async function POST(
     feedbackNote: rejectionText,
     rerun,
   })
+
+  if (rejectionText) {
+    await recordApprovalDecisionNote({
+      supabase,
+      workspaceId,
+      authorProfileId: memberId,
+      taskId,
+      agentId: task.agent as string,
+      noteKind: 'rejected',
+      body: rejectionText,
+      actorProfileId: (task.actor_profile_id as string | null) ?? null,
+    })
+  }
 
   if (rerun && rejectionText) {
     const requeueInput = buildRequeueTaskInput(
