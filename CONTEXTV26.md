@@ -1,5 +1,5 @@
 # CONTEXTV26 — Team Phase 5 threads, Foundation classification, Zernio go-live
-*Snapshot: July 9, 2026 — supersedes `CONTEXTV25.md` for logged-in product work*
+*Snapshot: July 9, 2026 — superseded by `CONTEXTV27.md` for launch audit + mobile modal fixes*
 
 ---
 
@@ -10,7 +10,7 @@ Local workspace: /Users/durso/agent7even-v2-clean
 GitHub: rovaneD/agent7even-v2
 Vercel: agent7even-v2.vercel.app
 Branch: main
-Latest remote: d285aca (approval threads + Foundation polish)
+Latest remote: 9791696 (approval threads + Foundation polish; see CONTEXTV27 for later commits)
 Prior handoff: CONTEXTV25 (July 6)
 ```
 

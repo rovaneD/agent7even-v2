@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 6, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 9, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -26,7 +26,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV27.md > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -64,7 +64,9 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV26.md` — latest handoff: Team Phase 5 notes (assignment + approval), Activity feed previews, Foundation classification backfill, Zernio go-live runbook (July 9, 2026).
+- `CONTEXTV27.md` — latest handoff: production launch audit (Clerk live on `.ai`), mobile modal scroll shell, blog hydration fix, Zernio OAuth request host (July 9, 2026 evening).
+- `CONTEXTV26.md` — July 9 morning: Team Phase 5 notes (assignment + approval), Activity feed previews, Foundation classification backfill, Zernio go-live runbook.
+- `SESSION_2026-07-09.md` — July 9 session log (launch audit, modal scroll, blog, Zernio OAuth, commit 9791696).
 - `CONTEXTV25.md` — July 6 handoff: Foundation knowledge in agent/Maya context, team workspace guards, Memory observations, Guardian theme policy.
 - `SESSION_2026-07-06.md` — July 6 session log (knowledge context, Zernio/generation-floor guards, ship validation).
 - `CONTEXTV24.md` — July 4 handoff: transactional email complete, Guardian proposal surface, layers v0, profile DB clean.
@@ -118,6 +120,8 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - **Structured approval views:** Campaign Builder, Ad Variations, Email Sequence use dedicated parsers + view components in `lib/agents/*Parse.ts` and `components/agents/*OutputView.tsx`.
 - **Foundation site snapshot:** `34_foundation_site_snapshot.sql` + `lib/foundation/siteSnapshot.ts` — separate from guarded Phase 1 answers; enable via `site_snapshot_enabled`.
 - **Foundation Intelligence:** Observer changelog (`32_foundation_changelog.sql`) → Guardian proposals (`33_foundation_proposals.sql`) → user proposal surface (`36`/`37` + `FoundationProposalsPanel.tsx`). Thresholds: `lib/foundation/guardian/guardianConfig.ts`. Batch: `scripts/run-foundation-guardian.ts`.
+- **Dashboard modals (mobile):** Tall forms use `components/ui/DashboardModal.tsx` (`DashboardModalShell` + `DashboardModalScrollBody`) — `max-h-[90dvh]` with scrollable body. Do not use bare `overflow-hidden` on modal panels without a scroll region.
+- **Production readiness:** `npx tsx scripts/verify-production-readiness.ts --production-only` — live `.ai` checks without failing on local test keys. Step-by-step launch: `PRODUCTION_LAUNCH_SESSION.md`.
 
 ## Current visual-system rules
 - Primary CTAs, links, focus, and selected actions use blue `#3B82F6`.

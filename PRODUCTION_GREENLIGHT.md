@@ -10,20 +10,20 @@ This is the master checklist for taking **agent7even-v2** from experimental/stag
 
 ---
 
-## 0. Current state (as of June 16, 2026)
+## 0. Current state (as of July 9, 2026)
 
-| System | v2 on agent7even.ai | Legacy app.agent7even.com |
-|--------|---------------------|---------------------------|
+| System | v2 on www.agent7even.ai | Legacy app.agent7even.com |
+|--------|-------------------------|---------------------------|
 | **Deploy** | `rovaneD/agent7even-v2` → Vercel `agent7even-v2` | `rovaneD/agent7even-app` |
-| **Clerk** | **Development** (`pk_test_…`, `ruling-drum-42.clerk.accounts.dev`) | **Production** (`pk_live_…`, `clerk.app.agent7even.com`) |
-| **Stripe** | **Test mode** (`sk_test_…`, test price IDs) | Likely live keys (separate instance) |
+| **Clerk** | **Production live** (`pk_live_` verified on `/sign-up`, Jul 9) | **Production** (`pk_live_…`, `clerk.app.agent7even.com`) |
+| **Stripe** | Keys + live price IDs on Vercel Production — **E2E checkout QA pending** | Likely live keys (separate instance) |
 | **Supabase** | Shared project (verify prod vs staging) | Same or separate — confirm |
 | **Meta domains** | `agent7even.ai` verified | `agent7even.com` verified (marketing repo) |
 | **Meta Tech Provider** | Agent7even app `992647829846107` verified (June 2026) | — |
-| **Legal pages** | `/privacy`, `/terms`, `/security`, `/data-deletion` on v2 | Older copies may still exist on `.com` |
-| **Marketing CTAs** | v2 root pages point to `/sign-up`, `/pricing` on `.ai` | AGENTS.md still references `.com` app URLs in some rules |
+| **Legal pages** | `/privacy`, `/terms`, `/security`, `/data-deletion` on v2 — HTTP 200 | Older copies may still exist on `.com` |
+| **Zernio social** | DPA cleared Jul 8; first production pilot pending | — |
 
-`lib/env.ts` already warns if `NEXT_PUBLIC_APP_URL` contains `app.agent7even.com` while `STRIPE_SECRET_KEY` starts with `sk_test_` — the inverse (`.ai` URL + test keys) is where v2 is today.
+`lib/env.ts` warns if `NEXT_PUBLIC_APP_URL` contains `app.agent7even.com` while `STRIPE_SECRET_KEY` starts with `sk_test_`. Local dev uses test keys; production audit: `scripts/verify-production-readiness.ts --production-only`.
 
 ---
 
