@@ -24,19 +24,16 @@ type PendingOutputRow = {
   created_at: string
 }
 
-/** Single source of truth: outputs awaiting owner sign-off. */
+/** Count pending outputs that still appear in the approval queue (task must exist). */
 export async function getPendingApprovalCount(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<number> {
-  const { count, error } = await supabase
-    .from('agent_outputs')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('status', PENDING_APPROVAL_OUTPUT_STATUS)
-
-  if (error) throw error
-  return count ?? 0
+  const tasks = await listPendingApprovalTasks(supabase, userId)
+  return tasks.reduce(
+    (sum, task) => sum + ((task.agent_outputs as unknown[])?.length ?? 0),
+    0,
+  )
 }
 
 async function fetchPendingApprovalOutputs(
@@ -131,4 +128,44 @@ export async function listPendingApprovalTasks(
       (output: { status?: string }) => output.status === PENDING_APPROVAL_OUTPUT_STATUS,
     ),
   }))
+}
+
+/**
+ * Pending outputs whose task row is missing cannot appear in the queue but still
+ * inflated sidebar counts — mark them rejected so badge and queue stay aligned.
+ */
+export async function reconcileOrphanedPendingApprovalOutputs(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<number> {
+  const outputs = await fetchPendingApprovalOutputs(supabase, userId)
+  if (outputs.length === 0) return 0
+
+  const taskIds = [...new Set(outputs.map(row => row.task_id).filter(Boolean))]
+  const { data: tasks, error } = taskIds.length
+    ? await supabase.from('agent_tasks').select('id').eq('user_id', userId).in('id', taskIds)
+    : { data: [] as { id: string }[], error: null }
+
+  if (error) throw error
+
+  const validTaskIds = new Set((tasks ?? []).map(row => row.id))
+  const orphanIds = outputs
+    .filter(row => !row.task_id || !validTaskIds.has(row.task_id))
+    .map(row => row.id)
+
+  if (orphanIds.length === 0) return 0
+
+  const now = new Date().toISOString()
+  const { error: updateErr } = await supabase
+    .from('agent_outputs')
+    .update({
+      status: 'rejected',
+      lifecycle_stage: 'rejected',
+      feedback_note: 'Cleared stale pending output (task no longer in queue)',
+      feedback_at: now,
+    })
+    .in('id', orphanIds)
+
+  if (updateErr) throw updateErr
+  return orphanIds.length
 }

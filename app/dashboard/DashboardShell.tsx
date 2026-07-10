@@ -357,6 +357,10 @@ export default function DashboardShell({
   const [foundationScore, setFoundationScore] = useState<number | null>(initialFoundationScore ?? null)
   const [brandKitCompleted, setBrandKitCompleted] = useState(initialBrandKitCompleted)
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(initialPendingApprovalsCount)
+
+  useEffect(() => {
+    setPendingApprovalsCount(initialPendingApprovalsCount)
+  }, [initialPendingApprovalsCount])
   const [activeOrdersCount, setActiveOrdersCount] = useState(initialActiveOrdersCount)
   const [showNewCampaign, setShowNewCampaign] = useState(false)
   const [helpMode, setHelpMode] = useState(false)

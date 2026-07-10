@@ -6,7 +6,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
-import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
+import { listPendingApprovalTasks, reconcileOrphanedPendingApprovalOutputs } from '@/lib/agents/pendingApprovals'
 import { formatProfileDisplayName, resolveProfileDisplayNames } from '@/lib/profiles/resolveActorName'
 import { listWorkspaceTeamMembers } from '@/lib/team/teamRoster'
 import { buildApprovalMentionHints } from '@/lib/team/taskNoteUi'
@@ -31,8 +31,11 @@ export default async function ApprovalsPage() {
     { zernioStatuses: ['draft'] },
   )
 
-  const [tasks, { data: runningVideoRows }, teamRoster, { data: ownerProfile }] = await Promise.all([
-    listPendingApprovalTasks(supabase, dataUserId),
+  const [tasks, runningVideoResult, teamRoster, ownerProfileResult] = await Promise.all([
+    (async () => {
+      await reconcileOrphanedPendingApprovalOutputs(supabase, dataUserId)
+      return listPendingApprovalTasks(supabase, dataUserId)
+    })(),
 
     supabase
       .from('agent_tasks')
@@ -50,6 +53,9 @@ export default async function ApprovalsPage() {
       .eq('id', dataUserId)
       .maybeSingle(),
   ])
+
+  const runningVideoRows = runningVideoResult.data
+  const ownerProfile = ownerProfileResult.data
 
   const actorIds = tasks
     .map(task => (task as { actor_profile_id?: string | null }).actor_profile_id)
