@@ -11,6 +11,8 @@ type Props = {
   creditBalance: number | null
   activeServiceRequests?: number
   compact?: boolean
+  /** Owner or team member with billing permission — hides plan/credits UI when false. */
+  canViewBilling?: boolean
 }
 
 export default function PlanUsageCallout({
@@ -18,7 +20,12 @@ export default function PlanUsageCallout({
   creditBalance,
   activeServiceRequests = 0,
   compact = false,
+  canViewBilling = true,
 }: Props) {
+  if (!canViewBilling) {
+    return null
+  }
+
   if (!isPaidPlan(plan)) {
     return (
       <div className={`rounded-2xl border border-gray-100 bg-white ${compact ? 'p-4' : 'p-5'}`}>

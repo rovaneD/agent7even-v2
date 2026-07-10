@@ -31,6 +31,7 @@ import AssignedToYou from '@/components/dashboard/AssignedToYou'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { getPendingApprovalCount, listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
 import { listTasksAssignedToMember } from '@/lib/team/taskAssignments'
+import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -42,6 +43,8 @@ export default async function DashboardPage() {
   const workspaceProfile = workspace?.workspaceProfile ?? profile
   const dataUserId = workspace?.workspaceId ?? profile?.id
   const isTeamMember = workspace?.isTeamMember ?? false
+  const teamPerms = profile?.id ? await getTeamPermissions(profile.id) : null
+  const canViewBilling = teamPerms ? hasPermission(teamPerms, 'billing') : true
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -251,6 +254,7 @@ export default async function DashboardPage() {
           digestStale={digestStale}
           livePendingCount={pendingApprovals}
           livePendingItems={pendingApprovalItems}
+          showMediaCredits={canViewBilling}
         />
       )}
 
@@ -264,6 +268,7 @@ export default async function DashboardPage() {
             plan={workspaceProfile?.plan ?? null}
             creditBalance={creditBalance}
             activeServiceRequests={activeOrders}
+            canViewBilling={canViewBilling}
           />
         </div>
       )}

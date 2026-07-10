@@ -20,10 +20,9 @@ export default async function ServicesPage({
   const email = await getClerkSessionEmail()
   const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
-  if (profile?.id) {
-    const teamPerms = await getTeamPermissions(profile.id)
-    if (!hasPermission(teamPerms, 'services')) redirect('/dashboard')
-  }
+  const teamPerms = profile?.id ? await getTeamPermissions(profile.id) : null
+  if (teamPerms && !hasPermission(teamPerms, 'services')) redirect('/dashboard')
+  const canViewBilling = teamPerms ? hasPermission(teamPerms, 'billing') : true
 
   const workspaceProfile = workspace?.workspaceProfile ?? profile
   const dataUserId = workspace?.workspaceId ?? profile?.id
@@ -103,6 +102,7 @@ export default async function ServicesPage({
       initialOrderId={initialOrderId ?? null}
       openViralHooksPrefill={openViralHooksPrefill}
       creditBalance={creditRow?.balance ?? null}
+      canViewBilling={canViewBilling}
     />
   )
 }

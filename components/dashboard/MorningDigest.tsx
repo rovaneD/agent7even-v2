@@ -61,6 +61,8 @@ interface Props {
   /** Live pending-approval count — single source of truth for all brief surfaces. */
   livePendingCount: number
   livePendingItems: ApprovalItem[]
+  /** Hide owner billing/credits stats for team members without billing permission. */
+  showMediaCredits?: boolean
 }
 
 function getGreeting(): string {
@@ -156,6 +158,7 @@ export default function MorningDigest({
   digestStale = false,
   livePendingCount,
   livePendingItems,
+  showMediaCredits = true,
 }: Props) {
   const [digest, setDigest] = useState<Digest | null>(initialDigest)
   const [loading, setLoading] = useState(initialDigest === null || digestStale)
@@ -272,14 +275,16 @@ export default function MorningDigest({
           </button>
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        <div className={`mt-6 grid gap-3 ${showMediaCredits ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <StatPill label="Approvals" value={pendingCount} hint="Outputs waiting for your review" />
           <StatPill label="Campaigns" value={coldOpen.activeCampaigns} hint="Active marketing plans" />
-          <StatPill
-            label="Media credits"
-            value={coldOpen.creditBalance ?? '—'}
-            hint="Images, video & publishing"
-          />
+          {showMediaCredits && (
+            <StatPill
+              label="Media credits"
+              value={coldOpen.creditBalance ?? '—'}
+              hint="Images, video & publishing"
+            />
+          )}
         </div>
       </div>
 

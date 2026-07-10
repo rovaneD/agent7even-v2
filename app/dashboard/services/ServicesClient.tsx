@@ -479,12 +479,14 @@ export default function ServicesClient({
   initialOrderId,
   openViralHooksPrefill = false,
   creditBalance = null,
+  canViewBilling = true,
 }: {
   profile: Profile | null
   orders: Order[]
   initialOrderId?: string | null
   openViralHooksPrefill?: boolean
   creditBalance?: number | null
+  canViewBilling?: boolean
 }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'browse' | 'orders'>(initialOrderId ? 'orders' : 'browse')
@@ -970,6 +972,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
           creditBalance={creditBalance}
           activeServiceRequests={activeOrders.length}
           compact
+          canViewBilling={canViewBilling}
         />
       </div>
 
