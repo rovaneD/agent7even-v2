@@ -14,6 +14,16 @@ const DEFAULT_OWNER_PERMISSIONS: Record<PermissionKey, boolean> = {
   support: true,
 }
 
+const MINIMAL_MEMBER_PERMISSIONS: Record<PermissionKey, boolean> = {
+  billing: false,
+  services: false,
+  ai_toolkit: false,
+  analytics: false,
+  brand_kit: false,
+  deliverables: false,
+  support: true,
+}
+
 export async function getTeamPermissions(profileId: string): Promise<TeamPermissions> {
   const supabase = createServiceClient()
 
@@ -21,18 +31,9 @@ export async function getTeamPermissions(profileId: string): Promise<TeamPermiss
     .from('profiles')
     .select('is_account_owner, account_id')
     .eq('id', profileId)
-    .single()
+    .maybeSingle()
 
-  // Owner has full access
-  if (!profile || profile.is_account_owner !== false) {
-    return {
-      isOwner: true,
-      permissions: DEFAULT_OWNER_PERMISSIONS,
-      accountId: null,
-    }
-  }
-
-  // Team member — fetch their permissions (team_members is SSOT when profile link is stale)
+  // team_members is the source of truth for active memberships, even when profile flags are stale.
   const { data: membership } = await supabase
     .from('team_members')
     .select('permissions, role, account_id')
@@ -40,32 +41,55 @@ export async function getTeamPermissions(profileId: string): Promise<TeamPermiss
     .eq('status', 'active')
     .maybeSingle()
 
-  const accountId = profile.account_id ?? (membership?.account_id as string | null) ?? null
+  if (membership) {
+    const accountId = (membership.account_id as string | null) ?? profile?.account_id ?? null
 
-  if (!membership) {
-    // No active membership found — default to minimal access
+    if (
+      profile &&
+      (profile.is_account_owner !== false || profile.account_id !== accountId)
+    ) {
+      await supabase
+        .from('profiles')
+        .update({
+          account_id: accountId,
+          is_account_owner: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profileId)
+    }
+
     return {
       isOwner: false,
       permissions: {
-        billing: false,
-        services: false,
-        ai_toolkit: false,
-        analytics: false,
-        brand_kit: false,
-        deliverables: false,
-        support: true,
+        ...DEFAULT_OWNER_PERMISSIONS,
+        ...membership.permissions,
+        support: true, // Always visible
       },
       accountId,
     }
   }
 
+  if (!profile) {
+    return {
+      isOwner: false,
+      permissions: MINIMAL_MEMBER_PERMISSIONS,
+      accountId: null,
+    }
+  }
+
+  // Owner has full access only when no active team membership overrides the profile row.
+  if (profile.is_account_owner !== false) {
+    return {
+      isOwner: true,
+      permissions: DEFAULT_OWNER_PERMISSIONS,
+      accountId: null,
+    }
+  }
+
+  // No active membership found — default to minimal access.
   return {
     isOwner: false,
-    permissions: {
-      ...DEFAULT_OWNER_PERMISSIONS,
-      ...membership.permissions,
-      support: true, // Always visible
-    },
-    accountId,
+    permissions: MINIMAL_MEMBER_PERMISSIONS,
+    accountId: profile.account_id,
   }
 }

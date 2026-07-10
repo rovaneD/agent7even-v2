@@ -1,5 +1,5 @@
 # CONTEXTV27 — Launch readiness audit, mobile modals, blog + Zernio OAuth fixes
-*Snapshot: July 9, 2026 (evening) — supersedes `CONTEXTV26.md` for logged-in + launch work*
+*Snapshot: July 9, 2026 (evening); July 10 owner-guard addendum — supersedes `CONTEXTV26.md` for logged-in + launch work*
 
 ---
 
@@ -28,6 +28,7 @@ Prior handoff: CONTEXTV26 (July 9 morning — Phase 5 threads, Foundation, Zerni
 | Blog index hydration — nested `<a>` fix | **§3** |
 | Zernio OAuth callback host from request | **§4** |
 | Carry-forward from V26 (Phase 5, Foundation, Activity) | **§5** |
+| Team owner-guard critical fix | **§6** |
 
 ---
 
@@ -127,6 +128,18 @@ Still set `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` on Vercel Production; 
 
 ---
 
+## 6. July 10 critical bug investigation — team owner guard
+
+**Bug:** `lib/teamPermissions.ts` granted owner permissions whenever `profiles.is_account_owner !== false` before checking active `team_members` membership. A team member whose profile flags were stale/null could pass `requireWorkspaceOwner`, then workspace resolution would still treat `team_members` as the SSOT and point mutations at the owner workspace.
+
+**Impact:** Owner-only integration and approval mutations could be reached by a non-owner team member in that stale-profile state. High-risk examples: Zernio reconnect side effects, GA connect/disconnect, approval/rejection endpoints.
+
+**Fix:** Active `team_members` rows now override stale profile flags before owner permissions are granted. Missing profiles fail closed with minimal member permissions. When a stale active member is detected, the resolver backfills `profiles.account_id` and `is_account_owner=false`.
+
+**Validation:** `npx tsc --noEmit` and `npm run build` passed on July 10 branch `cursor/critical-bug-investigation-05f9`.
+
+---
+
 ## Known open items
 
 | Item | Notes |
@@ -146,6 +159,7 @@ Still set `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` on Vercel Production; 
 - `BlogImage` `creditLinks={false}` default on card aspect ratio.
 - Zernio OAuth request-host redirects.
 - `--production-only` on production readiness script.
+- `team_members` active membership as the source of truth before profile owner flags in `lib/teamPermissions.ts`.
 
 ---
 
@@ -156,9 +170,10 @@ Still set `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` on Vercel Production; 
 | `CONTEXTV26.md` | July 9 morning — Phase 5 + Foundation + Zernio clearance |
 | `PRODUCTION_LAUNCH_SESSION.md` | Step-by-step launch + Zernio pilot §B |
 | `PRODUCTION_GREENLIGHT.md` | Master go-live checklist (§0 updated Jul 9) |
-| `SESSION_2026-07-09.md` | This session commit log |
+| `SESSION_2026-07-10.md` | Critical bug investigation: team owner-guard bypass fix |
+| `SESSION_2026-07-09.md` | July 9 launch/modal/blog/Zernio session commit log |
 | `AGENTS.md` | Product rules + deploy |
 
 ---
 
-*End CONTEXTV27 — July 9, 2026*
+*End CONTEXTV27 — updated July 10, 2026*
