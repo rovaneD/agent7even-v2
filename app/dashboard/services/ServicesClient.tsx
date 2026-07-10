@@ -740,24 +740,26 @@ ${VIRAL_HOOKS_FRAMEWORK}`
         )}
 
         <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <div className="flex items-start justify-between gap-4 border-b border-border p-6">
-            <div className="flex items-start gap-4 min-w-0">
-              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
+          <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-6">
+            <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10 sm:h-11 sm:w-11">
                 <ServiceIcon size={17} className="text-brand-primary" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-text-soft">
                   {isViralHooksOrder ? 'Generated asset' : 'Service conversation'}
                 </p>
-                <h1 className="text-2xl font-semibold text-text">{selectedOrder.title}</h1>
-                <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-text-soft">
-                  <span>{formatOrderNumber(selectedOrder)}</span>
-                  <span>•</span>
-                  <span>Submitted {new Date(selectedOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <h1 className="text-xl font-semibold text-text sm:text-2xl">{selectedOrder.title}</h1>
+                <p className="mt-1.5 text-sm text-text-soft">
+                  <span className="font-mono text-xs sm:text-sm">{formatOrderNumber(selectedOrder)}</span>
+                  <span className="mx-1.5 text-text-soft/60">·</span>
+                  <span className="whitespace-nowrap">
+                    Submitted {new Date(selectedOrder.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0 sm:justify-end">
               {selectedOrder.support_ticket_id && !isViralHooksOrder && (
                 <Link
                   href={`/dashboard/support?ticket=${encodeURIComponent(selectedOrder.support_ticket_id)}`}
@@ -827,12 +829,12 @@ ${VIRAL_HOOKS_FRAMEWORK}`
               ) : (
                 generatedAssets.map(message => (
                   <div key={message.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-                    <div className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-5 py-4">
-                      <div>
+                    <div className="flex flex-col gap-3 border-b border-border bg-surface-2 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-widest text-status-success">Maya generated hooks</p>
                         <p className="mt-1 text-xs text-text-soft">Use these as openings for short-form content, captions, or carousel slides.</p>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex flex-shrink-0 items-center gap-2 self-start sm:self-auto">
                         <button
                           type="button"
                           onClick={() => downloadGeneratedPdf(
