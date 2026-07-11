@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 9, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 11, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -64,7 +64,7 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV27.md` — latest handoff: production launch audit (Clerk live on `.ai`), mobile modal scroll shell, blog hydration fix, Zernio OAuth request host (July 9, 2026 evening).
+- `CONTEXTV27.md` — latest handoff: production launch audit (Clerk live on `.ai`), mobile modal scroll shell, blog hydration fix, Zernio OAuth request host, bulk approval owner guard.
 - `CONTEXTV26.md` — July 9 morning: Team Phase 5 notes (assignment + approval), Activity feed previews, Foundation classification backfill, Zernio go-live runbook.
 - `SESSION_2026-07-09.md` — July 9 session log (launch audit, modal scroll, blog, Zernio OAuth, commit 9791696).
 - `CONTEXTV25.md` — July 6 handoff: Foundation knowledge in agent/Maya context, team workspace guards, Memory observations, Guardian theme policy.
