@@ -17,6 +17,7 @@ export default function ForCoachesPage() {
       labelOverride="Coaches & course creators"
       headlineOverride="Marketing that runs while you coach."
       subheadOverride="You are the product and the marketing department. Maya drafts launches, weekly content, and social posts in your voice — queued for approval, not auto-posted."
+      viewingContext="Coaches & course creators"
     />
   )
 }

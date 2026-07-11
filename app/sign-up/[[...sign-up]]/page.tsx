@@ -1,6 +1,10 @@
+import type { Metadata } from 'next'
 import AuthMarketingShell from '@/components/auth/AuthMarketingShell'
 import AuthSignUpForm from '@/components/auth/AuthSignUpForm'
 import { Suspense } from 'react'
+import { privateRouteMetadata } from '@/lib/marketing/seoMetadata'
+
+export const metadata: Metadata = privateRouteMetadata('Sign up — Agent7even')
 
 export default function SignUpPage() {
   return (

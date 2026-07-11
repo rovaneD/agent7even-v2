@@ -306,8 +306,9 @@ export default function Lab5Page() {
               See how our AI marketing strategist works for
               <br />
               <a href="/use-cases/local-service">local service businesses</a>,{' '}
-              <a href="/use-cases/coaches-creators">coaches and creators</a>, and{' '}
-              <a href="/use-cases/ecommerce">e-commerce brands</a>.
+              <a href="/use-cases/ecommerce">e-commerce brands</a>,{' '}
+              <a href="/for-coaches">coaches, creators &amp; solo founders</a>, and{' '}
+              <a href="/use-cases/startups">startups &amp; early-stage teams</a>.
             </p>
           </div>
           <div className="uses">
@@ -327,9 +328,9 @@ export default function Lab5Page() {
               </div>
               <div className="card-widget"><div data-mk="widget-use-local"></div></div>
             </a>
-            <a className="use reveal" href="/use-cases/coaches-creators">
+            <a className="use reveal" href="/for-coaches">
               <div className="use-copy">
-                <h3>Creators &amp; founders</h3>
+                <h3>Coaches, creators &amp; solo founders</h3>
                 <p>One Foundation feeds posts, emails, and creative — twelve agents draft, you approve what ships.</p>
                 <span className="use-link">See it →</span>
               </div>

@@ -5,7 +5,7 @@ import { useEffect } from 'react'
 import Metaballs from '../SafeMetaballs'
 import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
-import { cases } from '../../lab-use-cases/_data'
+import { orderedUseCases, useCaseHref } from '@/lib/marketing/useCaseNav'
 
 const CARD_IMAGES: Record<string, string> = {
   ecommerce: '/lab5/uc-ecommerce.webp',
@@ -13,9 +13,6 @@ const CARD_IMAGES: Record<string, string> = {
   'coaches-creators': '/lab5/uc-creators.webp',
   startups: '/lab5/uc-agencies.webp',
 }
-
-/** Local service leads — strongest vertical per A1 §5 */
-const CARD_ORDER = ['local-service', 'ecommerce', 'coaches-creators', 'startups'] as const
 
 const ArrowRight = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -35,7 +32,7 @@ export default function UseCasesPage() {
     return () => io.disconnect()
   }, [])
 
-  const ordered = CARD_ORDER.map((slug) => cases.find((c) => c.slug === slug)).filter(Boolean)
+  const ordered = orderedUseCases()
 
   return (
     <div className="lab5">
@@ -53,28 +50,28 @@ export default function UseCasesPage() {
         <div className="idx-grid">
           {ordered.map((c) => (
             <Link
-              key={c!.slug}
-              href={`/use-cases/${c!.slug}`}
+              key={c.slug}
+              href={useCaseHref(c.slug)}
               className="idx-card reveal"
-              style={{ '--ic': c!.accent } as React.CSSProperties}
+              style={{ '--ic': c.accent } as React.CSSProperties}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={CARD_IMAGES[c!.slug]}
-                alt={`${c!.label} — Agent7even AI marketing use case`}
+                src={CARD_IMAGES[c.slug]}
+                alt={`${c.label} — Agent7even AI marketing use case`}
                 className="idx-card-img"
               />
               <div className="pad">
                 <span className="seg-eyebrow">
                   <span className="sd" />
-                  {c!.label}
+                  {c.label}
                 </span>
-                <h2>{c!.painLine}</h2>
-                <p className="lead">{c!.hero.subhead.split('. ')[0]}.</p>
+                <h2>{c.painLine}</h2>
+                <p className="lead">{c.hero.subhead.split('. ')[0]}.</p>
                 <div className="uc-card-stack">
                   <span className="uc-card-stack-label">Lead agents</span>
                   <ul className="uc-card-stack-list">
-                    {c!.agentStack.map((a) => (
+                    {c.agentStack.map((a) => (
                       <li key={a.name}><b>{a.name}</b> — {a.role}</li>
                     ))}
                   </ul>

@@ -30,7 +30,7 @@ AUDIT RULES:
 - /blog exists with 9 posts at /blog and /blog/[slug] — do NOT flag /blog as missing or a 404.
 - /about, /careers, and /contact are standalone company pages — do NOT flag them as missing.
 - /case-studies exists as a placeholder for verified customer stories — do NOT flag as missing; do NOT recommend fabricating ROI metrics.
-- Use case pages exist under /use-cases/* — /for-coaches and /for-consultants are dedicated industry landing URLs.
+- Use case pages: /use-cases/* (index + 3 slugs), canonical coaches/creators at /for-coaches; /for-consultants is SEO-only (not in nav/footer).
 - /how-it-works is a standalone page (homepage also has /#how section) — do not claim it is missing.
 - /ai-vs-agency permanently redirects to /how-it-works (legacy SEO URL).
 - H1 "Marketing, managed." plus eyebrow "AI marketing platform for small business" is intentional — do not recommend replacing H1 with generic keyword stuffing.

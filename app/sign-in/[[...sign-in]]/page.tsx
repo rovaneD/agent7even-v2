@@ -1,5 +1,9 @@
+import type { Metadata } from 'next'
 import AuthMarketingShell from '@/components/auth/AuthMarketingShell'
 import AuthSignInForm from '@/components/auth/AuthSignInForm'
+import { privateRouteMetadata } from '@/lib/marketing/seoMetadata'
+
+export const metadata: Metadata = privateRouteMetadata('Sign in — Agent7even')
 
 export default function SignInPage() {
   return (

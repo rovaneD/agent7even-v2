@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Metaballs from '../SafeMetaballs'
 import { cases } from '../../lab-use-cases/_data'
+import { useCaseHref } from '@/lib/marketing/useCaseNav'
 import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
 import { useMockupScript } from '../useMockupScript'
@@ -104,6 +105,7 @@ type Props = {
   labelOverride?: string
   headlineOverride?: string
   subheadOverride?: string
+  viewingContext?: string
 }
 
 export default function UseCaseDetailClient({
@@ -111,6 +113,7 @@ export default function UseCaseDetailClient({
   labelOverride,
   headlineOverride,
   subheadOverride,
+  viewingContext,
 }: Props) {
   const cfg = SEG[slug]
   const uc = cases.find((c) => c.slug === slug)
@@ -142,6 +145,9 @@ export default function UseCaseDetailClient({
         {/* BREADCRUMB */}
         <div className="crumb">
           <Link href="/use-cases"><ArrowLeft />Use cases</Link>
+          {viewingContext ? (
+            <p className="uc-viewing-context">Viewing: {viewingContext}</p>
+          ) : null}
         </div>
 
         {/* HERO */}
@@ -234,7 +240,7 @@ export default function UseCaseDetailClient({
             {cfg.more.map((m) => (
               <Link
                 key={m.slug}
-                href={`/use-cases/${m.slug}`}
+                href={useCaseHref(m.slug)}
                 className="mcard"
                 style={{ '--seg': m.seg } as React.CSSProperties}
               >

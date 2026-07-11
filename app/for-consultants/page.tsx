@@ -17,6 +17,7 @@ export default function ForConsultantsPage() {
       labelOverride="Consultants & solo experts"
       headlineOverride="Visible between client work."
       subheadOverride="You sell expertise, not hours spent posting. Maya drafts thought-leadership content, nurture sequences, and offer pushes — you approve before anything goes live."
+      viewingContext="Consultants & solo experts"
     />
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { trackEvent } from '@/lib/gtag'
+import { USE_CASE_NAV_ITEMS } from '@/lib/marketing/useCaseNav'
 
 export default function MarketingFooter() {
   return (
@@ -20,17 +21,15 @@ export default function MarketingFooter() {
             <a href="/integrations">Integrations</a>
             <a href="/vs-scheduling-tools">vs scheduling tools</a>
             <a href="/pricing">Pricing</a>
-            <a href="/use-cases">Use cases</a>
             <a href="/sign-up" onClick={() => trackEvent('sign_up_click', { location: 'footer' })}>Sign up</a>
           </div>
           <div className="fcol">
             <h5>Use cases</h5>
-            <a href="/for-coaches">Coaches</a>
-            <a href="/for-consultants">Consultants</a>
-            <a href="/use-cases/ecommerce">E-commerce</a>
-            <a href="/use-cases/local-service">Local service</a>
-            <a href="/use-cases/coaches-creators">Creators</a>
-            <a href="/use-cases/startups">Startups</a>
+            {USE_CASE_NAV_ITEMS.map((item) => (
+              <a key={item.slug} href={item.href}>
+                {item.label}
+              </a>
+            ))}
           </div>
           <div className="fcol">
             <h5>Company</h5>
