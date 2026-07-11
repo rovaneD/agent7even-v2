@@ -157,6 +157,7 @@ export default function Lab5Page() {
               <h3 className="t-h3">Campaign Builder reads Foundation first.</h3>
               <p className="t-body">You name the offer. The Campaign Builder pulls from your Foundation and Brand Kit, then drafts strategy, email copy, social posts, ad variations, and a timeline — all routed to your approval queue.</p>
               <div className="checks">
+                <div className="check"><i>✓</i>Drafted 3 email variants from your Foundation.</div>
                 <div className="check"><i>✓</i>30-day plan drafted from your saved positioning</div>
                 <div className="check"><i>✓</i>Email, social, and ad copy generated in one run</div>
                 <div className="check"><i>✓</i>Nothing publishes until you approve from the queue</div>
@@ -172,6 +173,7 @@ export default function Lab5Page() {
               <h3 className="t-h3">Every image uses your saved colors, style, and creative direction.</h3>
               <p className="t-body">Creative agents pull palette, tone, and scene direction from Brand Kit and Foundation — then generate post images and Reels, with captions written from what&rsquo;s actually in the frame.</p>
               <div className="checks">
+                <div className="check"><i>✓</i>Generated 4 Instagram images using your Brand Kit.</div>
                 <div className="check"><i>✓</i>Colors, style, and scene direction pulled from your brand</div>
                 <div className="check"><i>✓</i>Captions written after reading the image — not a blank template</div>
                 <div className="check"><i>✓</i>You approve every asset before it can publish</div>
@@ -183,14 +185,15 @@ export default function Lab5Page() {
 
           <div className="feat reveal">
             <div className="feat-copy">
-              <div className="feat-relief">Content</div>
+              <div className="feat-relief">Approval Queue</div>
               <h3 className="t-h3">
-                Next week&apos;s posts queue before
+                Everything waits for your approval
                 <br />
-                the week&nbsp;starts.
+                before it ships.
               </h3>
-              <p className="t-body">The Content Posting agent drafts from your Foundation and Brand Kit — posts land in your queue for approval, not on your feed automatically.</p>
+              <p className="t-body">Every post, email, and campaign artifact lands in one queue. Review what changed, approve what&rsquo;s right, then publish when you&rsquo;re ready — nothing goes live automatically.</p>
               <div className="checks">
+                <div className="check"><i>✓</i>7 assets waiting. Estimated review time: 4 minutes.</div>
                 <div className="check"><i>✓</i>Captions drafted after reading Foundation and Brand Kit</div>
                 <div className="check"><i>✓</i>Queued for your approval — you choose when to publish</div>
                 <div className="check"><i>✓</i>Same source context every week — no re-briefing</div>
@@ -206,6 +209,7 @@ export default function Lab5Page() {
               <h3 className="t-h3">SEO Scanner reads your live site URL.</h3>
               <p className="t-body">The agent snapshots your homepage and key pages, compares them to your Foundation positioning, and flags title, meta, and content gaps — not generic checklists.</p>
               <div className="checks">
+                <div className="check"><i>✓</i>Found 2 missing title tags on your homepage.</div>
                 <div className="check"><i>✓</i>Live homepage and key page snapshot</div>
                 <div className="check"><i>✓</i>Prioritized fixes for small teams</div>
                 <div className="check"><i>✓</i>Runs on your saved website URL</div>
@@ -225,6 +229,7 @@ export default function Lab5Page() {
               </h3>
               <p className="t-body">The Competitor Analysis agent drafts briefings from your saved positioning and market context — actionable reports you can respond to, not a live spy feed.</p>
               <div className="checks">
+                <div className="check"><i>✓</i>Coffee Collective launched a Father&apos;s Day campaign 3 hours ago.</div>
                 <div className="check"><i>✓</i>Weekly competitor briefings from your positioning</div>
                 <div className="check"><i>✓</i>Trend reports filtered for your brand</div>
                 <div className="check"><i>✓</i>You decide what to act on</div>
