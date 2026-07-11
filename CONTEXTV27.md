@@ -1,5 +1,5 @@
 # CONTEXTV27 — Launch readiness audit, mobile modals, blog + Zernio OAuth fixes
-*Snapshot: July 9, 2026 (evening) — supersedes `CONTEXTV26.md` for logged-in + launch work*
+*Snapshot: July 11, 2026 — supersedes `CONTEXTV26.md` for logged-in + launch work*
 
 ---
 
@@ -27,7 +27,8 @@ Prior handoff: CONTEXTV26 (July 9 morning — Phase 5 threads, Foundation, Zerni
 | Mobile dashboard modal scroll (locked on iOS) | **§2** |
 | Blog index hydration — nested `<a>` fix | **§3** |
 | Zernio OAuth callback host from request | **§4** |
-| Carry-forward from V26 (Phase 5, Foundation, Activity) | **§5** |
+| Bulk approval owner guard | **§5** |
+| Carry-forward from V26 (Phase 5, Foundation, Activity) | **§6** |
 
 ---
 
@@ -111,7 +112,17 @@ Still set `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` on Vercel Production; 
 
 ---
 
-## 5. Carry-forward from CONTEXTV26 (unchanged)
+## 5. Bulk approval owner guard (July 11 automation)
+
+**Problem:** `app/api/agents/approvals/bulk/route.ts` resolved team members to the owner workspace but did not enforce the same owner-only guard as the single approve endpoint. A team member with dashboard access could POST directly to the bulk approval API and approve or reject owner workspace outputs.
+
+**Fix:** Bulk approval/rejection now calls `requireWorkspaceOwner(...)` before any mutations. Bulk approval also updates only `agent_outputs.status = 'pending_approval'` rows so stale/rejected outputs are not resurrected by a broad task-level approve.
+
+**Validation:** `./node_modules/.bin/tsc --noEmit` and `npm run build` passed on July 11, 2026.
+
+---
+
+## 6. Carry-forward from CONTEXTV26 (unchanged)
 
 | Area | Key paths / migrations |
 |------|------------------------|
