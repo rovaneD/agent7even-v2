@@ -127,6 +127,22 @@ Still set `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` on Vercel Production; 
 
 ---
 
+## 6. July 12 critical bug automation follow-up
+
+**Commit/PR:** `6fdd1b0` on `cursor/critical-bug-investigation-cba4`, PR #23.
+
+**Fixes:**
+
+- Bulk approval/rejection now calls `requireWorkspaceOwner` before mutating `agent_tasks` / `agent_outputs`, matching single approve/reject owner-only policy.
+- Morning Digest generation now resolves the authenticated workspace id server-side and rejects mismatched client-supplied `profileId` values.
+- Shared helper: `lib/digest/morningDigest.ts` powers both `/api/digest/generate` and the morning digest cron, so cron no longer self-fetches the user-facing route.
+- Digest read/dismiss routes now scope by `workspaceDataUserId`, allowing legitimate team workspace reads while blocking cross-tenant digest ids.
+- Dashboard passes the workspace data id into `MorningDigest` so team-member stale regeneration writes under the owner workspace.
+
+**Validation:** `npx tsc --noEmit`, `npm run build`.
+
+---
+
 ## Known open items
 
 | Item | Notes |
@@ -161,4 +177,4 @@ Still set `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` on Vercel Production; 
 
 ---
 
-*End CONTEXTV27 — July 9, 2026*
+*End CONTEXTV27 — July 12, 2026*
