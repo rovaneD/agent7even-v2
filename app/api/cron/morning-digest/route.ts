@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getResendClient } from '@/lib/resend'
+import { generateMorningDigest } from '@/lib/digest/morningDigest'
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization')
@@ -36,12 +37,10 @@ export async function GET(req: Request) {
 
     if (!digestData) {
       try {
-        const res = await fetch(`${appUrl}/api/digest/generate`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ profileId: profile.id }),
+        const { digestId } = await generateMorningDigest({
+          supabase,
+          profileId: profile.id,
         })
-        const { digestId } = await res.json()
         if (digestId) {
           const { data } = await supabase
             .from('daily_digests')

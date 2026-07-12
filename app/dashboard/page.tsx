@@ -248,7 +248,7 @@ export default async function DashboardPage() {
       {profile && (
         <MorningDigest
           digest={digest}
-          profileId={profile.id}
+          profileId={dataUserId ?? profile.id}
           firstName={firstName}
           coldOpen={coldOpen}
           digestStale={digestStale}
