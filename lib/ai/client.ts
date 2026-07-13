@@ -17,4 +17,10 @@ export const models = {
   brandAnalyzer: openrouter('anthropic/claude-sonnet-4'),
 } as const
 
+/** Public marketing chat — OpenRouter model IDs (used with openRouterComplete, not AI SDK). */
+export const marketingChatModels = {
+  primary: 'google/gemini-2.5-flash',
+  fallback: 'anthropic/claude-haiku-4-5',
+} as const
+
 export type AgentName = keyof typeof models

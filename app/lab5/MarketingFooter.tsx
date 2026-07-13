@@ -2,9 +2,11 @@
 
 import { trackEvent } from '@/lib/gtag'
 import { USE_CASE_NAV_ITEMS } from '@/lib/marketing/useCaseNav'
+import AskMayaLazy from './AskMayaLazy'
 
 export default function MarketingFooter() {
   return (
+    <>
     <footer className="footer">
       <div className="footer-in">
         <div className="footer-top">
@@ -51,5 +53,7 @@ export default function MarketingFooter() {
         </div>
       </div>
     </footer>
+    <AskMayaLazy />
+    </>
   )
 }

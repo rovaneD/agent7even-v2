@@ -2039,3 +2039,289 @@
   left: 0;
   color: var(--l5-faint);
 }
+
+/* ---- Ask Maya marketing chat widget ---- */
+.ask-maya-root {
+  position: fixed;
+  z-index: 1200;
+  right: 20px;
+  bottom: 20px;
+  font-family: var(--l5-font, 'Roboto', system-ui, sans-serif);
+  pointer-events: none;
+}
+.ask-maya-root * {
+  box-sizing: border-box;
+}
+.ask-maya-launcher,
+.ask-maya-panel,
+.ask-maya-backdrop {
+  pointer-events: auto;
+}
+.ask-maya-launcher {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid #E8E8EB;
+  background: #3B82F6;
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.28);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.ask-maya-launcher:hover,
+.ask-maya-launcher:focus-visible {
+  background: #2563EB;
+  outline: none;
+  box-shadow: 0 10px 28px rgba(59, 130, 246, 0.34);
+}
+.ask-maya-launcher-tip {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  background: #fff;
+  color: #0F172A;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid #E2E8F0;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+.ask-maya-launcher-tip svg {
+  color: #3B82F6;
+  flex-shrink: 0;
+}
+.ask-maya-launcher:hover .ask-maya-launcher-tip,
+.ask-maya-launcher:focus-visible .ask-maya-launcher-tip {
+  opacity: 1;
+  visibility: visible;
+}
+.ask-maya-launcher.is-open {
+  background: #fff;
+  color: #64748B;
+  border-color: #E2E8F0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+.ask-maya-launcher.is-open:hover,
+.ask-maya-launcher.is-open:focus-visible {
+  background: #F8FAFC;
+  color: #0F172A;
+}
+.ask-maya-backdrop {
+  display: none;
+}
+.ask-maya-panel {
+  position: absolute;
+  right: 0;
+  bottom: 64px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(560px, calc(100vh - 120px));
+  background: #fff;
+  border: 1px solid #F1F5F9;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(8px);
+  visibility: hidden;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+.ask-maya-panel.is-open {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+.ask-maya-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid #F1F5F9;
+}
+.ask-maya-kicker {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6B7280;
+  margin-bottom: 2px;
+}
+.ask-maya-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.2;
+}
+.ask-maya-name {
+  color: #F5349B;
+}
+.ask-maya-close {
+  border: none;
+  background: transparent;
+  color: #6B7280;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.ask-maya-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ask-maya-intro {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+.ask-maya-starters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ask-maya-chip {
+  text-align: left;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #0F172A;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ask-maya-chip:hover:not(:disabled) {
+  border-color: #CBD5E1;
+  background: #fff;
+}
+.ask-maya-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ask-maya-bubble {
+  max-width: 92%;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.ask-maya-bubble-user {
+  align-self: flex-end;
+  background: #EFF6FF;
+  color: #0F172A;
+}
+.ask-maya-bubble-bot {
+  align-self: flex-start;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #0F172A;
+}
+.ask-maya-bubble-bot a,
+.ask-maya-system a,
+.ask-maya-error a {
+  color: #3B82F6;
+  text-decoration: underline;
+}
+.ask-maya-typing,
+.ask-maya-system,
+.ask-maya-error {
+  font-size: 13px;
+  color: #64748B;
+}
+.ask-maya-error {
+  color: #B45309;
+}
+.ask-maya-form {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid #F1F5F9;
+}
+.ask-maya-input {
+  flex: 1;
+  resize: none;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  min-height: 44px;
+}
+.ask-maya-input:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.35);
+  border-color: #3B82F6;
+}
+.ask-maya-send {
+  align-self: flex-end;
+  border: none;
+  background: #3B82F6;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.ask-maya-send:hover:not(:disabled) {
+  background: #2563EB;
+}
+.ask-maya-send:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .ask-maya-root {
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+  .ask-maya-launcher {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1201;
+  }
+  .ask-maya-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    z-index: 1199;
+  }
+  .ask-maya-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 78vh;
+    border-radius: 16px 16px 0 0;
+    z-index: 1200;
+    transform: translateY(100%);
+  }
+  .ask-maya-panel.is-open {
+    transform: translateY(0);
+  }
+}
