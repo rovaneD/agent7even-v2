@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { exaReadSite, exaSynthesizeFoundation, type FoundationSuggestions, type ExaGrounding } from '@/lib/research/exa'
 
 type ConfidenceMap = Record<string, 'low' | 'medium' | 'high'>
@@ -66,11 +67,7 @@ export async function POST(req: Request) {
     }
 
     const supabase = createServiceClient()
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('clerk_user_id', userId)
-      .single()
+    const profile = await resolveClerkProfile(supabase, userId, 'id')
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     // 1. Read their site (if URL given). Fail-soft.

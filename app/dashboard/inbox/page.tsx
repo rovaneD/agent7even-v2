@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import * as publisher from '@/lib/social/publisher'
 import InboxClient from './InboxClient'
@@ -23,18 +24,21 @@ export default async function InboxPage() {
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select(`
-      id,
-      company_name,
-      plan,
-      zernio_profile_id,
-      zernio_profile_ids,
-      zernio_connected_platforms
-    `)
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    company_name: string | null
+    plan: string | null
+    zernio_profile_id: string | null
+    zernio_profile_ids: string[] | null
+    zernio_connected_platforms: string[] | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    created_at: string
+  }>(
+    supabase,
+    userId,
+    'id, company_name, plan, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms',
+  )
 
   if (profile?.id) {
     const teamPerms = await getTeamPermissions(profile.id)

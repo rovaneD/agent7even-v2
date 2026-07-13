@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import AIToolkitClient from './AIToolkitClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import { getToolkitPlanLimits } from '@/lib/ai/toolkitPlanLimits'
@@ -11,11 +12,14 @@ export default async function AIToolkitPage() {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, company_name, plan, stripe_subscription_id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    company_name: string | null
+    plan: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    created_at: string
+  }>(supabase, userId, 'id, company_name, plan, stripe_subscription_id')
 
   if (!profile) redirect('/dashboard')
 

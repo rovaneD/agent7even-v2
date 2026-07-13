@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
 import { getStripeClient } from '@/lib/stripe'
 import { randomUUID } from 'crypto'
@@ -20,11 +21,15 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, company_name, plan, stripe_subscription_id, is_account_owner')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    company_name: string | null
+    plan: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    is_account_owner: boolean | null
+    created_at: string
+  }>(supabase, userId, 'id, company_name, plan, stripe_subscription_id, is_account_owner')
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   if (!profile.is_account_owner) return NextResponse.json({ error: 'Only account owners can invite members' }, { status: 403 })

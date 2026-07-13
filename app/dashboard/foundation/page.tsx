@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 import { CreativeDirectionSchema } from '@/lib/agents/foundationCreativeDirection/types'
 import { normalizeCompetitorSlots } from '@/lib/foundation/competitorsArray'
@@ -15,17 +16,36 @@ export default async function FoundationPage() {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select(`
-      id, company_name, website_url, foundation_answers, foundation_score,
-      foundation_updated_at, foundation_complete, foundation_answers_previous_at,
-      creative_direction,
-      ideal_customer, marketing_challenge, competitors,
-      content_comfort, marketing_budget, sell_locations, top_goals
-    `)
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    company_name: string | null
+    website_url: string | null
+    foundation_answers: Record<string, unknown> | null
+    foundation_score: number | null
+    foundation_updated_at: string | null
+    foundation_complete: boolean | null
+    foundation_answers_previous_at: string | null
+    creative_direction: unknown
+    ideal_customer: string | null
+    marketing_challenge: string | null
+    competitors: string[] | null
+    content_comfort: string | null
+    marketing_budget: string | null
+    sell_locations: string[] | null
+    top_goals: unknown
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(
+    supabase,
+    userId,
+    `id, company_name, website_url, foundation_answers, foundation_score,
+     foundation_updated_at, foundation_complete, foundation_answers_previous_at,
+     creative_direction,
+     ideal_customer, marketing_challenge, competitors,
+     content_comfort, marketing_budget, sell_locations, top_goals`,
+  )
 
   if (!profile?.id) redirect('/foundation')
 

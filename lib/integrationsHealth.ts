@@ -25,15 +25,6 @@ export type IntegrationsHealthReport = {
   allOk: boolean
 }
 
-function envPresent(key: string): boolean {
-  return Boolean(sanitizeSecretEnvValue(process.env[key]))
-}
-
-function envNotPlaceholder(key: string): boolean {
-  const val = sanitizeSecretEnvValue(process.env[key])
-  return Boolean(val && val !== 'placeholder')
-}
-
 function assessEnvVar(
   id: string,
   label: string,
@@ -54,39 +45,6 @@ function assessEnvVar(
     }
   }
   return { id, label, status: 'ok', message: `${key} is set.`, hint }
-}
-
-function assessEnvPair(
-  id: string,
-  label: string,
-  keys: [string, string],
-  hint: string,
-): IntegrationHealthItem {
-  const [a, b] = keys
-  const hasA = envPresent(a)
-  const hasB = envPresent(b)
-  if (!hasA && !hasB) {
-    return { id, label, status: 'unconfigured', message: 'Not configured on this deployment.', hint }
-  }
-  if (!hasA || !hasB) {
-    return {
-      id,
-      label,
-      status: 'error',
-      message: `Missing ${!hasA ? a : b}.`,
-      hint,
-    }
-  }
-  if (!envNotPlaceholder(a) || !envNotPlaceholder(b)) {
-    return {
-      id,
-      label,
-      status: 'error',
-      message: 'CI placeholder values detected — set production credentials in Vercel.',
-      hint,
-    }
-  }
-  return { id, label, status: 'ok', message: 'Environment variables present.', hint }
 }
 
 function assessGoogleServiceAccount(): IntegrationHealthItem {
@@ -198,7 +156,6 @@ export async function getIntegrationsHealth(options?: {
     googleOAuthItemFromAssessment(live, connectedGaTenantCount),
     assessGoogleServiceAccount(),
     assessEnvVar('zernio', 'Social posting & analytics', 'ZERNIO_API_KEY', 'ZERNIO_API_KEY from Zernio dashboard.'),
-    assessEnvPair('meta_oauth', 'Meta OAuth', ['META_APP_ID', 'META_APP_SECRET'], 'Meta Marketing API app credentials.'),
   ]
 
   const blocking = items.filter(i => i.status === 'error')

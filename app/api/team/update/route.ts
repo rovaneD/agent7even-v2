@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -11,11 +12,14 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, is_account_owner')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    is_account_owner: boolean | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(supabase, userId, 'id, is_account_owner')
 
   if (!profile || !profile.is_account_owner) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })

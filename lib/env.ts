@@ -38,8 +38,6 @@ const SPEC: EnvSpec = {
     'RESEND_API_KEY',
     // Cron
     'CRON_SECRET',
-    // Internal job execution
-    'INTERNAL_JOB_SECRET',
   ],
   featureGated: [
     {
@@ -61,10 +59,6 @@ const SPEC: EnvSpec = {
     {
       feature: 'Google service account (Analytics data)',
       vars: ['GOOGLE_SA_CLIENT_EMAIL', 'GOOGLE_SA_PRIVATE_KEY'],
-    },
-    {
-      feature: 'Meta Ads OAuth',
-      vars: ['META_APP_ID', 'META_APP_SECRET'],
     },
     {
       feature: 'Foundation generate (Anthropic direct)',

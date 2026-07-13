@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
 
@@ -13,11 +14,16 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, email, full_name, company_name')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    email: string | null
+    full_name: string | null
+    company_name: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(supabase, userId, 'id, email, full_name, company_name')
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 

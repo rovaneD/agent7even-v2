@@ -31,12 +31,9 @@ const isPublicRoute = createRouteMatcher([
   '/lab-use-cases(.*)',
   '/api/webhooks(.*)',
   '/api/analytics/ga-callback(.*)',
-  '/api/analytics/meta-callback(.*)',
   '/api/integrations/zernio/callback(.*)',
   '/api/marketing/chat(.*)',
   '/api/team/accept(.*)',
-  // Internal server-to-server dispatch — authenticated via taskId UUID + userId in body
-  '/api/agents/run/(.*)',
   '/api/unsplash/image',
   '/robots.txt',
   '/sitemap.xml',

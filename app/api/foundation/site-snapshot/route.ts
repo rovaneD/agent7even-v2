@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 import { enrichFromWebsite } from '@/lib/foundation/enrichFromWebsite'
 import { parseSiteSnapshot, type SiteSnapshot } from '@/lib/foundation/siteSnapshot'
@@ -8,14 +9,23 @@ import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
 
 async function resolveProfile(clerkUserId: string) {
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select(
-      'id, company_name, website_url, site_snapshot, site_snapshot_enabled, site_snapshot_generated_at, site_snapshot_source_url',
-    )
-    .eq('clerk_user_id', clerkUserId)
-    .single()
-  return profile
+  return resolveClerkProfile<{
+    id: string
+    company_name: string | null
+    website_url: string | null
+    site_snapshot: unknown
+    site_snapshot_enabled: boolean | null
+    site_snapshot_generated_at: string | null
+    site_snapshot_source_url: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(
+    supabase,
+    clerkUserId,
+    'id, company_name, website_url, site_snapshot, site_snapshot_enabled, site_snapshot_generated_at, site_snapshot_source_url',
+  )
 }
 
 export async function GET() {

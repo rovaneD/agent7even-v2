@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import DeliverablesClient from './DeliverablesClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import { normalizeDeliverable } from '@/lib/deliverables/projectDeliverables'
@@ -11,11 +12,14 @@ export default async function DeliverablesPage() {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, company_name, plan')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    company_name: string | null
+    plan: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    created_at: string
+  }>(supabase, userId, 'id, company_name, plan')
 
   if (!profile) redirect('/dashboard')
 

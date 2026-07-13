@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import NotificationsClient from './NotificationsClient'
 
 export default async function NotificationsPage() {
@@ -9,11 +10,7 @@ export default async function NotificationsPage() {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile(supabase, userId, 'id')
 
   if (!profile) redirect('/dashboard')
 

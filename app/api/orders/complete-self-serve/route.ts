@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { saveViralHooksDeliverable } from '@/lib/services/saveViralHooksDeliverable'
 import { extractViralHooksGeneratedOutput } from '@/lib/services/viralHooks'
 
@@ -27,11 +28,7 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile(supabase, userId, 'id')
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 

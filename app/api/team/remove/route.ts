@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { getStripeClient } from '@/lib/stripe'
 
 const PLAN_SEAT_LIMITS: Record<string, number> = {
@@ -18,11 +19,14 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, plan, stripe_subscription_id, is_account_owner')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    plan: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    is_account_owner: boolean | null
+    created_at: string
+  }>(supabase, userId, 'id, plan, stripe_subscription_id, is_account_owner')
 
   if (!profile || !profile.is_account_owner) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })

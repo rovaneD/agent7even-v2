@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { allocatePlanCredits, PLAN_CREDITS } from '@/lib/credits'
 import { createNotification } from '@/lib/createNotification'
 import { getStripeClient, sanitizeSecretEnvValue } from '@/lib/stripe'
@@ -129,11 +130,7 @@ export async function POST(req: Request) {
     if (error) {
       console.error('Supabase update error (checkout.session.completed):', error)
     } else {
-      const { data: newProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('clerk_user_id', clerkUserId)
-        .single()
+      const newProfile = await resolveClerkProfile(supabase, clerkUserId, 'id')
 
       if (newProfile) {
         const creditsGranted = await allocatePlanCredits(newProfile.id, plan, {
@@ -195,11 +192,24 @@ export async function POST(req: Request) {
     const clerkUserId = subscription.metadata?.clerk_user_id
 
     // Look up the profile to find and disconnect any Zernio accounts before clearing plan
-    const profileQuery = clerkUserId
-      ? supabase.from('profiles').select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms').eq('clerk_user_id', clerkUserId).single()
-      : supabase.from('profiles').select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms').eq('stripe_subscription_id', subscription.id).single()
-
-    const { data: cancelledProfile } = await profileQuery
+    const cancelledProfile = clerkUserId
+      ? await resolveClerkProfile<{
+          id: string
+          zernio_profile_id: string | null
+          zernio_profile_ids: string[] | null
+          zernio_connected_platforms: string[] | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          plan: string | null
+          created_at: string
+        }>(supabase, clerkUserId, 'id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
+      : (
+          await supabase
+            .from('profiles')
+            .select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
+            .eq('stripe_subscription_id', subscription.id)
+            .single()
+        ).data
 
     if (cancelledProfile) {
       const zernioProfileIds = collectZernioProfileIds(cancelledProfile)

@@ -16,6 +16,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -28,11 +29,7 @@ export async function POST(req: Request) {
   const supabase = createServiceClient()
 
   // Look up profile UUID from clerk_user_id
-  const { data: profileRow } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profileRow = await resolveClerkProfile(supabase, userId, 'id')
 
   if (!profileRow) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })

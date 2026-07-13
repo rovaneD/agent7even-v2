@@ -4,6 +4,7 @@ import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration'
 import { downloadPostAsset } from '@/lib/postAssets'
 import { mimeFromFilename, sanitizeFilename } from '@/lib/postAssetLimits'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
 type Body = {
   storagePath?: string
@@ -17,11 +18,7 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile(supabase, userId, 'id')
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 

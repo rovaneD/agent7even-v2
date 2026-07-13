@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
 export async function logActivity(
   profileId: string,
@@ -31,11 +32,7 @@ export async function trackActivity(
   workspaceId?: string,
 ) {
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', clerkUserId)
-    .single()
+  const profile = await resolveClerkProfile(supabase, clerkUserId, 'id')
   if (!profile) return
   await logActivity(profile.id, eventType, metadata, workspaceId)
 }

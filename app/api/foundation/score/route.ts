@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { logActivity } from '@/lib/activity'
 import { FIELD_EXPECTATIONS, mergeScoredFields, topWeakFieldKeys } from '@/lib/foundation/score'
@@ -16,11 +17,15 @@ export async function POST(req: Request) {
   const { answers } = await req.json()
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, foundation_score, company_name')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    foundation_score: number | null
+    company_name: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(supabase, userId, 'id, foundation_score, company_name')
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 

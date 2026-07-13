@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { generateText } from 'ai'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { models } from '@/lib/ai/client'
 import { loadFoundationContext } from '@/lib/agents/loadFoundationContext'
 import { createTask, updateTaskStatus } from '@/lib/agents/runner'
@@ -55,11 +56,14 @@ export async function POST(req: Request) {
   }
 
   const supabase = createServiceClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, company_name, plan')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile<{
+    id: string
+    company_name: string | null
+    plan: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    created_at: string
+  }>(supabase, userId, 'id, company_name, plan')
 
   if (!profile?.id) {
     return NextResponse.json({ error: 'profile_not_found' }, { status: 404 })

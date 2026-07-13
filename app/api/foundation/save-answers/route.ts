@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { buildIdentityUpdateWithSnapshot, legacyColumnsFromAnswers } from '@/lib/foundation/answersSnapshot'
 import { serializeCompetitorSlots } from '@/lib/foundation/competitorsArray'
 import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
@@ -17,11 +18,15 @@ export async function POST(req: Request) {
     if (!answers) return NextResponse.json({ error: 'answers required' }, { status: 400 })
 
     const supabase = createServiceClient()
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, foundation_answers, company_name')
-      .eq('clerk_user_id', userId)
-      .single()
+    const profile = await resolveClerkProfile<{
+      id: string
+      foundation_answers: Record<string, unknown> | null
+      company_name: string | null
+      stripe_customer_id: string | null
+      stripe_subscription_id: string | null
+      plan: string | null
+      created_at: string
+    }>(supabase, userId, 'id, foundation_answers, company_name')
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     const merged = { ...(profile.foundation_answers ?? {}), ...answers }

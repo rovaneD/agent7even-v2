@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import {
   buildIdentityRestoreSwap,
   cloneFoundationAnswers,
@@ -13,11 +14,22 @@ export async function POST() {
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const supabase = createServiceClient()
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, company_name, foundation_answers, foundation_answers_previous, foundation_answers_previous_at, foundation_updated_at')
-      .eq('clerk_user_id', userId)
-      .single()
+    const profile = await resolveClerkProfile<{
+      id: string
+      company_name: string | null
+      foundation_answers: Record<string, unknown> | null
+      foundation_answers_previous: Record<string, unknown> | null
+      foundation_answers_previous_at: string | null
+      foundation_updated_at: string | null
+      stripe_customer_id: string | null
+      stripe_subscription_id: string | null
+      plan: string | null
+      created_at: string
+    }>(
+      supabase,
+      userId,
+      'id, company_name, foundation_answers, foundation_answers_previous, foundation_answers_previous_at, foundation_updated_at',
+    )
 
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 

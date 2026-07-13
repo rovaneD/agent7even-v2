@@ -7,6 +7,7 @@ import {
   uploadDeliverableFile,
 } from '@/lib/deliverables/projectDeliverables'
 import { createServiceClient } from '@/lib/supabase/server'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -14,11 +15,7 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .single()
+  const profile = await resolveClerkProfile(supabase, userId, 'id')
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
