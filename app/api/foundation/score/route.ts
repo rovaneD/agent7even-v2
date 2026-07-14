@@ -93,10 +93,15 @@ Return format exactly:
     return NextResponse.json({ error: 'Score parsing failed' }, { status: 500 })
   }
 
-  const { data: previousRows } = await supabase
+  const { data: previousRows, error: previousScoresError } = await supabase
     .from('foundation_field_scores')
     .select('field_key, score, feedback')
     .eq('user_id', profile.id)
+
+  if (previousScoresError) {
+    console.error('[foundation/score] failed to load previous field scores:', previousScoresError.message)
+    return NextResponse.json({ error: 'Score persistence failed' }, { status: 500 })
+  }
 
   const previousScores = Object.fromEntries(
     (previousRows ?? []).map(row => [
@@ -114,9 +119,6 @@ Return format exactly:
   const overallScore = computeOverallFoundationScore(completeFieldScores)
   const topWeakFields = topWeakFieldKeys(completeFieldScores)
 
-  // Replace per-field scores atomically so rescored rows stay in sync with section pills.
-  await supabase.from('foundation_field_scores').delete().eq('user_id', profile.id)
-
   const fieldScoreRows = Object.entries(completeFieldScores).map(([key, val]) => ({
     user_id:    profile.id,
     field_key:  key,
@@ -126,13 +128,39 @@ Return format exactly:
   }))
 
   if (fieldScoreRows.length > 0) {
-    await supabase.from('foundation_field_scores').insert(fieldScoreRows)
+    const { error: upsertError } = await supabase
+      .from('foundation_field_scores')
+      .upsert(fieldScoreRows, { onConflict: 'user_id,field_key' })
+
+    if (upsertError) {
+      console.error('[foundation/score] failed to persist field scores:', upsertError.message)
+      return NextResponse.json({ error: 'Score persistence failed' }, { status: 500 })
+    }
+  }
+
+  // Prune historical keys only after the replacement rows are safely persisted.
+  const currentFieldKeys = new Set(Object.keys(completeFieldScores))
+  const staleFieldKeys = (previousRows ?? [])
+    .map(row => row.field_key as string)
+    .filter(key => !currentFieldKeys.has(key))
+
+  if (staleFieldKeys.length > 0) {
+    const { error: pruneError } = await supabase
+      .from('foundation_field_scores')
+      .delete()
+      .eq('user_id', profile.id)
+      .in('field_key', staleFieldKeys)
+
+    if (pruneError) {
+      console.error('[foundation/score] failed to prune stale field scores:', pruneError.message)
+      return NextResponse.json({ error: 'Score persistence failed' }, { status: 500 })
+    }
   }
 
   const fieldScoreMap = completeFieldScores
 
   // Update profile
-  await supabase
+  const { error: profileUpdateError } = await supabase
     .from('profiles')
     .update({
       foundation_score: overallScore,
@@ -140,6 +168,11 @@ Return format exactly:
       foundation_updated_at: new Date().toISOString(),
     })
     .eq('id', profile.id)
+
+  if (profileUpdateError) {
+    console.error('[foundation/score] failed to update profile:', profileUpdateError.message)
+    return NextResponse.json({ error: 'Score persistence failed' }, { status: 500 })
+  }
 
   logActivity(profile.id, 'foundation_updated', { score: overallScore }).catch(() => {})
 
