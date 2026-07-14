@@ -27,7 +27,8 @@ Prior handoff: CONTEXTV26 (July 9 morning — Phase 5 threads, Foundation, Zerni
 | Mobile dashboard modal scroll (locked on iOS) | **§2** |
 | Blog index hydration — nested `<a>` fix | **§3** |
 | Zernio OAuth callback host from request | **§4** |
-| Carry-forward from V26 (Phase 5, Foundation, Activity) | **§5** |
+| Approval guard hotfix (Jul 13 automation) | **§5** |
+| Carry-forward from V26 (Phase 5, Foundation, Activity) | **§6** |
 
 ---
 
@@ -111,7 +112,23 @@ Still set `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` on Vercel Production; 
 
 ---
 
-## 5. Carry-forward from CONTEXTV26 (unchanged)
+## 5. Approval guard hotfix (July 13 automation)
+
+**Problem:** The approvals page introduced an SSR cleanup that rejected pending outputs whose task row was missing as a side effect of page load. A team member could trigger owner-workspace approval-state mutations by viewing the page, and legitimate pending outputs could be silently rejected if task integrity drifted.
+
+**Related issue:** Bulk approve/reject still lacked the owner guard already used by single approve/reject.
+
+**Fix:** Commit `859a623`:
+
+- `app/api/agents/approvals/bulk/route.ts` now calls `requireWorkspaceOwner`.
+- `app/dashboard/agents/approvals/page.tsx` only lists pending tasks; it no longer reconciles/rejects outputs during render.
+- `lib/agents/pendingApprovals.ts` removed the destructive `reconcileOrphanedPendingApprovalOutputs` helper.
+
+**Validation:** `npx tsc --noEmit`; `npm run build`.
+
+---
+
+## 6. Carry-forward from CONTEXTV26 (unchanged)
 
 | Area | Key paths / migrations |
 |------|------------------------|
