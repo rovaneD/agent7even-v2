@@ -6,7 +6,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
-import { listPendingApprovalTasks, reconcileOrphanedPendingApprovalOutputs } from '@/lib/agents/pendingApprovals'
+import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
 import { formatProfileDisplayName, resolveProfileDisplayNames } from '@/lib/profiles/resolveActorName'
 import { listWorkspaceTeamMembers } from '@/lib/team/teamRoster'
 import { buildApprovalMentionHints } from '@/lib/team/taskNoteUi'
@@ -32,10 +32,7 @@ export default async function ApprovalsPage() {
   )
 
   const [tasks, runningVideoResult, teamRoster, ownerProfileResult] = await Promise.all([
-    (async () => {
-      await reconcileOrphanedPendingApprovalOutputs(supabase, dataUserId)
-      return listPendingApprovalTasks(supabase, dataUserId)
-    })(),
+    listPendingApprovalTasks(supabase, dataUserId),
 
     supabase
       .from('agent_tasks')
