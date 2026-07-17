@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import Script from 'next/script'
+import { Analytics } from '@vercel/analytics/next'
 import { clerkLocalization } from '@/lib/auth/clerkLocalization'
 import { CANONICAL_SITE_URL } from '@/lib/siteUrls'
 import './globals.css'
@@ -37,6 +38,7 @@ export default function RootLayout({
         <ClerkProvider localization={clerkLocalization}>
           {children}
         </ClerkProvider>
+        <Analytics />
       </body>
     </html>
   )

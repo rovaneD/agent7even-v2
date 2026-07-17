@@ -25,6 +25,7 @@
     "@stripe/stripe-js": "^9.6.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.6.1",
     "ai": "^6.0.191",
     "class-variance-authority": "^0.7.1",
