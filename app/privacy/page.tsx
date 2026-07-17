@@ -240,11 +240,34 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section>
+          <section id="cookies">
             <h2 className="text-xl font-bold text-gray-900 mb-3">9. Cookies</h2>
+            <p className="mb-3">
+              We use cookies and similar technologies to operate Agent7even and understand how our
+              marketing site and dashboard are used.
+            </p>
+            <ul className="list-disc pl-5 space-y-2 mb-3">
+              <li>
+                <strong>Essential cookies</strong> — required for sign-in, session management, and security
+                (managed by Clerk). These always run when you use authenticated areas of the product.
+              </li>
+              <li>
+                <strong>Operational analytics</strong> — we use Vercel Web Analytics to collect aggregated,
+                cookieless page-view metrics (no advertising profiles). This runs regardless of your cookie
+                banner choice because it does not store third-party marketing cookies on your device.
+              </li>
+              <li>
+                <strong>Analytics cookies</strong> — optional Google Analytics 4 cookies (
+                <code className="text-sm bg-gray-100 px-1.5 py-0.5 rounded">G-8913QV8Z1M</code>
+                ) used for detailed marketing and product event measurement. We only load these if you click
+                &ldquo;Accept all&rdquo; on our cookie banner.
+              </li>
+            </ul>
             <p>
-              We use essential cookies for authentication (managed by Clerk). We do not use advertising
-              cookies or third-party tracking cookies.
+              We do not use advertising or third-party remarketing cookies. You can reject analytics cookies
+              with &ldquo;Reject all&rdquo; on the banner. To change your choice later, clear site data for
+              Agent7even in your browser or contact us at{' '}
+              <LegalLink href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</LegalLink>.
             </p>
           </section>
 

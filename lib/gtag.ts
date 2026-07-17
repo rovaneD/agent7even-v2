@@ -1,5 +1,5 @@
-// Lightweight GA4 event helper for the G-8913QV8Z1M tag loaded in app/layout.tsx.
-// Safe to call anywhere — no-ops during SSR or if gtag hasn't loaded (ad blockers).
+// Lightweight GA4 event helper — loads only after analytics cookie consent.
+// Safe to call anywhere — no-ops during SSR or if gtag hasn't loaded (ad blockers / rejected consent).
 
 type GtagParams = Record<string, string | number | boolean | undefined>
 
