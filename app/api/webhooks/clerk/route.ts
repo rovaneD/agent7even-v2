@@ -1,6 +1,7 @@
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
 import { WebhookEvent } from '@clerk/nextjs/server'
+import { track } from '@vercel/analytics/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { welcomeEmailHtml, welcomeEmailText } from '@/emails/welcome'
 import { getResendClient } from '@/lib/resend'
@@ -134,6 +135,17 @@ export async function POST(req: Request) {
       } catch (emailError) {
         // Log but don't fail the webhook — user is still created
         console.error('Welcome email failed:', emailError)
+      }
+    }
+
+    if (newProfile?.id && !error) {
+      try {
+        await track('Signup', {
+          source: 'clerk_webhook',
+          team_invite: joinedViaTeamInvite,
+        })
+      } catch (trackError) {
+        console.error('Vercel analytics track failed (Signup):', trackError)
       }
     }
   }
