@@ -353,19 +353,11 @@
 }
 .lab5 .teams-journey-title {
   margin: 22px 0 0;
-  font-size: clamp(30px, 4vw, 44px);
-  font-weight: 700;
-  letter-spacing: -.03em;
-  line-height: 1.08;
-  color: var(--l5-ink);
 }
 .lab5 .teams-journey-title-keep { white-space: nowrap; }
 .lab5 .teams-journey-lead {
   margin: 16px auto 0;
   max-width: 34rem;
-  font-size: clamp(16px, 1.4vw, 18px);
-  line-height: 1.55;
-  color: var(--l5-muted);
 }
 .lab5 .teams-journey-stage {
   position: relative;

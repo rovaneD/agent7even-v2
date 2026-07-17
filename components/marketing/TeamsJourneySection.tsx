@@ -33,11 +33,11 @@ export default function TeamsJourneySection() {
       <div className="wrap">
         <div className="teams-journey-head reveal">
           <span className="teams-journey-badge">Small teams. One approval queue.</span>
-          <h2 id="teams-journey-heading" className="teams-journey-title">
+          <h2 id="teams-journey-heading" className="t-h2 teams-journey-title">
             Marketing that moves your{' '}
             <span className="teams-journey-title-keep">whole team.</span>
           </h2>
-          <p className="teams-journey-lead">
+          <p className="t-lead teams-journey-lead">
             Invite collaborators. Share one Foundation. Review drafts in one queue —
             nothing publishes until someone signs off.
           </p>

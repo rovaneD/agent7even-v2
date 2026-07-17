@@ -257,9 +257,8 @@ export default function PrivacyPage() {
                 banner choice because it does not store third-party marketing cookies on your device.
               </li>
               <li>
-                <strong>Analytics cookies</strong> — optional Google Analytics 4 cookies (
-                <code className="text-sm bg-gray-100 px-1.5 py-0.5 rounded">G-8913QV8Z1M</code>
-                ) used for detailed marketing and product event measurement. We only load these if you click
+                <strong>Analytics cookies</strong> — optional Google Analytics 4 cookies used for detailed
+                marketing and product event measurement. We only load these if you click
                 &ldquo;Accept all&rdquo; on our cookie banner.
               </li>
             </ul>
