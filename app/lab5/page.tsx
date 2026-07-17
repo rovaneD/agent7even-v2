@@ -48,46 +48,55 @@ export default function Lab5Page() {
 
       {/* HERO */}
       <header className="hero">
+        <div className="hero-metaballs" aria-hidden="true">
+          <Metaballs
+            speed={1}
+            count={10}
+            size={0.52}
+            scale={1}
+            colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
+            colorBack="#00000000"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+          />
+        </div>
         <div className="wrap hero-grid">
           <div className="hero-copy">
             <p className="eyebrow">From idea to approval queue, without switching tools.</p>
             <h1 className="hero-title">Marketing, managed.</h1>
             <p className="hero-lead">
-              <span className="hero-lead-line"><em>Maya</em> plans campaigns, writes the content, and routes every draft to one queue.</span>
-              <span className="hero-lead-line">Every image, caption, and email pulls from your Foundation.</span>
-              <span className="hero-lead-line">You decide what gets published.</span>
+              <span className="hero-lead-line">
+                <span className="hero-maya">Maya</span> plans campaigns, writes the content, and routes every draft to one queue.
+              </span>
+              <span className="hero-lead-line">
+                Every image, caption, and email pulls from your Foundation.
+              </span>
+              <span className="hero-lead-line hero-lead-line--strong">
+                You decide what gets published.
+              </span>
             </p>
-            <p className="hero-tagline">One Foundation. Twelve specialist agents. One approval queue.</p>
+            <p className="hero-tagline">
+              <span className="hero-tagline-line">
+                One Foundation. Twelve specialist agents. One approval queue.
+              </span>
+            </p>
             <div className="hero-cta">
               <div className="hero-cta-row">
                 <a
-                  className="btn btn-hero-primary btn-lg"
+                  className="btn btn-hero-primary"
                   href="/pricing"
                   onClick={() => trackEvent('cta_click', { cta: 'start_trial', location: 'hero' })}
                 >
-                  Start your free trial
+                  Start free trial
                 </a>
                 <a
-                  className="btn btn-ghost btn-lg"
+                  className="btn btn-ghost"
                   href="#how"
                   onClick={() => trackEvent('cta_click', { cta: 'see_how_it_works', location: 'hero_secondary' })}
                 >
                   See how it works →
                 </a>
               </div>
-              <p className="hero-note">3-day free trial. No charge until day 4.</p>
             </div>
-          </div>
-          <div className="hero-orb">
-            <Metaballs
-              speed={1}
-              count={10}
-              size={0.52}
-              scale={1}
-              colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
-              colorBack="#00000000"
-              style={{ width: '100%', height: '100%', display: 'block' }}
-            />
           </div>
         </div>
         <div className="wrap showpiece reveal">
@@ -378,14 +387,14 @@ export default function Lab5Page() {
 
       {/* DARK CTA */}
       <div className="cta-section">
-        <div className="cta-orb">
+        <div className="cta-orb" aria-hidden="true">
           <Metaballs
             speed={1}
-            count={9}
-            size={0.26}
+            count={10}
+            size={0.52}
             scale={1}
             colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
-            colorBack="#0E0E11"
+            colorBack="#00000000"
             style={{ width: '100%', height: '100%', display: 'block' }}
           />
         </div>
