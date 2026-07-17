@@ -3,8 +3,12 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import {
+  COOKIE_CONSENT_STORAGE_KEY,
+  COOKIE_CONSENT_UPDATED_EVENT,
   getCookieConsent,
+  parseCookieConsentChoice,
   setCookieConsent,
+  type CookieConsentChoice,
 } from '@/lib/analytics/cookieConsent'
 
 export default function CookieConsentBanner() {
@@ -12,6 +16,22 @@ export default function CookieConsentBanner() {
 
   useEffect(() => {
     setOpen(getCookieConsent() === null)
+
+    const onConsentUpdate = (event: Event) => {
+      const choice = (event as CustomEvent<CookieConsentChoice>).detail
+      if (choice === 'accepted' || choice === 'rejected') setOpen(false)
+    }
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== COOKIE_CONSENT_STORAGE_KEY) return
+      setOpen(parseCookieConsentChoice(event.newValue) === null)
+    }
+
+    window.addEventListener(COOKIE_CONSENT_UPDATED_EVENT, onConsentUpdate)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener(COOKIE_CONSENT_UPDATED_EVENT, onConsentUpdate)
+      window.removeEventListener('storage', onStorage)
+    }
   }, [])
 
   if (!open) return null

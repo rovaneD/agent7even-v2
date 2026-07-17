@@ -1,7 +1,8 @@
 import { track as vercelTrack } from '@vercel/analytics'
+import { hasAnalyticsConsent } from '@/lib/analytics/cookieConsent'
 
-// Marketing/product analytics: always sends to Vercel Web Analytics; GA4 only after cookie consent.
-// Safe to call anywhere — GA no-ops during SSR, without consent, or if gtag is blocked.
+// Named marketing/product events require analytics consent for both providers.
+// Cookieless Vercel page views are collected separately by <Analytics />.
 
 export type AnalyticsEventParams = Record<string, string | number | boolean | undefined>
 
@@ -31,14 +32,14 @@ function sanitizeVercelData(params?: AnalyticsEventParams) {
 }
 
 export function trackEvent(name: string, params?: AnalyticsEventParams) {
-  if (typeof window !== 'undefined') {
-    try {
-      vercelTrack(name.slice(0, MAX_VERCEL_FIELD_LEN), sanitizeVercelData(params))
-    } catch {
-      // Vercel Analytics unavailable (local dev, ad blockers, etc.)
-    }
+  if (typeof window === 'undefined' || !hasAnalyticsConsent()) return
+
+  try {
+    vercelTrack(name.slice(0, MAX_VERCEL_FIELD_LEN), sanitizeVercelData(params))
+  } catch {
+    // Vercel Analytics unavailable (local dev, ad blockers, etc.)
   }
 
-  if (typeof window === 'undefined' || typeof window.gtag !== 'function') return
+  if (typeof window.gtag !== 'function') return
   window.gtag('event', name, params)
 }
