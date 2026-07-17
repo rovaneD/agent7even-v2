@@ -3,9 +3,11 @@
 import Script from 'next/script'
 import { useEffect, useState } from 'react'
 import {
+  COOKIE_CONSENT_STORAGE_KEY,
   COOKIE_CONSENT_UPDATED_EVENT,
   GA_MEASUREMENT_ID,
-  hasAnalyticsConsent,
+  getCookieConsent,
+  parseCookieConsentChoice,
   type CookieConsentChoice,
 } from '@/lib/analytics/cookieConsent'
 
@@ -13,15 +15,30 @@ export default function ConsentAwareAnalytics() {
   const [enabled, setEnabled] = useState(false)
 
   useEffect(() => {
-    setEnabled(hasAnalyticsConsent())
-
-    const onConsentUpdate = (event: Event) => {
-      const choice = (event as CustomEvent<CookieConsentChoice>).detail
-      setEnabled(choice === 'accepted')
+    const applyChoice = (choice: CookieConsentChoice | null) => {
+      const accepted = choice === 'accepted'
+      if (typeof window.gtag === 'function') {
+        window.gtag('consent', 'update', {
+          analytics_storage: accepted ? 'granted' : 'denied',
+        })
+      }
+      setEnabled(accepted)
     }
 
+    const onConsentUpdate = (event: Event) =>
+      applyChoice((event as CustomEvent<CookieConsentChoice>).detail)
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== COOKIE_CONSENT_STORAGE_KEY) return
+      applyChoice(parseCookieConsentChoice(event.newValue))
+    }
+
+    applyChoice(getCookieConsent())
     window.addEventListener(COOKIE_CONSENT_UPDATED_EVENT, onConsentUpdate)
-    return () => window.removeEventListener(COOKIE_CONSENT_UPDATED_EVENT, onConsentUpdate)
+    window.addEventListener('storage', onStorage)
+    return () => {
+      window.removeEventListener(COOKIE_CONSENT_UPDATED_EVENT, onConsentUpdate)
+      window.removeEventListener('storage', onStorage)
+    }
   }, [])
 
   if (!enabled) return null

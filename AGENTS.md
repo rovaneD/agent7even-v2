@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 9, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 17, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -26,7 +26,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV28.md > CONTEXTV27.md > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV29.md > CONTEXTV28.md > CONTEXTV27.md > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -64,7 +64,8 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV28.md` — latest handoff: full codebase audit — `resolveClerkProfile` enforced at all 45 call sites, 16 dead API routes deleted, proxy/env cleanup, pre-push guard created; open items incl. unlinked `/dashboard/ai-toolkit` (July 13, 2026).
+- `CONTEXTV29.md` — latest handoff: named analytics events now require accepted consent, cross-tab rejection disables GA, blocked storage fails closed (July 17, 2026).
+- `CONTEXTV28.md` — prior handoff: full codebase audit — `resolveClerkProfile` enforced at all 45 call sites, 16 dead API routes deleted, proxy/env cleanup, pre-push guard created; open items incl. unlinked `/dashboard/ai-toolkit` (July 13, 2026).
 - `SESSION_2026-07-13.md` — July 13 session log (audit findings + fixes, commit 8aa8719).
 - `CONTEXTV27.md` — prior handoff: production launch audit (Clerk live on `.ai`), mobile modal scroll shell, blog hydration fix, Zernio OAuth request host (July 9, 2026 evening).
 - `CONTEXTV26.md` — July 9 morning: Team Phase 5 notes (assignment + approval), Activity feed previews, Foundation classification backfill, Zernio go-live runbook.
