@@ -16,7 +16,7 @@ function installWindow(value: Partial<Window>) {
 }
 
 function removeWindow() {
-  delete (globalThis as typeof globalThis & { window?: Window }).window
+  Reflect.deleteProperty(globalThis, 'window')
 }
 
 test('named analytics events require accepted consent', () => {
