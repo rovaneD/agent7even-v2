@@ -63,7 +63,7 @@ export default function Lab5Page() {
           <div className="hero-copy">
             <p className="eyebrow">From idea to approval queue, without switching tools.</p>
             <h1 className="hero-title">Marketing, managed.</h1>
-            <p className="hero-lead">
+            <p className="hero-lead hero-lead--desktop">
               <span className="hero-lead-line">
                 <span className="hero-maya">Maya</span> plans campaigns, writes the content, and routes every draft to one queue.
               </span>
@@ -74,9 +74,17 @@ export default function Lab5Page() {
                 You decide what gets published.
               </span>
             </p>
+            <p className="hero-lead hero-lead--mobile">
+              <span className="hero-maya">Maya</span>, the operating system for your marketing.
+            </p>
             <p className="hero-tagline">
-              <span className="hero-tagline-line">
+              <span className="hero-tagline-line hero-tagline--desktop">
                 One Foundation. Twelve specialist agents. One approval queue.
+              </span>
+              <span className="hero-tagline-stack hero-tagline--mobile">
+                <span>One Foundation.</span>
+                <span>Twelve specialist agents.</span>
+                <span>One approval queue.</span>
               </span>
             </p>
             <div className="hero-cta">
@@ -86,7 +94,8 @@ export default function Lab5Page() {
                   href="/pricing"
                   onClick={() => trackEvent('cta_click', { cta: 'start_trial', location: 'hero' })}
                 >
-                  Start free trial
+                  <span className="hero-cta-label-desktop">Start free trial</span>
+                  <span className="hero-cta-label-mobile">Start your free trial</span>
                 </a>
                 <a
                   className="btn btn-ghost"
