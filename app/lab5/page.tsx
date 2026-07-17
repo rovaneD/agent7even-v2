@@ -10,6 +10,7 @@ import { useMockupScript } from './useMockupScript'
 import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
 import HowItWorksSteps from '@/components/marketing/HowItWorksSteps'
 import StackCompareSection from '@/components/marketing/StackCompareSection'
+import TeamsJourneySection from '@/components/marketing/TeamsJourneySection'
 import CreativeShowcase from '@/components/marketing/CreativeShowcase'
 
 declare global {
@@ -152,8 +153,10 @@ export default function Lab5Page() {
         </div>
       </section>
 
+      <TeamsJourneySection />
+
       {/* FEATURE ROWS */}
-      <section id="features" style={{ paddingTop: 0 }}>
+      <section id="features">
         <div className="wrap">
           <div className="sec-head reveal">
             <span className="eyebrow">What the agents run</span>
