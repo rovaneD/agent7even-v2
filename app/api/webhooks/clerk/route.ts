@@ -7,6 +7,7 @@ import { welcomeEmailHtml, welcomeEmailText } from '@/emails/welcome'
 import { getResendClient } from '@/lib/resend'
 import { transactionalFromAddress } from '@/lib/email/transactionalTemplate'
 import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
+import { notifyAdminNewSignup } from '@/lib/notifyAdminNewSignup'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET
@@ -146,6 +147,17 @@ export async function POST(req: Request) {
         })
       } catch (trackError) {
         console.error('Vercel analytics track failed (Signup):', trackError)
+      }
+
+      try {
+        await notifyAdminNewSignup({
+          profileId: newProfile.id,
+          email,
+          fullName,
+          joinedViaTeamInvite,
+        })
+      } catch (adminNotifyError) {
+        console.error('Admin signup notify failed:', adminNotifyError)
       }
     }
   }
