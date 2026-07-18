@@ -12,6 +12,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Tabler Icons moved here from root layout so marketing pages stay lighter.
   const { userId } = await auth()
   const supabase = createServiceClient()
 
@@ -78,19 +79,25 @@ export default async function DashboardLayout({
   }
 
   return (
-    <DashboardShell
-      profile={profile}
-      profileId={profileId}
-      initialNotifications={notifications}
-      initialSessions={initialSessions}
-      foundationScore={workspaceFoundationScore}
-      brandKitCompleted={brandKitCompleted}
-      pendingApprovalsCount={pendingApprovalsCount}
-      role={profile?.role ?? null}
-      isAdmin={['admin', 'owner'].includes(profile?.role ?? '')}
-      teamPermissions={teamPermissions}
-    >
-      {children}
-    </DashboardShell>
+    <>
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"
+      />
+      <DashboardShell
+        profile={profile}
+        profileId={profileId}
+        initialNotifications={notifications}
+        initialSessions={initialSessions}
+        foundationScore={workspaceFoundationScore}
+        brandKitCompleted={brandKitCompleted}
+        pendingApprovalsCount={pendingApprovalsCount}
+        role={profile?.role ?? null}
+        isAdmin={['admin', 'owner'].includes(profile?.role ?? '')}
+        teamPermissions={teamPermissions}
+      >
+        {children}
+      </DashboardShell>
+    </>
   )
 }

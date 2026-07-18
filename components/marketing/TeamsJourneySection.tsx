@@ -1,11 +1,12 @@
 'use client'
 
+import Image from 'next/image'
 import { trackEvent } from '@/lib/gtag'
 
 const PEOPLE = {
-  JD: { src: '/JD.png', alt: 'Team member JD', tone: 'amber' as const },
-  MK: { src: '/MK.png', alt: 'Team member MK', tone: 'pink' as const },
-  AS: { src: '/AS.png', alt: 'Team member AS', tone: 'blue' as const },
+  JD: { src: '/JD.webp', alt: 'Team member JD', tone: 'amber' as const },
+  MK: { src: '/MK.webp', alt: 'Team member MK', tone: 'pink' as const },
+  AS: { src: '/AS.webp', alt: 'Team member AS', tone: 'blue' as const },
 }
 
 const STEPS = [
@@ -87,7 +88,14 @@ export default function TeamsJourneySection() {
                       className={`teams-journey-avatar tone-${person.tone}`}
                       style={{ zIndex: step.people.length - idx }}
                     >
-                      <img src={person.src} alt={person.alt} width={44} height={44} />
+                      <Image
+                        src={person.src}
+                        alt={person.alt}
+                        width={96}
+                        height={96}
+                        sizes="48px"
+                        loading="lazy"
+                      />
                     </span>
                   ))}
                 </div>

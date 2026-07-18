@@ -1,7 +1,7 @@
 /* ============================================================
    AGENT7EVEN · Maya — lab5 design system + editorial layout
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400&family=Roboto+Mono:wght@400;500&display=swap');
+/* BEFORE: @import Google Fonts (render-blocking). AFTER: next/font vars on homepage. */
 
 /* ---- reset & tokens ---- */
 .lab5 *, .lab5 *::before, .lab5 *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -31,8 +31,8 @@
   --l5-shadow-card: 0 1px 2px rgba(16,18,23,.04), 0 12px 28px -18px rgba(16,18,23,.18);
   --l5-maxw: 1200px;
   --l5-pad: 40px;
-  --l5-font: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --l5-mono: 'Roboto Mono', ui-monospace, Menlo, monospace;
+  --l5-font: var(--l5-font-face, 'Roboto'), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --l5-mono: var(--l5-mono-face, 'Roboto Mono'), ui-monospace, Menlo, monospace;
   /* keep site.css var names working inside mockups */
   --bg: #F9F9FA; --surface: #FFFFFF; --ink: #0E0E11; --ink-2: #3A3D44;
   --muted: #6C7079; --faint: #9AA0AA; --line: #E8E8EB; --line-2: #F1F1F3;
@@ -177,6 +177,11 @@
   transform: scale(1.08);
 }
 .lab5 .hero-metaballs canvas { width: 100%; height: 100%; display: block; }
+.lab5 .deferred-metaballs-shader {
+  position: absolute;
+  inset: 0;
+}
+.lab5 .deferred-metaballs-shader canvas { width: 100%; height: 100%; display: block; }
 .lab5 .hero-grid {
   position: relative;
   z-index: 1;
@@ -1938,22 +1943,43 @@
     width: 100%;
     gap: 8px;
   }
+  .lab5 .hero-primary-stack { width: 100%; }
+  /* Mobile UX: stacked 48px CTAs (was side-by-side 12px type — hard to tap from IG) */
   .lab5 .hero-cta-row {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
     width: 100%;
     gap: 10px;
   }
-  .lab5 .hero-primary-stack { width: 100%; }
   .lab5 .hero-cta-row .btn {
-    width: auto;
-    flex: 1 1 0;
-    min-width: 0;
+    width: 100%;
+    min-height: 48px;
     justify-content: center;
-    padding: 10px 12px;
-    font-size: 12px;
+    padding: 14px 18px;
+    font-size: 16px;
+    border-radius: 10px;
   }
+  .lab5 .btn-hero-primary {
+    font-weight: 600;
+    box-shadow: 0 10px 24px -12px rgba(59, 130, 246, 0.55);
+  }
+  .lab5 .hero-lead--mobile {
+    font-size: 1rem; /* 16px minimum body readability */
+    line-height: 1.5;
+  }
+  .lab5 .hero-tagline {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  .lab5 .nav-burger {
+    min-width: 48px;
+    min-height: 48px;
+  }
+  .lab5 .creative-showcase-stage {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .lab5 .creative-device-reel { display: none; }
   .lab5 .hero-cta-label-desktop { display: none; }
   .lab5 .hero-cta-label-mobile { display: inline; }
   .lab5 .hero-note {

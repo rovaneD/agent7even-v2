@@ -1,17 +1,33 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Metaballs from './SafeMetaballs'
+import dynamic from 'next/dynamic'
 import { trackEvent } from '@/lib/gtag'
 import MarketingNav from './MarketingNav'
 import MarketingFooter from './MarketingFooter'
 import { useMockupScript } from './useMockupScript'
+import DeferredMetaballs from './DeferredMetaballs'
 
 import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
-import HowItWorksSteps from '@/components/marketing/HowItWorksSteps'
-import StackCompareSection from '@/components/marketing/StackCompareSection'
-import TeamsJourneySection from '@/components/marketing/TeamsJourneySection'
-import CreativeShowcase from '@/components/marketing/CreativeShowcase'
+
+/**
+ * BEFORE: HowItWorks / StackCompare / Teams / CreativeShowcase all in the
+ * initial client graph — parsed on mobile before LCP.
+ * AFTER: code-split below-fold sections so the hero hydrates with less JS.
+ * SSR still renders them; desktop visual output is unchanged.
+ */
+const HowItWorksSteps = dynamic(() => import('@/components/marketing/HowItWorksSteps'), {
+  ssr: true,
+})
+const StackCompareSection = dynamic(() => import('@/components/marketing/StackCompareSection'), {
+  ssr: true,
+})
+const TeamsJourneySection = dynamic(() => import('@/components/marketing/TeamsJourneySection'), {
+  ssr: true,
+})
+const CreativeShowcase = dynamic(() => import('@/components/marketing/CreativeShowcase'), {
+  ssr: true,
+})
 
 declare global {
   interface Window {
@@ -23,7 +39,8 @@ const FAQ_ITEMS = HOMEPAGE_FAQ_ITEMS
 
 export default function Lab5Page() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  useMockupScript('/lab5/mockups.js', '__initMockups')
+  // Lazy-load mockups.js until the hero showpiece approaches the viewport.
+  useMockupScript('/lab5/mockups.js', '__initMockups', { lazy: true })
 
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -49,17 +66,7 @@ export default function Lab5Page() {
 
       {/* HERO */}
       <header className="hero">
-        <div className="hero-metaballs" aria-hidden="true">
-          <Metaballs
-            speed={1}
-            count={10}
-            size={0.52}
-            scale={1}
-            colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
-            colorBack="#00000000"
-            style={{ width: '100%', height: '100%', display: 'block' }}
-          />
-        </div>
+        <DeferredMetaballs className="hero-metaballs" />
         <div className="wrap hero-grid">
           <div className="hero-copy">
             <p className="eyebrow">From idea to approval queue, without switching tools.</p>
@@ -399,17 +406,7 @@ export default function Lab5Page() {
 
       {/* DARK CTA */}
       <div className="cta-section">
-        <div className="cta-orb" aria-hidden="true">
-          <Metaballs
-            speed={1}
-            count={10}
-            size={0.52}
-            scale={1}
-            colors={['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE']}
-            colorBack="#00000000"
-            style={{ width: '100%', height: '100%', display: 'block' }}
-          />
-        </div>
+        <DeferredMetaballs className="cta-orb" loadWhenVisible />
         <div className="cta-in">
           <h2>One Foundation.<br />Twelve specialist agents.<br />One approval queue.</h2>
           <p className="cta-lead">
