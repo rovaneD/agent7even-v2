@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { trackEvent } from '@/lib/gtag'
 import Metaballs from '../SafeMetaballs'
 import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
@@ -57,6 +58,7 @@ const FAQ_ITEMS = [
 
 const TIERS = [
   {
+    plan: 'starter',
     name: 'Starter',
     desc: 'Your first marketing OS — unlimited text work, media for steady posting.',
     monthlyPrice: 49,
@@ -72,11 +74,13 @@ const TIERS = [
       '1 seat included',
     ],
     cta: 'Start your free trial',
+    ctaEvent: 'start_trial' as const,
     ctaHref: '/pricing',
     ctaClass: 'btn-ghost',
     featured: false,
   },
   {
+    plan: 'growth',
     name: 'Growth',
     desc: 'Team seats and managed service requests — plus more media every week.',
     monthlyPrice: 89,
@@ -92,11 +96,13 @@ const TIERS = [
       'Priority support',
     ],
     cta: 'Get started',
+    ctaEvent: 'get_started' as const,
     ctaHref: '/pricing',
     ctaClass: 'btn-primary',
     featured: true,
   },
   {
+    plan: 'proagent',
     name: 'ProAgent',
     desc: 'Maximum media allowance plus premium Recraft & Kling models.',
     monthlyPrice: 149,
@@ -112,6 +118,7 @@ const TIERS = [
       'Dedicated support',
     ],
     cta: 'Get started',
+    ctaEvent: 'get_started' as const,
     ctaHref: '/pricing',
     ctaClass: 'btn-ghost',
     featured: false,
@@ -161,8 +168,22 @@ export default function PricingPage() {
 
           <div className="billing-toggle-wrap">
             <div className="billing-toggle">
-              <button className={!annual ? 'active' : ''} onClick={() => setAnnual(false)}>Monthly</button>
-              <button className={annual ? 'active' : ''} onClick={() => setAnnual(true)}>
+              <button
+                className={!annual ? 'active' : ''}
+                onClick={() => {
+                  setAnnual(false)
+                  trackEvent('billing_toggle', { billing: 'monthly', location: 'lab5_pricing' })
+                }}
+              >
+                Monthly
+              </button>
+              <button
+                className={annual ? 'active' : ''}
+                onClick={() => {
+                  setAnnual(true)
+                  trackEvent('billing_toggle', { billing: 'annual', location: 'lab5_pricing' })
+                }}
+              >
                 Annual <span className="save-badge">2 months free</span>
               </button>
             </div>
@@ -187,7 +208,20 @@ export default function PricingPage() {
                       <li key={f}><CheckIcon />{f}</li>
                     ))}
                   </ul>
-                  <a className={`btn ${tier.ctaClass}`} href={tier.ctaHref}>{tier.cta}</a>
+                  <a
+                    className={`btn ${tier.ctaClass}`}
+                    href={tier.ctaHref}
+                    onClick={() =>
+                      trackEvent('cta_click', {
+                        cta: tier.ctaEvent,
+                        location: 'lab5_pricing',
+                        plan: tier.plan,
+                        billing: annual ? 'annual' : 'monthly',
+                      })
+                    }
+                  >
+                    {tier.cta}
+                  </a>
                 </div>
               )
             })}
@@ -210,7 +244,13 @@ export default function PricingPage() {
           <div className="faq reveal">
             {FAQ_ITEMS.map(({ q, a }, i) => (
               <div key={q} className="faq-item">
-                <button className="faq-q" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+                <button
+                  className="faq-q"
+                  onClick={() => {
+                    if (openFaq !== i) trackEvent('faq_open', { question: q, location: 'lab5_pricing' })
+                    setOpenFaq(openFaq === i ? null : i)
+                  }}
+                >
                   {q}
                   <span className={`faq-icon${openFaq === i ? ' open' : ''}`}>+</span>
                 </button>
@@ -236,8 +276,22 @@ export default function PricingPage() {
         <div className="cta-in">
           <h2>Work like you have a full<br />marketing team. Because now you do.</h2>
           <div className="cta-btns">
-            <a className="btn btn-white btn-lg" href="/pricing">Start your free trial</a>
-            <a className="btn btn-dark-ghost btn-lg" href="/sign-in">Sign in</a>
+            <a
+              className="btn btn-white btn-lg"
+              href="/pricing"
+              onClick={() =>
+                trackEvent('cta_click', { cta: 'start_trial', location: 'lab5_pricing_footer' })
+              }
+            >
+              Start your free trial
+            </a>
+            <a
+              className="btn btn-dark-ghost btn-lg"
+              href="/sign-in"
+              onClick={() => trackEvent('sign_in_click', { location: 'lab5_pricing_footer' })}
+            >
+              Sign in
+            </a>
           </div>
           <p className="cta-note">3-day free trial. No charge until day 4.</p>
         </div>
