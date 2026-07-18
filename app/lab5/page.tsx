@@ -96,6 +96,9 @@ export default function Lab5Page() {
                 <span>One approval queue.</span>
               </span>
             </p>
+            <p className="hero-social-proof hero-social-proof--mobile">
+              Join other small business owners saving hours every week.
+            </p>
             <div className="hero-cta">
               <div className="hero-cta-row">
                 <a

@@ -270,6 +270,8 @@
 }
 .lab5 .hero-cta-label-mobile { display: none; }
 .lab5 .hero-cta-label-desktop { display: inline; }
+/* Mobile-only social proof under the three-line tagline */
+.lab5 .hero-social-proof--mobile { display: none; }
 .lab5 .hero-primary-stack {
   display: inline-flex;
   flex-direction: column;
@@ -1962,28 +1964,37 @@
   }
   .lab5 .hero-tagline-stack span { display: block; }
   .lab5 .hero-tagline-stack span + span { margin-top: 0.35em; }
+  .lab5 .hero-social-proof--mobile {
+    display: block;
+    margin: 14px 0 0;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    color: var(--l5-muted);
+    text-wrap: balance;
+  }
   /* Mobile spacing between CTAs and mockup (restored after LCP pass accidentally tightened it) */
   .lab5 .hero .showpiece { padding-top: 200px; padding-bottom: 40px; }
   .lab5 .hero-cta {
-    margin-top: 24px;
+    margin-top: 20px;
     width: 100%;
-    gap: 8px;
+    gap: 10px;
   }
   .lab5 .hero-primary-stack { width: 100%; }
-  /* Mobile UX: stacked 48px CTAs (was side-by-side 12px type — hard to tap from IG) */
+  /* Mobile UX: stacked equal-size CTAs — primary and secondary same tap target */
   .lab5 .hero-cta-row {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
-    gap: 10px;
+    gap: 12px;
   }
   .lab5 .hero-cta-row .btn {
     width: 100%;
-    min-height: 48px;
+    min-height: 56px;
     justify-content: center;
-    padding: 14px 18px;
-    font-size: 16px;
-    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 17px;
+    font-weight: 600;
+    border-radius: 12px;
   }
   .lab5 .btn-hero-primary {
     font-weight: 600;
