@@ -1131,6 +1131,10 @@
   background: #0E0E11;
   border: 1px solid var(--l5-line);
 }
+.lab5 .creative-reel-frame--placeholder {
+  background:
+    linear-gradient(160deg, #1a1410 0%, #0E0E11 55%, #1c120e 100%);
+}
 .lab5 .creative-reel-video {
   position: absolute;
   inset: 0;
@@ -2012,11 +2016,10 @@
     min-width: 48px;
     min-height: 48px;
   }
+  /* Keep reel + post side-by-side on mobile (perf pass had hidden the moving reel) */
   .lab5 .creative-showcase-stage {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    justify-items: stretch;
   }
-  .lab5 .creative-device-reel { display: none; }
   .lab5 .hero-cta-label-desktop { display: none; }
   .lab5 .hero-cta-label-mobile { display: inline; }
   .lab5 .hero-note {

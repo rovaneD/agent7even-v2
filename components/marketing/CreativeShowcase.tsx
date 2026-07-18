@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * BEFORE: InstagramReel.mp4 (~22MB) autoplayed with preload="auto" for all viewports.
- * AFTER: Mobile never mounts the video (static post image only). Desktop loads the
- * reel only when the showcase is near the viewport, with preload="none".
+ * Instagram reel + post pair for the Creative feature row.
+ * Video mounts only when the showcase approaches the viewport (all breakpoints)
+ * with preload="none" — avoids shipping the ~22MB reel on first paint.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -17,9 +17,6 @@ export default function CreativeShowcase() {
   const [videoInView, setVideoInView] = useState(false)
 
   useEffect(() => {
-    const desktop = window.matchMedia('(min-width: 721px)').matches
-    if (!desktop) return
-
     const host = hostRef.current
     if (!host) {
       setAllowVideo(true)
@@ -84,6 +81,7 @@ export default function CreativeShowcase() {
                   loop
                   playsInline
                   preload="none"
+                  poster="/InstagramPost.webp"
                   aria-label="Sample AI-generated brand reel"
                 />
                 <div className="creative-reel-gradient" aria-hidden="true" />
@@ -110,7 +108,13 @@ export default function CreativeShowcase() {
               </div>
             </div>
           </article>
-        ) : null}
+        ) : (
+          <article className="creative-device creative-device-reel" aria-hidden="true">
+            <div className="creative-card">
+              <div className="creative-reel-frame creative-reel-frame--placeholder" />
+            </div>
+          </article>
+        )}
 
         <article className="creative-device creative-device-post">
           <div className="creative-card">
@@ -126,7 +130,7 @@ export default function CreativeShowcase() {
                   alt="Sample AI-generated product photo for Instagram"
                   width={800}
                   height={1061}
-                  sizes="(max-width: 720px) 70vw, 196px"
+                  sizes="(max-width: 720px) 42vw, 196px"
                   className="creative-post-image"
                   loading="lazy"
                 />
