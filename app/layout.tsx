@@ -1,22 +1,22 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
-import { Analytics } from '@vercel/analytics/next'
 import { Roboto, Roboto_Mono } from 'next/font/google'
 import { clerkLocalization } from '@/lib/auth/clerkLocalization'
 import { CANONICAL_SITE_URL } from '@/lib/siteUrls'
-import ConsentAwareAnalytics from '@/components/analytics/ConsentAwareAnalytics'
-import CookieConsentBanner from '@/components/analytics/CookieConsentBanner'
+import DeferredChrome from '@/components/analytics/DeferredChrome'
 import './globals.css'
 import { cn } from "@/lib/utils";
 
 /**
  * BEFORE: Google Fonts @import in lab5/styles.css blocked first paint.
  * AFTER: next/font self-hosts Roboto with display:swap across the app.
+ * preload: true helps LCP when the hero title uses these faces.
  */
 const roboto = Roboto({
   subsets: ['latin'],
   weight: ['400', '500', '700'],
   display: 'swap',
+  preload: true,
   variable: '--l5-font-face',
 })
 
@@ -24,6 +24,7 @@ const robotoMono = Roboto_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
   display: 'swap',
+  preload: false,
   variable: '--l5-mono-face',
 })
 
@@ -51,9 +52,7 @@ export default function RootLayout({
       <body className="min-h-full bg-gray-50 text-gray-900">
         <ClerkProvider localization={clerkLocalization}>
           {children}
-          <CookieConsentBanner />
-          <ConsentAwareAnalytics />
-          <Analytics />
+          <DeferredChrome />
         </ClerkProvider>
       </body>
     </html>

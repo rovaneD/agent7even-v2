@@ -52,7 +52,8 @@ function injectAndInit(src: string, initKey: MockupInitKey) {
 
 /** Load lab5 mockup scripts — Next.js Script tags don't run in client components (Next 16). */
 export function useMockupScript(src: string, initKey: MockupInitKey, options: Options = {}) {
-  const { lazy = false, watchSelector = '.lab5 .showpiece, .lab5 [data-mk]' } = options
+  // Prefer first non-SSR mockup so hero dashboard HTML is never a load gate.
+  const { lazy = false, watchSelector = '.lab5 [data-mk]:not([data-mk-ssr])' } = options
 
   useEffect(() => {
     if (!lazy) {

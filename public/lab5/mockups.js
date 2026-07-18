@@ -298,6 +298,8 @@
   function boot() {
     document.querySelectorAll('[data-mk]').forEach((el) => {
       const name = el.getAttribute('data-mk');
+      // Skip SSR-prefilled hero mockups so we don't wipe first-paint HTML (LCP).
+      if (el.getAttribute('data-mk-ssr') === '1' && el.childElementCount > 0) return;
       if (M[name]) { el.classList.add('mk'); el.innerHTML = M[name](); }
     });
   }

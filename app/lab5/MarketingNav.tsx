@@ -106,7 +106,15 @@ export default function MarketingNav({ active }: { active?: 'agents' | 'pricing'
     <nav className="nav">
       <div className="nav-in">
         <a className="brand" href="/">
-          <img className="brand-logo" src="/agent7even_logo.svg" alt="Agent7even" />
+          <img
+            className="brand-logo"
+            src="/agent7even_logo.svg"
+            alt="Agent7even"
+            width={168}
+            height={42}
+            decoding="async"
+            fetchPriority="high"
+          />
         </a>
         <div className="nav-links">
           {LINKS.map((l) => (

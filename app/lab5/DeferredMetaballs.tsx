@@ -1,17 +1,14 @@
 'use client'
 
 /**
- * BEFORE: SafeMetaballs / WebGL shader mounted immediately in hero + footer CTA.
- * That pulled @paper-design/shaders-react on first paint and drove mobile TBT/LCP.
- *
- * AFTER (mobile-only behavior): always paint a CSS gradient stand-in first.
- * WebGL Metaballs load only on desktop (min-width 981px), optionally after the
- * host enters the viewport. Desktop visual intent stays the same; mobile never
- * downloads the shader bundle.
+ * BEFORE: WebGL shader (or even a React gradient fallback) hydrated in the hero
+ * on mobile and competed with LCP.
+ * AFTER: Mobile uses pure CSS on .hero-metaballs / .cta-orb (no React paint).
+ * Desktop still mounts WebGL SafeMetaballs after mount / when visible.
  */
 
 import dynamic from 'next/dynamic'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const SafeMetaballs = dynamic(() => import('./SafeMetaballs'), { ssr: false })
 
@@ -23,30 +20,7 @@ type Props = {
   scale?: number
   colors?: string[]
   colorBack?: string
-  /** When true, wait until this container is near the viewport before loading WebGL (desktop). */
   loadWhenVisible?: boolean
-}
-
-function GradientFallback({ style }: { style?: CSSProperties }) {
-  return (
-    <div
-      aria-hidden
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'block',
-        background: [
-          'radial-gradient(circle at 32% 34%, rgba(245,52,155,0.85) 0%, rgba(245,52,155,0) 30%)',
-          'radial-gradient(circle at 66% 28%, rgba(252,165,9,0.8) 0%, rgba(252,165,9,0) 28%)',
-          'radial-gradient(circle at 52% 64%, rgba(50,134,254,0.85) 0%, rgba(50,134,254,0) 32%)',
-          'radial-gradient(circle at 76% 68%, rgba(16,185,129,0.75) 0%, rgba(16,185,129,0) 24%)',
-          'radial-gradient(circle at 26% 70%, rgba(238,83,59,0.75) 0%, rgba(238,83,59,0) 24%)',
-        ].join(','),
-        filter: 'blur(14px) saturate(1.05)',
-        ...style,
-      }}
-    />
-  )
 }
 
 function prefersDesktopShader() {
@@ -79,9 +53,11 @@ export default function DeferredMetaballs({
     }
 
     if (!loadWhenVisible) {
-      enable()
+      // Desktop: mount WebGL after first paint frame so LCP text isn't blocked.
+      const raf = window.requestAnimationFrame(() => enable())
       return () => {
         cancelled = true
+        window.cancelAnimationFrame(raf)
       }
     }
 
@@ -111,7 +87,6 @@ export default function DeferredMetaballs({
 
   return (
     <div ref={hostRef} className={className} aria-hidden="true">
-      <GradientFallback />
       {mountShader ? (
         <div className="deferred-metaballs-shader">
           <SafeMetaballs

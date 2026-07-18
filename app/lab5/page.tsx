@@ -7,6 +7,7 @@ import MarketingNav from './MarketingNav'
 import MarketingFooter from './MarketingFooter'
 import { useMockupScript } from './useMockupScript'
 import DeferredMetaballs from './DeferredMetaballs'
+import HeroDashboardMockup from './HeroDashboardMockup'
 
 import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
 
@@ -116,13 +117,9 @@ export default function Lab5Page() {
             </div>
           </div>
         </div>
-        <div className="wrap showpiece reveal">
-          <div
-            className="mk"
-            data-mk="dashboard"
-            role="img"
-            aria-label="AI marketing strategist dashboard showing campaign planning and approval queue"
-          />
+        {/* No .reveal here — opacity:0 was delaying LCP until hydration. */}
+        <div className="wrap showpiece">
+          <HeroDashboardMockup />
         </div>
       </header>
 
