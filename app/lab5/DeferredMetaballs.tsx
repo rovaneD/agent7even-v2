@@ -1,14 +1,13 @@
 'use client'
 
 /**
- * BEFORE: WebGL shader (or even a React gradient fallback) hydrated in the hero
- * on mobile and competed with LCP.
- * AFTER: Mobile uses pure CSS on .hero-metaballs / .cta-orb (no React paint).
- * Desktop still mounts WebGL SafeMetaballs after mount / when visible.
+ * Mobile-only optimization wrapper around SafeMetaballs.
+ * Desktop: mount WebGL immediately (same as pre-perf-pass).
+ * Mobile: empty host — CSS gradient on .hero-metaballs / .cta-orb paints instead.
  */
 
 import dynamic from 'next/dynamic'
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useState, type CSSProperties } from 'react'
 
 const SafeMetaballs = dynamic(() => import('./SafeMetaballs'), { ssr: false })
 
@@ -20,11 +19,11 @@ type Props = {
   scale?: number
   colors?: string[]
   colorBack?: string
+  /** Kept for API compat; desktop mounts immediately either way. */
   loadWhenVisible?: boolean
 }
 
 function prefersDesktopShader() {
-  if (typeof window === 'undefined') return false
   return (
     window.matchMedia('(min-width: 981px)').matches &&
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -33,7 +32,7 @@ function prefersDesktopShader() {
 
 export default function DeferredMetaballs({
   className,
-  loadWhenVisible = false,
+  loadWhenVisible: _loadWhenVisible = false,
   speed = 1,
   count = 10,
   size = 0.52,
@@ -41,65 +40,28 @@ export default function DeferredMetaballs({
   colors = ['#F5349B', '#EE533B', '#FCA509', '#10B981', '#3286FE'],
   colorBack = '#00000000',
 }: Props) {
-  const hostRef = useRef<HTMLDivElement>(null)
-  const [mountShader, setMountShader] = useState(false)
+  const [desktop, setDesktop] = useState(false)
 
-  useEffect(() => {
-    if (!prefersDesktopShader()) return
+  useLayoutEffect(() => {
+    setDesktop(prefersDesktopShader())
+  }, [])
 
-    let cancelled = false
-    const enable = () => {
-      if (!cancelled) setMountShader(true)
-    }
-
-    if (!loadWhenVisible) {
-      // Desktop: mount WebGL after first paint frame so LCP text isn't blocked.
-      const raf = window.requestAnimationFrame(() => enable())
-      return () => {
-        cancelled = true
-        window.cancelAnimationFrame(raf)
-      }
-    }
-
-    const host = hostRef.current
-    if (!host) {
-      enable()
-      return () => {
-        cancelled = true
-      }
-    }
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          io.disconnect()
-          enable()
-        }
-      },
-      { rootMargin: '120px' },
-    )
-    io.observe(host)
-    return () => {
-      cancelled = true
-      io.disconnect()
-    }
-  }, [loadWhenVisible])
+  // Mobile / SSR: CSS backgrounds handle the look — do not mount WebGL.
+  if (!desktop) {
+    return <div className={className} aria-hidden="true" />
+  }
 
   return (
-    <div ref={hostRef} className={className} aria-hidden="true">
-      {mountShader ? (
-        <div className="deferred-metaballs-shader">
-          <SafeMetaballs
-            speed={speed}
-            count={count}
-            size={size}
-            scale={scale}
-            colors={colors}
-            colorBack={colorBack}
-            style={{ width: '100%', height: '100%', display: 'block' }}
-          />
-        </div>
-      ) : null}
+    <div className={className} aria-hidden="true">
+      <SafeMetaballs
+        speed={speed}
+        count={count}
+        size={size}
+        scale={scale}
+        colors={colors}
+        colorBack={colorBack}
+        style={{ width: '100%', height: '100%', display: 'block' } satisfies CSSProperties}
+      />
     </div>
   )
 }
