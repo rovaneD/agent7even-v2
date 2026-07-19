@@ -7,6 +7,7 @@
  */
 
 import dynamic from 'next/dynamic'
+import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 const CookieConsentBanner = dynamic(() => import('./CookieConsentBanner'), { ssr: false })
@@ -16,7 +17,13 @@ const Analytics = dynamic(
   { ssr: false },
 )
 
+// The cookie banner and the GA marketing tag belong to the public marketing
+// site — never inside the signed-in product. Vercel Analytics stays sitewide
+// (cookieless, powers product trackEvent calls).
+const IN_APP_PREFIXES = ['/dashboard', '/admin', '/foundation', '/maya', '/sign-in', '/sign-up']
+
 export default function DeferredChrome() {
+  const pathname = usePathname()
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
@@ -29,10 +36,12 @@ export default function DeferredChrome() {
 
   if (!ready) return null
 
+  const inApp = IN_APP_PREFIXES.some(p => pathname === p || pathname.startsWith(`${p}/`))
+
   return (
     <>
-      <CookieConsentBanner />
-      <ConsentAwareAnalytics />
+      {!inApp && <CookieConsentBanner />}
+      {!inApp && <ConsentAwareAnalytics />}
       <Analytics />
     </>
   )
