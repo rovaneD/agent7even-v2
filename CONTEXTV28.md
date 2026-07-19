@@ -19,6 +19,17 @@ Prior handoff: CONTEXTV27 (July 9 evening — launch audit, mobile modals, Zerni
 
 ---
 
+## Post-snapshot critical fixes (July 19)
+
+Critical-bug investigation branch `cursor/critical-bug-investigation-dd51` adds two billing enforcement fixes:
+
+- `a61a45c`: Existing subscribers who change plans now keep Stripe's returned billing standing. A failed immediate proration returns `past_due` and leaves the profile `paused` instead of the route unconditionally restoring `status = 'active'`.
+- `74212bf`: Post image compose/regenerate/edit/QA, attachment, and Zernio media routes now use `hasPlatformAccess(...)`. A retained paid plan no longer lets a failed-payment (`paused`) account call provider-backed routes; `billing_exempt` accounts remain allowed.
+
+Validation: `npx tsc --noEmit` and `npm run build` both pass on Next.js 16.2.6.
+
+---
+
 ## What changed since CONTEXTV27 (index)
 
 | Area | Doc |

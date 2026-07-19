@@ -15,7 +15,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 9, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 19, 2026 — keep this date current at the end of every session -->
 
 ## Two related projects
 - `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
@@ -64,7 +64,7 @@ Changes are made deliberately and committed before moving on. Production lives
 in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV28.md` — latest handoff: full codebase audit — `resolveClerkProfile` enforced at all 45 call sites, 16 dead API routes deleted, proxy/env cleanup, pre-push guard created; open items incl. unlinked `/dashboard/ai-toolkit` (July 13, 2026).
+- `CONTEXTV28.md` — latest handoff: full codebase audit plus July 19 billing-enforcement follow-up — paused Stripe subscriptions stay paused through plan changes, and post media/image routes enforce billing status.
 - `SESSION_2026-07-13.md` — July 13 session log (audit findings + fixes, commit 8aa8719).
 - `CONTEXTV27.md` — prior handoff: production launch audit (Clerk live on `.ai`), mobile modal scroll shell, blog hydration fix, Zernio OAuth request host (July 9, 2026 evening).
 - `CONTEXTV26.md` — July 9 morning: Team Phase 5 notes (assignment + approval), Activity feed previews, Foundation classification backfill, Zernio go-live runbook.
@@ -117,6 +117,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 
 ## Key implementation notes (July 2026)
 - **Canonical profile resolution:** `lib/profiles/resolveClerkProfile.ts` — use for any Clerk-scoped API route or page that reads `profiles`. Billing: `getBillingProfileForClerkUser`. Dashboard: `getDashboardProfileForClerkUser`. Analytics SSR: `getAnalyticsProfileForClerkUser`. GA OAuth: `lib/analytics/gaOAuthProfile.ts` (`saveGaOAuthTokensForClerkUser` saves by profile **id**). Never `.eq('clerk_user_id').single()` when duplicates may exist — enforced repo-wide July 13, 2026 (commit `8aa8719`); the pattern greps to zero, keep it that way.
+- **Paid feature access:** API routes must use `hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt)` rather than checking `profile.plan` alone. Failed payments retain the paid plan while setting `status = 'paused'`; plan-only gates let delinquent accounts invoke paid provider work.
 - **Agent guided setup:** dedicated run pages at `/dashboard/agents/[agentId]/run` — not modals on Command Center hub (`lib/agents/guidedSetup.ts`).
 - **Pending approval count SSOT:** `lib/agents/pendingApprovals.ts` — count/list from `agent_outputs.status = 'pending_approval'`. Used by dashboard brief, lifecycle bar, sidebar badge, Agents Command Center, digest generate, and approvals API. Do not reintroduce `Math.max` with `daily_digests.approvals` or parallel `agent_tasks`-only counts for surfacing.
 - **Foundation competitors:** store as `string[]` via `lib/foundation/competitorsArray.ts` — never comma-split prose into slots.
