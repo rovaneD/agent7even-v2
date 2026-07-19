@@ -7,6 +7,7 @@ import {
   readPostMediaRef,
   uploadPostAsset,
 } from '@/lib/postAssets'
+import { hasPlatformAccess } from '@/lib/plans'
 import { validateImageContextUpload } from '@/lib/posts/imageContextCapabilities'
 
 type AttachBody = {
@@ -32,7 +33,9 @@ export async function POST(req: Request) {
   const ws = await resolvePostsWorkspace(supabase)
   if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { workspaceId, profile } = ws
-  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  if (!hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt ?? false)) {
+    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  }
 
   let body: AttachBody
   try {

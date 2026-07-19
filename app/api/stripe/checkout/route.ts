@@ -119,7 +119,7 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: 'You are already on this plan.' }, { status: 400 })
         }
 
-        await stripe.subscriptions.update(billingProfile.stripe_subscription_id, {
+        const updatedSubscription = await stripe.subscriptions.update(billingProfile.stripe_subscription_id, {
           items: [{ id: planItem.id, price: priceId }],
           proration_behavior: 'always_invoice',
           // Trial is Starter-only: moving to a paid tier ends it and charges now.
@@ -127,9 +127,17 @@ export async function POST(req: Request) {
           metadata: { ...existing.metadata, clerk_user_id: userId, plan },
         })
 
+        // Stripe's default update behavior returns past_due when the immediate
+        // proration cannot be paid. Do not restore platform access until Stripe
+        // confirms the subscription is active/trialing.
+        const profileStatus =
+          updatedSubscription.status === 'active' || updatedSubscription.status === 'trialing'
+            ? 'active'
+            : 'paused'
+
         await supabase
           .from('profiles')
-          .update({ plan, status: 'active', updated_at: new Date().toISOString() })
+          .update({ plan, status: profileStatus, updated_at: new Date().toISOString() })
           .eq('id', billingProfile.id)
 
         return NextResponse.json({ url: `${appUrl}/dashboard/billing?plan_changed=${plan}` })
