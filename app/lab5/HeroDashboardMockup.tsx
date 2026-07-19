@@ -5,6 +5,8 @@
  * mockups.js skips nodes marked data-mk-ssr="1".
  */
 
+import MayaOrb from '@/components/maya/MayaOrb'
+
 export default function HeroDashboardMockup() {
   return (
     <div
@@ -64,7 +66,7 @@ export default function HeroDashboardMockup() {
         <div className="mk-chat">
           <div className="mk-chat-hd">
             <div className="mk-ava" aria-hidden="true">
-              <span className="hero-mk-maya-dot" />
+              <MayaOrb size={24} active />
             </div>
             <div>
               <div className="nm">Maya</div>
