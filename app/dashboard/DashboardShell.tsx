@@ -36,6 +36,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { currentMayaContext } from '@/hooks/useMayaContext'
 import { dedupeMessagesById } from '@/lib/maya/dedupeMessages'
 import NotificationBell from '@/components/NotificationBell'
 import MayChatPanel, { type Profile } from '@/components/maya/MayChatPanel'
@@ -313,10 +314,22 @@ export default function DashboardShell({
       setCanvasData((e as CustomEvent<{ context: string }>).detail.context)
     }
     window.addEventListener('maya:canvas-context', onCanvasContext)
+    // Child effects run before parent effects on mount — the page's context
+    // dispatcher already fired before this listener attached, so catch up.
+    setCanvasData(currentMayaContext())
     return () => window.removeEventListener('maya:canvas-context', onCanvasContext)
   }, [])
 
-  useEffect(() => { setCanvasData('') }, [pathname])
+  // Reset page context during render, not in an effect: parent effects run
+  // after child effects, so an effect-based clear fires AFTER the new page's
+  // CanvasContextDispatcher mount dispatch and wipes it — server-component
+  // pages dispatch exactly once and would stay blank (Maya falls back to the
+  // coarse nav label, e.g. "Agents" on an agent outputs page).
+  const [canvasDataPath, setCanvasDataPath] = useState(pathname)
+  if (canvasDataPath !== pathname) {
+    setCanvasDataPath(pathname)
+    setCanvasData('')
+  }
 
   useEffect(() => {
     if (!profileId) return
