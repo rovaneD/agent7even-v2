@@ -158,6 +158,8 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
       <button
         onClick={() => setOpen(o => !o)}
         className="relative w-9 h-9 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors"
+        aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}
+        aria-expanded={open}
       >
         <Bell size={18} className="text-gray-500" />
         {unreadCount > 0 && (
@@ -191,7 +193,7 @@ export default function NotificationBell({ profileId, initialNotifications }: Pr
                   Mark all read
                 </button>
               )}
-              <button onClick={() => setOpen(false)}>
+              <button onClick={() => setOpen(false)} aria-label="Close notifications">
                 <X size={15} className="text-gray-400 hover:text-gray-600" />
               </button>
             </div>

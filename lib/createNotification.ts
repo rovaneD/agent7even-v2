@@ -25,6 +25,7 @@ export type NotificationType =
   | 'task_note_mention'
   | 'approval_note'
   | 'approval_note_mention'
+  | 'agent_run_failed'
 
 interface CreateNotificationParams {
   userId: string          // profiles.id of recipient

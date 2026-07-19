@@ -32,6 +32,7 @@ export default function LowBalanceModal({ balance, planMax, onDismiss }: Props) 
           </div>
           <button
             onClick={onDismiss}
+            aria-label="Dismiss"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#bbb', padding: 2, marginLeft: 12, flexShrink: 0, display: 'flex' }}
           >
             <X size={18} />

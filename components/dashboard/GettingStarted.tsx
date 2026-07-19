@@ -70,6 +70,7 @@ export default function GettingStarted({ completed, dismissed }: Props) {
             onClick={handleDismiss}
             className="rounded p-0.5 text-text-muted transition-colors hover:text-text-primary"
             title="Dismiss"
+            aria-label="Dismiss"
           >
             <X size={13} />
           </button>

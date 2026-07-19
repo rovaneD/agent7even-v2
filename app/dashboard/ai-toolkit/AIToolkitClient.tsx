@@ -221,7 +221,7 @@ function PromptRunner({
               <Clock size={10} /> Saves ~{prompt.time_saved_mins} min
             </p>
           </div>
-          <button onClick={onClose} className="text-text-soft hover:text-text">
+          <button onClick={onClose} aria-label="Close" className="text-text-soft hover:text-text">
             <X size={16} />
           </button>
         </div>

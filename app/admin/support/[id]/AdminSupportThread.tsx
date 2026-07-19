@@ -169,7 +169,7 @@ export default function AdminSupportThread({ ticket: initial }: Props) {
         <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">
           <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
           <p className="text-sm text-red-700 flex-1">{error}</p>
-          <button onClick={() => setError(null)}><X size={14} className="text-red-400" /></button>
+          <button onClick={() => setError(null)} aria-label="Dismiss error"><X size={14} className="text-red-400" /></button>
         </div>
       )}
 

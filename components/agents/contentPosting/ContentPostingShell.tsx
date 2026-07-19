@@ -18,6 +18,7 @@ import {
   isVideoFormatId,
 } from '@/lib/agents/contentPosting/platformFormats'
 import ContentPostingStepper from '@/components/agents/contentPosting/ContentPostingStepper'
+import { useMayaContext } from '@/hooks/useMayaContext'
 
 const MODES: ContentPostingMode[] = ['image', 'video', 'weekly']
 
@@ -74,6 +75,29 @@ function ShellInner({ mode, children }: ContentPostingShellProps) {
     : onFormatStep
       ? "Pick where you're posting and the exact size. Maya generates everything to fit the platform — preview updates as you choose."
       : CONTENT_POSTING_MODE_DESCRIPTIONS[mode]
+
+  // Maya context — the Content Posting flow is the product's primary content
+  // workflow, so Maya needs to know the exact step, mode, and chosen format.
+  useMayaContext({
+    page: 'CONTENT POSTING',
+    dataSource: 'live',
+    activeView: isHub
+      ? { label: 'Workflow hub', state: 'Choosing between Image post, Video post, and Weekly plan' }
+      : onFormatStep
+        ? {
+            label: `${CONTENT_POSTING_MODE_LABELS[mode]} — format picker`,
+            state: 'Choosing the platform and post format (no format selected yet)',
+          }
+        : {
+            label: `${CONTENT_POSTING_MODE_LABELS[mode]} — setup`,
+            state: formatParam
+              ? `Format: ${formatParam} — filling in the post setup form before generating`
+              : 'Filling in the setup form before generating',
+          },
+    affordance: isHub
+      ? 'The user can start an image post, video post, or weekly content plan from here.'
+      : 'Generated output goes to the approval queue — nothing publishes without approval.',
+  })
 
   return (
     <div className={`mx-auto px-4 py-8 sm:px-8 ${wideLayout ? 'max-w-[960px]' : 'max-w-[820px]'}`}>

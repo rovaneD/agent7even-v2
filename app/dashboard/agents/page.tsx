@@ -204,6 +204,16 @@ export default async function AgentsPage() {
     }
   })
 
+  const scheduleRows = (schedules ?? []).map(s => ({
+    id: s.id as string,
+    agent: s.agent as string,
+    isActive: !!s.is_active,
+    frequency: (s.frequency as string) ?? 'daily',
+    hourOfDay: (s.hour_of_day as number | null) ?? 8,
+    nextRunAt: (s.next_run_at as string | null) ?? null,
+    lastRunAt: (s.last_run_at as string | null) ?? null,
+  }))
+
   return (
     <Suspense fallback={<div className="mx-auto max-w-6xl px-4 py-8 text-sm text-text-sec">Loading agents…</div>}>
       <AgentsLegacyRedirects />
@@ -216,6 +226,7 @@ export default async function AgentsPage() {
         recentTasks={recentTasks ?? []}
         recentOutputs={recentOutputs ?? []}
         scorecard={scorecard}
+        schedules={scheduleRows}
       />
     </Suspense>
   )

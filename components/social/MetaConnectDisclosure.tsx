@@ -19,8 +19,8 @@ export function metaOAuthPlatformLabel(platform: string): string {
 /** Static notice in connect panels — Meta OAuth shows our publishing partner's app name. */
 export function SocialMetaConnectNotice({ className = '' }: { className?: string }) {
   return (
-    <div className={`rounded-lg border border-pink-100 bg-pink-50 px-3 py-2.5 ${className}`}>
-      <p className="text-[11px] text-pink-950 leading-relaxed">
+    <div className={`rounded-lg border border-blue-100 bg-blue-50 px-3 py-2.5 ${className}`}>
+      <p className="text-[11px] text-blue-950 leading-relaxed">
         Instagram, Facebook, and Threads use Meta&apos;s authorization screen. It may show{' '}
         <span className="font-medium">&quot;Social Media Connector&quot;</span> — that&apos;s our publishing
         partner verifying access, not a separate login. Click{' '}
@@ -84,9 +84,9 @@ export function MetaConnectDisclosureModal({
                 <span className="font-medium">Remove</span> so Meta shows the full consent screen again.
               </p>
             </div>
-            <div className="rounded-xl border border-pink-100 bg-pink-50 px-3 py-2.5 mb-5">
-              <p className="text-[12px] font-semibold text-pink-950 mb-1">Step 2 — Refresh the token in Agent7even</p>
-              <p className="text-[12px] text-pink-950 leading-relaxed">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 mb-5">
+              <p className="text-[12px] font-semibold text-blue-950 mb-1">Step 2 — Refresh the token in Agent7even</p>
+              <p className="text-[12px] text-blue-950 leading-relaxed">
                 Click Continue below. We disconnect the stale connection and run OAuth again. Meta may
                 skip the permission screen — that&apos;s OK when Instagram already shows all toggles ON. Allow
                 up to 24 hours for analytics backfill after reconnect.
@@ -100,8 +100,8 @@ export function MetaConnectDisclosureModal({
               <span className="font-medium text-text">&quot;Social Media Connector&quot;</span> — that&apos;s our
               publishing partner handling the connection, not a third-party account you need to sign into.
             </p>
-            <div className="rounded-xl border border-pink-100 bg-pink-50 px-3 py-2.5 mb-5">
-              <p className="text-[12px] text-pink-950 leading-relaxed">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 mb-5">
+              <p className="text-[12px] text-blue-950 leading-relaxed">
                 Click <span className="font-medium">Allow</span> to continue. Do not click the app name link — it
                 opens our partner&apos;s site and is not part of connecting your {label} account.
               </p>

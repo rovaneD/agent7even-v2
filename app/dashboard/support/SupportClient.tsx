@@ -228,7 +228,7 @@ export default function SupportClient({
             <div className="flex items-center gap-2 bg-status-danger/10 border border-status-danger/20 rounded-xl px-3 py-2">
               <AlertCircle size={13} className="text-status-danger" />
               <p className="text-xs text-status-danger">{error}</p>
-              <button onClick={() => setError(null)} className="ml-auto"><X size={12} className="text-status-danger" /></button>
+              <button onClick={() => setError(null)} aria-label="Dismiss error" className="ml-auto"><X size={12} className="text-status-danger" /></button>
             </div>
           )}
 

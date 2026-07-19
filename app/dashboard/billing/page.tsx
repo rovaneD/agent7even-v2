@@ -113,7 +113,7 @@ export default async function BillingPage() {
 
     const COLORS: Record<string, string> = {
       'Maya chat':            '#3B82F6',
-      'Campaign generation':  '#F5349B',
+      'Campaign generation':  '#8B5CF6',
       'Brand Kit':            '#10B981',
       'Agent runs':           '#FCA509',
     }

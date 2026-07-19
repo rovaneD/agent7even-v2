@@ -173,7 +173,7 @@ function Modal({ title, onClose, children, variant = 'default' }: {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className={`text-base font-semibold ${variant === 'danger' ? 'text-red-600' : 'text-gray-900'}`}>{title}</h2>
-          <button onClick={onClose} className="text-gray-300 hover:text-gray-500 transition-colors"><X size={18} /></button>
+          <button onClick={onClose} aria-label="Close" className="text-gray-300 hover:text-gray-500 transition-colors"><X size={18} /></button>
         </div>
         {children}
       </div>

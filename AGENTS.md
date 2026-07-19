@@ -113,6 +113,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - `36_foundation_proposal_decisions.sql` — proposal user decisions (**run if not applied**).
 - `37_foundation_layers.sql` — approved Foundation evolution layers (**run if not applied**).
 - `41_foundation_knowledge_classification.sql` — upload purpose tags on `foundation_knowledge` (**applied Jul 8, 2026**).
+- `45_agent_run_failed_notification_type.sql` — `agent_run_failed` in notifications CHECK (**run before deploying the failed-run notification, added Jul 18, 2026**).
 
 ## Key implementation notes (July 2026)
 - **Canonical profile resolution:** `lib/profiles/resolveClerkProfile.ts` — use for any Clerk-scoped API route or page that reads `profiles`. Billing: `getBillingProfileForClerkUser`. Dashboard: `getDashboardProfileForClerkUser`. Analytics SSR: `getAnalyticsProfileForClerkUser`. GA OAuth: `lib/analytics/gaOAuthProfile.ts` (`saveGaOAuthTokensForClerkUser` saves by profile **id**). Never `.eq('clerk_user_id').single()` when duplicates may exist — enforced repo-wide July 13, 2026 (commit `8aa8719`); the pattern greps to zero, keep it that way.

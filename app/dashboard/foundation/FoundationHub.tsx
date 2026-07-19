@@ -857,7 +857,7 @@ function UploadCard({
       <div className="rounded-2xl border border-gray-100 bg-white p-5">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Review Findings</p>
-          <button onClick={dismissReview} className="text-text-soft hover:text-text">
+          <button onClick={dismissReview} aria-label="Dismiss review" className="text-text-soft hover:text-text">
             <X size={14} />
           </button>
         </div>
@@ -947,7 +947,7 @@ function UploadCard({
       <div className="rounded-2xl border border-gray-100 bg-white p-5">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Add URL</p>
-          <button onClick={() => { setPhase('idle'); setUrlValue('') }} className="text-text-soft hover:text-text"><X size={14} /></button>
+          <button onClick={() => { setPhase('idle'); setUrlValue('') }} aria-label="Cancel" className="text-text-soft hover:text-text"><X size={14} /></button>
         </div>
         <input
           autoFocus

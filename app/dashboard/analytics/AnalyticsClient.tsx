@@ -3242,11 +3242,11 @@ function PostingAnalyticsContent({
       )}
 
       {!isMock && syncPending && !fetchError && (
-        <div className="flex items-start gap-3 rounded-xl border border-pink-100 bg-pink-50 px-4 py-3">
-          <Info size={16} className="text-[#F5349B] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
+          <Info size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-medium text-pink-950">Metrics still syncing</p>
-            <p className="text-[11px] text-pink-900/80 mt-0.5 leading-relaxed">
+            <p className="text-xs font-medium text-amber-950">Metrics still syncing</p>
+            <p className="text-[11px] text-amber-900/80 mt-0.5 leading-relaxed">
               Your account is connected, but post reach and engagement can take up to 24 hours to backfill after a reconnect. Follower count may update first.
             </p>
           </div>
@@ -3503,7 +3503,7 @@ function ConnectPanel({
             <p className="text-[15px] font-semibold text-text">Connect your accounts</p>
             <p className="text-xs text-text-sec mt-0.5">Maya uses these to track performance and publish content.</p>
           </div>
-          <button onClick={onClose}
+          <button onClick={onClose} aria-label="Close"
             className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
             <X size={14} className="text-gray-500" />
           </button>
@@ -3677,7 +3677,7 @@ function GAConnectModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl bg-white p-6 shadow-2xl">
-        <button onClick={onClose}
+        <button onClick={onClose} aria-label="Close"
           className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
           <X size={14} className="text-gray-500" />
         </button>
@@ -3785,7 +3785,7 @@ function PropertySelectorModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl bg-white p-6 shadow-2xl">
-        <button onClick={onClose}
+        <button onClick={onClose} aria-label="Close"
           className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
           <X size={14} className="text-gray-500" />
         </button>
@@ -4188,7 +4188,7 @@ export default function AnalyticsClient({
           onAnimationEnd={() => setZernioToast('')}>
           <CheckCircle size={14} className="text-[#10B981]" />
           {zernioToast}
-          <button onClick={() => setZernioToast('')} className="ml-2 opacity-60 hover:opacity-100">
+          <button onClick={() => setZernioToast('')} aria-label="Dismiss notification" className="ml-2 opacity-60 hover:opacity-100">
             <X size={12} />
           </button>
         </div>
@@ -4248,7 +4248,7 @@ export default function AnalyticsClient({
       {oauthError && (oauthErrorScope !== 'ga' || activeTab === 'ga') && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 mb-5">
           <p className="text-xs font-medium text-red-600">{oauthError}</p>
-          <button onClick={() => { setOauthError(''); setOauthErrorScope(null) }} className="text-red-400"><X size={14} /></button>
+          <button onClick={() => { setOauthError(''); setOauthErrorScope(null) }} aria-label="Dismiss error" className="text-red-400"><X size={14} /></button>
         </div>
       )}
 

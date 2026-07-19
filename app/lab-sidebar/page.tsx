@@ -162,7 +162,7 @@ export default function LabSidebarPage() {
                           {s.title}
                         </button>
                         {hoveredSession === s.id && (
-                          <button className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-sidebar-foreground/30 hover:text-red-500 transition-colors">
+                          <button aria-label="Delete chat" className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-sidebar-foreground/30 hover:text-red-500 transition-colors">
                             <Trash2 size={10} />
                           </button>
                         )}

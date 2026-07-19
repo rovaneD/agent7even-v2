@@ -62,6 +62,16 @@ interface ScorecardEntry {
   scheduleId: string | null
 }
 
+export interface AgentScheduleRow {
+  id: string
+  agent: string
+  isActive: boolean
+  frequency: string
+  hourOfDay: number
+  nextRunAt: string | null
+  lastRunAt: string | null
+}
+
 interface Props {
   profileId: string
   companyName: string
@@ -71,6 +81,7 @@ interface Props {
   recentTasks: AgentTask[]
   recentOutputs: AgentOutput[]
   scorecard: ScorecardEntry[]
+  schedules?: AgentScheduleRow[]
 }
 
 function relativeTime(iso: string | null): string {
@@ -187,10 +198,135 @@ function LiveActivityCollapsible({
   )
 }
 
+function scheduleCadenceLabel(row: AgentScheduleRow): string {
+  const freq = row.frequency === 'weekly' ? 'Weekly' : row.frequency === 'monthly' ? 'Monthly' : 'Daily'
+  return `${freq} · ${row.hourOfDay}:00 UTC`
+}
+
+function nextRunLabel(iso: string | null): string {
+  if (!iso) return '—'
+  const diffMs = new Date(iso).getTime() - Date.now()
+  if (diffMs <= 0) return 'Due now'
+  const hrs = Math.floor(diffMs / 3600000)
+  if (hrs < 1) return `In ${Math.max(1, Math.floor(diffMs / 60000))}m`
+  if (hrs < 24) return `In ${hrs}h`
+  const days = Math.round(hrs / 24)
+  return days === 1 ? 'Tomorrow' : `In ${days} days`
+}
+
+function SchedulesPanel({
+  schedules: initSchedules,
+  foundationComplete,
+}: {
+  schedules: AgentScheduleRow[]
+  foundationComplete: boolean
+}) {
+  const [schedules, setSchedules] = useState(initSchedules)
+  const [pendingId, setPendingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function toggle(row: AgentScheduleRow) {
+    setPendingId(row.id)
+    setError(null)
+    try {
+      const res = await fetch(`/api/agents/schedules/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !row.isActive }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Could not update schedule')
+      setSchedules(prev => prev.map(s =>
+        s.id === row.id
+          ? { ...s, isActive: data.schedule.is_active, nextRunAt: data.schedule.next_run_at }
+          : s,
+      ))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update schedule')
+    } finally {
+      setPendingId(null)
+    }
+  }
+
+  return (
+    <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Automatic schedules</p>
+      <p className="mt-1 mb-4 text-sm text-text-sec">
+        Agents that run on their own. Pause one anytime — outputs still land in your approval queue.
+      </p>
+
+      {error && (
+        <div className="mb-3 rounded-xl border border-red-100 bg-red-50 px-3.5 py-2.5">
+          <p className="text-xs text-red-700">{error}</p>
+        </div>
+      )}
+
+      {schedules.length === 0 ? (
+        <p className="text-sm text-text-sec">
+          {foundationComplete
+            ? 'No automatic schedules yet.'
+            : 'Automatic schedules are created once your Foundation is complete.'}
+        </p>
+      ) : (
+        <div className="divide-y divide-border">
+          {schedules.map(row => {
+            const agentDef = AGENTS[row.agent as AgentId]
+            return (
+              <div key={row.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
+                    style={{
+                      backgroundColor: AGENT_COLORS[row.agent as AgentId]?.bg ?? '#F3F4F6',
+                      color: AGENT_COLORS[row.agent as AgentId]?.fg ?? '#6B7280',
+                    }}
+                  >
+                    <AgentIcon agentId={row.agent} size={15} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-text-primary">{agentDef?.name ?? row.agent}</p>
+                    <p className="text-xs text-text-sec">
+                      {scheduleCadenceLabel(row)}
+                      {row.isActive && <> · Next run: {nextRunLabel(row.nextRunAt)}</>}
+                      {row.lastRunAt && <> · Last ran {relativeTime(row.lastRunAt)}</>}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                    row.isActive
+                      ? 'bg-status-success/10 text-status-success'
+                      : 'border border-border bg-surface-2 text-text-sec'
+                  }`}>
+                    {row.isActive ? 'Active' : 'Paused'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggle(row)}
+                    disabled={pendingId === row.id}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                      row.isActive
+                        ? 'border-border bg-surface text-text-sec hover:border-gray-300 hover:text-text-primary'
+                        : 'border-brand-primary bg-brand-primary text-white hover:bg-brand-primary/90'
+                    }`}
+                  >
+                    {pendingId === row.id ? 'Saving…' : row.isActive ? 'Pause' : 'Resume'}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AgentCommandCenter({
   profileId, companyName, foundationComplete,
   activeTasks: initActiveTasks,
   pendingApprovals: initPendingApprovals, recentTasks: initRecent, recentOutputs: initRecentOutputs, scorecard,
+  schedules = [],
 }: Props) {
   const router = useRouter()
   const [activeTasks, setActiveTasks] = useState(initActiveTasks)
@@ -712,6 +848,9 @@ export default function AgentCommandCenter({
           </div>
         </div>
       </div>
+
+      {/* ═══ ZONE 2A: Automatic schedules ═══ */}
+      <SchedulesPanel schedules={schedules} foundationComplete={foundationComplete} />
 
       {/* ═══ ZONE 2B: Agent Outputs ═══ */}
       <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5">

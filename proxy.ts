@@ -37,6 +37,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/unsplash/image',
   '/robots.txt',
   '/sitemap.xml',
+  '/opengraph-image(.*)',
+  '/twitter-image(.*)',
 ])
 
 export default clerkMiddleware(async (auth, req) => {

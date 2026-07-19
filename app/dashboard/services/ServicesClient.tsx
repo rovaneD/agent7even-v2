@@ -257,7 +257,7 @@ function ViralHooksGeneratorModal({ service, error, initialValues, onClose, onSu
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-text-soft transition-colors hover:text-text">
+          <button onClick={onClose} aria-label="Close" className="text-text-soft transition-colors hover:text-text">
             <X size={18} />
           </button>
         </div>
@@ -424,7 +424,7 @@ function RequestModal({ service, error, onClose, onSubmit }: RequestModalProps) 
               <p className="text-xs text-text-soft">{service.price}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
             <X size={16} />
           </button>
         </div>

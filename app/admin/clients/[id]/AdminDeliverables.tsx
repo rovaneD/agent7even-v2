@@ -201,14 +201,14 @@ export default function AdminDeliverables({ clientId, initialDeliverables }: Pro
           <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
             <AlertCircle size={13} className="text-red-500" />
             <p className="text-xs text-red-700">{error}</p>
-            <button onClick={() => setError(null)} className="ml-auto"><X size={12} className="text-red-400" /></button>
+            <button onClick={() => setError(null)} aria-label="Dismiss error" className="ml-auto"><X size={12} className="text-red-400" /></button>
           </div>
         )}
         {success && (
           <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
             <CheckCircle size={13} className="text-emerald-600" />
             <p className="text-xs text-emerald-700">{success}</p>
-            <button onClick={() => setSuccess(null)} className="ml-auto"><X size={12} className="text-emerald-400" /></button>
+            <button onClick={() => setSuccess(null)} aria-label="Dismiss message" className="ml-auto"><X size={12} className="text-emerald-400" /></button>
           </div>
         )}
       </div>

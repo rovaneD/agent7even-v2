@@ -318,7 +318,7 @@ function IdentitySection({ profileId, assets, onAssetsChange, allAssets, onMarkC
                             <ExternalLink size={12} />
                           </a>
                         )}
-                        <button onClick={() => deleteAsset(asset.id)} className="text-gray-300 hover:text-red-400 ml-1">
+                        <button onClick={() => deleteAsset(asset.id)} aria-label="Delete asset" className="text-gray-300 hover:text-red-400 ml-1">
                           <X size={12} />
                         </button>
                       </div>

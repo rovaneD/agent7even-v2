@@ -229,6 +229,45 @@ export async function POST(req: Request) {
     }
   }
 
+  // ── customer.subscription.trial_will_end ────────────────────────────────────
+  // Stripe fires this ~3 days before trial end (immediately for shorter trials,
+  // e.g. our 3-day Starter trial). The schema has had a trial_ending type from
+  // day one — this is the first thing that actually sends it.
+  if (event.type === 'customer.subscription.trial_will_end') {
+    const subscription = event.data.object as Stripe.Subscription
+    const clerkUserId = subscription.metadata?.clerk_user_id
+
+    const { data: linkedProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('stripe_subscription_id', subscription.id)
+      .maybeSingle()
+
+    let profileId = linkedProfile?.id as string | undefined
+    if (!profileId && clerkUserId) {
+      const canonical = await resolveClerkProfile(supabase, clerkUserId, 'id')
+      profileId = canonical?.id
+    }
+
+    if (profileId && subscription.trial_end) {
+      const endsAt = new Date(subscription.trial_end * 1000)
+      const endsLabel = endsAt.toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC',
+      })
+      await createNotification({
+        userId: profileId,
+        title: 'Your free trial is ending soon',
+        body: `Your Starter trial ends on ${endsLabel}. Your card will be charged then and full Starter limits unlock — or cancel anytime before from Billing.`,
+        type: 'trial_ending',
+        link: '/dashboard/billing',
+        sendEmail: true,
+        emailSubject: 'Your Agent7even trial ends soon',
+      })
+    }
+
+    return NextResponse.json({ received: true })
+  }
+
   // ── customer.subscription.deleted ──────────────────────────────────────────
   if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription

@@ -721,7 +721,7 @@ export default function PostsClient({
       {toast && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
           <CheckCircle size={16} /> {toast}
-          <button type="button" className="ml-auto text-emerald-600" onClick={() => setToast('')}><X size={14} /></button>
+          <button type="button" className="ml-auto text-emerald-600" onClick={() => setToast('')} aria-label="Dismiss notification"><X size={14} /></button>
         </div>
       )}
 
@@ -1181,7 +1181,7 @@ function CreatePostDrawer({
               {isEditing ? 'Update caption, media, or schedule' : 'Create & publish content'}
             </p>
           </div>
-          <button type="button" onClick={onClose} className="p-2 text-text-soft hover:text-text"><X size={18} /></button>
+          <button type="button" onClick={onClose} aria-label="Close" className="p-2 text-text-soft hover:text-text"><X size={18} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
@@ -1490,7 +1490,7 @@ function ConnectPanel({
       <aside className="fixed top-0 right-0 z-50 h-full w-full max-w-sm bg-white shadow-2xl flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-[16px] font-semibold text-text">Connect accounts</h2>
-          <button type="button" onClick={onClose}><X size={18} className="text-text-soft" /></button>
+          <button type="button" onClick={onClose} aria-label="Close"><X size={18} className="text-text-soft" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-2">
           <SocialMetaConnectNotice className="mb-4" />

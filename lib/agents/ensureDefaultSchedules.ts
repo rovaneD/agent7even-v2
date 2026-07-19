@@ -15,13 +15,18 @@ const SCHEDULED_AGENTS = Object.values(AGENTS).filter(
   a => a.autonomyLevel === 'autonomous' && a.defaultSchedule,
 )
 
-function firstRunAt(schedule: NonNullable<(typeof SCHEDULED_AGENTS)[number]['defaultSchedule']>): string {
+/** Next upcoming slot for a schedule, in UTC. Also used when resuming a paused schedule. */
+export function computeNextRunAt(input: {
+  frequency: string
+  hourOfDay?: number | null
+  dayOfWeek?: number | null
+}): string {
   const next = new Date()
-  const hour = schedule.hourOfDay ?? 8
+  const hour = input.hourOfDay ?? 8
   next.setUTCHours(hour, 0, 0, 0)
 
-  if (schedule.frequency === 'weekly') {
-    const targetDay = schedule.dayOfWeek ?? 1
+  if (input.frequency === 'weekly') {
+    const targetDay = input.dayOfWeek ?? 1
     let daysAhead = (targetDay - next.getUTCDay() + 7) % 7
     if (daysAhead === 0 && next <= new Date()) daysAhead = 7
     next.setUTCDate(next.getUTCDate() + daysAhead)
@@ -31,6 +36,10 @@ function firstRunAt(schedule: NonNullable<(typeof SCHEDULED_AGENTS)[number]['def
   }
 
   return next.toISOString()
+}
+
+function firstRunAt(schedule: NonNullable<(typeof SCHEDULED_AGENTS)[number]['defaultSchedule']>): string {
+  return computeNextRunAt(schedule)
 }
 
 export async function ensureDefaultAgentSchedules(

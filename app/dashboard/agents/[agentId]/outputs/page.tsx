@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
 import { formatOutputLifecycle } from '@/lib/content/outputLifecycleLabel'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
+import { agentRunHref } from '@/lib/agents/guidedSetup'
 import { readIdeaAnalysisFromContent } from '@/lib/agents/ideaAnalysis'
 import AgentOutputDetail from './AgentOutputDetail'
 
@@ -211,6 +212,12 @@ export default async function AgentOutputsPage({
           </div>
           <p style={{ fontSize: 14, color: '#2D3748', fontWeight: 600, margin: '0 0 4px' }}>No outputs yet</p>
           <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>{agent.name} has not saved an output for this account.</p>
+          <Link
+            href={agentRunHref(rawAgentId)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 16, padding: '9px 18px', borderRadius: 10, background: '#3B82F6', color: '#FFFFFF', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}
+          >
+            Run {agent.name}
+          </Link>
         </div>
       )}
     </div>

@@ -129,6 +129,7 @@ export default function MayChatPanel({
   const modeRef        = useRef<string | null>(initialMode)
   const pageContextStartedRef = useRef(false)
   const pageContextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const greetedContextRef = useRef<string | null>(null)
 
   function handleDragMouseDown(e: React.MouseEvent) {
     e.preventDefault()
@@ -280,12 +281,27 @@ export default function MayChatPanel({
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (pageContextStartedRef.current || isHelpMode || pendingTask || initialMessages.length || initialMode) return
+    if (isHelpMode || pendingTask || initialMessages.length || initialMode) return
     if (!canvasContext && !canvasData) return
 
+    if (pageContextStartedRef.current) {
+      // Already greeted. If the user navigated to a different page with the
+      // panel open and hasn't said anything yet, re-greet so Maya acknowledges
+      // the new screen. Once the user has engaged, stay quiet — fresh context
+      // rides along with their next message via canvasContextRef.
+      if (!canvasContext || canvasContext === greetedContextRef.current) return
+      const userHasTyped = messagesRef.current.some(
+        m => m.role === 'user' && !getMsgText(m).startsWith('__'),
+      )
+      if (userHasTyped || isLoading) {
+        greetedContextRef.current = canvasContext
+        return
+      }
+    }
+
     const sendPageContext = () => {
-      if (pageContextStartedRef.current) return
       pageContextStartedRef.current = true
+      greetedContextRef.current = canvasContextRef.current ?? canvasContext ?? null
       setMode('page')
       setChatError(null)
       setBillingModalOpen(false)
@@ -305,7 +321,10 @@ export default function MayChatPanel({
     }
 
     if (!pageContextTimerRef.current) {
-      pageContextTimerRef.current = setTimeout(sendPageContext, 700)
+      pageContextTimerRef.current = setTimeout(() => {
+        pageContextTimerRef.current = null
+        sendPageContext()
+      }, 700)
     }
   }, [canvasContext, canvasData]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -436,6 +455,7 @@ export default function MayChatPanel({
               </div>
               <button
                 onClick={() => setBillingModalOpen(false)}
+                aria-label="Close"
                 style={{ border: 'none', background: 'transparent', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: 2 }}
               >
                 <X size={16} />
@@ -485,6 +505,7 @@ export default function MayChatPanel({
         {onClose && (
           <button
             onClick={onClose}
+            aria-label="Close chat"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center', transition: 'color 0.12s' }}
             onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)' }}
@@ -633,6 +654,7 @@ export default function MayChatPanel({
                 {!att.uploading && (
                   <button
                     onClick={() => removeAttachment(att.id)}
+                    aria-label="Remove attachment"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-menu-muted)', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
                   >
                     <X size={10} />

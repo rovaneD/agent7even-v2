@@ -245,7 +245,7 @@ export default function DeliverablesClient({ profileId: _profileId, companyName,
               Maya can reference this file in chat. Add brand context in Foundation or Brand Kit for richer agent output.
             </p>
           </div>
-          <button onClick={() => setUploadSuccess(null)} className="ml-auto flex-shrink-0">
+          <button onClick={() => setUploadSuccess(null)} aria-label="Dismiss message" className="ml-auto flex-shrink-0">
             <X size={14} className="text-emerald-400" />
           </button>
         </div>
@@ -254,7 +254,7 @@ export default function DeliverablesClient({ profileId: _profileId, companyName,
         <div className="flex items-center gap-3 rounded-xl border border-status-danger/20 bg-status-danger/10 px-4 py-3">
           <AlertCircle size={15} className="flex-shrink-0 text-status-danger" />
           <p className="text-sm text-status-danger">{uploadError}</p>
-          <button onClick={() => setUploadError(null)} className="ml-auto">
+          <button onClick={() => setUploadError(null)} aria-label="Dismiss error" className="ml-auto">
             <X size={14} className="text-red-400" />
           </button>
         </div>
@@ -360,7 +360,7 @@ export default function DeliverablesClient({ profileId: _profileId, companyName,
           <div className="flex w-full max-w-md max-h-[90dvh] flex-col overflow-hidden rounded-[24px] border border-border bg-surface shadow-xl">
             <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-6 py-5">
               <h3 className="text-[17px] font-semibold text-text">Upload file</h3>
-              <button onClick={() => setShowUploadModal(false)}>
+              <button onClick={() => setShowUploadModal(false)} aria-label="Close">
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>
             </div>

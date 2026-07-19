@@ -491,14 +491,14 @@ export default function TeamClient({
         <div className="flex items-center gap-3 rounded-xl border border-status-success/20 bg-status-success/10 px-4 py-3">
           <CheckCircle size={15} className="flex-shrink-0 text-status-success" />
           <p className="flex-1 text-sm text-status-success">{success}</p>
-          <button onClick={() => setSuccess(null)}><X size={14} className="text-emerald-400" /></button>
+          <button onClick={() => setSuccess(null)} aria-label="Dismiss message"><X size={14} className="text-emerald-400" /></button>
         </div>
       )}
       {error && (
         <div className="flex items-center gap-3 rounded-xl border border-status-danger/20 bg-status-danger/10 px-4 py-3">
           <AlertCircle size={15} className="flex-shrink-0 text-status-danger" />
           <p className="flex-1 text-sm text-status-danger">{error}</p>
-          <button onClick={() => setError(null)}><X size={14} className="text-red-400" /></button>
+          <button onClick={() => setError(null)} aria-label="Dismiss error"><X size={14} className="text-red-400" /></button>
         </div>
       )}
 
@@ -695,7 +695,7 @@ export default function TeamClient({
           <div className="flex w-full max-w-md max-h-[90dvh] flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
             <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-6 py-5">
               <h3 className="text-[17px] font-semibold text-text">Assign agent work</h3>
-              <button type="button" onClick={() => setShowAssignModal(false)}>
+              <button type="button" onClick={() => setShowAssignModal(false)} aria-label="Close">
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>
             </div>
@@ -779,7 +779,7 @@ export default function TeamClient({
               <h3 className="text-[17px] font-semibold text-text">
                 {inviteStep === 'confirm' ? 'Confirm extra seat' : 'Invite team member'}
               </h3>
-              <button onClick={closeInviteModal}>
+              <button onClick={closeInviteModal} aria-label="Close">
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>
             </div>
@@ -922,7 +922,7 @@ export default function TeamClient({
                   {selectedMember.profiles?.full_name ?? selectedMember.invited_email}
                 </p>
               </div>
-              <button onClick={() => setShowPermissionsModal(false)}>
+              <button onClick={() => setShowPermissionsModal(false)} aria-label="Close">
                 <X size={18} className="text-gray-400 hover:text-gray-600" />
               </button>
             </div>
