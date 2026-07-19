@@ -16,12 +16,25 @@ export async function POST(req: Request) {
     .from('profiles')
     .upsert({ clerk_user_id: userId, role: 'client', status: 'onboarding' }, { onConflict: 'clerk_user_id', ignoreDuplicates: true })
 
-  const profile = await resolveClerkProfile(supabase, userId, 'id')
+  const profile = await resolveClerkProfile<{
+    id: string
+    foundation_complete: boolean | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(supabase, userId, 'id, foundation_complete')
 
   if (!profile) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  // The wizard is pre-completion only — never let it clobber a finished Foundation.
+  if (profile.foundation_complete) return NextResponse.json({ success: true, skipped: true })
 
   const base: Record<string, unknown> = {
-    foundation_step: step + 1,
+    // Step 5 means "Foundation generated" and is only set by the generate route
+    // on success — capping here keeps a failed generation from locking the wizard.
+    foundation_step: Math.min(step + 1, 4),
+    // Draft blob so answers survive a refresh / abandoned session.
+    foundation_answers: answers ?? {},
     updated_at: new Date().toISOString(),
   }
 

@@ -179,7 +179,7 @@ export const AGENTS: Record<AgentId, AgentDefinition> = {
   brand_voice_guardian: {
     id: 'brand_voice_guardian',
     name: 'Brand Voice Guardian',
-    description: 'Reviews all content against your brand voice before it goes out',
+    description: 'Reviews content you submit against your brand voice — run it whenever you want a tone check',
     icon: 'ti-shield-check',
     autonomyLevel: 'autonomous',
     outputType: 'brand_review',

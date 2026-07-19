@@ -43,7 +43,12 @@ export default function AgentRunShell({ agentId, children }: AgentRunShellProps)
             {config.intro}
           </p>
           <p className="mt-2 text-xs text-text-muted">
-            {agent.autonomyLevel === 'autonomous' ? 'Runs automatically' : 'Output goes to your approval queue'}
+            {/* "Runs automatically" is only true for agents with a seeded schedule */}
+            {agent.defaultSchedule
+              ? 'Runs automatically'
+              : agent.autonomyLevel === 'autonomous'
+                ? 'Runs when you ask'
+                : 'Output goes to your approval queue'}
           </p>
         </div>
       </div>

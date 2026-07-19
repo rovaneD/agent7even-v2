@@ -53,6 +53,7 @@ interface Props {
   profileId: string
   companyName: string
   initialStep: number
+  initialAnswers?: Record<string, unknown> | null
   selectedPlan?: string
 }
 
@@ -137,6 +138,53 @@ const DOC_LABEL_BY_TYPE: Record<string, string> = {
 
 const EXA_PREFILL_ENABLED = process.env.NEXT_PUBLIC_EXA_PREFILL_ENABLED === 'true'
 
+const EMPTY_ANSWERS: StepAnswers = {
+  businessDescription: '',
+  problemSolved: '',
+  transformation: '',
+  customerWho: '',
+  customerFrustration: '',
+  customerTriedBefore: '',
+  customerBuyingTrigger: '',
+  competitors: ['', '', ''],
+  differentiator: '',
+  differentiatorOwn: '',
+  toneTraits: [],
+  brandsAdmired: '',
+  neverSoundLike: '',
+  marketingBudget: '',
+  channels: [],
+  monthlyGoal: '',
+  employeeCountBucket: '',
+  annualRevenueBucket: '',
+}
+
+// The saved draft comes from an untyped JSON column — take only known keys with
+// the right shape, and keep competitors padded to exactly 3 input slots.
+function hydrateAnswers(saved: Record<string, unknown> | null | undefined): StepAnswers {
+  if (!saved) return EMPTY_ANSWERS
+  const result: StepAnswers = { ...EMPTY_ANSWERS }
+  for (const key of Object.keys(EMPTY_ANSWERS) as (keyof StepAnswers)[]) {
+    const value = saved[key]
+    if (Array.isArray(EMPTY_ANSWERS[key])) {
+      if (Array.isArray(value)) {
+        (result[key] as string[]) = value.filter((v): v is string => typeof v === 'string')
+      }
+    } else if (typeof value === 'string') {
+      (result[key] as string) = value
+    }
+  }
+  result.competitors = [...result.competitors.filter(Boolean), '', '', ''].slice(0, 3)
+  return result
+}
+
+function hasDraftContent(saved: Record<string, unknown> | null | undefined): boolean {
+  if (!saved) return false
+  return Object.values(saved).some(v =>
+    typeof v === 'string' ? v.trim().length > 0 : Array.isArray(v) && v.some(Boolean),
+  )
+}
+
 // Pre-filled fields are editable suggestions — styled with a blue tint + label.
 function SuggestionLabel() {
   return (
@@ -146,7 +194,7 @@ function SuggestionLabel() {
   )
 }
 
-export default function FoundationFlow({ profileId, companyName, initialStep, selectedPlan }: Props) {
+export default function FoundationFlow({ profileId, companyName, initialStep, initialAnswers, selectedPlan }: Props) {
   const router = useRouter()
   const [step, setStep] = useState(initialStep)
   const [generating, setGenerating] = useState(false)
@@ -157,29 +205,10 @@ export default function FoundationFlow({ profileId, companyName, initialStep, se
   const [weakFields, setWeakFields] = useState<string[]>([])
   const [fieldScores, setFieldScores] = useState<Record<string, FieldScore>>({})
   const [generationError, setGenerationError] = useState<string | null>(null)
-  const [answers, setAnswers] = useState<StepAnswers>({
-    businessDescription: '',
-    problemSolved: '',
-    transformation: '',
-    customerWho: '',
-    customerFrustration: '',
-    customerTriedBefore: '',
-    customerBuyingTrigger: '',
-    competitors: ['', '', ''],
-    differentiator: '',
-    differentiatorOwn: '',
-    toneTraits: [],
-    brandsAdmired: '',
-    neverSoundLike: '',
-    marketingBudget: '',
-    channels: [],
-    monthlyGoal: '',
-    employeeCountBucket: '',
-    annualRevenueBucket: '',
-  })
+  const [answers, setAnswers] = useState<StepAnswers>(() => hydrateAnswers(initialAnswers))
 
-  // Pre-fill state — only active for new users (initialStep === 0) when flag is enabled.
-  const showPrefill = EXA_PREFILL_ENABLED && initialStep === 0
+  // Pre-fill state — only for brand-new users (step 0, no saved draft) when the flag is on.
+  const showPrefill = EXA_PREFILL_ENABLED && initialStep === 0 && !hasDraftContent(initialAnswers)
   const [prefillPhase, setPrefillPhase] = useState<PrefillPhase>(showPrefill ? 'input' : 'skipped')
   const [websiteInput, setWebsiteInput] = useState('')
   const [businessNameInput, setBusinessNameInput] = useState('')

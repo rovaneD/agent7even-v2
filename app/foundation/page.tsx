@@ -34,13 +34,23 @@ export default async function FoundationPage({
     )
   }
   if (profile.foundation_complete) redirect('/dashboard/foundation')
-  if ((profile.foundation_step ?? 0) >= 5) redirect('/dashboard/foundation')
+
+  // Saved draft answers (written by save-step) so a refresh or abandoned
+  // session resumes with everything the user already typed.
+  const { data: draftRow } = await supabase
+    .from('profiles')
+    .select('foundation_answers')
+    .eq('id', profile.id)
+    .maybeSingle()
 
   return (
     <FoundationFlow
       profileId={profile.id}
       companyName={profile.company_name ?? ''}
-      initialStep={profile.foundation_step ?? 0}
+      // Step 5 was historically written before generation succeeded — clamp so
+      // those accounts resume at the last step instead of a broken screen.
+      initialStep={Math.min(Math.max(profile.foundation_step ?? 0, 0), 4)}
+      initialAnswers={(draftRow?.foundation_answers as Record<string, unknown> | null) ?? null}
       selectedPlan={plan}
     />
   )

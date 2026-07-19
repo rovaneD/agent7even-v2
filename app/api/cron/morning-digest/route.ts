@@ -156,7 +156,7 @@ function buildEmailHtml(digest: Record<string, unknown>, firstName: string, appU
       <div class="approval-box">
         <div class="item-sub">${item.agentName}</div>
         <div class="approval-preview">${item.preview}${(item.preview ?? '').length >= 150 ? '…' : ''}</div>
-        <a href="${appUrl}/dashboard/agents?task=${item.taskId}" class="btn btn-black">Review →</a>
+        <a href="${appUrl}/dashboard/agents/approvals?task=${item.taskId}" class="btn btn-black">Review →</a>
       </div>`).join('')}
     <br>` : ''}
 

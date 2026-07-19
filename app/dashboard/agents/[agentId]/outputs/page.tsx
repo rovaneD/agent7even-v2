@@ -141,9 +141,9 @@ export default async function AgentOutputsPage({
             Review → approve in Approvals → post content becomes a draft on Posts. Other outputs stay here in your archive.
           </p>
         </div>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, borderRadius: 20, padding: '5px 10px', background: agent.autonomyLevel === 'autonomous' ? '#EFF6FF' : '#F8FAFC', color: agent.autonomyLevel === 'autonomous' ? '#3B82F6' : '#64748B', fontWeight: 600 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, borderRadius: 20, padding: '5px 10px', background: agent.defaultSchedule ? '#EFF6FF' : '#F8FAFC', color: agent.defaultSchedule ? '#3B82F6' : '#64748B', fontWeight: 600 }}>
           <i className={`ti ${agent.icon}`} style={{ fontSize: 14 }} />
-          {agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
+          {agent.defaultSchedule ? 'Auto' : agent.autonomyLevel === 'autonomous' ? 'On request' : 'Approval'}
         </span>
       </div>
 

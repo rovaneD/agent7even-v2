@@ -194,7 +194,7 @@ export default function AgentsPage() {
               <p>Reads your connected data and delivers a plain-English summary of what&rsquo;s working and what to act on.</p>
               <div className="foot">
                 <span className="auto-badge run"><span className="d"></span>Runs automatically</span>
-                <span className="cadence">Daily &middot; 7am</span>
+                <span className="cadence">Daily &middot; 7:00 UTC</span>
               </div>
             </div>
 
@@ -206,7 +206,7 @@ export default function AgentsPage() {
               <p>Trend reports for your niche, filtered for brand fit before anything reaches your queue.</p>
               <div className="foot">
                 <span className="auto-badge run"><span className="d"></span>Runs automatically</span>
-                <span className="cadence">Daily &middot; 6am</span>
+                <span className="cadence">Daily &middot; 6:00 UTC</span>
               </div>
             </div>
 
@@ -265,8 +265,8 @@ export default function AgentsPage() {
               <h3>Brand Voice Guardian</h3>
               <p>Reviews specific content against your Brand Kit — flags tone, vocabulary, and risky claims with suggested fixes.</p>
               <div className="foot">
-                <span className="auto-badge run"><span className="d"></span>Runs automatically</span>
-                <span className="cadence">On schedule</span>
+                <span className="auto-badge appr"><span className="d"></span>Runs instantly</span>
+                <span className="cadence">On request</span>
               </div>
             </div>
 

@@ -31,7 +31,9 @@ export async function POST(req: Request) {
       .from('profiles')
       .update(buildIdentityUpdateWithSnapshot(profile.foundation_answers, {
         foundation_answers: answers,
-        foundation_step: 5,
+        // Not 5 — the wizard was not finished and no docs were generated, so the
+        // user can come back to /foundation and resume at the last step.
+        foundation_step: 4,
         foundation_research_variant: 'exa_prefill',
         ...legacyColumnsFromAnswers(answers),
         foundation_updated_at: new Date().toISOString(),

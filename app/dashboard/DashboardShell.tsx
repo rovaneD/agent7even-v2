@@ -17,6 +17,7 @@ import {
   Users,
   CreditCard,
   Settings,
+  Sparkles,
   Menu,
   X,
   Layers,
@@ -29,7 +30,6 @@ import {
   Plus,
   HelpCircle,
   MessageCircle,
-  MoreHorizontal,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -91,9 +91,10 @@ const NAV = [
   {
     section: 'Intelligence',
     items: [
-      { href: '/dashboard/agents',    label: 'Agents',    icon: Bot         },
-      { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart2   },
-      { href: '/dashboard/inbox',     label: 'Inbox',     icon: MessageCircle },
+      { href: '/dashboard/agents',     label: 'Agents',     icon: Bot         },
+      { href: '/dashboard/ai-toolkit', label: 'AI Toolkit', icon: Sparkles    },
+      { href: '/dashboard/analytics',  label: 'Analytics',  icon: BarChart2   },
+      { href: '/dashboard/inbox',      label: 'Inbox',      icon: MessageCircle },
     ],
   },
   {
@@ -170,101 +171,6 @@ function filterNavForPermissions(
       items: group.items.filter(item => canAccessNavItem(item.href, teamPermissions)),
     }))
     .filter(group => group.items.length > 0)
-}
-
-// ── Contextual page actions ────────────────────────────────────────────────
-
-const PAGE_ACTIONS: Record<string, { label: string; action: string }[]> = {
-  dashboard:   [
-    { label: 'Refresh digest',      action: 'refresh-digest' },
-    { label: 'Customize dashboard', action: 'customize' },
-  ],
-  campaigns:   [
-    { label: 'Sort by newest', action: 'sort-newest' },
-    { label: 'Sort by oldest', action: 'sort-oldest' },
-    { label: 'Archive all',    action: 'archive-all' },
-  ],
-  'brand-kit': [
-    { label: 'Export brand guide', action: 'export' },
-    { label: 'Share with team',    action: 'share' },
-  ],
-  foundation:  [
-    { label: 'Export Foundation', action: 'export' },
-    { label: 'Reset Foundation',  action: 'reset' },
-  ],
-  agents:      [
-    { label: 'Pause all agents', action: 'pause-all' },
-    { label: 'View run history', action: 'history' },
-  ],
-  analytics:   [
-    { label: 'Export report', action: 'export' },
-    { label: 'Refresh data',  action: 'refresh' },
-  ],
-  inbox:       [
-    { label: 'Refresh inbox', action: 'refresh' },
-  ],
-}
-
-function ContextMenu({ pageName }: { pageName: string }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const actions = PAGE_ACTIONS[pageName] ?? []
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    if (open) document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [open])
-
-  if (!actions.length) return null
-
-  function handleAction(action: string) {
-    setOpen(false)
-    window.dispatchEvent(new CustomEvent('page-action', { detail: { action } }))
-  }
-
-  return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          padding: '6px', borderRadius: 8, background: 'none', border: 'none',
-          cursor: 'pointer', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center',
-          transition: 'color 0.12s, background 0.12s',
-        }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-primary)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-hover)' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-text-secondary)'; (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-      >
-        <MoreHorizontal size={18} />
-      </button>
-      {open && (
-        <div style={{
-          position: 'absolute', right: 0, top: '100%', marginTop: 4,
-          background: 'var(--color-surface)', borderRadius: 12, border: '1px solid var(--color-border)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '4px 0',
-          minWidth: 160, zIndex: 50,
-        }}>
-          {actions.map(a => (
-            <button
-              key={a.action}
-              onClick={() => handleAction(a.action)}
-              style={{
-                width: '100%', textAlign: 'left', padding: '8px 16px',
-                fontSize: 13.5, color: 'var(--color-text-primary)', background: 'none', border: 'none',
-                cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.1s',
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-surface-hover)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-            >
-              {a.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -488,21 +394,6 @@ export default function DashboardShell({
     ? 'Approvals'
     : visibleNav.flatMap(g => g.items).find(i => pathname.startsWith(i.href) && i.href !== '/dashboard')?.label
       ?? (pathname === '/dashboard' ? 'Dashboard' : undefined)
-
-  // Derive current page key for context menu
-  const currentPageKey = pathname.startsWith('/dashboard/brand-kit') ? 'brand-kit'
-    : pathname.startsWith('/dashboard/agents') ? 'agents'
-    : pathname.startsWith('/dashboard/campaigns') ? 'campaigns'
-    : pathname.startsWith('/dashboard/calendar') ? 'calendar'
-    : pathname.startsWith('/dashboard/posts') ? 'posts'
-    : pathname.startsWith('/dashboard/assets') ? 'assets'
-    : pathname.startsWith('/dashboard/services') ? 'services'
-    : pathname.startsWith('/dashboard/deliverables') ? 'deliverables'
-    : pathname.startsWith('/dashboard/analytics') ? 'analytics'
-    : pathname.startsWith('/dashboard/inbox') ? 'inbox'
-    : pathname.startsWith('/dashboard/foundation') ? 'foundation'
-    : pathname === '/dashboard' ? 'dashboard'
-    : ''
 
   function openHelpMode() {
     setHelpMode(true)
@@ -1141,7 +1032,6 @@ export default function DashboardShell({
           style={{ flexShrink: 0, height: 56, borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)', paddingRight: 20, alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}
         >
           <NotificationBell profileId={profileId} initialNotifications={initialNotifications} />
-          <ContextMenu pageName={currentPageKey} />
           <UserButton />
         </div>
 

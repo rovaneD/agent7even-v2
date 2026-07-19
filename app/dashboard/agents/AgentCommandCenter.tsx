@@ -435,11 +435,17 @@ export default function AgentCommandCenter({
                     <AgentIcon agentId={agent.id} size={20} />
                   </span>
                   <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                    agent.autonomyLevel === 'autonomous'
+                    agent.defaultSchedule
                       ? 'bg-brand-primary/10 text-brand-primary'
                       : 'bg-surface-2 text-text-sec'
                   }`}>
-                    {agent.id === 'content_posting' ? 'Image · Video · Weekly' : agent.autonomyLevel === 'autonomous' ? 'Auto' : 'Approval'}
+                    {agent.id === 'content_posting'
+                      ? 'Image · Video · Weekly'
+                      : agent.defaultSchedule
+                        ? 'Auto'
+                        : agent.autonomyLevel === 'autonomous'
+                          ? 'On request'
+                          : 'Approval'}
                   </span>
                 </div>
                 <div>
@@ -687,7 +693,7 @@ export default function AgentCommandCenter({
                     </span>
                   ) : entry.isScheduled ? (
                     <span className="rounded-full bg-status-success/10 px-2 py-1 text-[11px] font-semibold text-status-success">Active</span>
-                  ) : !foundationComplete && AGENTS[entry.agentId as AgentId]?.autonomyLevel === 'autonomous' ? (
+                  ) : !foundationComplete && AGENTS[entry.agentId as AgentId]?.defaultSchedule ? (
                     <span
                       className="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700"
                       title="This agent runs on a schedule once your Foundation is complete"
