@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolvePostsWorkspace } from '@/lib/profiles/resolvePostsWorkspace'
+import { hasPlatformAccess } from '@/lib/plans'
 import * as publisher from '@/lib/social/publisher'
 
 const ALLOWED_TYPES = new Set([
@@ -32,7 +33,9 @@ export async function POST(req: Request) {
   const ws = await resolvePostsWorkspace(supabase)
   if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { workspaceId, profile } = ws
-  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  if (!hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt ?? false)) {
+    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  }
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null

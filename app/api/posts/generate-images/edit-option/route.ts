@@ -7,6 +7,7 @@ import {
 import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 import { createServiceClient } from '@/lib/supabase/server'
+import { hasPlatformAccess } from '@/lib/plans'
 
 export const maxDuration = 180
 
@@ -30,7 +31,9 @@ export async function POST(req: Request) {
   const ws = await resolvePostsWorkspace(supabase)
   if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { workspaceId, profile } = ws
-  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  if (!hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt ?? false)) {
+    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  }
 
   let body: Body
   try {
