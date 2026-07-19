@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
+import { BRAND_KIT_TRIAL_LOCKED, isBrandKitLockedForClerkUser } from '@/lib/billing/brandKitLock'
 
 const COST = ACTION_CREDIT_COST.brandkit_gen
 
@@ -12,6 +13,13 @@ export async function POST() {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
+
+  if (await isBrandKitLockedForClerkUser(supabase, userId)) {
+    return NextResponse.json(
+      { error: 'Brand Kit is locked during your free trial.', code: BRAND_KIT_TRIAL_LOCKED },
+      { status: 403 },
+    )
+  }
 
   const { data: profileRows } = await supabase
     .from('profiles')

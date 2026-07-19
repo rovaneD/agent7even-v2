@@ -133,6 +133,15 @@ export async function POST(req: Request) {
       const newProfile = await resolveClerkProfile(supabase, clerkUserId, 'id')
 
       if (newProfile) {
+        // Reactivation: cancellation deactivates schedules, so a returning
+        // subscriber needs them switched back on (there is no user-facing
+        // pause yet, so is_active=false only ever means "was cancelled").
+        await supabase
+          .from('agent_schedules')
+          .update({ is_active: true })
+          .eq('user_id', newProfile.id)
+          .eq('is_active', false)
+
         const creditsGranted = await allocatePlanCredits(newProfile.id, plan, {
           skipIfAllocated: true,
           description: `Plan activation — ${plan} plan`,
@@ -243,6 +252,18 @@ export async function POST(req: Request) {
           updated_at: new Date().toISOString(),
         })
         .eq('stripe_subscription_id', subscription.id)
+    }
+
+    // Stop autonomous agent runs — otherwise the hourly cron keeps burning
+    // model spend for churned accounts.
+    if (cancelledProfile?.id) {
+      const { error: scheduleError } = await supabase
+        .from('agent_schedules')
+        .update({ is_active: false })
+        .eq('user_id', cancelledProfile.id)
+      if (scheduleError) {
+        console.error('Failed to deactivate agent schedules on cancellation:', scheduleError)
+      }
     }
 
     const notifyUserId = cancelledProfile?.id

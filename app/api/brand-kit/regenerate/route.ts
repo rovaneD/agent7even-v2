@@ -3,6 +3,7 @@ import { formatCompetitorsForAgent } from '@/lib/foundation/competitorsArray'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import { BRAND_KIT_TRIAL_LOCKED, isBrandKitLockedForClerkUser } from '@/lib/billing/brandKitLock'
 
 const DOC_TITLE_MAP: Record<string, string> = {
   brief: 'Business Brief',
@@ -32,6 +33,13 @@ export async function POST(req: Request) {
   }
 
   const supabase = createServiceClient()
+
+  if (await isBrandKitLockedForClerkUser(supabase, userId)) {
+    return NextResponse.json(
+      { error: 'Brand Kit is locked during your free trial.', code: BRAND_KIT_TRIAL_LOCKED },
+      { status: 403 },
+    )
+  }
 
   // Fetch profile with foundation_answers
   const { data: profileRows } = await supabase

@@ -55,7 +55,11 @@ export async function POST(req: Request) {
   // Build system prompt
   let systemPrompt = `You are an expert marketing copywriter. Write compelling, professional marketing content based on the user's request. Be specific, actionable, and ready to use.`
 
-  if (useBrandVoice) {
+  // Brand Kit (and therefore brand voice) is locked during the Starter trial —
+  // the client toggle alone must not grant it.
+  const brandVoiceAllowed = useBrandVoice && !limits.onTrial
+
+  if (brandVoiceAllowed) {
     const { data: brandDocs } = await supabase
       .from('brand_documents')
       .select('type, content')

@@ -84,8 +84,11 @@ function verifySignature(body: string, signature: string | null, secret: string)
 export async function POST(req: Request) {
   const secret = process.env.OPENROUTER_VIDEO_WEBHOOK_SECRET
   if (!secret) {
+    // Fail closed: a 200 here would mark deliveries successful while silently
+    // dropping video completions and hiding the misconfiguration. 503 makes
+    // the provider retry until the secret is set.
     console.error('[openrouter-video] OPENROUTER_VIDEO_WEBHOOK_SECRET not configured')
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ error: 'webhook_not_configured' }, { status: 503 })
   }
 
   const rawBody = await req.text()

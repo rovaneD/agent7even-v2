@@ -3,12 +3,25 @@ import { listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
 import { agentOutputContentText } from '@/lib/agents/agentOutputText'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import { getWorkspaceSessionFromRequest } from '@/lib/profiles/workspaceSession'
 
 export async function POST(req: Request) {
   const supabase = createServiceClient()
   const { profileId, forceRegenerate } = await req.json()
 
   if (!profileId) return NextResponse.json({ error: 'profileId required' }, { status: 400 })
+
+  // Service-role route: require either the cron secret (server-to-server) or a
+  // signed-in user whose workspace owns the requested profile. Without this,
+  // any caller could burn LLM spend and write digests for arbitrary profiles.
+  const authHeader = req.headers.get('authorization')
+  const isCronCall = Boolean(process.env.CRON_SECRET) && authHeader === `Bearer ${process.env.CRON_SECRET}`
+  if (!isCronCall) {
+    const session = await getWorkspaceSessionFromRequest(supabase)
+    if (!session || (profileId !== session.workspaceId && profileId !== session.memberId)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
 
   const today = new Date().toISOString().split('T')[0]
 

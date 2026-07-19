@@ -22,9 +22,38 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!schedules?.length) return NextResponse.json({ fired: 0 })
 
+  // Only run for accounts in good billing standing — schedules can outlive a
+  // subscription (cancel/pause), and model spend must not.
+  const userIds = [...new Set(schedules.map(s => s.user_id))]
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, plan, status, billing_exempt')
+    .in('id', userIds)
+
+  const profileById = new Map((profiles ?? []).map(p => [p.id, p]))
+  const isEligible = (userId: string) => {
+    const profile = profileById.get(userId)
+    if (!profile) return false
+    if (profile.billing_exempt) return true
+    return Boolean(profile.plan) && profile.status === 'active'
+  }
+
+  // Self-heal accounts churned before deactivation-on-cancel shipped.
+  const churnedUserIds = userIds.filter(id => profileById.get(id)?.status === 'churned')
+  if (churnedUserIds.length) {
+    await supabase
+      .from('agent_schedules')
+      .update({ is_active: false })
+      .in('user_id', churnedUserIds)
+  }
+
   const results: string[] = []
 
   for (const schedule of schedules) {
+    if (!isEligible(schedule.user_id)) {
+      results.push(`${schedule.agent} skipped for user ${schedule.user_id} (billing not active)`)
+      continue
+    }
     try {
       const task = await createTask({
         userId: schedule.user_id,
@@ -62,5 +91,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ fired: results.length, results })
+  const fired = results.filter(r => r.includes(' fired ')).length
+  return NextResponse.json({ fired, results })
 }

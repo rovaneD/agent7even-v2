@@ -3,6 +3,7 @@ import { getClerkUserSafe } from '@/lib/clerk/sessionUser'
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
+import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   assertCheckoutPrice,
@@ -86,6 +87,53 @@ export async function POST(req: Request) {
       )
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.agent7even.ai'
+
+    // Existing subscribers change plans in place — a fresh Checkout Session
+    // here would create a second, parallel subscription (double billing).
+    const billingProfile = await getBillingProfileForClerkUser(supabase, userId, email)
+    if (billingProfile?.stripe_subscription_id) {
+      let existing: Stripe.Subscription | null = null
+      try {
+        existing = await stripe.subscriptions.retrieve(billingProfile.stripe_subscription_id)
+      } catch {
+        // Subscription no longer exists in Stripe — fall through to a fresh checkout.
+      }
+
+      if (existing && ['active', 'trialing', 'past_due'].includes(existing.status)) {
+        const planPriceIds = new Set(
+          Object.values(PRICE_IDS).flatMap(p => [p.monthly, p.annual]).filter(Boolean),
+        )
+        const planItem = existing.items.data.find(item => planPriceIds.has(item.price.id))
+
+        if (!planItem) {
+          return NextResponse.json(
+            { error: 'Your subscription needs manual review. Manage your plan from the billing portal.' },
+            { status: 409 },
+          )
+        }
+
+        if (planItem.price.id === priceId) {
+          return NextResponse.json({ error: 'You are already on this plan.' }, { status: 400 })
+        }
+
+        await stripe.subscriptions.update(billingProfile.stripe_subscription_id, {
+          items: [{ id: planItem.id, price: priceId }],
+          proration_behavior: 'always_invoice',
+          // Trial is Starter-only: moving to a paid tier ends it and charges now.
+          ...(existing.status === 'trialing' && plan !== 'starter' ? { trial_end: 'now' as const } : {}),
+          metadata: { ...existing.metadata, clerk_user_id: userId, plan },
+        })
+
+        await supabase
+          .from('profiles')
+          .update({ plan, status: 'active', updated_at: new Date().toISOString() })
+          .eq('id', billingProfile.id)
+
+        return NextResponse.json({ url: `${appUrl}/dashboard/billing?plan_changed=${plan}` })
+      }
+    }
+
     const customerId = await resolveStripeCustomer(stripe, {
       profileId: profile.id,
       storedCustomerId: profile.stripe_customer_id,
@@ -94,8 +142,6 @@ export async function POST(req: Request) {
       clerkUserId: userId,
       supabase,
     })
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.agent7even.ai'
 
     // Only Starter gets a 3-day trial — Growth and ProAgent charge immediately
     const subscriptionData: Stripe.Checkout.SessionCreateParams['subscription_data'] = {
