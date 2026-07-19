@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { CREDIT_PACKAGES } from '@/lib/credits-packages'
 import { getStripeClient } from '@/lib/stripe'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -17,13 +18,17 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
 
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id, email, full_name')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const profile = profileRows?.[0] ?? null
+  // Canonical resolution — with duplicate profiles the newest row is not
+  // necessarily the one carrying the Stripe/billing data.
+  const profile = await resolveClerkProfile<{
+    id: string
+    email: string | null
+    full_name: string | null
+    stripe_customer_id: string | null
+    stripe_subscription_id: string | null
+    plan: string | null
+    created_at: string
+  }>(supabase, userId, 'id, email, full_name')
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agent7even-v2.vercel.app'

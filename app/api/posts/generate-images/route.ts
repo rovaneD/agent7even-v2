@@ -6,6 +6,8 @@ import { logProviderError, sanitizeUserFacingError } from '@/lib/agents/sanitize
 import { assertGenerationFloor } from '@/lib/foundation/sectionStrength'
 import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 import { createServiceClient } from '@/lib/supabase/server'
+import { hasPlatformAccess } from '@/lib/plans'
+import { imageCreditCost } from '@/lib/credits/actionCosts'
 
 export const maxDuration = 180
 
@@ -39,7 +41,9 @@ export async function POST(req: Request) {
   const ws = await resolvePostsWorkspace(supabase)
   if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { workspaceId, profile } = ws
-  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  if (!hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt ?? false)) {
+    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  }
 
   const floor = await assertGenerationFloor(workspaceId)
   if (!floor.ok) {
@@ -67,6 +71,29 @@ export async function POST(req: Request) {
 
   if (!process.env.OPENROUTER_API_KEY) {
     return NextResponse.json({ error: 'openrouter_not_configured' }, { status: 503 })
+  }
+
+  // Compose runs a brief plus three image-model calls — real provider cost.
+  // Enforce the premium-model plan gate and the credit balance *before*
+  // spending, not just at queue time (queueGeneratedPost still does the
+  // atomic debit; this pre-check stops abandoned composes from being free).
+  const bundleCost = imageCreditCost(body.imageModelId ?? null, profile.plan)
+  if (bundleCost < 0) {
+    return NextResponse.json(
+      { error: 'premium_plan_required', message: 'Premium image models are available on ProAgent.' },
+      { status: 403 },
+    )
+  }
+  const { data: balanceRow } = await supabase
+    .from('credit_balances')
+    .select('balance')
+    .eq('user_id', workspaceId)
+    .maybeSingle()
+  if (Number(balanceRow?.balance ?? 0) < bundleCost) {
+    return NextResponse.json(
+      { error: 'INSUFFICIENT_CREDITS', message: 'Not enough credits for image generation.' },
+      { status: 402 },
+    )
   }
 
   try {

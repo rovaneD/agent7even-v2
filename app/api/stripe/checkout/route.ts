@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
 import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
+import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   assertCheckoutPrice,
@@ -50,24 +51,25 @@ export async function POST(req: Request) {
 
     const supabase = createServiceClient()
 
-    let { data: profileRows } = await supabase
-      .from('profiles')
-      .select('id, email, full_name, stripe_customer_id')
-      .eq('clerk_user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    if (!profileRows?.[0]) {
-      await ensureProfileForClerkUser(supabase, userId, user)
-      ;({ data: profileRows } = await supabase
-        .from('profiles')
-        .select('id, email, full_name, stripe_customer_id')
-        .eq('clerk_user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1))
+    // Canonical resolution — with duplicate rows, the newest one may not carry
+    // the Stripe customer, and attaching a subscription to the wrong row is
+    // exactly the duplicate-profile bug class eliminated on July 13.
+    type CheckoutProfile = {
+      id: string
+      email: string | null
+      full_name: string | null
+      stripe_customer_id: string | null
+      stripe_subscription_id: string | null
+      plan: string | null
+      created_at: string
     }
+    const checkoutSelect = 'id, email, full_name, stripe_customer_id'
 
-    const profile = profileRows?.[0] ?? null
+    let profile = await resolveClerkProfile<CheckoutProfile>(supabase, userId, checkoutSelect)
+    if (!profile) {
+      await ensureProfileForClerkUser(supabase, userId, user)
+      profile = await resolveClerkProfile<CheckoutProfile>(supabase, userId, checkoutSelect)
+    }
     if (!profile) {
       return NextResponse.json(
         { error: 'Account profile not found. Refresh the page and try again.' },

@@ -6,6 +6,8 @@ const ANALYTICS_SELECT = `
   id,
   company_name,
   plan,
+  status,
+  billing_exempt,
   ga_connected,
   ga_measurement_id,
   ga_oauth_email,
@@ -24,6 +26,8 @@ export type AnalyticsProfile = {
   id: string
   company_name: string | null
   plan: string | null
+  status: string | null
+  billing_exempt: boolean | null
   ga_connected: boolean | null
   ga_measurement_id: string | null
   ga_oauth_email: string | null

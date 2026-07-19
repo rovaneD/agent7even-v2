@@ -8,6 +8,7 @@ import { openRouterCompleteWithFallback } from '@/lib/agents/openrouter'
 import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK, VIRAL_HOOKS_OUTPUT_MARKER } from '@/lib/services/viralHooks'
 import { saveViralHooksDeliverable } from '@/lib/services/saveViralHooksDeliverable'
 import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
+import { getServiceRequestLimit, hasPlatformAccess } from '@/lib/plans'
 
 function displayBrief(brief: string) {
   return displayServiceBrief(brief)
@@ -36,13 +37,43 @@ export async function POST(req: NextRequest) {
     // Get profile id
     const { data: profileRows } = await supabase
       .from('profiles')
-      .select('id, email, full_name, company_name, foundation_answers, business_type, ideal_customer, top_goals, marketing_challenge')
+      .select('id, email, full_name, company_name, plan, status, billing_exempt, foundation_answers, business_type, ideal_customer, top_goals, marketing_challenge')
       .eq('clerk_user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
     const profile = profileRows?.[0]
 
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+    if (!hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt ?? false)) {
+      return NextResponse.json(
+        { error: 'An active subscription is required to submit service requests.', code: 'NO_ACTIVE_PLAN' },
+        { status: 403 },
+      )
+    }
+
+    // Human-delivered requests are limited per plan (viral_hooks is self-serve
+    // and exempt). "Active" mirrors the Services page: anything not closed.
+    if (service_type !== 'viral_hooks') {
+      const limit = getServiceRequestLimit(profile.plan)
+      if (limit != null) {
+        const { count } = await supabase
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', profile.id)
+          .neq('service_type', 'viral_hooks')
+          .not('status', 'in', '("approved","cancelled","completed")')
+        if ((count ?? 0) >= limit) {
+          return NextResponse.json(
+            {
+              error: `Your plan includes ${limit} active service request${limit === 1 ? '' : 's'} at a time. Close an open request or upgrade to submit another.`,
+              code: 'SERVICE_LIMIT',
+            },
+            { status: 403 },
+          )
+        }
+      }
+    }
 
     const visibleBrief = displayBrief(brief)
 

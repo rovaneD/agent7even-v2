@@ -6,6 +6,7 @@ import { deductCredits } from '@/lib/credits'
 import { videoCreditCost } from '@/lib/credits/actionCosts'
 import { logProviderError, sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { createServiceClient } from '@/lib/supabase/server'
+import { hasPlatformAccess } from '@/lib/plans'
 import {
   formatCreativeDirectionBlock,
   getOrComputeCreativeDirection,
@@ -38,7 +39,9 @@ export async function POST(req: Request) {
   const ws = await resolvePostsWorkspace(supabase)
   if (!ws) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { workspaceId, profile } = ws
-  if (!profile.plan) return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  if (!hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt ?? false)) {
+    return NextResponse.json({ error: 'active_plan_required' }, { status: 403 })
+  }
 
   // Foundation floor gate — same 70% floor as image generation
   const floor = await assertGenerationFloor(workspaceId)

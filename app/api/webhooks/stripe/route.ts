@@ -19,6 +19,38 @@ function getPlanFromPriceId(priceId: string): string | null {
   return map[priceId] ?? null
 }
 
+/**
+ * Scan every line item for a known plan price — after a seat add-on the
+ * subscription has two items and their order is not guaranteed, so reading
+ * items.data[0] can hit the $15 seat price and miss the plan.
+ */
+function getPlanFromSubscription(subscription: Stripe.Subscription): string | null {
+  for (const item of subscription.items.data) {
+    const plan = getPlanFromPriceId(item.price.id)
+    if (plan) return plan
+  }
+  return null
+}
+
+/**
+ * Map Stripe's subscription status to the profile status field. Hardcoding
+ * 'active' here would clear the paused flag for customers who are still
+ * delinquent (past_due/unpaid) the next time any subscription field changes.
+ */
+function profileStatusFromSubscription(subscription: Stripe.Subscription): string | null {
+  switch (subscription.status) {
+    case 'active':
+    case 'trialing':
+      return 'active'
+    case 'past_due':
+    case 'unpaid':
+      return 'paused'
+    default:
+      // canceled / incomplete states are handled by their own events.
+      return null
+  }
+}
+
 export async function POST(req: Request) {
   const body = await req.text()
   const sig = req.headers.get('stripe-signature')
@@ -103,8 +135,7 @@ export async function POST(req: Request) {
     const customerId = session.customer as string
 
     const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-    const priceId = subscription.items.data[0]?.price.id
-    const plan = getPlanFromPriceId(priceId)
+    const plan = getPlanFromSubscription(subscription)
 
     // clerk_user_id lives on subscription metadata (set via subscription_data.metadata at checkout)
     const clerkUserId =
@@ -116,6 +147,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true })
     }
 
+    // Canonical row only — updating every clerk_user_id row would attach the
+    // subscription to duplicate profiles.
+    const newProfile = await resolveClerkProfile(
+      supabase, clerkUserId, 'id', session.customer_details?.email,
+    )
+
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -125,13 +162,11 @@ export async function POST(req: Request) {
         stripe_subscription_id: subscriptionId,
         updated_at: new Date().toISOString(),
       })
-      .eq('clerk_user_id', clerkUserId)
+      .eq(newProfile ? 'id' : 'clerk_user_id', newProfile ? newProfile.id : clerkUserId)
 
     if (error) {
       console.error('Supabase update error (checkout.session.completed):', error)
     } else {
-      const newProfile = await resolveClerkProfile(supabase, clerkUserId, 'id')
-
       if (newProfile) {
         // Reactivation: cancellation deactivates schedules, so a returning
         // subscriber needs them switched back on (there is no user-facing
@@ -166,32 +201,31 @@ export async function POST(req: Request) {
     const subscription = event.data.object as Stripe.Subscription
 
     const clerkUserId = subscription.metadata?.clerk_user_id
-    const priceId = subscription.items.data[0]?.price.id
-    const plan = getPlanFromPriceId(priceId)
-
-    if (!clerkUserId) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('clerk_user_id')
-        .eq('stripe_subscription_id', subscription.id)
-        .single()
-
-      if (profile?.clerk_user_id && plan) {
-        await supabase
-          .from('profiles')
-          .update({ plan, status: 'active', updated_at: new Date().toISOString() })
-          .eq('clerk_user_id', profile.clerk_user_id)
-      }
-      return NextResponse.json({ received: true })
-    }
+    const plan = getPlanFromSubscription(subscription)
+    const status = profileStatusFromSubscription(subscription)
 
     if (plan) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ plan, status: 'active', updated_at: new Date().toISOString() })
-        .eq('clerk_user_id', clerkUserId)
+      const update: Record<string, unknown> = { plan, updated_at: new Date().toISOString() }
+      if (status) update.status = status
 
-      if (error) console.error('Supabase update error (subscription.updated):', error)
+      // Prefer updating the exact row already linked to this subscription.
+      const { data: linkedProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('stripe_subscription_id', subscription.id)
+        .maybeSingle()
+
+      if (linkedProfile?.id) {
+        const { error } = await supabase.from('profiles').update(update).eq('id', linkedProfile.id)
+        if (error) console.error('Supabase update error (subscription.updated):', error)
+      } else if (clerkUserId) {
+        const canonical = await resolveClerkProfile(supabase, clerkUserId, 'id')
+        const { error } = await supabase
+          .from('profiles')
+          .update(update)
+          .eq(canonical ? 'id' : 'clerk_user_id', canonical ? canonical.id : clerkUserId)
+        if (error) console.error('Supabase update error (subscription.updated):', error)
+      }
     }
   }
 
@@ -234,24 +268,17 @@ export async function POST(req: Request) {
       }
     }
 
-    if (clerkUserId) {
-      await supabase
-        .from('profiles')
-        .update({
-          plan: null, status: 'churned', stripe_subscription_id: null,
-          zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('clerk_user_id', clerkUserId)
+    const churnUpdate = {
+      plan: null, status: 'churned', stripe_subscription_id: null,
+      zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
+      updated_at: new Date().toISOString(),
+    }
+    if (cancelledProfile?.id) {
+      await supabase.from('profiles').update(churnUpdate).eq('id', cancelledProfile.id)
+    } else if (clerkUserId) {
+      await supabase.from('profiles').update(churnUpdate).eq('clerk_user_id', clerkUserId)
     } else {
-      await supabase
-        .from('profiles')
-        .update({
-          plan: null, status: 'churned', stripe_subscription_id: null,
-          zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
-          updated_at: new Date().toISOString(),
-        })
-        .eq('stripe_subscription_id', subscription.id)
+      await supabase.from('profiles').update(churnUpdate).eq('stripe_subscription_id', subscription.id)
     }
 
     // Stop autonomous agent runs — otherwise the hourly cron keeps burning

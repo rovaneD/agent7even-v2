@@ -7,6 +7,7 @@ import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { AgentId } from '@/lib/agents/registry'
 import { readPostMediaRef } from '@/lib/postAssets'
 import { logActivity } from '@/lib/activity'
+import { hasPlatformAccess } from '@/lib/plans'
 import {
   getWorkspaceSessionFromRequest,
   workspaceActorId,
@@ -20,6 +21,20 @@ export async function POST(req: Request) {
 
   const workspaceId = workspaceDataUserId(session)
   const memberId = workspaceActorId(session)
+
+  // Agent runs cost model spend — require the workspace to be in good billing
+  // standing (failed payments set status 'paused', cancellation 'churned').
+  const { data: billingRow } = await supabase
+    .from('profiles')
+    .select('plan, status, billing_exempt')
+    .eq('id', workspaceId)
+    .maybeSingle()
+  if (!hasPlatformAccess(billingRow?.plan, billingRow?.status, billingRow?.billing_exempt ?? false)) {
+    return NextResponse.json(
+      { error: 'An active subscription is required to run agents.', code: 'NO_ACTIVE_PLAN' },
+      { status: 403 },
+    )
+  }
 
   const body = await req.json()
   const { agent, input = {}, priority = 'normal', scheduledFor } = body

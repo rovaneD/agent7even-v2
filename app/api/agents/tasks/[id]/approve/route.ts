@@ -56,20 +56,30 @@ export async function POST(
     outputUpdate.content = { ...prev, raw: editedContent }
   }
 
-  const [outputRes, taskRes] = await Promise.all([
-    supabase
-      .from('agent_outputs')
-      .update(outputUpdate)
-      .eq('id', outputId)
-      .eq('user_id', workspaceId),
-    supabase
-      .from('agent_tasks')
-      .update({ approved_at: now, reviewed_at: now, reviewed_by: memberId })
-      .eq('id', taskId)
-      .eq('user_id', workspaceId),
-  ])
+  // Only a pending output can be approved — mirrors the reject path and stops
+  // re-approval of already-rejected rows.
+  const outputRes = await supabase
+    .from('agent_outputs')
+    .update(outputUpdate)
+    .eq('id', outputId)
+    .eq('user_id', workspaceId)
+    .eq('status', 'pending_approval')
+    .select('id')
 
   if (outputRes.error) return NextResponse.json({ error: outputRes.error.message }, { status: 500 })
+  if (!outputRes.data?.length) {
+    return NextResponse.json(
+      { error: 'not_pending', message: 'This output is not awaiting approval.' },
+      { status: 409 },
+    )
+  }
+
+  const taskRes = await supabase
+    .from('agent_tasks')
+    .update({ approved_at: now, reviewed_at: now, reviewed_by: memberId })
+    .eq('id', taskId)
+    .eq('user_id', workspaceId)
+
   if (taskRes.error) return NextResponse.json({ error: taskRes.error.message }, { status: 500 })
 
   const [{ data: task }, { data: output }] = await Promise.all([

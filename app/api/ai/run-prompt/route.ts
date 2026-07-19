@@ -4,6 +4,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { getToolkitPlanLimits } from '@/lib/ai/toolkitPlanLimits'
+import { CATEGORY_MIN_PLAN, meetsPlanRequirement } from '@/lib/ai/toolkitCategoryPlan'
+import { hasPlatformAccess } from '@/lib/plans'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -31,9 +33,28 @@ export async function POST(req: Request) {
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-  // Require active plan
-  if (!profile.plan || !['starter', 'growth', 'proagent'].includes(profile.plan)) {
+  // Require a paid plan in good billing standing — failed payments set
+  // status 'paused' while plan stays populated.
+  if (!hasPlatformAccess(profile.plan, profile.status)) {
     return NextResponse.json({ error: 'No active plan', code: 'NO_PLAN' }, { status: 403 })
+  }
+
+  // Tier gate: category comes from the prompt library row, not the client —
+  // the lock badges in the UI must hold when someone POSTs directly.
+  if (promptId) {
+    const { data: libraryPrompt } = await supabase
+      .from('prompt_library')
+      .select('category')
+      .eq('id', promptId)
+      .maybeSingle()
+
+    const requiredPlan = CATEGORY_MIN_PLAN[libraryPrompt?.category ?? 'general'] ?? 'starter'
+    if (!meetsPlanRequirement(profile.plan, requiredPlan)) {
+      return NextResponse.json({
+        error: `This tool requires the ${requiredPlan === 'proagent' ? 'ProAgent' : 'Growth'} plan.`,
+        code: 'PLAN_TIER',
+      }, { status: 403 })
+    }
   }
 
   // Enforce plan limits (trial total vs Starter monthly vs unlimited)

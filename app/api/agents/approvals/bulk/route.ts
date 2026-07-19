@@ -13,6 +13,7 @@ import {
   workspaceActorId,
   workspaceDataUserId,
 } from '@/lib/profiles/workspaceSession'
+import { requireWorkspaceOwner } from '@/lib/team/requireWorkspaceOwner'
 
 export async function POST(req: Request) {
   const { action, taskIds, feedback, feedbackNote, rerun = false } = await req.json()
@@ -31,6 +32,15 @@ export async function POST(req: Request) {
   const workspaceId = workspaceDataUserId(session)
   const memberId = workspaceActorId(session)
 
+  // Same guard as single approve/reject — team members must not bulk-approve.
+  const ownerCheck = await requireWorkspaceOwner(supabase, memberId, 'owner_required')
+  if (!ownerCheck.ok) {
+    return NextResponse.json(
+      { error: ownerCheck.code, message: ownerCheck.error },
+      { status: ownerCheck.status },
+    )
+  }
+
   const now = new Date().toISOString()
 
   if (action === 'approve') {
@@ -40,11 +50,14 @@ export async function POST(req: Request) {
         .update({ approved_at: now, reviewed_at: now, reviewed_by: memberId })
         .in('id', taskIds)
         .eq('user_id', workspaceId),
+      // Scope to pending rows only — a task can carry rejected/superseded
+      // outputs that must not flip to approved in a bulk action.
       supabase
         .from('agent_outputs')
         .update({ status: 'approved', approved_at: now, lifecycle_stage: 'approved' })
         .in('task_id', taskIds)
-        .eq('user_id', workspaceId),
+        .eq('user_id', workspaceId)
+        .eq('status', 'pending_approval'),
     ])
     if (tasksRes.error) return NextResponse.json({ error: tasksRes.error.message }, { status: 500 })
     if (outputsRes.error) return NextResponse.json({ error: outputsRes.error.message }, { status: 500 })

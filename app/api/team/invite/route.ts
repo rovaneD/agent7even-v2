@@ -25,11 +25,12 @@ export async function POST(req: Request) {
     id: string
     company_name: string | null
     plan: string | null
+    billing_exempt: boolean | null
     stripe_customer_id: string | null
     stripe_subscription_id: string | null
     is_account_owner: boolean | null
     created_at: string
-  }>(supabase, userId, 'id, company_name, plan, stripe_subscription_id, is_account_owner')
+  }>(supabase, userId, 'id, company_name, plan, billing_exempt, stripe_subscription_id, is_account_owner')
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   if (!profile.is_account_owner) return NextResponse.json({ error: 'Only account owners can invite members' }, { status: 403 })
@@ -57,8 +58,20 @@ export async function POST(req: Request) {
   const usedSeats = (currentMembers ?? 0) + 1 // +1 for owner
   const needsExtraSeat = usedSeats >= includedSeats
 
-  // Add extra seat to Stripe subscription if needed
-  if (needsExtraSeat && profile.stripe_subscription_id) {
+  // Extra seats are billed at $15/mo — an account with no active subscription
+  // must not get them for free (comp accounts excepted).
+  let seatRollback: (() => Promise<void>) | null = null
+  if (needsExtraSeat && !profile.billing_exempt) {
+    if (!profile.stripe_subscription_id) {
+      return NextResponse.json(
+        {
+          error: `Your plan includes ${includedSeats} seat${includedSeats === 1 ? '' : 's'}. An active subscription is required to add more.`,
+          code: 'SEAT_BILLING_REQUIRED',
+        },
+        { status: 402 },
+      )
+    }
+
     try {
       const stripe = getStripeClient()
       if (!stripe) throw new Error('Billing is not configured')
@@ -70,16 +83,24 @@ export async function POST(req: Request) {
 
       if (existingSeatItem) {
         // Increment existing seat quantity
+        const previousQuantity = existingSeatItem.quantity ?? 1
         await stripe.subscriptionItems.update(existingSeatItem.id, {
-          quantity: (existingSeatItem.quantity ?? 1) + 1,
+          quantity: previousQuantity + 1,
         })
+        seatRollback = async () => {
+          await stripe.subscriptionItems.update(existingSeatItem.id, { quantity: previousQuantity })
+        }
       } else {
         // Add new seat line item
-        await stripe.subscriptionItems.create({
+        const created = await stripe.subscriptionItems.create({
           subscription: profile.stripe_subscription_id,
           price: process.env.STRIPE_SEAT_PRICE_ID!,
           quantity: 1,
         })
+        seatRollback = async () => {
+          // Same pattern as team/remove — item delete is not exposed in this API version.
+          await stripe.subscriptionItems.update(created.id, { quantity: 1, deleted: true } as unknown as Record<string, never>)
+        }
       }
     } catch (err) {
       console.error('Stripe seat add error:', err)
@@ -120,6 +141,8 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error('Team member insert error:', error)
+    // Don't leave the customer paying for a seat the invite never used.
+    if (seatRollback) await seatRollback().catch(err => console.error('Seat rollback failed:', err))
     return NextResponse.json({ error: 'Failed to create invitation' }, { status: 500 })
   }
 

@@ -52,13 +52,20 @@ export function isPaidPlan(plan: string | null | undefined): plan is PaidPlan {
   return !!plan && PAID_PLANS.includes(plan as PaidPlan)
 }
 
-/** Account can use paid platform features (paid subscription or admin comp access). */
+/**
+ * Account can use paid platform features: a paid plan in good billing standing,
+ * or admin comp access. `status` is `profiles.status` — failed payments set it
+ * to 'paused' and cancellation to 'churned' while `plan` stays populated, so
+ * checking the plan alone lets delinquent accounts keep using paid features.
+ */
 export function hasPlatformAccess(
   plan: string | null | undefined,
+  status?: string | null,
   billingExempt = false,
 ): boolean {
-  if (billingExempt && isPaidPlan(plan)) return true
-  return isPaidPlan(plan)
+  if (!isPaidPlan(plan)) return false
+  if (billingExempt) return true
+  return status == null || status === 'active'
 }
 
 export function billingPlanLabel(

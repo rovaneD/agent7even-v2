@@ -68,24 +68,9 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 // ── Plan tier per category ────────────────────────────────────────────────────
-// Maps each category to the minimum plan required to use it.
+// Shared with the run-prompt API so the server enforces the same gates.
 
-const CATEGORY_MIN_PLAN: Record<string, 'starter' | 'growth' | 'proagent'> = {
-  social:     'starter',
-  email:      'starter',
-  ads:        'growth',
-  seo:        'growth',
-  operations: 'growth',
-  brand:      'proagent',
-  general:    'starter',
-}
-
-const PLAN_ORDER = ['starter', 'growth', 'proagent']
-
-function meetsRequirement(userPlan: string | null, required: string): boolean {
-  if (!userPlan) return false
-  return PLAN_ORDER.indexOf(userPlan) >= PLAN_ORDER.indexOf(required)
-}
+import { CATEGORY_MIN_PLAN, meetsPlanRequirement as meetsRequirement } from '@/lib/ai/toolkitCategoryPlan'
 
 const PLAN_BADGE: Record<string, { label: string; style: string }> = {
   starter:  { label: 'Starter+',  style: 'bg-surface-muted text-text-sec' },
