@@ -8,6 +8,7 @@ import {
   completeOrchestration,
 } from '@/lib/agents/runner'
 import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCreativeDirection/cache'
+import { ensureDefaultAgentSchedules } from '@/lib/agents/ensureDefaultSchedules'
 import { formatCompetitorsForAgent } from '@/lib/foundation/competitorsArray'
 
 const FOUNDATION_MODEL = 'anthropic/claude-sonnet-4'
@@ -176,6 +177,11 @@ Monthly goal: ${answers.monthlyGoal}
           updated_at:          new Date().toISOString(),
         })
         .eq('id', profile.id)
+
+      // Turn on the advertised autonomous agent schedules now that Foundation exists
+      await ensureDefaultAgentSchedules(supabase, profile.id).catch(err =>
+        console.error('Schedule seeding failed (non-fatal):', err),
+      )
     }
 
     if (!allSaved) {

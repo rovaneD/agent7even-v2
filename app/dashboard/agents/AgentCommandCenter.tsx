@@ -65,6 +65,7 @@ interface ScorecardEntry {
 interface Props {
   profileId: string
   companyName: string
+  foundationComplete: boolean
   activeTasks: AgentTask[]
   pendingApprovals: AgentTask[]
   recentTasks: AgentTask[]
@@ -187,7 +188,7 @@ function LiveActivityCollapsible({
 }
 
 export default function AgentCommandCenter({
-  profileId, companyName,
+  profileId, companyName, foundationComplete,
   activeTasks: initActiveTasks,
   pendingApprovals: initPendingApprovals, recentTasks: initRecent, recentOutputs: initRecentOutputs, scorecard,
 }: Props) {
@@ -631,6 +632,17 @@ export default function AgentCommandCenter({
           <p className="mt-1 mb-4 text-sm text-text-sec">
             Last run, saved output count, and schedule status per agent — open a row for the full archive.
           </p>
+          {!foundationComplete && (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+              <p className="text-xs leading-5 text-amber-900">
+                <span className="font-semibold">Automatic runs are paused.</span>{' '}
+                Agents marked Auto start running on their schedule once your Foundation is complete.{' '}
+                <Link href="/foundation" className="font-semibold underline underline-offset-2">
+                  Finish Foundation →
+                </Link>
+              </p>
+            </div>
+          )}
           <div className="grid min-w-[460px] grid-cols-[1fr_auto_auto_auto_28px] items-center gap-x-4">
             {/* Header */}
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Agent</span>
@@ -675,6 +687,13 @@ export default function AgentCommandCenter({
                     </span>
                   ) : entry.isScheduled ? (
                     <span className="rounded-full bg-status-success/10 px-2 py-1 text-[11px] font-semibold text-status-success">Active</span>
+                  ) : !foundationComplete && AGENTS[entry.agentId as AgentId]?.autonomyLevel === 'autonomous' ? (
+                    <span
+                      className="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700"
+                      title="This agent runs on a schedule once your Foundation is complete"
+                    >
+                      Needs Foundation
+                    </span>
                   ) : (
                     <span className="rounded-full border border-border bg-surface-2 px-2 py-1 text-[11px] font-semibold text-text-sec">Idle</span>
                   )}

@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
 import { COMMAND_CENTER_AGENTS, type AgentId } from '@/lib/agents/registry'
+import { ensureDefaultAgentSchedules } from '@/lib/agents/ensureDefaultSchedules'
 import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
 import AgentCommandCenter from './AgentCommandCenter'
 import AgentsLegacyRedirects from './AgentsLegacyRedirects'
@@ -78,6 +79,11 @@ export default async function AgentsPage() {
 
   const workspaceProfile = workspace?.workspaceProfile ?? profile
   const dataUserId = workspace?.workspaceId ?? profile.id
+
+  // Backfill: existing accounts never got their autonomous schedules seeded
+  await ensureDefaultAgentSchedules(supabase, dataUserId).catch(err =>
+    console.error('Schedule seeding failed (non-fatal):', err),
+  )
 
   const [
     { count: colorCount },
@@ -204,6 +210,7 @@ export default async function AgentsPage() {
       <AgentCommandCenter
         profileId={dataUserId}
         companyName={workspaceProfile.company_name ?? 'Your business'}
+        foundationComplete={!!workspaceProfile.foundation_complete}
         activeTasks={activeTasks ?? []}
         pendingApprovals={pendingApprovalsData}
         recentTasks={recentTasks ?? []}

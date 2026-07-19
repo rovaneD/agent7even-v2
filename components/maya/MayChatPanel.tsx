@@ -128,6 +128,7 @@ export default function MayChatPanel({
   const messagesRef    = useRef<UIMessage[]>([])
   const modeRef        = useRef<string | null>(initialMode)
   const pageContextStartedRef = useRef(false)
+  const pageContextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function handleDragMouseDown(e: React.MouseEvent) {
     e.preventDefault()
@@ -156,6 +157,11 @@ export default function MayChatPanel({
   const canvasDataRef = useRef(canvasData)
   useEffect(() => { canvasDataRef.current = canvasData }, [canvasData])
 
+  // The transport useMemo([]) freezes the initial canvasContext; keep a live ref
+  // so requests sent after navigation carry the page the user is actually on.
+  const canvasContextRef = useRef(canvasContext)
+  useEffect(() => { canvasContextRef.current = canvasContext }, [canvasContext])
+
   const sessionIdRef = useRef<string | null>(initialSessionId)
 
   const adjustChatInputHeight = () => {
@@ -175,6 +181,7 @@ export default function MayChatPanel({
     body: { canvasContext, chatSurface: 'sidebar' as const, ...(isHelpMode ? { isHelpMode: true } : {}) },
     fetch: async (url, init) => {
       const body = JSON.parse((init?.body as string) ?? '{}')
+      body.canvasContext = canvasContextRef.current ?? null
       if (canvasDataRef.current) body.canvasData = canvasDataRef.current
       formSurfaceRef.current = formActuation?.getSnapshot() ?? null
       if (formSurfaceRef.current) body.formSurface = formSurfaceRef.current
@@ -275,12 +282,36 @@ export default function MayChatPanel({
   useEffect(() => {
     if (pageContextStartedRef.current || isHelpMode || pendingTask || initialMessages.length || initialMode) return
     if (!canvasContext && !canvasData) return
-    pageContextStartedRef.current = true
-    setMode('page')
-    setChatError(null)
-    setBillingModalOpen(false)
-    sendMessage({ text: '__PAGE_CONTEXT__' })
+
+    const sendPageContext = () => {
+      if (pageContextStartedRef.current) return
+      pageContextStartedRef.current = true
+      setMode('page')
+      setChatError(null)
+      setBillingModalOpen(false)
+      sendMessage({ text: '__PAGE_CONTEXT__' })
+    }
+
+    // Rich page payload (canvasData) arrives via a client effect after the coarse
+    // nav label. If only the label is here, wait a beat so Maya greets with the
+    // actual screen (e.g. a specific agent output) instead of "the Agents page".
+    if (canvasData) {
+      if (pageContextTimerRef.current) {
+        clearTimeout(pageContextTimerRef.current)
+        pageContextTimerRef.current = null
+      }
+      sendPageContext()
+      return
+    }
+
+    if (!pageContextTimerRef.current) {
+      pageContextTimerRef.current = setTimeout(sendPageContext, 700)
+    }
   }, [canvasContext, canvasData]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => () => {
+    if (pageContextTimerRef.current) clearTimeout(pageContextTimerRef.current)
+  }, [])
 
   function selectMode(modeId: string) {
     setMode(modeId)

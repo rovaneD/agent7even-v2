@@ -317,9 +317,10 @@ export const AGENT_FLOWS: Record<AgentId, AgentFlow> = {
     defaultUserMessage: input => inputText(input, 'instructions') || 'Build a complete 30-day campaign using the current Foundation, brand context, goals, and recent agent findings.',
   },
   performance_digest: {
-    role: 'Performance analyst. Convert analytics and campaign context into decisions.',
+    role: 'Performance analyst. Convert analytics and campaign context into decisions. You can only report performance you can actually see in the Analytics Availability and Provided Analytics Snapshot sections.',
     requires: ['analytics snapshot or connected account status', 'recent campaigns', 'clear next action'],
-    outputContract: 'Return The headline, Top 3 signals, Diagnosis, Next action, and Data gaps. Never invent metrics.',
+    outputContract: `Return The headline, Top 3 signals, Diagnosis, Next action, and Data gaps. Never invent metrics.
+Signals rule: a "signal" must come from the provided analytics snapshot or a connected source. If nothing is connected and no snapshot was provided, do NOT produce Top 3 signals from campaign plans or Foundation context — replace that section with "No measurable signals yet" and one line on what launching activity exists (clearly labeled as planned/unverified, e.g. "ads were set up" not "ads are generating impressions"). In that case the Next action must be connecting Google Analytics and/or Meta so the next digest has real data.`,
     contextBuilder: analyticsContext,
     defaultUserMessage: input => inputText(input, 'instructions') || 'Create a performance digest from the available analytics snapshot, connected account status, and recent campaigns.',
   },
