@@ -257,7 +257,11 @@ function CampaignRowView({ row }: { row: CampaignRow }) {
 function HeroCopy() {
   return (
     <>
-      <div className="hsb-b-eyebrow">From idea to approval queue, without switching tools</div>
+      <div className="hsb-b-eyebrow">
+        From idea to approval queue,
+        <br />
+        without switching tools
+      </div>
       <h1 className="hsb-b-h1">
         AI Marketing Automation
         <br />
@@ -269,7 +273,9 @@ function HeroCopy() {
             <MayaOrb size={22} active />
           </span>
           <span>
-            <span className="maya">Maya</span> handles the work. You approve once.
+            <span className="maya">Maya</span> handles the work.
+            <br />
+            You approve once.
           </span>
         </span>
       </div>

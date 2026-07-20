@@ -96,10 +96,14 @@
 
 .hsb-b .hsb-b-sub-line {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   max-width: 100%;
   text-align: left;
+}
+
+.hsb-b .hsb-b-sub-line .hsb-b-orb {
+  margin-top: 0.18em;
 }
 
 /* Keep the Maya orb locked inline with the word — never absolute/transform. */
