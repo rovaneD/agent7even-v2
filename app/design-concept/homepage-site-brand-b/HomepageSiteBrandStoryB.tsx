@@ -84,8 +84,10 @@ const STATS = [
 ]
 
 // Taller hero than variant A: eyebrow + display headline + Maya subline +
-// body + CTA + trust line before the stage.
-const HERO_HEIGHT = 430
+// body + CTA + trust line before the stage. Includes the extra line breaks.
+const HERO_HEIGHT = 480
+/** Vertical gap between hero copy and the dashboard mockup at rest. */
+const HERO_STAGE_GAP = 80
 
 /**
  * Story timeline as a function of progress p ∈ [0,1] — shared by the desktop
@@ -185,7 +187,7 @@ function renderVals(p: number, vw: number, vh: number) {
       width: 1040,
       height: 600,
       flex: 'none',
-      transform: `translateY(${(heroO * Math.max(0, heroTop + HERO_HEIGHT + 40 - (vh / 2 - 300 * s))).toFixed(1)}px) scale(${s})`,
+      transform: `translateY(${(heroO * Math.max(0, heroTop + HERO_HEIGHT + HERO_STAGE_GAP - (vh / 2 - 300 * s))).toFixed(1)}px) scale(${s})`,
       willChange: 'transform',
       zIndex: 2,
       position: 'relative',

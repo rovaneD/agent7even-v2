@@ -293,7 +293,7 @@
 .hsb-b--mobile .hsb-mobile-stage {
   position: relative;
   z-index: 2;
-  margin: 28px auto 0;
+  margin: 44px auto 0;
   width: min(100%, 1040px);
   padding: 0 12px;
   /* Fixed aspect so the scaled stage doesn't leave a huge empty band. */
