@@ -1,0 +1,133 @@
+/* Variant B additions — metaball blobs that bleed off the page edges,
+   plus the rearranged hero type stack from the A/B screenshot. */
+
+/* Self-contained hero styles — production Roboto stack and page color so the
+   sticky nav reads exactly like it does on the rest of the site. */
+.lab5 .hsb-b {
+  font-family: var(--l5-font);
+  background: var(--l5-bg);
+  color: #1a1917;
+}
+
+@keyframes a7blink-b {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Moving metaballs — the production WebGL shader (same treatment as
+   .lab5 .hero-metaballs), placed in two spots that bleed off the page edges.
+   On mobile/reduced-motion DeferredMetaballs renders an empty host, so each
+   placement carries a CSS-gradient fallback like production does. */
+.hsb-b .hsb-metaballs {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  filter: blur(52px) saturate(1.08);
+  opacity: 0.55;
+}
+
+.hsb-b .hsb-metaballs canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hsb-b .hsb-metaballs--top-left {
+  left: -18%;
+  top: -22%;
+  width: 58%;
+  height: 68%;
+  transform: rotate(-8deg) scale(1.06);
+  background:
+    radial-gradient(circle at 30% 35%, rgba(245, 52, 155, 0.5), transparent 34%),
+    radial-gradient(circle at 62% 28%, rgba(252, 165, 9, 0.45), transparent 30%),
+    radial-gradient(circle at 46% 68%, rgba(50, 134, 254, 0.45), transparent 34%);
+}
+
+.hsb-b .hsb-metaballs--bottom-right {
+  right: -18%;
+  bottom: -24%;
+  width: 58%;
+  height: 68%;
+  transform: rotate(6deg) scale(1.06);
+  background:
+    radial-gradient(circle at 64% 62%, rgba(50, 134, 254, 0.5), transparent 34%),
+    radial-gradient(circle at 34% 70%, rgba(16, 185, 129, 0.42), transparent 30%),
+    radial-gradient(circle at 56% 32%, rgba(245, 52, 155, 0.42), transparent 32%);
+}
+
+/* WebGL mounted: the shader paints the balls — drop the static fallback. */
+.hsb-b .hsb-metaballs:has(canvas) {
+  background: none;
+}
+
+.hsb-b .hsb-b-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #3d3a34;
+  margin-bottom: 20px;
+}
+
+.hsb-b .hsb-b-h1 {
+  font-family: inherit;
+  font-size: clamp(40px, 4.6vw, 62px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: #101012;
+  margin: 0 0 18px;
+}
+
+.hsb-b .hsb-b-sub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: clamp(19px, 2vw, 25px);
+  font-weight: 600;
+  color: #1a1917;
+  margin-bottom: 16px;
+}
+
+.hsb-b .hsb-b-sub .maya {
+  color: #f5349b;
+}
+
+.hsb-b .hsb-b-body {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #6f6a61;
+  max-width: 560px;
+  margin: 0 auto 26px;
+}
+
+/* The hero CTA uses the production .btn.btn-hero-primary (same as the nav
+   Sign up). Keep its text white on hover — the concept stylesheet's
+   `.homepage-site-brand a:hover` pink would otherwise win the cascade. */
+.hsb-b a.btn-hero-primary:hover {
+  color: #ffffff;
+}
+
+.hsb-b .hsb-b-trust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  font-size: 12.5px;
+  color: #8a857b;
+  margin-top: 16px;
+}
+
+.hsb-b .hsb-b-trust .check {
+  color: #16a34a;
+  font-weight: 700;
+}
