@@ -817,9 +817,9 @@ export default function HomepageSiteBrandStoryB() {
               <h3 className="t-h3">Campaign Builder reads Foundation first.</h3>
               <p className="t-body">You name the offer. The Campaign Builder pulls from your Foundation and Brand Kit, then drafts strategy, email copy, social posts, ad variations, and a timeline, all routed to your approval queue.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Drafted 3 email variants from your Foundation.</div>
+                <div className="check"><i>✓</i>Email variants drafted from your Foundation.</div>
                 <div className="check"><i>✓</i>30-day plan drafted from your saved positioning</div>
-                <div className="check"><i>✓</i>Email, social, and ad copy generated in one run</div>
+                <div className="check"><i>✓</i>Email, social, and ad copy drafted in one run</div>
                 <div className="check"><i>✓</i>Nothing publishes until you approve from the queue</div>
               </div>
             </div>
@@ -833,7 +833,7 @@ export default function HomepageSiteBrandStoryB() {
               <h3 className="t-h3">Every image uses your saved colors, style, and creative direction.</h3>
               <p className="t-body">Creative agents pull palette, tone, and scene direction from Brand Kit and Foundation, then generate post images and Reels with captions written from what&rsquo;s actually in the frame.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Generated 4 Instagram images using your Brand Kit.</div>
+                <div className="check"><i>✓</i>Instagram post + caption drafted from your Brand Kit.</div>
                 <div className="check"><i>✓</i>Colors, style, and scene direction pulled from your brand</div>
                 <div className="check"><i>✓</i>Captions read the finished image before they&rsquo;re written</div>
                 <div className="check"><i>✓</i>You approve every asset before it can publish</div>
@@ -867,7 +867,7 @@ export default function HomepageSiteBrandStoryB() {
               <h3 className="t-h3">SEO Scanner reads your live site URL.</h3>
               <p className="t-body">The agent snapshots your homepage and key pages, then compares them to your Foundation positioning to flag title, meta, and content gaps specific to your site.</p>
               <div className="checks">
-                <div className="check"><i>✓</i>Found 2 missing title tags on your homepage.</div>
+                <div className="check"><i>✓</i>Title and meta gaps flagged on your live site.</div>
                 <div className="check"><i>✓</i>Live homepage and key page snapshot</div>
                 <div className="check"><i>✓</i>Prioritized fixes for small teams</div>
                 <div className="check"><i>✓</i>Runs on your saved website URL</div>
