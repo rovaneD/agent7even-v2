@@ -23,7 +23,7 @@ export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   },
   {
     q: 'What exactly is Agent7even?',
-    a: 'One Foundation. Twelve specialist agents. One approval queue. Maya is the interface — she reads your Brand Kit, coordinates the agents, and routes every draft for your approval before anything publishes.',
+    a: 'A marketing platform built around Maya. She reads your Brand Kit and Foundation, coordinates twelve specialist agents to draft campaigns, content, and reports, and routes every one of those drafts into a single approval queue before anything publishes.',
   },
   {
     q: 'Does the copy actually sound like me?',
