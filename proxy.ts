@@ -29,6 +29,7 @@ const isPublicRoute = createRouteMatcher([
   '/lab2(.*)',
   '/lab3(.*)',
   '/lab-use-cases(.*)',
+  '/design-concept(.*)',
   '/api/webhooks(.*)',
   '/api/analytics/ga-callback(.*)',
   '/api/integrations/zernio/callback(.*)',
