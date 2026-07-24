@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMayaContext } from '@/hooks/useMayaContext'
+import { useRegisterMayaFormSurface } from '@/context/MayaFormActuationContext'
+import type { FormFieldSchema } from '@/lib/maya/formActuation'
 import { buildFoundationHubMayaContext } from '@/lib/maya/summaries/foundationHubContext'
 import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
 import { displayFieldValue } from '@/lib/maya/formStateContext'
@@ -48,12 +50,19 @@ import type { FoundationSectionKey } from '@/lib/agents/registry'
 import { isCommandCenterAgent } from '@/lib/agents/contentPosting'
 import type { FoundationScoredSectionKey } from '@/lib/foundation/sections'
 import {
+  computeOverallFoundationScore,
   computeSectionScore,
   FOUNDATION_SECTION_KEY_FIELDS,
 } from '@/lib/foundation/sections'
 import { FOUNDATION_VISUAL_FIELDS } from '@/lib/foundation/visualFields'
 import type { CreativeDirection } from '@/lib/agents/foundationCreativeDirection/types'
 import { visualHubSectionPreview } from '@/lib/agents/foundationCreativeDirection/hubPreview'
+import {
+  applyHubFormPatch,
+  buildHubFormSurfaceSchema,
+  hubFormValuesFromAnswers,
+  sectionKeysForAffectedDocs,
+} from '@/lib/foundation/hubFormActuation'
 import SiteSnapshotCard from '@/components/foundation/SiteSnapshotCard'
 import FoundationProposalsPanel from '@/components/foundation/FoundationProposalsPanel'
 
@@ -1514,6 +1523,81 @@ function SectionEditCard({
   )
 }
 
+function sectionEditFieldsToSchema(section: SectionDef, includeWebsite: boolean): FormFieldSchema[] {
+  const fields: FormFieldSchema[] = []
+  if (includeWebsite) {
+    fields.push({ key: 'websiteUrl', label: 'Website URL', type: 'text' })
+  }
+  for (const field of section.editFields) {
+    if (field.type === 'competitors') {
+      fields.push(
+        { key: 'competitors_0', label: 'Competitor 1', type: 'textarea' },
+        { key: 'competitors_1', label: 'Competitor 2', type: 'textarea' },
+        { key: 'competitors_2', label: 'Competitor 3', type: 'textarea' },
+      )
+    } else if (field.type === 'chips') {
+      fields.push({ key: field.key, label: field.label, type: 'text' })
+    } else {
+      fields.push({
+        key: field.key,
+        label: field.label,
+        type: field.type === 'text' ? 'text' : 'textarea',
+      })
+    }
+  }
+  return fields
+}
+
+function sectionEditValuesToPatch(
+  section: SectionDef,
+  draft: Partial<Answers>,
+  websiteUrl?: string,
+): Record<string, string> {
+  const values: Record<string, string> = {}
+  if (section.key === 'business') {
+    values.websiteUrl = websiteUrl ?? ''
+  }
+  for (const field of section.editFields) {
+    const val = draft[field.key]
+    if (field.type === 'competitors') {
+      const comps = normalizeCompetitorSlots(val)
+      values.competitors_0 = comps[0] ?? ''
+      values.competitors_1 = comps[1] ?? ''
+      values.competitors_2 = comps[2] ?? ''
+    } else if (field.type === 'chips') {
+      values[field.key] = Array.isArray(val) ? val.join(', ') : String(val ?? '')
+    } else {
+      values[field.key] = String(val ?? '')
+    }
+  }
+  return values
+}
+
+function applySectionEditPatch(
+  section: SectionDef,
+  patch: Record<string, string>,
+  draft: Partial<Answers>,
+): Partial<Answers> {
+  const next: Partial<Answers> = { ...draft }
+  for (const field of section.editFields) {
+    if (field.type === 'competitors') {
+      const current = normalizeCompetitorSlots(next.competitors)
+      next.competitors = [
+        patch.competitors_0 ?? current[0] ?? '',
+        patch.competitors_1 ?? current[1] ?? '',
+        patch.competitors_2 ?? current[2] ?? '',
+      ]
+    } else if (field.type === 'chips') {
+      if (patch[field.key] !== undefined) {
+        next[field.key] = patch[field.key].split(',').map(s => s.trim()).filter(Boolean) as never
+      }
+    } else if (patch[field.key] !== undefined) {
+      next[field.key] = patch[field.key] as never
+    }
+  }
+  return next
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function FoundationHub({
@@ -1544,6 +1628,19 @@ export default function FoundationHub({
   const [knowledgeFetched, setKnowledgeFetched] = useState(false)
   const [scrollToUpload, setScrollToUpload] = useState(false)
   const uploadCardRef = useRef<HTMLDivElement>(null)
+  const autoRescoreAttempted = useRef(false)
+  const sectionRefs = useRef<Partial<Record<SectionKey, HTMLDivElement | null>>>({})
+  const [highlightSection, setHighlightSection] = useState<SectionKey | null>(null)
+
+  const answersNeedScore = useMemo(() => {
+    return SECTIONS.some(section => {
+      if (section.key === 'memory') return false
+      return section.keyFields.some(field => {
+        const v = (localAnswers as unknown as Record<string, unknown>)[field]
+        return Array.isArray(v) ? (v as string[]).filter(Boolean).length > 0 : Boolean(String(v ?? '').trim())
+      })
+    })
+  }, [localAnswers])
 
   useEffect(() => {
     if (!scrollToUpload || activeTab !== 'intelligence') return
@@ -1603,22 +1700,38 @@ export default function FoundationHub({
     }
   }
 
-  async function saveEdit(section: SectionDef) {
+  useEffect(() => {
+    if (autoRescoreAttempted.current) return
+    if (initialScore > 0 || Object.keys(initialFieldScores).length > 0) return
+    if (!answersNeedScore) return
+    autoRescoreAttempted.current = true
+    setRescoring(true)
+    rescoreAnswers(localAnswers)
+      .catch(() => {})
+      .finally(() => setRescoring(false))
+  }, [answersNeedScore, initialFieldScores, initialScore, localAnswers])
+
+  async function saveSectionEdit(
+    section: SectionDef,
+    draft: Partial<Answers>,
+    websiteUrl: string,
+    options?: { closeEditor?: boolean },
+  ) {
     setEditSaving(true)
-    const draft = { ...editDraft }
-    if (draft.competitors != null) {
-      draft.competitors = normalizeCompetitorSlots(draft.competitors)
+    const nextDraft = { ...draft }
+    if (nextDraft.competitors != null) {
+      nextDraft.competitors = normalizeCompetitorSlots(nextDraft.competitors)
     }
-    const merged = { ...localAnswers, ...draft }
+    const merged = { ...localAnswers, ...nextDraft }
     try {
       await fetch('/api/foundation/save-answers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: draft }),
+        body: JSON.stringify({ answers: nextDraft }),
       })
 
-      if (section.key === 'business' && editWebsiteUrl !== localWebsiteUrl) {
-        const normalized = normalizeWebsiteUrl(editWebsiteUrl.trim()) ?? editWebsiteUrl.trim()
+      if (section.key === 'business' && websiteUrl !== localWebsiteUrl) {
+        const normalized = normalizeWebsiteUrl(websiteUrl.trim()) ?? websiteUrl.trim()
         await fetch('/api/settings/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1628,12 +1741,14 @@ export default function FoundationHub({
       }
 
       setLocalAnswers(merged)
-      setEditingSection(null)
+      setEditDraft(nextDraft)
+      if (options?.closeEditor !== false) {
+        setEditingSection(null)
+      }
       setAnswersPreviousAt(new Date().toISOString())
 
       await rescoreAnswers(merged).catch(() => {})
 
-      // Partial regen
       if (section.affectedDocs.length > 0) {
         setRegenProgress(`Updating ${section.affectedDocs.join(', ')}…`)
         await fetch('/api/foundation/generate', {
@@ -1654,6 +1769,10 @@ export default function FoundationHub({
     } finally {
       setEditSaving(false)
     }
+  }
+
+  async function saveEdit(section: SectionDef) {
+    await saveSectionEdit(section, editDraft, editWebsiteUrl, { closeEditor: true })
   }
 
   const handleKnowledgeAdded = useCallback((item: KnowledgeItem) => {
@@ -1704,6 +1823,130 @@ export default function FoundationHub({
     }
   }, [editingSection, editDraft, editWebsiteUrl])
 
+  const editingSectionDef = editingSection
+    ? SECTIONS.find(section => section.key === editingSection) ?? null
+    : null
+
+  const hubActuationSections = useMemo(
+    () => SECTIONS.filter(s => s.editable && s.key !== 'memory' && healthMap[s.key] !== 'strong'),
+    [healthMap],
+  )
+
+  const foundationFormSurface = useMemo(() => {
+    if (editingSectionDef) {
+      return {
+        id: `foundation-section-${editingSectionDef.key}`,
+        label: `Foundation — ${editingSectionDef.title}`,
+        canonicalWebsite: localWebsiteUrl || initialWebsiteUrl || null,
+        fields: sectionEditFieldsToSchema(editingSectionDef, editingSectionDef.key === 'business'),
+      }
+    }
+    if (activeTab !== 'intelligence' || hubActuationSections.length === 0) return null
+    return {
+      id: 'foundation-hub',
+      label: 'Foundation Hub — sections needing attention',
+      canonicalWebsite: localWebsiteUrl || initialWebsiteUrl || null,
+      fields: buildHubFormSurfaceSchema(hubActuationSections, {
+        includeWebsite: hubActuationSections.some(s => s.key === 'business'),
+      }),
+    }
+  }, [editingSectionDef, activeTab, hubActuationSections, localWebsiteUrl, initialWebsiteUrl])
+
+  const persistHubPatch = useCallback(
+    async (
+      partialSave: Record<string, unknown>,
+      mergedAnswers: Answers,
+      affectedSectionKeys: string[],
+      websitePatch?: string,
+    ) => {
+      if (!Object.keys(partialSave).length && !websitePatch) return
+
+      await fetch('/api/foundation/save-answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: partialSave }),
+      })
+
+      if (websitePatch != null) {
+        const normalized = normalizeWebsiteUrl(websitePatch.trim()) ?? websitePatch.trim()
+        await fetch('/api/settings/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ websiteUrl: normalized || null }),
+        })
+        setLocalWebsiteUrl(normalized)
+      }
+
+      setAnswersPreviousAt(new Date().toISOString())
+      await rescoreAnswers(mergedAnswers).catch(() => {})
+
+      const regenKeys = sectionKeysForAffectedDocs(SECTIONS, affectedSectionKeys)
+      if (regenKeys.length > 0) {
+        setRegenProgress(`Updating ${regenKeys.join(', ')}…`)
+        await fetch('/api/foundation/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            answers: mergedAnswers,
+            companyName,
+            sections: regenKeys,
+          }),
+        }).catch(() => {})
+        setRegenProgress(null)
+      }
+    },
+    [companyName],
+  )
+
+  useRegisterMayaFormSurface(
+    foundationFormSurface,
+    () => {
+      if (editingSectionDef) {
+        return sectionEditValuesToPatch(
+          editingSectionDef,
+          editDraft,
+          editingSectionDef.key === 'business' ? editWebsiteUrl : undefined,
+        )
+      }
+      return hubFormValuesFromAnswers(
+        localAnswers as unknown as Record<string, unknown>,
+        hubActuationSections,
+        hubActuationSections.some(s => s.key === 'business') ? localWebsiteUrl : undefined,
+      )
+    },
+    patch => {
+      if (editingSectionDef) {
+        let nextWebsite = editWebsiteUrl
+        if (patch.websiteUrl !== undefined && editingSectionDef.key === 'business') {
+          nextWebsite = patch.websiteUrl
+          setEditWebsiteUrl(patch.websiteUrl)
+        }
+        const nextDraft = applySectionEditPatch(editingSectionDef, patch, editDraft)
+        setEditDraft(nextDraft)
+        void saveSectionEdit(editingSectionDef, nextDraft, nextWebsite, { closeEditor: false })
+        return
+      }
+
+      const { nextAnswers, partialSave, affectedSectionKeys } = applyHubFormPatch(
+        localAnswers as unknown as Record<string, unknown>,
+        patch,
+        hubActuationSections,
+      )
+      if (!Object.keys(partialSave).length && patch.websiteUrl === undefined) return
+
+      const merged = nextAnswers as unknown as Answers
+      setLocalAnswers(merged)
+
+      const websitePatch = patch.websiteUrl
+      const affected = [...affectedSectionKeys]
+      if (websitePatch !== undefined && hubActuationSections.some(s => s.key === 'business')) {
+        if (!affected.includes('business')) affected.push('business')
+      }
+
+      void persistHubPatch(partialSave, merged, affected, websitePatch)
+    },
+  )
+
   const mayaContext = useMemo(
     () =>
       buildFoundationHubMayaContext({
@@ -1750,6 +1993,18 @@ export default function FoundationHub({
     }
     return names.size
   }, [weakSections])
+
+  function handleViewGaps() {
+    const firstWeak = SECTIONS.find(s => s.key !== 'memory' && healthMap[s.key] !== 'strong')
+    if (!firstWeak) return
+
+    const el = sectionRefs.current[firstWeak.key]
+    if (!el) return
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setHighlightSection(firstWeak.key)
+    window.setTimeout(() => setHighlightSection(null), 2500)
+  }
 
   async function handleRescore() {
     setRescoring(true)
@@ -1890,7 +2145,11 @@ export default function FoundationHub({
                     <span className="font-semibold text-text">{weakSections.length} sections</span> need attention
                     {limitedAgentCount > 0 ? ` — completing them unlocks better outputs from ${limitedAgentCount} agents.` : '.'}
                   </p>
-                  <button className="text-[12px] font-medium text-[#3B82F6] whitespace-nowrap hover:underline">
+                  <button
+                    type="button"
+                    onClick={handleViewGaps}
+                    className="text-[12px] font-medium text-[#3B82F6] whitespace-nowrap hover:underline"
+                  >
                     View gaps →
                   </button>
                 </div>
@@ -1925,7 +2184,13 @@ export default function FoundationHub({
                   }
 
                   return (
-                    <div key={section.key} className="bg-white rounded-2xl border border-gray-100 p-5">
+                    <div
+                      key={section.key}
+                      ref={el => { sectionRefs.current[section.key] = el }}
+                      className={`bg-white rounded-2xl border border-gray-100 p-5 transition-shadow ${
+                        highlightSection === section.key ? 'ring-2 ring-[#3B82F6] ring-offset-2 shadow-sm' : ''
+                      }`}
+                    >
                       {/* Card header */}
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="flex items-center gap-2.5">

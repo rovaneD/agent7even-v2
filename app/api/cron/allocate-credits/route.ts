@@ -28,6 +28,19 @@ export async function GET(req: Request) {
   for (const profile of profiles) {
     if (!PLAN_CREDITS[profile.plan]) continue
 
+    const { data: row } = await supabase
+      .from('profiles')
+      .select('stripe_subscription_id')
+      .eq('id', profile.id)
+      .maybeSingle()
+
+    if (row?.stripe_subscription_id) {
+      const { isProfileOnTrial } = await import('@/lib/billing/trialPolicy')
+      if (await isProfileOnTrial({ stripe_subscription_id: row.stripe_subscription_id })) {
+        continue
+      }
+    }
+
     const granted = await allocatePlanCredits(profile.id, profile.plan)
     if (granted != null) allocated++
   }

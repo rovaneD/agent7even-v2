@@ -7,6 +7,7 @@ import { videoCreditCost } from '@/lib/credits/actionCosts'
 import { logProviderError, sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hasPlatformAccess } from '@/lib/plans'
+import { isProfileOnTrial } from '@/lib/billing/trialPolicy'
 import {
   formatCreativeDirectionBlock,
   getOrComputeCreativeDirection,
@@ -85,12 +86,17 @@ export async function POST(req: Request) {
   const profileId = workspaceId
   const companyName = (profile.company_name as string | null) ?? 'your business'
   const modelEntry = resolveVideoModel(body.videoModelId)
-  const videoCost = videoCreditCost(modelEntry.id, profile.plan as string | null)
+  const onTrial = await isProfileOnTrial({
+    stripe_subscription_id: (profile.stripe_subscription_id as string | null) ?? null,
+  })
+  const videoCost = videoCreditCost(modelEntry.id, profile.plan as string | null, { onTrial })
   if (videoCost < 0) {
     return NextResponse.json(
       {
-        error: 'premium_plan_required',
-        message: 'Premium video models are available on ProAgent.',
+        error: onTrial ? 'premium_trial_blocked' : 'premium_plan_required',
+        message: onTrial
+          ? 'Premium video models unlock after your trial converts to a paid plan.'
+          : 'Premium video models are available on ProAgent.',
       },
       { status: 403 },
     )

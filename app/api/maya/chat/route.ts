@@ -233,7 +233,9 @@ Reference these specifics. Ask one focused question to learn more about their bu
       typeof formSurface === 'object' &&
       typeof formSurface.id === 'string' &&
       Array.isArray(formSurface.fields)
-        ? buildFormActuationSystemSection(formSurface as FormSurfaceSnapshot)
+        ? buildFormActuationSystemSection(formSurface as FormSurfaceSnapshot, {
+            foundationHub: (formSurface as FormSurfaceSnapshot).id === 'foundation-hub',
+          })
         : ''
 
     const foundationScore = (profile as { foundation_score?: number | null } | null)?.foundation_score ?? null

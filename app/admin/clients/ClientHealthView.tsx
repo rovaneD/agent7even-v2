@@ -6,7 +6,7 @@ import { buildAdminClientsListMayaContext } from '@/lib/maya/summaries/adminCont
 import { useRouter } from 'next/navigation'
 import {
   Users, AlertTriangle, TrendingUp, Activity,
-  ChevronUp, ChevronDown, MoreHorizontal, Eye, Bell, Mail, Zap, Ban,
+  ChevronUp, ChevronDown, MoreHorizontal, Eye, Bell, Mail, Zap, Ban, Trash2, X,
 } from 'lucide-react'
 import {
   clientHealthStatus,
@@ -82,6 +82,22 @@ function ScoreBar({ value, color }: { value: number | null; color: string }) {
   )
 }
 
+function Modal({ title, onClose, children, variant = 'default' }: {
+  title: string; onClose: () => void; children: React.ReactNode; variant?: 'default' | 'danger'
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className={`text-base font-semibold ${variant === 'danger' ? 'text-red-600' : 'text-gray-900'}`}>{title}</h2>
+          <button onClick={onClose} aria-label="Close" className="text-gray-300 hover:text-gray-500 transition-colors"><X size={18} /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export default function ClientHealthView() {
   const router = useRouter()
   const [tab, setTab] = useState<'all' | 'at_risk'>('all')
@@ -105,6 +121,11 @@ export default function ClientHealthView() {
   // Nudge state
   const [nudging, setNudging] = useState<string | null>(null)
   const [nudged, setNudged] = useState<Set<string>>(new Set())
+
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const load = useCallback(async (searchVal = search) => {
     setLoading(true)
@@ -179,6 +200,37 @@ export default function ClientHealthView() {
       body: JSON.stringify({ status: newStatus }),
     })
     setClients(prev => prev.map(c => c.id === clientId ? { ...c, status: newStatus } : c))
+  }
+
+  function openDeleteModal(client: Client, e: React.MouseEvent) {
+    e.stopPropagation()
+    setMenuOpen(null)
+    setDeleteError(null)
+    setDeleteTarget(client)
+  }
+
+  function closeDeleteModal() {
+    if (deleting) return
+    setDeleteTarget(null)
+    setDeleteError(null)
+  }
+
+  async function confirmDeleteAccount() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch(`/api/admin/clients/${deleteTarget.id}/delete`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setDeleteError(data.error || 'Delete failed')
+        return
+      }
+      setClients(prev => prev.filter(c => c.id !== deleteTarget.id))
+      setDeleteTarget(null)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function toggleSort(key: SortKey) {
@@ -480,6 +532,13 @@ export default function ClientHealthView() {
                           <Ban size={13} />
                           {client.status === 'suspended' ? 'Reactivate account' : 'Suspend account'}
                         </button>
+                        <button
+                          onClick={e => openDeleteModal(client, e)}
+                          className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 size={13} />
+                          Delete account
+                        </button>
                       </div>
                     )}
                   </td>
@@ -489,6 +548,40 @@ export default function ClientHealthView() {
           </table>
         )}
       </div>
+
+      {deleteTarget && (
+        <Modal title="Delete account?" onClose={closeDeleteModal} variant="danger">
+          <p className="text-sm text-gray-600 mb-4">
+            Permanently delete{' '}
+            <span className="font-medium text-gray-900">
+              {deleteTarget.email || deleteTarget.full_name || deleteTarget.id}
+            </span>
+            ? This removes their Supabase profile, Clerk login, connected integrations, and app data.
+          </p>
+          <p className="text-sm text-red-600 mb-4">This cannot be undone.</p>
+          {deleteError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-4">
+              {deleteError}
+            </p>
+          )}
+          <div className="flex gap-3">
+            <button
+              onClick={closeDeleteModal}
+              disabled={deleting}
+              className="flex-1 py-3 border border-gray-200 rounded-xl text-sm disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDeleteAccount}
+              disabled={deleting}
+              className="flex-1 py-3 bg-red-600 text-white rounded-xl text-sm font-medium disabled:opacity-50"
+            >
+              {deleting ? 'Deleting…' : 'Delete account'}
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

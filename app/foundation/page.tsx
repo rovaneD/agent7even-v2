@@ -1,23 +1,44 @@
 import { auth } from '@clerk/nextjs/server'
-import { getClerkUserSafe } from '@/lib/clerk/sessionUser'
+import { getClerkSessionEmail, getClerkUserSafe } from '@/lib/clerk/sessionUser'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import {
+  activateSubscriptionFromCheckoutSession,
+  recoverPaidSubscriptionForClerkUser,
+} from '@/lib/billing/activateCheckoutSession'
+import { ensurePaidSubscriptionForClerkUser, startTrialPath } from '@/lib/billing/subscriptionGate'
 import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
+import CheckoutSuccessWait from './CheckoutSuccessWait'
 import FoundationFlow from './FoundationFlow'
 
 export default async function FoundationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string }>
+  searchParams: Promise<{ plan?: string; checkout?: string; session_id?: string }>
 }) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const { plan } = await searchParams
+  const { plan, checkout, session_id: sessionId } = await searchParams
+  const email = await getClerkSessionEmail()
   const [user, supabase] = await Promise.all([
     getClerkUserSafe(),
     Promise.resolve(createServiceClient()),
   ])
+
+  if (checkout === 'success' && sessionId) {
+    await activateSubscriptionFromCheckoutSession(sessionId, userId)
+  } else if (checkout === 'success') {
+    await recoverPaidSubscriptionForClerkUser(userId, email)
+  }
+
+  const gate = await ensurePaidSubscriptionForClerkUser(supabase, userId, email)
+  if (!gate.ok && checkout === 'success') {
+    return <CheckoutSuccessWait plan={plan} sessionId={sessionId} />
+  }
+  if (!gate.ok) {
+    redirect(startTrialPath(plan))
+  }
 
   const { profile } = await ensureProfileForClerkUser(supabase, userId, user)
 

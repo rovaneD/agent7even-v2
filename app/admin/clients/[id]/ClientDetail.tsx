@@ -5,9 +5,10 @@ import { clientHealthStatus } from '@/lib/clientHealth'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildAdminClientDetailMayaContext } from '@/lib/maya/summaries/adminContext'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Building2, Globe, Hash, Calendar, Clock,
-  Mail, Bell, Zap, Shield, Ban, RefreshCw, AlertTriangle,
+  Mail, Bell, Zap, Shield, Ban, RefreshCw, AlertTriangle, Trash2,
   Activity, CreditCard, Users, BookOpen, MessageSquare,
   HelpCircle, Loader2, Send, X, DollarSign, Share2,
 } from 'lucide-react'
@@ -206,6 +207,7 @@ export default function ClientDetail({
   duplicateAccount: { id: string; full_name: string | null } | null
   workspaceContext: AdminWorkspaceContext
 }) {
+  const router = useRouter()
   const [profile, setProfile] = useState(initialProfile)
   const [tab, setTab] = useState<Tab>('activity')
 
@@ -223,6 +225,8 @@ export default function ClientDetail({
   const [showPlan, setShowPlan] = useState(false)
   const [showRole, setShowRole] = useState(false)
   const [showReset, setShowReset] = useState(false)
+  const [showDelete, setShowDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // Modal state
   const [emailSubject, setEmailSubject] = useState('')
@@ -400,6 +404,22 @@ export default function ClientDetail({
     setProfile(p => ({ ...p, foundation_complete: false, foundation_score: 0 }))
     setShowReset(false)
     showToast('Foundation reset')
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/admin/clients/${clientId}/delete`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(data.error || 'Delete failed')
+        return
+      }
+      router.push('/admin/clients')
+    } finally {
+      setDeleting(false)
+      setShowDelete(false)
+    }
   }
 
   async function handleAddNote() {
@@ -643,6 +663,9 @@ export default function ClientDetail({
                 variant={profile.status === 'suspended' ? 'default' : 'danger'}
               />
               <ActionBtn icon={<RefreshCw size={14} />} label="Reset Foundation" onClick={() => setShowReset(true)} variant="danger" />
+              {profile.role !== 'admin' && profile.role !== 'owner' && (
+                <ActionBtn icon={<Trash2 size={14} />} label="Delete account" onClick={() => setShowDelete(true)} variant="danger" />
+              )}
             </div>
           </div>
         </div>
@@ -1206,6 +1229,32 @@ export default function ClientDetail({
             <button onClick={() => setShowReset(false)} className="flex-1 py-3 border border-gray-200 rounded-xl text-sm">Cancel</button>
             <button onClick={handleResetFoundation} className="flex-1 py-3 bg-red-600 text-white rounded-xl text-sm font-medium">
               Reset Foundation
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {showDelete && (
+        <Modal title="Delete account?" onClose={() => !deleting && setShowDelete(false)} variant="danger">
+          <p className="text-sm text-gray-600 mb-4">
+            Permanently delete <span className="font-medium text-gray-900">{profile.email || profile.full_name || 'this client'}</span>?
+            This removes their Supabase profile, Clerk login, connected integrations, and app data.
+          </p>
+          <p className="text-sm text-red-600 mb-6">This cannot be undone.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowDelete(false)}
+              disabled={deleting}
+              className="flex-1 py-3 border border-gray-200 rounded-xl text-sm disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+              className="flex-1 py-3 bg-red-600 text-white rounded-xl text-sm font-medium disabled:opacity-50"
+            >
+              {deleting ? 'Deleting…' : 'Delete account'}
             </button>
           </div>
         </Modal>

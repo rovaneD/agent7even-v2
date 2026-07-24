@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { CANONICAL_SITE_URL } from '@/lib/siteUrls'
+import { FIRST_CHARGE_DAY, TRIAL_CARD_NOTE, TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 
 const AGENT7EVEN_COMPANY = /agent7even/i
 const AGENT7EVEN_SITE = /agent7even\.(ai|com)/i
@@ -33,13 +34,13 @@ function buildAgent7evenProductOfferBlock(): string {
   const signUpUrl = `${CANONICAL_SITE_URL}/sign-up`
 
   return `AGENT7EVEN PRODUCT OFFER (authoritative for this account — overrides Foundation SaaS guesses):
-- **Starter:** $49/mo ($490/yr) — **3-day free trial only** (card collected upfront; no charge until day 4). This is the only plan with a trial.
-- **Growth:** $89/mo ($890/yr) — no trial; charged immediately.
-- **ProAgent:** $149/mo ($1,490/yr) — no trial; charged immediately.
-- **Never claim:** 14-day (or any non-3-day) free trial, "free trial on Growth/ProAgent", invented onboarding calls, "Book a free call", or discount pricing unless task input explicitly provides approved promo terms.
+- **Starter:** $49/mo ($490/yr) — ${TRIAL_LABEL} (${TRIAL_CARD_NOTE.toLowerCase()}).
+- **Growth:** $89/mo ($890/yr) — ${TRIAL_LABEL} (${TRIAL_CARD_NOTE.toLowerCase()}).
+- **ProAgent:** $149/mo ($1,490/yr) — ${TRIAL_LABEL} (${TRIAL_CARD_NOTE.toLowerCase()}).
+- **Never claim:** 14-day trial, card-free trial, invented onboarding calls, "Book a free call", or discount pricing unless task input explicitly provides approved promo terms.
 - **CTA destination for trial/signup campaigns:** ${pricingUrl} (label: "Start your free trial"). Sign-up nav: ${signUpUrl}.
 - **Positioning tone:** OS-forward and approval-first. Agency-frustration angles are allowed when audience input calls for it, but do not use false offer terms to support the angle.
-- In **Offer Assumption**, cite the 3-day Starter trial and ${pricingUrl} — not a 14-day trial.`
+- In **Offer Assumption**, cite the ${TRIAL_LABEL.toLowerCase()}, day ${FIRST_CHARGE_DAY} billing, and ${pricingUrl}.`
 }
 
 /** Injected into Campaign Builder system prompts so offers match live product truth. */

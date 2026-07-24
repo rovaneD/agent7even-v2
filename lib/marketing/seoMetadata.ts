@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 import { CANONICAL_SITE_URL } from '@/lib/siteUrls'
 
 export function canonicalUrl(path: string): string {
@@ -73,7 +74,7 @@ export function marketingSiteStructureForSeo(): string {
     '/vs-scheduling-tools — AI marketing OS vs social scheduling tools',
     '/integrations — social, GA4, and email stack connections',
     '/agents — AI marketing features & agents (/features redirects here intentionally)',
-    '/pricing — plans from $49/mo Starter with 3-day trial',
+    `/pricing — plans from $49/mo with ${TRIAL_LABEL.toLowerCase()}`,
     '/use-cases — industry index (local service, ecommerce, coaches via /for-coaches, startups)',
     '/for-coaches — canonical coaches, creators & solo founders landing',
     '/for-consultants — SEO landing for consultants (not in primary nav; shares coaches-creators data)',

@@ -1,9 +1,11 @@
+import { FIRST_CHARGE_DAY, TRIAL_CARD_NOTE, TRIAL_LABEL } from '@/lib/billing/trialPolicy'
+
 export type HomepageFaqItem = { q: string; a: string }
 
 export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   {
     q: 'How much does AI marketing cost?',
-    a: 'Agent7even Starter is $49/month ($490/year) with a 3-day free trial — card collected upfront, no charge until day 4. Growth is $89/mo and ProAgent is $149/mo, billed immediately with no trial. Credits apply only to premium image and video generation; Maya chat and agent runs are unlimited on every plan.',
+    a: `Agent7even Starter is $49/month ($490/year), Growth is $89/mo, and ProAgent is $149/mo. Every plan includes a ${TRIAL_LABEL.toLowerCase()} — ${TRIAL_CARD_NOTE.toLowerCase()}. Credits apply only to premium image and video generation; Maya chat and agent runs are unlimited on every plan.`,
   },
   {
     q: 'Do I need marketing experience to use Maya?',
@@ -38,8 +40,8 @@ export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
     a: 'Social publishing supports Instagram, Facebook, LinkedIn, Threads, and YouTube when you connect accounts. X / Twitter connect requires Growth or ProAgent — Starter can still draft posts for any platform. Email sequences are drafted for you to paste into your ESP (Mailchimp, Klaviyo, etc.). Google Analytics connects for marketing intelligence reporting.',
   },
   {
-    q: 'What happens after the 3-day trial?',
-    a: 'Your card is collected at sign-up but not charged for the first 3 days. At the end of the trial, Starter billing begins at $49/month. You can cancel before day 4 and pay nothing.',
+    q: `What happens after the ${TRIAL_LABEL.toLowerCase()}?`,
+    a: `Your card is collected at checkout but not charged for the first ${FIRST_CHARGE_DAY - 1} days. On day ${FIRST_CHARGE_DAY}, billing begins at your plan rate unless you cancel from Billing first.`,
   },
   {
     q: 'Can I cancel anytime?',

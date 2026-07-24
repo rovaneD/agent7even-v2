@@ -25,17 +25,23 @@ export type FormPatchResult = {
 }
 
 const PATCH_FENCE = /```maya-form-patch\s*\n([\s\S]*?)\n```/i
+const PATCH_FENCE_START = /```maya-form-patch[\s\S]*$/i
+/** Unfenced patch JSON Maya sometimes emits without the code fence. */
+const UNFENCED_PATCH_JSON = /\{"fields"\s*:\s*\{[\s\S]*\}\s*\}\s*$/
+const UNFENCED_PATCH_START = /\{"fields"\s*:\s*\{[\s\S]*$/
 
-export function extractFormPatch(text: string): FormPatchResult {
-  const match = text.match(PATCH_FENCE)
-  if (!match) return { cleanText: text.trim(), patch: null }
+/** Remove form-patch blocks from chat display — including partial streams. */
+export function stripFormPatchForDisplay(text: string): string {
+  let out = text.replace(PATCH_FENCE, '')
+  out = out.replace(PATCH_FENCE_START, '')
+  out = out.replace(UNFENCED_PATCH_START, '')
+  return out.trim()
+}
 
-  const cleanText = text.replace(PATCH_FENCE, '').trim()
+function parsePatchFields(raw: string): Record<string, string> | null {
   try {
-    const parsed = JSON.parse(match[1].trim()) as { fields?: Record<string, unknown> }
-    if (!parsed.fields || typeof parsed.fields !== 'object') {
-      return { cleanText, patch: null }
-    }
+    const parsed = JSON.parse(raw.trim()) as { fields?: Record<string, unknown> }
+    if (!parsed.fields || typeof parsed.fields !== 'object') return null
     const patch: Record<string, string> = {}
     for (const [key, value] of Object.entries(parsed.fields)) {
       if (typeof value === 'string' && value.trim()) {
@@ -44,10 +50,28 @@ export function extractFormPatch(text: string): FormPatchResult {
         patch[key] = String(value)
       }
     }
-    return { cleanText, patch: Object.keys(patch).length ? patch : null }
+    return Object.keys(patch).length ? patch : null
   } catch {
-    return { cleanText, patch: null }
+    return null
   }
+}
+
+export function extractFormPatch(text: string): FormPatchResult {
+  const cleanText = stripFormPatchForDisplay(text)
+
+  const fenced = text.match(PATCH_FENCE)
+  if (fenced) {
+    const patch = parsePatchFields(fenced[1])
+    return { cleanText, patch }
+  }
+
+  const unfenced = text.match(UNFENCED_PATCH_JSON)
+  if (unfenced) {
+    const patch = parsePatchFields(unfenced[0])
+    return { cleanText, patch }
+  }
+
+  return { cleanText, patch: null }
 }
 
 export function validateFormPatch(
@@ -114,7 +138,10 @@ export function validateFormPatch(
   return { patch: valid, errors }
 }
 
-export function buildFormActuationSystemSection(snapshot: FormSurfaceSnapshot): string {
+export function buildFormActuationSystemSection(
+  snapshot: FormSurfaceSnapshot,
+  options?: { foundationHub?: boolean },
+): string {
   const fieldLines = snapshot.fields.map(field => {
     const value = field.value.trim()
     const current = value ? `current="${value.replace(/"/g, "'")}"` : 'empty'
@@ -132,23 +159,31 @@ export function buildFormActuationSystemSection(snapshot: FormSurfaceSnapshot): 
 For websiteUrl: use this exact domain/URL. Never substitute a different TLD (e.g. do not change .ai to .com). Leave websiteUrl out of the patch if the form already shows this URL.`
     : ''
 
-  return `
-FORM ACTUATION — open form on screen:
+  const intro = options?.foundationHub
+    ? `FORM ACTUATION — Foundation Hub (user is on the Intelligence overview):
+Form: ${snapshot.label} (id: ${snapshot.id})
+Editable Foundation fields from sections that need attention:
+`
+    : `FORM ACTUATION — open form on screen:
 Form: ${snapshot.label} (id: ${snapshot.id})
 Fields:
-${fieldLines.join('\n')}${canonicalLine}
+`
 
-When the user asks to fill, pre-fill, or complete this form (especially from Foundation):
+  return `
+${intro}${fieldLines.join('\n')}${canonicalLine}
+
+When the user asks to fill, improve, or update Foundation answers (especially for weak sections):
 1. Give a brief plain-text reply (1-3 sentences). Do NOT say you already applied changes.
-2. Propose values only for empty fields or fields they explicitly asked to change.
-3. End your reply with this exact fenced block (valid JSON only):
+2. Never tell them to copy-paste into a field manually or click Save changes — Apply saves automatically.
+3. Propose values only for empty fields, weak fields they asked about, or fields they explicitly asked to change.
+4. End your reply with this exact fenced block (valid JSON only):
 
 \`\`\`maya-form-patch
 {"fields":{"fieldKey":"proposed value"}}
 \`\`\`
 
 Rules: only use keys listed above; plain text values; for select fields use an exact option value.
-If the user is not asking to fill the form, do not include the block.`
+If the user is not asking to fill or update Foundation fields, do not include the block.`
 }
 
 export function diffFormPatch(

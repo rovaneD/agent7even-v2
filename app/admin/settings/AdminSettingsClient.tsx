@@ -263,7 +263,7 @@ function NotificationsSection({ initialEmail, initialLimit }: {
             className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6]/20"
           />
           <p className="text-xs text-gray-400 mt-1.5">
-            Receives new order, support ticket, and qualified lead emails.
+            Receives new signup, order, support ticket, and qualified lead emails.
           </p>
         </div>
 

@@ -13,8 +13,12 @@ export default function AuthSignUpForm({ redirectUrl }: Props) {
   const searchParams = useSearchParams()
   const inviteToken = searchParams.get('invite_token')
   const plan = searchParams.get('plan')
+  const annual = searchParams.get('annual') === 'true'
   const trackedPageView = useRef(false)
-  const resolvedRedirect = inviteToken ? '/dashboard?team_joined=true' : redirectUrl
+  const checkoutRedirect = plan
+    ? `/checkout-now?plan=${encodeURIComponent(plan)}${annual ? '&annual=true' : ''}`
+    : '/start-trial'
+  const resolvedRedirect = inviteToken ? '/dashboard?team_joined=true' : checkoutRedirect
 
   useEffect(() => {
     if (trackedPageView.current) return

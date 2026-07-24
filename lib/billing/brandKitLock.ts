@@ -1,27 +1,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { isProfileOnStarterTrial } from '@/lib/ai/toolkitPlanLimits'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
-
-export const BRAND_KIT_TRIAL_LOCKED = 'BRAND_KIT_TRIAL_LOCKED'
 
 /**
- * Product rule: Brand Kit is locked during the Starter free trial.
- * The lock previously existed only as UI copy — every server surface that
- * reads or generates Brand Kit material must check this.
+ * Brand Kit is unlocked during trial (trial v2, July 2026).
+ * Kept for API compatibility — always returns false.
  */
-export async function isBrandKitLockedForClerkUser(
-  supabase: SupabaseClient,
-  clerkUserId: string,
-): Promise<boolean> {
-  const profile = await resolveClerkProfile<{
-    id: string
-    plan: string | null
-    status: string | null
-    stripe_customer_id: string | null
-    stripe_subscription_id: string | null
-    created_at: string
-  }>(supabase, clerkUserId, 'id, plan, stripe_subscription_id')
+export const BRAND_KIT_TRIAL_LOCKED = 'BRAND_KIT_TRIAL_LOCKED'
 
-  if (!profile) return false
-  return isProfileOnStarterTrial(profile)
+export async function isBrandKitLockedForClerkUser(
+  _supabaseOrClerkUserId: SupabaseClient | string,
+  clerkUserId?: string,
+): Promise<boolean> {
+  void (_supabaseOrClerkUserId && clerkUserId)
+  return false
 }

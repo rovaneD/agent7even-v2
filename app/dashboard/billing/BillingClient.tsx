@@ -5,6 +5,7 @@ import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildBillingMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import { useSearchParams } from 'next/navigation'
 import { Check, ExternalLink, Zap, TrendingUp, Star, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 import CreditTopUp from '@/components/billing/CreditTopUp'
 import CreditsUsage from '@/components/billing/CreditsUsage'
 import type { CreditsUsageData } from '@/components/billing/CreditsUsage'
@@ -53,7 +54,7 @@ const PLANS = {
     icon: TrendingUp,
     monthlyPrice: 89,
     annualPrice: 890,
-    trial: false,
+    trial: true,
     highlight: 'Everything in Starter, plus:',
     features: [
       'Everything in Starter',
@@ -71,7 +72,7 @@ const PLANS = {
     icon: Star,
     monthlyPrice: 149,
     annualPrice: 1490,
-    trial: false,
+    trial: true,
     highlight: 'Everything in Growth, plus:',
     features: [
       'Everything in Growth',
@@ -127,21 +128,27 @@ function BillingInner({ plan, status, billingExempt = false, subscriptionId, inv
   )
   useMayaContext(mayaContext)
 
-  async function handleUpgrade(targetPlan: string) {
+  async function handleUpgrade(targetPlan: string, confirmPlanChange = false) {
     setUpgradeLoading(targetPlan)
     setUpgradeError(null)
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: targetPlan, annual: billingAnnual }),
+        body: JSON.stringify({ plan: targetPlan, annual: billingAnnual, confirmPlanChange }),
       })
 
-      let data: { url?: string; error?: string } = {}
+      let data: { url?: string; error?: string; requiresConfirmation?: boolean; message?: string } = {}
       try {
         data = await res.json()
       } catch {
         setUpgradeError('Unexpected server response. Please try again.')
+        return
+      }
+
+      if (data.requiresConfirmation && !confirmPlanChange) {
+        const ok = window.confirm(data.message ?? 'Confirm plan change?')
+        if (ok) return handleUpgrade(targetPlan, true)
         return
       }
 
@@ -376,7 +383,7 @@ function BillingInner({ plan, status, billingExempt = false, subscriptionId, inv
                     <span className="text-sm font-semibold text-text">{p.name}</span>
                     {p.trial && (
                       <span className="ml-auto text-[10px] font-semibold text-status-success bg-status-success/10 px-2 py-0.5 rounded-full">
-                        3-day trial
+                        {TRIAL_LABEL}
                       </span>
                     )}
                   </div>

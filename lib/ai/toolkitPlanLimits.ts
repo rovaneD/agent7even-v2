@@ -1,14 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { TRIAL_TOOLKIT_RUNS } from '@/lib/billing/trialPolicy'
+import { isProfileOnTrial } from '@/lib/billing/trialPolicy'
 
-/** Total AI Toolkit runs allowed during Starter free trial (not per month). */
-export const TRIAL_TOOLKIT_LIMIT = 5
+export { TRIAL_TOOLKIT_RUNS }
+export { isProfileOnTrial, isProfileOnStarterTrial } from '@/lib/billing/trialPolicy'
 
 export type ToolkitPlanLimits = {
   onTrial: boolean
   unlimited: boolean
-  /** Runs consumed toward the current limit window. */
   runsUsed: number
-  /** Max runs in the current window (trial total or Starter monthly). */
   runLimit: number
   runsRemaining: number
   starterMonthlyLimit: number
@@ -24,27 +24,13 @@ export async function getStarterMonthlyLimit(supabase: SupabaseClient): Promise<
   return (data?.value as number) ?? 15
 }
 
-export async function isProfileOnStarterTrial(
-  profile: { plan: string | null; stripe_subscription_id: string | null },
-): Promise<boolean> {
-  if (profile.plan !== 'starter' || !profile.stripe_subscription_id) return false
-  try {
-    const { getStripeClient } = await import('@/lib/stripe')
-    const stripe = getStripeClient()
-    if (!stripe) return false
-    const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
-    return subscription.status === 'trialing'
-  } catch {
-    return false
-  }
-}
-
 export async function getToolkitPlanLimits(
   supabase: SupabaseClient,
   profile: { id: string; plan: string | null; stripe_subscription_id: string | null },
 ): Promise<ToolkitPlanLimits> {
   const plan = profile.plan
-  const unlimited = plan === 'growth' || plan === 'proagent'
+  const onTrial = await isProfileOnTrial(profile)
+  const unlimited = !onTrial && (plan === 'growth' || plan === 'proagent')
 
   const { count: totalRunsAllTime } = await supabase
     .from('ai_tool_usage')
@@ -62,7 +48,19 @@ export async function getToolkitPlanLimits(
     .gte('created_at', startOfMonth.toISOString())
 
   const starterMonthlyLimit = await getStarterMonthlyLimit(supabase)
-  const onTrial = await isProfileOnStarterTrial(profile)
+
+  if (onTrial) {
+    const used = totalRunsAllTime ?? 0
+    return {
+      onTrial: true,
+      unlimited: false,
+      runsUsed: used,
+      runLimit: TRIAL_TOOLKIT_RUNS,
+      runsRemaining: Math.max(0, TRIAL_TOOLKIT_RUNS - used),
+      starterMonthlyLimit,
+      totalRunsAllTime: used,
+    }
+  }
 
   if (unlimited) {
     return {
@@ -73,19 +71,6 @@ export async function getToolkitPlanLimits(
       runsRemaining: Infinity,
       starterMonthlyLimit,
       totalRunsAllTime: totalRunsAllTime ?? 0,
-    }
-  }
-
-  if (onTrial) {
-    const used = totalRunsAllTime ?? 0
-    return {
-      onTrial: true,
-      unlimited: false,
-      runsUsed: used,
-      runLimit: TRIAL_TOOLKIT_LIMIT,
-      runsRemaining: Math.max(0, TRIAL_TOOLKIT_LIMIT - used),
-      starterMonthlyLimit,
-      totalRunsAllTime: used,
     }
   }
 

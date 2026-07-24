@@ -5,6 +5,7 @@ import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 import { CreativeDirectionSchema } from '@/lib/agents/foundationCreativeDirection/types'
 import { normalizeCompetitorSlots } from '@/lib/foundation/competitorsArray'
+import { computeOverallFoundationScore } from '@/lib/foundation/sections'
 import FoundationEditor from './FoundationEditor'
 import FoundationHub from './FoundationHub'
 
@@ -87,6 +88,14 @@ export default async function FoundationPage() {
     (fieldScores ?? []).map(r => [r.field_key, { score: r.score, feedback: r.feedback }])
   )
 
+  const derivedScore = computeOverallFoundationScore(fieldScoreMap)
+  const displayScore =
+    profile.foundation_score != null && profile.foundation_score > 0
+      ? profile.foundation_score
+      : derivedScore > 0
+        ? derivedScore
+        : profile.foundation_score ?? 0
+
   if (FOUNDATION_V2) {
     const toArray = (v: unknown): string[] => {
       if (Array.isArray(v)) return v as string[]
@@ -129,7 +138,7 @@ export default async function FoundationPage() {
         websiteUrl={profile.website_url ?? null}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         answers={hubAnswers as any}
-        score={profile.foundation_score ?? 0}
+        score={displayScore}
         fieldScores={fieldScoreMap}
         lastUpdated={profile.foundation_updated_at ?? null}
         answersPreviousAt={profile.foundation_answers_previous_at ?? null}
@@ -148,7 +157,7 @@ export default async function FoundationPage() {
       profileId={profile.id}
       companyName={profile.company_name ?? ''}
       initialAnswers={initialAnswers}
-      initialScore={profile.foundation_score ?? 0}
+      initialScore={displayScore}
       initialFieldScores={fieldScoreMap}
       foundationComplete={profile.foundation_complete ?? false}
       lastUpdated={profile.foundation_updated_at ?? null}

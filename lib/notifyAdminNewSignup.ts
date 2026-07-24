@@ -1,7 +1,22 @@
+import { logActivity } from '@/lib/activity'
 import { createNotification } from '@/lib/createNotification'
 import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { createServiceClient } from '@/lib/supabase/server'
+
+const SIGNUP_NOTIFY_EVENT = 'admin_signup_notified'
+
+async function adminSignupAlreadyNotified(profileId: string): Promise<boolean> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('client_activity_log')
+    .select('id')
+    .eq('user_id', profileId)
+    .eq('event_type', SIGNUP_NOTIFY_EVENT)
+    .limit(1)
+    .maybeSingle()
+  return Boolean(data)
+}
 
 /** Email + in-app notify platform admins when a new Clerk user gets a profile. */
 export async function notifyAdminNewSignup(opts: {
@@ -52,4 +67,21 @@ export async function notifyAdminNewSignup(opts: {
       })
     )
   )
+}
+
+/** Idempotent — safe from Clerk webhook and ensureProfile on the same signup. */
+export async function notifyAdminNewSignupOnce(opts: {
+  profileId: string
+  email: string
+  fullName?: string
+  joinedViaTeamInvite?: boolean
+}) {
+  if (await adminSignupAlreadyNotified(opts.profileId)) return
+
+  await notifyAdminNewSignup(opts)
+
+  await logActivity(opts.profileId, SIGNUP_NOTIFY_EVENT, {
+    email: opts.email,
+    joinedViaTeamInvite: opts.joinedViaTeamInvite ?? false,
+  }).catch(err => console.error('Admin signup notify marker failed:', err))
 }

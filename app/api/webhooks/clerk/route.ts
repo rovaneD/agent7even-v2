@@ -7,7 +7,7 @@ import { welcomeEmailHtml, welcomeEmailText } from '@/emails/welcome'
 import { getResendClient } from '@/lib/resend'
 import { transactionalFromAddress } from '@/lib/email/transactionalTemplate'
 import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
-import { notifyAdminNewSignup } from '@/lib/notifyAdminNewSignup'
+import { notifyAdminNewSignupOnce } from '@/lib/notifyAdminNewSignup'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
       }
 
       try {
-        await notifyAdminNewSignup({
+        await notifyAdminNewSignupOnce({
           profileId: newProfile.id,
           email,
           fullName,

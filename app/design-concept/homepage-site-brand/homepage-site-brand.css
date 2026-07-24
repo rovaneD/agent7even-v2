@@ -1,0 +1,34 @@
+/* Ported from Claude Design project d696db1f-b465-48cb-b623-12907bb16316
+   file "Homepage Site Brand.dc.html" — scroll-driven Maya story + footer. */
+
+.homepage-site-brand {
+  margin: 0;
+  background: #ffffff;
+  color: #1a1917;
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+.homepage-site-brand a {
+  color: #1a1917;
+  text-decoration: none;
+}
+
+.homepage-site-brand a:hover {
+  color: #f5349b;
+}
+
+.homepage-site-brand .hsb-cta:hover {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+@keyframes a7blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}

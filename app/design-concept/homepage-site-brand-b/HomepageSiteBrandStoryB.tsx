@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import MayaOrb from '@/components/maya/MayaOrb'
+import { FIRST_CHARGE_DAY, TRIAL_CARD_NOTE, TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 import { trackEvent } from '@/lib/gtag'
 import { HOMEPAGE_FAQ_ITEMS } from '@/lib/marketing/homepageFaq'
 import MarketingNav from '../../lab5/MarketingNav'
@@ -295,10 +296,10 @@ function HeroCopy() {
       </Link>
       <div className="hsb-b-trust">
         <span>
-          <span className="hsb-b-check">✓</span> 3-day free trial
+          <span className="hsb-b-check">✓</span> {TRIAL_LABEL}
         </span>
         <span>Cancel anytime</span>
-        <span>No charge until day 4</span>
+        <span>No charge until day {FIRST_CHARGE_DAY}</span>
       </div>
     </>
   )
@@ -1047,7 +1048,7 @@ export default function HomepageSiteBrandStoryB() {
             <a className="btn btn-dark-ghost btn-lg" href="/pricing"
               onClick={() => trackEvent('cta_click', { cta: 'see_plans', location: 'footer_cta_variant_b' })}>See plans →</a>
           </div>
-          <p className="cta-note">3-day free trial. No charge until day 4.</p>
+          <p className="cta-note">{TRIAL_LABEL}. {TRIAL_CARD_NOTE}.</p>
         </div>
       </div>
 

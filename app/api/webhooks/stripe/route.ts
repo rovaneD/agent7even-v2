@@ -1,36 +1,18 @@
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
+import {
+  isPaidPlanKey,
+  TRIAL_MEDIA_CREDITS,
+  trialEndingNotificationBody,
+} from '@/lib/billing/trialPolicy'
+import { allocateTrialCredits, grantPaidPlanAllowanceAfterTrial } from '@/lib/billing/trialCredits'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
-import { allocatePlanCredits, PLAN_CREDITS } from '@/lib/credits'
+import { PLAN_CREDITS } from '@/lib/credits'
 import { createNotification } from '@/lib/createNotification'
 import { getStripeClient, sanitizeSecretEnvValue } from '@/lib/stripe'
+import { getPlanFromSubscription } from '@/lib/stripe/planFromPrice'
 import { collectZernioProfileIds, disconnectAllZernioProfiles } from '@/lib/social/zernioProfileIds'
-
-function getPlanFromPriceId(priceId: string): string | null {
-  const map: Record<string, string> = {
-    [process.env.STRIPE_STARTER_MONTHLY_PRICE_ID!]: 'starter',
-    [process.env.STRIPE_STARTER_ANNUAL_PRICE_ID!]: 'starter',
-    [process.env.STRIPE_GROWTH_MONTHLY_PRICE_ID!]: 'growth',
-    [process.env.STRIPE_GROWTH_ANNUAL_PRICE_ID!]: 'growth',
-    [process.env.STRIPE_PROAGENT_MONTHLY_PRICE_ID!]: 'proagent',
-    [process.env.STRIPE_PROAGENT_ANNUAL_PRICE_ID!]: 'proagent',
-  }
-  return map[priceId] ?? null
-}
-
-/**
- * Scan every line item for a known plan price — after a seat add-on the
- * subscription has two items and their order is not guaranteed, so reading
- * items.data[0] can hit the $15 seat price and miss the plan.
- */
-function getPlanFromSubscription(subscription: Stripe.Subscription): string | null {
-  for (const item of subscription.items.data) {
-    const plan = getPlanFromPriceId(item.price.id)
-    if (plan) return plan
-  }
-  return null
-}
 
 /**
  * Map Stripe's subscription status to the profile status field. Hardcoding
@@ -177,19 +159,21 @@ export async function POST(req: Request) {
           .eq('user_id', newProfile.id)
           .eq('is_active', false)
 
-        const creditsGranted = await allocatePlanCredits(newProfile.id, plan, {
-          skipIfAllocated: true,
-          description: `Plan activation — ${plan} plan`,
-        })
+        const isTrialing = subscription.status === 'trialing'
+        const creditsGranted = isTrialing
+          ? await allocateTrialCredits(newProfile.id)
+          : await grantPaidPlanAllowanceAfterTrial(newProfile.id, plan)
 
         await createNotification({
           userId: newProfile.id,
           title: 'Welcome to Agent7even!',
           body: creditsGranted != null
-            ? `Your ${plan} plan is active with ${PLAN_CREDITS[plan]} credits ready to use.`
+            ? isTrialing
+              ? `Your ${plan} trial is active with ${TRIAL_MEDIA_CREDITS} media credits to explore.`
+              : `Your ${plan} plan is active with ${PLAN_CREDITS[plan]} credits ready to use.`
             : `Your ${plan} plan is now active. You have full access to your dashboard.`,
           type: 'plan_activated',
-          link: '/dashboard',
+          link: '/foundation',
           sendEmail: false,
         })
       }
@@ -199,27 +183,32 @@ export async function POST(req: Request) {
   // ── customer.subscription.updated ──────────────────────────────────────────
   if (event.type === 'customer.subscription.updated') {
     const subscription = event.data.object as Stripe.Subscription
+    const previous = event.data.previous_attributes as Partial<Stripe.Subscription> | undefined
 
     const clerkUserId = subscription.metadata?.clerk_user_id
     const plan = getPlanFromSubscription(subscription)
     const status = profileStatusFromSubscription(subscription)
 
+    let profileId: string | undefined
+
     if (plan) {
       const update: Record<string, unknown> = { plan, updated_at: new Date().toISOString() }
       if (status) update.status = status
 
-      // Prefer updating the exact row already linked to this subscription.
       const { data: linkedProfile } = await supabase
         .from('profiles')
         .select('id')
         .eq('stripe_subscription_id', subscription.id)
         .maybeSingle()
 
+      profileId = linkedProfile?.id
+
       if (linkedProfile?.id) {
         const { error } = await supabase.from('profiles').update(update).eq('id', linkedProfile.id)
         if (error) console.error('Supabase update error (subscription.updated):', error)
       } else if (clerkUserId) {
         const canonical = await resolveClerkProfile(supabase, clerkUserId, 'id')
+        profileId = canonical?.id
         const { error } = await supabase
           .from('profiles')
           .update(update)
@@ -227,12 +216,19 @@ export async function POST(req: Request) {
         if (error) console.error('Supabase update error (subscription.updated):', error)
       }
     }
+
+    if (
+      profileId &&
+      plan &&
+      previous?.status === 'trialing' &&
+      subscription.status === 'active'
+    ) {
+      await grantPaidPlanAllowanceAfterTrial(profileId, plan)
+    }
   }
 
   // ── customer.subscription.trial_will_end ────────────────────────────────────
-  // Stripe fires this ~3 days before trial end (immediately for shorter trials,
-  // e.g. our 3-day Starter trial). The schema has had a trial_ending type from
-  // day one — this is the first thing that actually sends it.
+  // Stripe fires ~3 days before trial end (or immediately for short trials).
   if (event.type === 'customer.subscription.trial_will_end') {
     const subscription = event.data.object as Stripe.Subscription
     const clerkUserId = subscription.metadata?.clerk_user_id
@@ -254,10 +250,15 @@ export async function POST(req: Request) {
       const endsLabel = endsAt.toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC',
       })
+      const planKey = getPlanFromSubscription(subscription)
+      const body =
+        planKey && isPaidPlanKey(planKey)
+          ? trialEndingNotificationBody(planKey, endsLabel)
+          : `Your trial ends on ${endsLabel}. Your card will be charged on day 8 unless you cancel from Billing first.`
       await createNotification({
         userId: profileId,
         title: 'Your free trial is ending soon',
-        body: `Your Starter trial ends on ${endsLabel}. Your card will be charged then and full Starter limits unlock — or cancel anytime before from Billing.`,
+        body,
         type: 'trial_ending',
         link: '/dashboard/billing',
         sendEmail: true,

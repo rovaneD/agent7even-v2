@@ -99,3 +99,23 @@ export function formatStripeCheckoutError(err: unknown): string {
   if (err instanceof Error && err.message) return err.message
   return 'Could not start checkout. Please try again.'
 }
+
+/** Match Stripe return URLs to the browser origin in local dev (e.g. port 3002). */
+export function resolveCheckoutAppUrl(req: Request): string {
+  const configured = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.agent7even.ai').replace(/\/$/, '')
+  if (process.env.NODE_ENV === 'production') return configured
+
+  for (const header of [req.headers.get('origin'), req.headers.get('referer')]) {
+    if (!header) continue
+    try {
+      const url = new URL(header)
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        return url.origin
+      }
+    } catch {
+      /* ignore malformed header */
+    }
+  }
+
+  return configured
+}

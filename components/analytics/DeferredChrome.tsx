@@ -20,7 +20,16 @@ const Analytics = dynamic(
 // The cookie banner and the GA marketing tag belong to the public marketing
 // site — never inside the signed-in product. Vercel Analytics stays sitewide
 // (cookieless, powers product trackEvent calls).
-const IN_APP_PREFIXES = ['/dashboard', '/admin', '/foundation', '/maya', '/sign-in', '/sign-up']
+const IN_APP_PREFIXES = [
+  '/dashboard',
+  '/admin',
+  '/foundation',
+  '/maya',
+  '/sign-in',
+  '/sign-up',
+  '/start-trial',
+  '/checkout-now',
+]
 
 export default function DeferredChrome() {
   const pathname = usePathname()

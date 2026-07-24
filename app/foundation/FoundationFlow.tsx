@@ -4,13 +4,37 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, ArrowLeft, Loader2, Check, AlertCircle, Globe } from 'lucide-react'
 import type { FoundationSuggestions } from '@/lib/research/exa'
+import type { SiteSnapshot } from '@/lib/foundation/siteSnapshot'
+import { normalizeBusinessType, type OnboardingBusinessTypeId } from '@/lib/foundation/onboardingBusinessTypes'
+import FoundationOnboardConfirm from './components/FoundationOnboardConfirm'
 import {
   ANNUAL_REVENUE_BUCKETS,
   EMPLOYEE_COUNT_BUCKETS,
 } from '@/lib/profile/businessSizing'
+import {
+  BUDGET_OPTIONS,
+  CHANNEL_OPTIONS,
+  DIFFERENTIATOR_OPTIONS,
+  GOAL_OPTIONS,
+  TONE_OPTIONS,
+} from '@/lib/foundation/onboardingOptions'
 
-type GenerationStage = 'scoring' | 'generating'
+export {
+  BUDGET_OPTIONS,
+  CHANNEL_OPTIONS,
+  DIFFERENTIATOR_OPTIONS,
+  GOAL_OPTIONS,
+  TONE_OPTIONS,
+} from '@/lib/foundation/onboardingOptions'
+
+type GenerationStage = 'scoring' | 'generating' | 'completing'
 type PrefillPhase = 'input' | 'loading' | 'confirm' | 'done' | 'skipped'
+
+type OnboardChecklistItem = {
+  id: string
+  label: string
+  ready: boolean
+}
 
 interface FieldScore {
   score: number
@@ -94,39 +118,6 @@ const STEP_TITLES = [
   'Your 30 Days',
 ]
 
-export const DIFFERENTIATOR_OPTIONS = [
-  'Better quality',
-  'Faster results',
-  'More personal',
-  'Lower price',
-  'Specialized for one type of customer',
-  'Something completely different',
-]
-
-export const TONE_OPTIONS = [
-  'Professional', 'Casual', 'Bold', 'Gentle',
-  'Expert', 'Peer', 'Serious', 'Playful',
-  'Warm', 'Direct', 'Inspiring', 'Grounded',
-]
-
-export const CHANNEL_OPTIONS = [
-  'Instagram', 'Email', 'Website', 'TikTok',
-  'Google', 'LinkedIn', 'Facebook', 'YouTube',
-]
-
-export const BUDGET_OPTIONS = [
-  'Under $200/mo', '$200–$500/mo', '$500–$1,500/mo',
-  '$1,500–$5,000/mo', '$5,000+/mo',
-]
-
-export const GOAL_OPTIONS = [
-  'Get my first 10 customers',
-  'Launch a product or service',
-  'Build my audience from zero',
-  'Drive traffic to my website',
-  'Get more reviews and social proof',
-]
-
 const ALL_DOCS = ['Business brief', 'Ideal customer profile', 'Positioning statement', 'Brand voice guide', '30-day plan']
 const DOC_LABEL_BY_TYPE: Record<string, string> = {
   brief: 'Business brief',
@@ -135,8 +126,6 @@ const DOC_LABEL_BY_TYPE: Record<string, string> = {
   voice: 'Brand voice guide',
   plan: '30-day plan',
 }
-
-const EXA_PREFILL_ENABLED = process.env.NEXT_PUBLIC_EXA_PREFILL_ENABLED === 'true'
 
 const EMPTY_ANSWERS: StepAnswers = {
   businessDescription: '',
@@ -207,12 +196,19 @@ export default function FoundationFlow({ profileId, companyName, initialStep, in
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [answers, setAnswers] = useState<StepAnswers>(() => hydrateAnswers(initialAnswers))
 
-  // Pre-fill state — only for brand-new users (step 0, no saved draft) when the flag is on.
-  const showPrefill = EXA_PREFILL_ENABLED && initialStep === 0 && !hasDraftContent(initialAnswers)
+  // Website-first onboarding for brand-new users (step 0, no saved draft).
+  const showPrefill = initialStep === 0 && !hasDraftContent(initialAnswers)
   const [prefillPhase, setPrefillPhase] = useState<PrefillPhase>(showPrefill ? 'input' : 'skipped')
   const [websiteInput, setWebsiteInput] = useState('')
-  const [businessNameInput, setBusinessNameInput] = useState('')
+  const [businessNameInput, setBusinessNameInput] = useState(companyName || '')
   const [prefillSuggestions, setPrefillSuggestions] = useState<FoundationSuggestions | null>(null)
+  const [onboardChecklist, setOnboardChecklist] = useState<OnboardChecklistItem[]>([])
+  const [onboardHostname, setOnboardHostname] = useState('')
+  const [onboardSiteSnapshot, setOnboardSiteSnapshot] = useState<SiteSnapshot | null>(null)
+  const [onboardBusinessType, setOnboardBusinessType] = useState<OnboardingBusinessTypeId | null>(null)
+  const [onboardRawAnswers, setOnboardRawAnswers] = useState<Record<string, unknown> | null>(null)
+  const [prefillError, setPrefillError] = useState<string | null>(null)
+  const [confirmSaving, setConfirmSaving] = useState(false)
 
   function isSuggested(field: keyof FoundationSuggestions): boolean {
     const val = prefillSuggestions?.[field]
@@ -280,7 +276,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep, in
       throw new Error(data.error || 'Your Foundation could not be generated. Please try again.')
     }
     setGenerationProgress(ALL_DOCS)
-    router.push(selectedPlan ? `/checkout-now?plan=${encodeURIComponent(selectedPlan)}` : '/pricing?foundation=complete')
+    router.push('/dashboard?foundation=complete')
   }
 
   async function handleGenerate() {
@@ -295,6 +291,10 @@ export default function FoundationFlow({ profileId, companyName, initialStep, in
         body: JSON.stringify({ answers }),
       })
       const scoreData = await scoreRes.json()
+
+      if (!scoreRes.ok || typeof scoreData.overallScore !== 'number') {
+        throw new Error(scoreData.error || 'Could not score your foundation answers. Please try again.')
+      }
 
       if (scoreData.overallScore < 50) {
         setFoundationScore(scoreData.overallScore)
@@ -329,72 +329,96 @@ export default function FoundationFlow({ profileId, companyName, initialStep, in
   // ── Pre-fill handlers ─────────────────────────────────────────────────────
 
   async function handlePrefillSubmit() {
-    if (!websiteInput.trim() && !businessNameInput.trim()) return
+    if (!websiteInput.trim()) return
 
-    // Path B: no website URL — skip straight to the manual 5-step flow.
-    if (!websiteInput.trim()) {
-      setPrefillPhase('skipped')
-      return
-    }
-
+    setPrefillError(null)
     setPrefillPhase('loading')
 
-    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000))
+    try {
+      const res = await fetch('/api/foundation/onboard-from-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          website: websiteInput.trim(),
+          businessName: businessNameInput.trim() || companyName || undefined,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
 
-    const fetchResearch = fetch('/api/foundation/research', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        website: websiteInput.trim(),
-        businessName: businessNameInput.trim() || undefined,
-      }),
-    })
-      .then(r => r.json())
-      .catch(() => null)
-
-    const result = await Promise.race([fetchResearch, timeout])
-
-    if (!result || !result.prefilled || !result.research?.suggestions) {
-      setPrefillPhase('skipped')
-      return
-    }
-
-    const suggestions: FoundationSuggestions = result.research.suggestions
-
-    // Apply suggestions to answers for eligible fields.
-    setAnswers(prev => {
-      const updated = { ...prev }
-      if (suggestions.businessDescription) updated.businessDescription = suggestions.businessDescription
-      if (suggestions.problemSolved)       updated.problemSolved = suggestions.problemSolved
-      if (suggestions.transformation)      updated.transformation = suggestions.transformation ?? ''
-      if (suggestions.customerWho)         updated.customerWho = suggestions.customerWho
-      if (suggestions.differentiatorOwn)   updated.differentiatorOwn = suggestions.differentiatorOwn ?? ''
-      if (suggestions.competitors?.length) {
-        const filled = suggestions.competitors.slice(0, 3)
-        const padded = [...filled, ...['', '', '']].slice(0, 3)
-        updated.competitors = padded
+      if (!res.ok || !data.ok || !data.answers) {
+        setPrefillError(
+          data.reason === 'read_failed'
+            ? 'We could not read that website. Check the URL or fill in your Foundation manually.'
+            : data.reason === 'invalid_url'
+              ? 'Enter a valid website URL (include https://).'
+              : 'We could not build your Foundation from that site. Try again or fill it in manually.',
+        )
+        setPrefillPhase('input')
+        return
       }
-      return updated
-    })
 
-    setPrefillSuggestions(suggestions)
-    setPrefillPhase('confirm')
+      setAnswers(hydrateAnswers(data.answers as Record<string, unknown>))
+      setOnboardRawAnswers(data.answers as Record<string, unknown>)
+      setOnboardChecklist(Array.isArray(data.checklist) ? data.checklist : [])
+      setOnboardHostname(typeof data.hostname === 'string' ? data.hostname : websiteInput.trim())
+      setOnboardSiteSnapshot((data.siteSnapshot as SiteSnapshot | null) ?? null)
+      setOnboardBusinessType(normalizeBusinessType(data.businessType))
+      if (typeof data.websiteUrl === 'string') setWebsiteInput(data.websiteUrl)
+      if (typeof data.siteTitle === 'string' && data.siteTitle.trim() && !businessNameInput.trim()) {
+        setBusinessNameInput(data.siteTitle.trim())
+      }
+      setPrefillSuggestions(null)
+      setPrefillPhase('confirm')
+    } catch {
+      setPrefillError('Something went wrong. Please try again.')
+      setPrefillPhase('input')
+    }
   }
 
   function handleSkipPrefill() {
     setPrefillPhase('skipped')
   }
 
-  async function handleConfirmAndDashboard() {
-    await fetch('/api/foundation/save-exa-confirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers }),
-    }).catch(() => null)
-    router.push('/dashboard/foundation')
+  async function handleLooksGood() {
+    setConfirmSaving(true)
+    setGenerationError(null)
+    setGenerating(true)
+    setGenerationStage('completing')
+    setGenerationProgress([])
+
+    try {
+      const res = await fetch('/api/foundation/complete-onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          answers: { ...(onboardRawAnswers ?? {}), ...answers },
+          websiteUrl: websiteInput.trim() || undefined,
+          companyName: businessNameInput.trim() || companyName || undefined,
+          businessType: onboardBusinessType ?? undefined,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok || data.ok !== true) {
+        if (res.status === 402 || data.error === 'INSUFFICIENT_CREDITS') {
+          throw new Error('Your Foundation could not be generated because this account has no available credits.')
+        }
+        throw new Error(data.error || 'Could not finish onboarding. Please try again.')
+      }
+
+      const generated = Array.isArray(data.generated) ? data.generated : []
+      setGenerationProgress(generated.map((type: string) => DOC_LABEL_BY_TYPE[type]).filter(Boolean))
+      setGenerationProgress(ALL_DOCS)
+      router.push(data.redirectTo ?? '/dashboard/foundation?onboarding=complete')
+    } catch (error) {
+      setGenerating(false)
+      setConfirmSaving(false)
+      setGenerationError(error instanceof Error ? error.message : 'Could not finish onboarding. Please try again.')
+      setPrefillPhase('confirm')
+    }
   }
 
-  function handleConfirmAndContinue() {
+  function handleEditDetails() {
     setPrefillPhase('done')
   }
 
@@ -415,12 +439,18 @@ export default function FoundationFlow({ profileId, companyName, initialStep, in
           </div>
 
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Let me do some homework first.
+            Enter your website. We handle the rest.
           </h2>
           <p className="text-sm text-gray-500 mb-8">
-            Drop your website or business name and I&apos;ll research your business before
-            we start — so you&apos;re confirming instead of writing from scratch.
+            Maya reads your site and builds your Foundation — voice, positioning, customer profile,
+            and your first 30-day plan. You confirm, then go straight to your dashboard.
           </p>
+
+          {prefillError && (
+            <div className="mb-4 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+              {prefillError}
+            </div>
+          )}
 
           <div className="space-y-4 mb-6">
             <div>
@@ -462,7 +492,7 @@ export default function FoundationFlow({ profileId, companyName, initialStep, in
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#3B82F6' }}
           >
-            Let Maya look it up
+            Let Maya build my Foundation
             <ArrowRight size={15} />
           </button>
 
@@ -487,10 +517,11 @@ export default function FoundationFlow({ profileId, companyName, initialStep, in
             <span className="text-white font-bold text-xl">M</span>
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Looking into your business...
+            Building your Foundation...
           </h2>
           <p className="text-sm text-gray-400 mb-8">
-            Maya is reading your site and finding what she can.
+            Reading your site, mapping your audience, and drafting voice and positioning.
+            This usually takes 30–60 seconds.
           </p>
           <div className="flex justify-center">
             <Loader2 size={24} className="text-gray-300 animate-spin" />
@@ -500,81 +531,55 @@ export default function FoundationFlow({ profileId, companyName, initialStep, in
     )
   }
 
+  function updateOnboardField<K extends keyof StepAnswers>(key: K, value: StepAnswers[K]) {
+    setAnswers(prev => ({ ...prev, [key]: value }))
+    setOnboardRawAnswers(prev => (prev ? { ...prev, [key]: value } : prev))
+  }
+
+  function updateOnboardExtraField(key: string, value: string) {
+    setOnboardRawAnswers(prev => (prev ? { ...prev, [key]: value } : { [key]: value }))
+  }
+
   // ── Exa confirm screen ────────────────────────────────────────────────────
 
   if (prefillPhase === 'confirm') {
-    const hostname = (() => {
-      try { return new URL(websiteInput).hostname.replace('www.', '') } catch { return websiteInput }
-    })()
-
-    const filledFields = [
-      { key: 'businessDescription', label: 'What your business does',  value: answers.businessDescription },
-      { key: 'problemSolved',       label: 'Problem you solve',         value: answers.problemSolved },
-      { key: 'transformation',      label: 'Customer transformation',   value: answers.transformation },
-      { key: 'customerWho',         label: 'Your ideal customer',       value: answers.customerWho },
-      { key: 'differentiatorOwn',   label: 'Your differentiator',       value: answers.differentiatorOwn },
-    ].filter(f => f.value && f.value.trim())
-
-    const filledCompetitors = answers.competitors.filter(Boolean)
-
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
-        <div className="max-w-lg w-full">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-[#2D3748] flex items-center justify-center flex-shrink-0">
-              <Check size={16} className="text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900">Maya</p>
-              <p className="text-xs text-gray-400">Research complete</p>
-            </div>
-          </div>
-
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Here&apos;s what I found about {hostname}.
-          </h2>
-          <p className="text-sm text-gray-500 mb-6">
-            These are my best guesses based on your site. You can edit anything in the dashboard —
-            or fill in the rest yourself right now.
-          </p>
-
-          <div className="space-y-3 mb-8">
-            {filledFields.map(f => (
-              <div key={f.key} className="bg-blue-50/40 border border-blue-100 rounded-xl px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#93C5FD' }}>{f.label}</p>
-                <p className="text-sm text-gray-800 leading-relaxed">{f.value}</p>
-              </div>
-            ))}
-            {filledCompetitors.length > 0 && (
-              <div className="bg-blue-50/40 border border-blue-100 rounded-xl px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#93C5FD' }}>Competitors</p>
-                <div className="flex flex-wrap gap-2">
-                  {filledCompetitors.map((c, i) => (
-                    <span key={i} className="text-sm text-gray-800 bg-white border border-blue-100 rounded-lg px-3 py-1">
-                      {c}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={handleConfirmAndDashboard}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-white transition-colors"
-            style={{ backgroundColor: '#3B82F6' }}
-          >
-            Go to my dashboard
-            <ArrowRight size={15} />
-          </button>
-          <button
-            onClick={handleConfirmAndContinue}
-            className="w-full mt-3 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            Fill everything in myself →
-          </button>
-        </div>
-      </div>
+      <FoundationOnboardConfirm
+        businessName={businessNameInput || companyName}
+        onBusinessNameChange={setBusinessNameInput}
+        businessType={onboardBusinessType}
+        onBusinessTypeChange={setOnboardBusinessType}
+        answers={{
+          businessDescription: answers.businessDescription,
+          customerWho: answers.customerWho,
+          customerFrustration: answers.customerFrustration,
+          visualCasting: String(onboardRawAnswers?.visualCasting ?? ''),
+          visualAesthetic: String(onboardRawAnswers?.visualAesthetic ?? ''),
+          transformation: answers.transformation,
+          differentiatorOwn: answers.differentiatorOwn,
+          differentiator: answers.differentiator,
+          toneTraits: answers.toneTraits,
+        }}
+        onAnswerChange={(key, value) => {
+          if (key === 'visualCasting' || key === 'visualAesthetic') {
+            updateOnboardExtraField(key, String(value))
+            return
+          }
+          updateOnboardField(key as keyof StepAnswers, value as StepAnswers[keyof StepAnswers])
+        }}
+        siteSnapshot={onboardSiteSnapshot}
+        hostname={onboardHostname}
+        websiteUrl={websiteInput}
+        checklist={onboardChecklist}
+        generationError={generationError}
+        confirmSaving={confirmSaving}
+        onBack={() => {
+          setGenerationError(null)
+          setPrefillPhase('input')
+        }}
+        onLooksGood={handleLooksGood}
+        onEditDetails={handleEditDetails}
+      />
     )
   }
 
@@ -666,6 +671,33 @@ export default function FoundationFlow({ profileId, companyName, initialStep, in
               </p>
               <div className="flex justify-center">
                 <Loader2 size={24} className="text-gray-300 animate-spin" />
+              </div>
+            </>
+          ) : generationStage === 'completing' ? (
+            <>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Finishing your Foundation...
+              </h2>
+              <p className="text-sm text-gray-400 mb-8">
+                Scoring your profile and generating your five Foundation documents.
+              </p>
+              <div className="space-y-3 text-left">
+                {ALL_DOCS.map(doc => (
+                  <div key={doc} className="flex items-center gap-3">
+                    {generationProgress.includes(doc) ? (
+                      <div className="w-5 h-5 rounded-full bg-[#2D3748] flex items-center justify-center flex-shrink-0">
+                        <Check size={11} className="text-white" />
+                      </div>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center flex-shrink-0">
+                        <Loader2 size={11} className="text-gray-300 animate-spin" />
+                      </div>
+                    )}
+                    <span className={`text-sm ${generationProgress.includes(doc) ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+                      {doc}
+                    </span>
+                  </div>
+                ))}
               </div>
             </>
           ) : (

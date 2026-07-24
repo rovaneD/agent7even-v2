@@ -4,6 +4,10 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildAiToolkitMayaContext } from '@/lib/maya/summaries/phase3Context'
 import {
+  TRIAL_DAYS,
+  TRIAL_TOOLKIT_RUNS,
+} from '@/lib/billing/trialPolicy'
+import {
   Zap, Mail, Hash, Megaphone, Brush,
   BookOpen, Search, Copy, Check, Loader2,
   ChevronRight, Clock, Star, X, Lock,
@@ -89,7 +93,7 @@ const CATEGORY_TOOLTIP: Record<string, string> = {
 }
 
 const PLAN_TOOLTIP: Record<string, string> = {
-  starter:  'Starter — $49/mo\n3-day trial: 5 AI Toolkit runs total · Brand Kit locked\nPaid Starter: monthly run limit from your plan · Social & Email tools',
+  starter:  `Starter — $49/mo\nTrial: ${TRIAL_TOOLKIT_RUNS} AI Toolkit runs total · Brand Kit included\nPaid Starter: monthly run limit from your plan · Social & Email tools`,
   growth:   'Growth — $89/mo\nUnlimited runs · All tools including Ads, SEO & Ops · Priority support',
   proagent: 'ProAgent — $149/mo\nUnlimited runs · Every tool including Brand Strategy · Dedicated support',
 }
@@ -359,7 +363,7 @@ function PlanBanner({ plan, limits }: { plan: string | null; limits: ToolkitPlan
               </span>{' '}
               trial runs used
               {runsRemaining > 0 && (
-                <span className="text-text-soft ml-1">({runsRemaining} left during your 3-day trial)</span>
+                <span className="text-text-soft ml-1">({runsRemaining} left during your {TRIAL_DAYS}-day trial)</span>
               )}
             </p>
           ) : (
@@ -437,7 +441,7 @@ function UpgradeCallout({ onTrial, starterMonthlyLimit }: { onTrial: boolean; st
           <h3 className="text-base font-semibold mb-1">Unlock unlimited AI Toolkit runs</h3>
           <p className="text-sm text-white/70">
             {onTrial
-              ? `Your trial includes 5 AI Toolkit runs total. Paid Starter includes ${starterMonthlyLimit}/month; Growth ($89/mo) is unlimited.`
+              ? `Your trial includes ${TRIAL_TOOLKIT_RUNS} AI Toolkit runs total. Paid Starter includes ${starterMonthlyLimit}/month; Growth ($89/mo) is unlimited.`
               : `Starter is limited to ${starterMonthlyLimit} runs/month. Upgrade to Growth ($89/mo) for unlimited access to every AI tool.`}
           </p>
         </div>

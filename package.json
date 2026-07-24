@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "verify:production": "npx tsx scripts/verify-production-readiness.ts"
+    "verify:production": "npx tsx scripts/verify-production-readiness.ts",
+    "verify:trial-credits": "npx tsx --env-file=.env.local scripts/verify_trial_credits.ts",
+    "verify:stripe-trial": "npx tsx --env-file=.env.local scripts/verify_stripe_trial_qa.ts"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.193",
@@ -34,6 +36,7 @@
     "exa-js": "^2.13.0",
     "framer-motion": "^12.40.0",
     "gray-matter": "^4.0.3",
+    "gsap": "^3.15.0",
     "lucide-react": "^1.17.0",
     "mammoth": "^1.12.0",
     "next": "16.2.6",

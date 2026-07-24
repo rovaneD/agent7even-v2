@@ -18,15 +18,15 @@ export default function CookieConsentBanner() {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-[100] p-4 sm:p-5"
+      className="fixed bottom-4 left-4 right-4 z-[100] sm:left-auto sm:right-5 sm:max-w-sm"
       role="dialog"
       aria-label="Cookie consent"
       aria-live="polite"
     >
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 rounded-2xl border border-[#E4E4E7] bg-white p-5 shadow-[0_18px_50px_-24px_rgba(16,18,23,0.35)] sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-col gap-3 rounded-2xl border border-[#E4E4E7] bg-white p-4 shadow-[0_18px_50px_-24px_rgba(16,18,23,0.35)]">
+        <div className="min-w-0">
           <p className="text-[15px] font-semibold text-[#0E0E11]">We use cookies</p>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-[#52525B]">
+          <p className="mt-1.5 text-[13px] leading-relaxed text-[#52525B]">
             By clicking &ldquo;Accept all&rdquo;, you agree to the storing of cookies on your device for
             functional and analytics purposes. See our{' '}
             <Link href="/privacy#cookies" className="font-medium text-[#3B82F6] underline underline-offset-2">
@@ -35,10 +35,10 @@ export default function CookieConsentBanner() {
             .
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2.5 sm:justify-end">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#3B82F6] bg-white px-5 py-3 text-[15px] font-medium text-[#3B82F6] transition-colors hover:bg-[#EFF6FF]"
+            className="inline-flex min-h-10 flex-1 items-center justify-center rounded-full border border-[#3B82F6] bg-white px-4 py-2.5 text-[14px] font-medium text-[#3B82F6] transition-colors hover:bg-[#EFF6FF] sm:flex-none"
             onClick={() => {
               setCookieConsent('rejected')
               setOpen(false)
@@ -48,7 +48,7 @@ export default function CookieConsentBanner() {
           </button>
           <button
             type="button"
-            className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#3B82F6] bg-white px-5 py-3 text-[15px] font-medium text-[#3B82F6] transition-colors hover:bg-[#EFF6FF]"
+            className="inline-flex min-h-10 flex-1 items-center justify-center rounded-full border border-[#3B82F6] bg-white px-4 py-2.5 text-[14px] font-medium text-[#3B82F6] transition-colors hover:bg-[#EFF6FF] sm:flex-none"
             onClick={() => {
               setCookieConsent('accepted')
               setOpen(false)

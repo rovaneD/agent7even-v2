@@ -6,6 +6,7 @@ import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { getToolkitPlanLimits } from '@/lib/ai/toolkitPlanLimits'
 import { CATEGORY_MIN_PLAN, meetsPlanRequirement } from '@/lib/ai/toolkitCategoryPlan'
 import { hasPlatformAccess } from '@/lib/plans'
+import { TRIAL_TOOLKIT_RUNS } from '@/lib/billing/trialPolicy'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -57,13 +58,12 @@ export async function POST(req: Request) {
     }
   }
 
-  // Enforce plan limits (trial total vs Starter monthly vs unlimited)
   const limits = await getToolkitPlanLimits(supabase, profile)
 
   if (!limits.unlimited && limits.runsUsed >= limits.runLimit) {
     if (limits.onTrial) {
       return NextResponse.json({
-        error: 'Trial AI limit reached. Your 3-day trial includes 5 AI Toolkit runs total.',
+        error: `Trial AI limit reached. Your trial includes ${TRIAL_TOOLKIT_RUNS} AI Toolkit runs total.`,
         code: 'TRIAL_LIMIT',
       }, { status: 403 })
     }
@@ -76,9 +76,8 @@ export async function POST(req: Request) {
   // Build system prompt
   let systemPrompt = `You are an expert marketing copywriter. Write compelling, professional marketing content based on the user's request. Be specific, actionable, and ready to use.`
 
-  // Brand Kit (and therefore brand voice) is locked during the Starter trial —
-  // the client toggle alone must not grant it.
-  const brandVoiceAllowed = useBrandVoice && !limits.onTrial
+  // Brand voice follows the Brand Kit toggle (unlocked on trial as of trial v2).
+  const brandVoiceAllowed = useBrandVoice
 
   if (brandVoiceAllowed) {
     const { data: brandDocs } = await supabase

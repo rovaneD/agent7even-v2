@@ -5,6 +5,7 @@ import { Check, Zap, TrendingUp, Star, Plus, Minus } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { trackEvent } from '@/lib/gtag'
 import { BILLING_EMAIL } from '@/lib/siteUrls'
+import { FIRST_CHARGE_DAY, TRIAL_CARD_NOTE, TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 
 // ── FAQ data ───────────────────────────────────────────────────────────────
 
@@ -38,8 +39,8 @@ const FAQS = [
     a: 'Growth adds 3 team seats and 3 active service requests (Starter has 1 of each), plus 350 media credits/mo, X connect, full analytics, and priority support — not just more volume.',
   },
   {
-    q: "How does the 3-day free trial work?",
-    a: "Starter only — a product test drive. Your card is collected at sign-up but not charged for 3 days. Cancel before day 4 and you pay nothing. Growth and ProAgent are charged immediately.",
+    q: `How does the ${TRIAL_LABEL} work?`,
+    a: `Every plan includes a ${TRIAL_LABEL.toLowerCase()}. Your card is collected at checkout but not charged for ${FIRST_CHARGE_DAY - 1} days. Cancel before day ${FIRST_CHARGE_DAY} and you pay nothing.`,
   },
   {
     q: "Can I cancel or change plans anytime?",
@@ -73,7 +74,7 @@ const PLANS = [
     monthlyPrice: 49,
     annualPrice: 490,
     trial: true,
-    billingNote: '3 days free — cancel anytime before being charged',
+    billingNote: TRIAL_CARD_NOTE,
     cta: 'Start your free trial',
     popular: false,
     description: 'Unlimited text work plus media credits for images and video.',
@@ -95,9 +96,9 @@ const PLANS = [
     Icon: TrendingUp,
     monthlyPrice: 89,
     annualPrice: 890,
-    trial: false,
-    billingNote: 'Billed immediately — cancel anytime',
-    cta: 'Get started',
+    trial: true,
+    billingNote: TRIAL_CARD_NOTE,
+    cta: 'Start your free trial',
     popular: true,
     description: 'Team seats, service requests, and more media for weekly posting.',
     features: [
@@ -117,9 +118,9 @@ const PLANS = [
     Icon: Star,
     monthlyPrice: 149,
     annualPrice: 1490,
-    trial: false,
-    billingNote: 'Billed immediately — cancel anytime',
-    cta: 'Get started',
+    trial: true,
+    billingNote: TRIAL_CARD_NOTE,
+    cta: 'Start your free trial',
     popular: false,
     description: 'Maximum media allowance plus premium Recraft & Kling models.',
     features: [
@@ -158,7 +159,7 @@ const COMPARE_ROWS: { feature: string; starter: CellVal; growth: CellVal; proage
   { feature: 'Add-on discount',         starter: false,         growth: '10% off',     proagent: '15% off'     },
   { feature: 'Quarterly strategy review', starter: false,       growth: false,         proagent: true          },
   { feature: 'White-glove onboarding',  starter: false,         growth: false,         proagent: true          },
-  { feature: '3-day free trial',        starter: true,          growth: false,         proagent: false         },
+  { feature: `${TRIAL_LABEL}`, starter: true, growth: true, proagent: true },
   { feature: 'Annual billing',          starter: true,          growth: true,          proagent: true          },
 ]
 
@@ -192,13 +193,15 @@ export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const { isSignedIn, isLoaded } = useUser()
 
-  async function handleCta(planKey: string) {
+  async function handleCta(planKey: string, confirmPlanChange = false) {
     const billing = annual ? 'annual' : 'monthly'
     trackEvent('select_plan', { plan: planKey, billing })
 
     if (!isSignedIn) {
       trackEvent('sign_up_click', { location: 'pricing', plan: planKey, billing })
-      window.location.href = `/sign-up?plan=${planKey}`
+      const qs = new URLSearchParams({ plan: planKey })
+      if (annual) qs.set('annual', 'true')
+      window.location.href = `/sign-up?${qs.toString()}`
       return
     }
     setLoading(planKey)
@@ -206,9 +209,14 @@ export default function PricingPage() {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planKey, annual }),
+        body: JSON.stringify({ plan: planKey, annual, confirmPlanChange }),
       })
       const data = await res.json()
+      if (data.requiresConfirmation && !confirmPlanChange) {
+        const ok = window.confirm(data.message as string)
+        if (ok) return handleCta(planKey, true)
+        return
+      }
       if (data.url) {
         trackEvent('begin_checkout', { plan: planKey, billing })
         window.location.href = data.url
@@ -301,12 +309,12 @@ export default function PricingPage() {
             return (
               <div key={plan.key} className="relative" style={{ paddingTop: plan.trial || plan.popular ? 14 : 0 }}>
 
-                {/* Trial badge */}
-                {plan.trial && (
+                {/* Trial badge — skip when Most Popular badge occupies the same slot */}
+                {plan.trial && !plan.popular && (
                   <div className="absolute top-0 left-1/2 -translate-x-1/2">
                     <span className="bg-emerald-500 text-white text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 whitespace-nowrap">
                       <span className="w-1.5 h-1.5 rounded-full bg-white/60 inline-block" />
-                      3-day free trial
+                      {TRIAL_LABEL}
                     </span>
                   </div>
                 )}
@@ -411,8 +419,7 @@ export default function PricingPage() {
 
         {/* Fine print */}
         <p className="text-center text-sm text-gray-400 mt-10">
-          Starter includes a 3-day free trial — card required, no charge until day 4.
-          Growth and ProAgent are charged immediately.{' '}
+          Every plan includes a {TRIAL_LABEL.toLowerCase()}. {TRIAL_CARD_NOTE}.{' '}
           Questions?{' '}
           <a href={`mailto:${BILLING_EMAIL}`} className="text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors">
             {BILLING_EMAIL}

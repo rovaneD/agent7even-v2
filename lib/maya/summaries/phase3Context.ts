@@ -1,4 +1,5 @@
 import type { MayaDataSource, MayaPageContext } from '@/lib/maya/contextTypes'
+import { TRIAL_DAYS } from '@/lib/billing/trialPolicy'
 import { MAYA_VOICE_RULE } from '@/lib/maya/voiceRules'
 import { formatActiveFormState, truncateForMaya } from '@/lib/maya/formStateContext'
 
@@ -135,7 +136,7 @@ export function buildAiToolkitMayaContext(input: {
   const usage = input.unlimited
     ? `${input.runsUsed} runs this month (unlimited plan)`
     : input.onTrial
-      ? `${input.runsUsed}/${input.limit} trial runs used (${input.limit} total during 3-day trial)`
+      ? `${input.runsUsed}/${input.limit} trial runs used (${input.limit} total during ${TRIAL_DAYS}-day trial)`
       : `${input.runsUsed}/${input.limit} runs used this month`
   return {
     page: 'AI TOOLKIT PAGE',

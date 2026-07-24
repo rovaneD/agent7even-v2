@@ -32,6 +32,8 @@ import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { getPendingApprovalCount, listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
 import { listTasksAssignedToMember } from '@/lib/team/taskAssignments'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
+import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
+import { startTrialPath } from '@/lib/billing/subscriptionGate'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -41,8 +43,16 @@ export default async function DashboardPage() {
   const email = await getClerkSessionEmail()
   const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
   const workspaceProfile = workspace?.workspaceProfile ?? profile
-  const dataUserId = workspace?.workspaceId ?? profile?.id
   const isTeamMember = workspace?.isTeamMember ?? false
+
+  if (!isTeamMember) {
+    const billing = await getBillingProfileForClerkUser(supabase, userId, email)
+    if (billing && !billing.billing_exempt && !billing.stripe_subscription_id) {
+      redirect(startTrialPath())
+    }
+  }
+
+  const dataUserId = workspace?.workspaceId ?? profile?.id
   const teamPerms = profile?.id ? await getTeamPermissions(profile.id) : null
   const canViewBilling = teamPerms ? hasPermission(teamPerms, 'billing') : true
 

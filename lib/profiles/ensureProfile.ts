@@ -1,5 +1,7 @@
 import type { User } from '@clerk/nextjs/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
+import { notifyAdminNewSignupOnce } from '@/lib/notifyAdminNewSignup'
 
 export type FoundationProfile = {
   id: string
@@ -126,6 +128,16 @@ export async function ensureProfileForClerkUser(
   if (insertError) {
     console.error('[ensureProfile] insert failed:', insertError.message)
     return { profile: null, error: insertError.message }
+  }
+
+  if (created?.id && email) {
+    const teamActivation = await activateTeamInviteForProfile(supabase, created.id, email)
+    void notifyAdminNewSignupOnce({
+      profileId: created.id,
+      email,
+      fullName,
+      joinedViaTeamInvite: Boolean(teamActivation?.activated),
+    }).catch(err => console.error('[ensureProfile] admin signup notify failed:', err))
   }
 
   return { profile: created }

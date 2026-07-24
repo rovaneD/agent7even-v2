@@ -22,7 +22,10 @@ export const PREMIUM_VIDEO_MODEL_IDS = new Set([
   'kling-video-o1',
 ])
 
-export function imageCreditCost(modelId: string | null | undefined, plan: string | null | undefined): number {
+export function imageCreditCost(
+  modelId: string | null | undefined,
+  plan: string | null | undefined,
+): number {
   const isPremium = Boolean(
     modelId &&
       (PREMIUM_IMAGE_MODEL_IDS.has(modelId) || PREMIUM_IMAGE_OPENROUTER_MODELS.has(modelId)),
@@ -31,8 +34,13 @@ export function imageCreditCost(modelId: string | null | undefined, plan: string
   return isPremium ? ACTION_CREDIT_COST.image_premium : ACTION_CREDIT_COST.image_standard
 }
 
-export function videoCreditCost(modelId: string | null | undefined, plan: string | null | undefined): number {
-  const isPremium = modelId && PREMIUM_VIDEO_MODEL_IDS.has(modelId)
+export function videoCreditCost(
+  modelId: string | null | undefined,
+  plan: string | null | undefined,
+  opts?: { onTrial?: boolean },
+): number {
+  const isPremium = Boolean(modelId && PREMIUM_VIDEO_MODEL_IDS.has(modelId))
+  if (opts?.onTrial && isPremium) return -1
   if (isPremium && plan !== 'proagent') return -1
   return isPremium ? ACTION_CREDIT_COST.video_premium : ACTION_CREDIT_COST.video_standard
 }

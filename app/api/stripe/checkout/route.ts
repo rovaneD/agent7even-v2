@@ -2,16 +2,25 @@ import { auth } from '@clerk/nextjs/server'
 import { getClerkUserSafe } from '@/lib/clerk/sessionUser'
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
+import {
+  comparePlanTier,
+  isPaidPlanKey,
+  TRIAL_DAYS,
+  upgradeChargeMessage,
+} from '@/lib/billing/trialPolicy'
 import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
 import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { createServiceClient } from '@/lib/supabase/server'
+import { linkExistingStripeSubscriptionForClerkUser } from '@/lib/billing/activateCheckoutSession'
 import {
   assertCheckoutPrice,
   formatStripeCheckoutError,
+  resolveCheckoutAppUrl,
   resolveStripeCustomer,
 } from '@/lib/stripe/billing'
 import { getStripeClient } from '@/lib/stripe'
+import { allPlanPriceIds, getPlanFromSubscription, planFromPriceId } from '@/lib/stripe/planFromPrice'
 
 const PRICE_IDS: Record<string, { monthly: string; annual: string }> = {
   starter: {
@@ -34,7 +43,7 @@ export async function POST(req: Request) {
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const user = await getClerkUserSafe()
-    const { plan, annual = false } = await req.json()
+    const { plan, annual = false, confirmPlanChange = false } = await req.json()
     const stripe = getStripeClient()
     if (!stripe) return NextResponse.json({ error: 'Billing is not configured' }, { status: 500 })
 
@@ -51,9 +60,6 @@ export async function POST(req: Request) {
 
     const supabase = createServiceClient()
 
-    // Canonical resolution — with duplicate rows, the newest one may not carry
-    // the Stripe customer, and attaching a subscription to the wrong row is
-    // exactly the duplicate-profile bug class eliminated on July 13.
     type CheckoutProfile = {
       id: string
       email: string | null
@@ -89,10 +95,12 @@ export async function POST(req: Request) {
       )
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.agent7even.ai'
+    const appUrl = resolveCheckoutAppUrl(req)
 
-    // Existing subscribers change plans in place — a fresh Checkout Session
-    // here would create a second, parallel subscription (double billing).
+    if (profile.stripe_customer_id) {
+      await linkExistingStripeSubscriptionForClerkUser(userId, profile.stripe_customer_id)
+    }
+
     const billingProfile = await getBillingProfileForClerkUser(supabase, userId, email)
     if (billingProfile?.stripe_subscription_id) {
       let existing: Stripe.Subscription | null = null
@@ -103,9 +111,7 @@ export async function POST(req: Request) {
       }
 
       if (existing && ['active', 'trialing', 'past_due'].includes(existing.status)) {
-        const planPriceIds = new Set(
-          Object.values(PRICE_IDS).flatMap(p => [p.monthly, p.annual]).filter(Boolean),
-        )
+        const planPriceIds = allPlanPriceIds()
         const planItem = existing.items.data.find(item => planPriceIds.has(item.price.id))
 
         if (!planItem) {
@@ -116,16 +122,42 @@ export async function POST(req: Request) {
         }
 
         if (planItem.price.id === priceId) {
-          return NextResponse.json({ error: 'You are already on this plan.' }, { status: 400 })
+          return NextResponse.json({
+            url: `${appUrl}/foundation?plan=${encodeURIComponent(plan)}`,
+          })
         }
 
-        await stripe.subscriptions.update(billingProfile.stripe_subscription_id, {
+        const currentPlan = getPlanFromSubscription(existing) ?? billingProfile.plan
+        const direction = comparePlanTier(currentPlan, plan)
+
+        if (existing.status === 'trialing' && direction === 'upgrade') {
+          if (!isPaidPlanKey(plan)) {
+            return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
+          }
+          if (!confirmPlanChange) {
+            return NextResponse.json(
+              {
+                requiresConfirmation: true,
+                message: upgradeChargeMessage(plan, Boolean(annual)),
+                plan,
+                annual: Boolean(annual),
+              },
+              { status: 409 },
+            )
+          }
+        }
+
+        const updateParams: Stripe.SubscriptionUpdateParams = {
           items: [{ id: planItem.id, price: priceId }],
           proration_behavior: 'always_invoice',
-          // Trial is Starter-only: moving to a paid tier ends it and charges now.
-          ...(existing.status === 'trialing' && plan !== 'starter' ? { trial_end: 'now' as const } : {}),
           metadata: { ...existing.metadata, clerk_user_id: userId, plan },
-        })
+        }
+
+        if (existing.status === 'trialing' && direction === 'upgrade') {
+          updateParams.trial_end = 'now'
+        }
+
+        await stripe.subscriptions.update(billingProfile.stripe_subscription_id, updateParams)
 
         await supabase
           .from('profiles')
@@ -145,18 +177,19 @@ export async function POST(req: Request) {
       supabase,
     })
 
-    // Only Starter gets a 3-day trial — Growth and ProAgent charge immediately
     const subscriptionData: Stripe.Checkout.SessionCreateParams['subscription_data'] = {
       metadata: { clerk_user_id: userId, plan },
-      ...(plan === 'starter' ? { trial_period_days: 3 } : {}),
+      trial_period_days: TRIAL_DAYS,
     }
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
+      client_reference_id: userId,
+      metadata: { clerk_user_id: userId, plan },
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${appUrl}/dashboard?upgraded=true`,
-      cancel_url: `${appUrl}/dashboard/billing`,
+      success_url: `${appUrl}/foundation?plan=${encodeURIComponent(plan)}&checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/checkout-now?plan=${encodeURIComponent(plan)}${annual ? '&annual=true' : ''}`,
       subscription_data: subscriptionData,
       allow_promotion_codes: true,
     })
