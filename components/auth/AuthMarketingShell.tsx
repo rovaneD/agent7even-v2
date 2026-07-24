@@ -13,17 +13,11 @@ type Props = {
 
 function AuthHeadline() {
   return (
-    <div>
-      <h1 className="text-[2rem] font-semibold leading-[1.12] tracking-tight text-[#0E0E11] sm:text-4xl lg:text-[2.75rem] xl:text-[3.25rem]">
-        AI Marketing Automation
-        <br />
-        in minutes a day.
-      </h1>
-      <p className="mt-4 text-[15px] leading-relaxed text-[#6C7079] sm:text-base sm:leading-7">
-        <span className="font-semibold text-[#F5349B]">Maya</span> handles the work.
-        You approve before anything goes live.
-      </p>
-    </div>
+    <h1 className="text-[2rem] font-semibold leading-[1.12] tracking-tight text-[#0E0E11] sm:text-4xl lg:text-[2.75rem] xl:text-[3.25rem]">
+      <span className="text-[#F5349B]">AI-powered</span> marketing
+      <br />
+      for small business.
+    </h1>
   )
 }
 

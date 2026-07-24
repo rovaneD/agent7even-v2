@@ -95,15 +95,31 @@
 }
 
 .hsb-b .hsb-b-sub-line {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   max-width: 100%;
-  text-align: left;
+  text-align: center;
 }
 
-.hsb-b .hsb-b-sub-line .hsb-b-orb {
+.hsb-b .hsb-b-sub-primary {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.hsb-b .hsb-b-sub-primary .hsb-b-orb {
   margin-top: 0.18em;
+}
+
+.hsb-b .hsb-b-sub-secondary {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
 }
 
 /* Keep the Maya orb locked inline with the word — never absolute/transform. */
@@ -274,7 +290,6 @@
 
 .hsb-b--mobile .hsb-b-sub {
   font-size: 17px;
-  gap: 7px;
   margin-bottom: 12px;
 }
 

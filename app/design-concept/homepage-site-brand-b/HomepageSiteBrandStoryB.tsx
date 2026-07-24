@@ -271,16 +271,17 @@ function HeroCopy() {
         in minutes a day
       </h1>
       <div className="hsb-b-sub">
-        <span className="hsb-b-sub-line">
-          <span className="hsb-b-orb" aria-hidden>
-            <MayaOrb size={22} active />
-          </span>
-          <span>
-            <span className="maya">Maya</span> handles the work.
-            <br />
-            You approve before anything goes live.
-          </span>
-        </span>
+        <div className="hsb-b-sub-line">
+          <div className="hsb-b-sub-primary">
+            <span className="hsb-b-orb" aria-hidden>
+              <MayaOrb size={22} active />
+            </span>
+            <span>
+              <span className="maya">Maya</span> handles the work.
+            </span>
+          </div>
+          <p className="hsb-b-sub-secondary">You approve before anything goes live.</p>
+        </div>
       </div>
       <p className="hsb-b-body">
         Maya plans campaigns, writes the content, and routes every draft to one queue.
