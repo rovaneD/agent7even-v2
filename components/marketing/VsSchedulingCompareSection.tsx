@@ -46,7 +46,7 @@ export default function VsSchedulingCompareSection() {
 
             <div className="stack-flow-side stack-flow-side-os">
               <span className="stack-flow-label">With Agent7even</span>
-              <p className="stack-flow-os">Draft first. Approve once. Schedule when you sign off.</p>
+              <p className="stack-flow-os">Draft first. You approve every output. Schedule when you sign off.</p>
             </div>
           </div>
 

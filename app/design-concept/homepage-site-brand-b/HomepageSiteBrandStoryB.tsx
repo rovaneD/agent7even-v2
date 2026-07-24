@@ -278,7 +278,7 @@ function HeroCopy() {
           <span>
             <span className="maya">Maya</span> handles the work.
             <br />
-            You approve once.
+            You approve before anything goes live.
           </span>
         </span>
       </div>
@@ -781,7 +781,7 @@ export default function HomepageSiteBrandStoryB() {
             <h2 className="t-h2">
               Tell <em>Maya</em> the goal. Agents draft from Foundation.
               <br />
-              You approve once.
+              You approve before anything goes live.
             </h2>
             <p className="t-lead">
               No briefs, no tool-hopping. Maya reads your Foundation and Brand Kit, coordinates specialist agents, and routes every draft to your approval&nbsp;queue.
