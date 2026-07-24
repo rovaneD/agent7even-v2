@@ -5,7 +5,11 @@ import {
   TRIAL_MEDIA_CREDITS,
   trialEndingNotificationBody,
 } from '@/lib/billing/trialPolicy'
-import { allocateTrialCredits, grantPaidPlanAllowanceAfterTrial } from '@/lib/billing/trialCredits'
+import {
+  grantCheckoutActivationCreditsOnce,
+  grantPaidPlanAllowanceAfterTrialOnce,
+} from '@/lib/billing/trialCredits'
+import { profileStatusFromSubscription } from '@/lib/billing/subscriptionStatus'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { PLAN_CREDITS } from '@/lib/credits'
@@ -13,25 +17,6 @@ import { createNotification } from '@/lib/createNotification'
 import { getStripeClient, sanitizeSecretEnvValue } from '@/lib/stripe'
 import { getPlanFromSubscription } from '@/lib/stripe/planFromPrice'
 import { collectZernioProfileIds, disconnectAllZernioProfiles } from '@/lib/social/zernioProfileIds'
-
-/**
- * Map Stripe's subscription status to the profile status field. Hardcoding
- * 'active' here would clear the paused flag for customers who are still
- * delinquent (past_due/unpaid) the next time any subscription field changes.
- */
-function profileStatusFromSubscription(subscription: Stripe.Subscription): string | null {
-  switch (subscription.status) {
-    case 'active':
-    case 'trialing':
-      return 'active'
-    case 'past_due':
-    case 'unpaid':
-      return 'paused'
-    default:
-      // canceled / incomplete states are handled by their own events.
-      return null
-  }
-}
 
 export async function POST(req: Request) {
   const body = await req.text()
@@ -135,11 +120,20 @@ export async function POST(req: Request) {
       supabase, clerkUserId, 'id', session.customer_details?.email,
     )
 
+    const profileStatus = profileStatusFromSubscription(subscription)
+    if (!profileStatus) {
+      console.error('checkout.session.completed with non-activatable subscription status', {
+        subscriptionId,
+        status: subscription.status,
+      })
+      return NextResponse.json({ received: true })
+    }
+
     const { error } = await supabase
       .from('profiles')
       .update({
         plan,
-        status: 'active',
+        status: profileStatus,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
         updated_at: new Date().toISOString(),
@@ -148,8 +142,7 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error('Supabase update error (checkout.session.completed):', error)
-    } else {
-      if (newProfile) {
+    } else if (newProfile && profileStatus === 'active') {
         // Reactivation: cancellation deactivates schedules, so a returning
         // subscriber needs them switched back on (there is no user-facing
         // pause yet, so is_active=false only ever means "was cancelled").
@@ -160,23 +153,24 @@ export async function POST(req: Request) {
           .eq('is_active', false)
 
         const isTrialing = subscription.status === 'trialing'
-        const creditsGranted = isTrialing
-          ? await allocateTrialCredits(newProfile.id)
-          : await grantPaidPlanAllowanceAfterTrial(newProfile.id, plan)
+        const creditsGranted = await grantCheckoutActivationCreditsOnce(
+          newProfile.id,
+          plan,
+          isTrialing,
+        )
 
-        await createNotification({
-          userId: newProfile.id,
-          title: 'Welcome to Agent7even!',
-          body: creditsGranted != null
-            ? isTrialing
+        if (creditsGranted != null) {
+          await createNotification({
+            userId: newProfile.id,
+            title: 'Welcome to Agent7even!',
+            body: isTrialing
               ? `Your ${plan} trial is active with ${TRIAL_MEDIA_CREDITS} media credits to explore.`
-              : `Your ${plan} plan is active with ${PLAN_CREDITS[plan]} credits ready to use.`
-            : `Your ${plan} plan is now active. You have full access to your dashboard.`,
-          type: 'plan_activated',
-          link: '/foundation',
-          sendEmail: false,
-        })
-      }
+              : `Your ${plan} plan is active with ${PLAN_CREDITS[plan]} credits ready to use.`,
+            type: 'plan_activated',
+            link: '/foundation',
+            sendEmail: false,
+          })
+        }
     }
   }
 
@@ -223,7 +217,7 @@ export async function POST(req: Request) {
       previous?.status === 'trialing' &&
       subscription.status === 'active'
     ) {
-      await grantPaidPlanAllowanceAfterTrial(profileId, plan)
+      await grantPaidPlanAllowanceAfterTrialOnce(profileId, plan)
     }
   }
 

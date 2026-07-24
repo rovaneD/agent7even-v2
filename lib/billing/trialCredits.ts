@@ -27,6 +27,22 @@ async function writeAllocation(
   return credits
 }
 
+async function hasLedgerAllocationMatching(
+  profileId: string,
+  descriptionPattern: string,
+): Promise<boolean> {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('credit_ledger')
+    .select('id')
+    .eq('user_id', profileId)
+    .eq('type', 'allocation')
+    .ilike('description', descriptionPattern)
+    .limit(1)
+    .maybeSingle()
+  return Boolean(data)
+}
+
 /** First checkout while Stripe subscription is trialing — capped pool. */
 export async function allocateTrialCredits(profileId: string): Promise<number> {
   return writeAllocation(
@@ -64,4 +80,38 @@ export async function grantPaidPlanAllowanceAfterTrial(
     plan,
     `Paid plan allowance — ${plan} plan (trial ended)`,
   )
+}
+
+/**
+ * Idempotent checkout activation credits.
+ * Stripe may deliver checkout.session.completed more than once, and the
+ * client sync path can race the webhook — without this guard, balance is
+ * reset to the allocation amount and duplicate ledger rows appear.
+ */
+export async function grantCheckoutActivationCreditsOnce(
+  profileId: string,
+  plan: string,
+  isTrialing: boolean,
+): Promise<number | null> {
+  const alreadyGranted =
+    (await hasLedgerAllocationMatching(profileId, '%Trial allocation%')) ||
+    (await hasLedgerAllocationMatching(profileId, '%Paid plan allowance%')) ||
+    (await hasLedgerAllocationMatching(profileId, '%Plan activation%'))
+
+  if (alreadyGranted) return null
+
+  return isTrialing
+    ? allocateTrialCredits(profileId)
+    : grantPaidPlanAllowanceAfterTrial(profileId, plan)
+}
+
+/** Idempotent trial → paid conversion grant (subscription.updated retries). */
+export async function grantPaidPlanAllowanceAfterTrialOnce(
+  profileId: string,
+  plan: string,
+): Promise<number | null> {
+  if (await hasLedgerAllocationMatching(profileId, '%Paid plan allowance%')) {
+    return null
+  }
+  return grantPaidPlanAllowanceAfterTrial(profileId, plan)
 }

@@ -13,6 +13,7 @@ import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { createServiceClient } from '@/lib/supabase/server'
 import { linkExistingStripeSubscriptionForClerkUser } from '@/lib/billing/activateCheckoutSession'
+import { profileStatusFromSubscription } from '@/lib/billing/subscriptionStatus'
 import {
   assertCheckoutPrice,
   formatStripeCheckoutError,
@@ -157,11 +158,17 @@ export async function POST(req: Request) {
           updateParams.trial_end = 'now'
         }
 
-        await stripe.subscriptions.update(billingProfile.stripe_subscription_id, updateParams)
+        const updated = await stripe.subscriptions.update(
+          billingProfile.stripe_subscription_id,
+          updateParams,
+        )
+        // Derive status from the returned subscription — allow_incomplete can
+        // leave the sub past_due; hardcoding active re-enables delinquents.
+        const nextStatus = profileStatusFromSubscription(updated) ?? 'paused'
 
         await supabase
           .from('profiles')
-          .update({ plan, status: 'active', updated_at: new Date().toISOString() })
+          .update({ plan, status: nextStatus, updated_at: new Date().toISOString() })
           .eq('id', billingProfile.id)
 
         return NextResponse.json({ url: `${appUrl}/dashboard/billing?plan_changed=${plan}` })

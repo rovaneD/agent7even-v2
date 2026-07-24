@@ -45,18 +45,24 @@ export function upgradeChargeMessage(plan: PaidPlan, annual: boolean): string {
 /**
  * Real trial signal — Stripe subscription status, NOT profiles.status
  * (webhook maps trialing → profiles.status = 'active').
+ *
+ * Fail closed: if a subscription id exists but Stripe cannot be confirmed,
+ * treat the account as still on trial. Otherwise Growth/ProAgent trials fall
+ * through to unlimited toolkit limits on Stripe blips.
  */
 export async function isProfileOnTrial(profile: {
   stripe_subscription_id: string | null
+  billing_exempt?: boolean | null
 }): Promise<boolean> {
+  if (profile.billing_exempt) return false
   if (!profile.stripe_subscription_id) return false
   try {
     const stripe = getStripeClient()
-    if (!stripe) return false
+    if (!stripe) return true
     const subscription = await stripe.subscriptions.retrieve(profile.stripe_subscription_id)
     return subscription.status === 'trialing'
   } catch {
-    return false
+    return true
   }
 }
 
