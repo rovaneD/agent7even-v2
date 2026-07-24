@@ -3,6 +3,22 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { createTask } from '@/lib/agents/runner'
 import { dispatchAgentTask } from '@/lib/agents/dispatch'
 import { AgentId } from '@/lib/agents/registry'
+import { advanceAgentScheduleNextRun } from '@/lib/agents/ensureDefaultSchedules'
+
+async function bumpSchedule(
+  supabase: ReturnType<typeof createServiceClient>,
+  schedule: { id: string; frequency: string; hour_of_day?: number | null; agent?: string },
+  from: Date,
+  markLastRun: boolean,
+) {
+  await supabase
+    .from('agent_schedules')
+    .update({
+      ...(markLastRun ? { last_run_at: from.toISOString() } : {}),
+      next_run_at: advanceAgentScheduleNextRun(schedule, from),
+    })
+    .eq('id', schedule.id)
+}
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('Authorization')
@@ -51,6 +67,7 @@ export async function GET(req: NextRequest) {
 
   for (const schedule of schedules) {
     if (!isEligible(schedule.user_id)) {
+      await bumpSchedule(supabase, schedule, now, false)
       results.push(`${schedule.agent} skipped for user ${schedule.user_id} (billing not active)`)
       continue
     }
@@ -69,24 +86,10 @@ export async function GET(req: NextRequest) {
         userId: schedule.user_id,
       })
 
-      // Compute next run time
-      const next = new Date(now)
-      if (schedule.frequency === 'daily') {
-        next.setDate(next.getDate() + 1)
-      } else if (schedule.frequency === 'weekly') {
-        next.setDate(next.getDate() + 7)
-      } else if (schedule.frequency === 'monthly') {
-        next.setMonth(next.getMonth() + 1)
-      }
-      next.setHours(schedule.hour_of_day ?? 8, 0, 0, 0)
-
-      await supabase
-        .from('agent_schedules')
-        .update({ last_run_at: now.toISOString(), next_run_at: next.toISOString() })
-        .eq('id', schedule.id)
-
+      await bumpSchedule(supabase, schedule, now, true)
       results.push(`${schedule.agent} fired for user ${schedule.user_id}`)
     } catch (err) {
+      await bumpSchedule(supabase, schedule, now, false)
       results.push(`${schedule.agent} FAILED: ${String(err)}`)
     }
   }

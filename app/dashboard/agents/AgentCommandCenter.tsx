@@ -125,13 +125,15 @@ function getOutputDescription(output: AgentOutput): string {
   return getContentPreview(output) || 'Saved agent output'
 }
 
-function outputStatusMeta(status: string): { label: string; className: string } {
+function outputStatusMeta(status: string, agentId?: string): { label: string; className: string } {
   switch (status) {
-    case 'approved':
+    case 'approved': {
+      const autoSaved = agentId && AGENTS[agentId as AgentId]?.autonomyLevel === 'autonomous'
       return {
-        label: 'Approved',
+        label: autoSaved ? 'Saved' : 'Approved',
         className: 'border border-status-success/20 bg-status-success/10 text-status-success',
       }
+    }
     case 'rejected':
       return {
         label: 'Rejected',
@@ -150,8 +152,8 @@ function outputStatusMeta(status: string): { label: string; className: string } 
   }
 }
 
-function OutputStatusBadge({ status }: { status: string }) {
-  const meta = outputStatusMeta(status)
+function OutputStatusBadge({ status, agentId }: { status: string; agentId?: string }) {
+  const meta = outputStatusMeta(status, agentId)
   return (
     <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta.className}`}>
       {meta.label}
@@ -203,10 +205,22 @@ function scheduleCadenceLabel(row: AgentScheduleRow): string {
   return `${freq} · ${row.hourOfDay}:00 UTC`
 }
 
-function nextRunLabel(iso: string | null): string {
-  if (!iso) return '—'
-  const diffMs = new Date(iso).getTime() - Date.now()
-  if (diffMs <= 0) return 'Due now'
+function scheduleShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+}
+
+function nextRunLabel(nextRunAt: string | null, lastRunAt: string | null): string {
+  if (!nextRunAt) return '—'
+  const diffMs = new Date(nextRunAt).getTime() - Date.now()
+  if (diffMs <= 0) {
+    if (lastRunAt) {
+      const daysSinceRun = Math.floor((Date.now() - new Date(lastRunAt).getTime()) / 86400000)
+      if (daysSinceRun >= 1) {
+        return `Overdue · last ran ${scheduleShortDate(lastRunAt)}`
+      }
+    }
+    return 'Due on next hourly run'
+  }
   const hrs = Math.floor(diffMs / 3600000)
   if (hrs < 1) return `In ${Math.max(1, Math.floor(diffMs / 60000))}m`
   if (hrs < 24) return `In ${hrs}h`
@@ -252,7 +266,7 @@ function SchedulesPanel({
     <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Automatic schedules</p>
       <p className="mt-1 mb-4 text-sm text-text-sec">
-        Agents that run on their own. Pause one anytime — outputs still land in your approval queue.
+        Agents that run on their own. Pause one anytime — finished work saves to Recent outputs and each agent&apos;s archive (not the approval queue).
       </p>
 
       {error && (
@@ -287,7 +301,7 @@ function SchedulesPanel({
                     <p className="truncate text-sm font-medium text-text-primary">{agentDef?.name ?? row.agent}</p>
                     <p className="text-xs text-text-sec">
                       {scheduleCadenceLabel(row)}
-                      {row.isActive && <> · Next run: {nextRunLabel(row.nextRunAt)}</>}
+                      {row.isActive && <> · Next run: {nextRunLabel(row.nextRunAt, row.lastRunAt)}</>}
                       {row.lastRunAt && <> · Last ran {relativeTime(row.lastRunAt)}</>}
                     </p>
                   </div>
@@ -618,7 +632,9 @@ export default function AgentCommandCenter({
       ) : (
         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-5">
           <i className="ti ti-circle-check text-status-success" style={{ fontSize: 16 }} />
-          <span className="text-sm text-text-sec">Queue is clear. Nothing is waiting for review.</span>
+          <span className="text-sm text-text-sec">
+            Approval queue is clear. Auto-agent reports are in Recent outputs below; approval-required drafts go here when they need review.
+          </span>
         </div>
       )}
 
@@ -857,7 +873,9 @@ export default function AgentCommandCenter({
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Recent outputs</p>
-            <p className="mt-1 text-sm text-text-sec">Open an output archive to read the full result.</p>
+            <p className="mt-1 text-sm text-text-sec">
+              Auto agents save finished reports here. Click a row or open an agent in the scorecard for the full archive.
+            </p>
           </div>
           <Link href="/dashboard/agents/approvals" className="text-sm font-semibold text-brand-primary hover:underline">
             Review approvals
@@ -886,7 +904,7 @@ export default function AgentCommandCenter({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
-                    <OutputStatusBadge status={output.status} />
+                    <OutputStatusBadge status={output.status} agentId={output.agent} />
                     <span className="whitespace-nowrap text-sm font-semibold text-brand-primary">Open</span>
                   </div>
                 </Link>
