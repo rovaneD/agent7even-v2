@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { pickCanonicalProfile } from './ensureProfile'
 
 const BILLING_SELECT =
-  'id, plan, status, billing_exempt, stripe_customer_id, stripe_subscription_id, created_at'
+  'id, plan, status, billing_exempt, stripe_customer_id, stripe_subscription_id, role, created_at'
 
 export type BillingProfile = {
   id: string
@@ -11,6 +11,7 @@ export type BillingProfile = {
   billing_exempt: boolean
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
+  role: string | null
   created_at: string
 }
 

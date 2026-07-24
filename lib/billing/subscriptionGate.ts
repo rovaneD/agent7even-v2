@@ -7,7 +7,23 @@ export type SubscriptionGateResult =
   | { ok: true; profile: NonNullable<Awaited<ReturnType<typeof getBillingProfileForClerkUser>>> }
   | { ok: false; reason: 'no_profile' | 'no_subscription' }
 
-/** Requires an active paid or trialing subscription (Stripe id on profile + platform access). */
+type GateProfile = {
+  role?: string | null
+  billing_exempt?: boolean | null
+  stripe_subscription_id?: string | null
+  plan?: string | null
+  status?: string | null
+}
+
+/** Internal admin/owner accounts, comp access, or an active paid/trialing Stripe subscription. */
+export function profileBypassesSubscriptionGate(profile: GateProfile): boolean {
+  if (profile.role === 'admin' || profile.role === 'owner') return true
+  if (profile.billing_exempt) return true
+  if (!profile.stripe_subscription_id) return false
+  return hasPlatformAccess(profile.plan, profile.status, false)
+}
+
+/** Requires platform access — not necessarily a Stripe subscription (admin/comp exempt). */
 export async function requirePaidSubscriptionForClerkUser(
   supabase: SupabaseClient,
   clerkUserId: string,
@@ -15,8 +31,7 @@ export async function requirePaidSubscriptionForClerkUser(
 ): Promise<SubscriptionGateResult> {
   const profile = await getBillingProfileForClerkUser(supabase, clerkUserId, email)
   if (!profile) return { ok: false, reason: 'no_profile' }
-  if (!profile.stripe_subscription_id) return { ok: false, reason: 'no_subscription' }
-  if (!hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt ?? false)) {
+  if (!profileBypassesSubscriptionGate(profile)) {
     return { ok: false, reason: 'no_subscription' }
   }
   return { ok: true, profile }

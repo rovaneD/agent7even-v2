@@ -33,7 +33,7 @@ import { getPendingApprovalCount, listPendingApprovalDigestItems } from '@/lib/a
 import { listTasksAssignedToMember } from '@/lib/team/taskAssignments'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
-import { startTrialPath } from '@/lib/billing/subscriptionGate'
+import { profileBypassesSubscriptionGate, startTrialPath } from '@/lib/billing/subscriptionGate'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -47,7 +47,7 @@ export default async function DashboardPage() {
 
   if (!isTeamMember) {
     const billing = await getBillingProfileForClerkUser(supabase, userId, email)
-    if (billing && !billing.billing_exempt && !billing.stripe_subscription_id) {
+    if (billing && !profileBypassesSubscriptionGate(billing)) {
       redirect(startTrialPath())
     }
   }
