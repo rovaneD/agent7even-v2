@@ -641,8 +641,8 @@ export default function AgentCommandCenter({
       {/* ═══ ZONE 2: Agent Activity ═══ */}
       <div className="mb-6 grid gap-6 xl:grid-cols-[0.9fr_1.25fr]">
 
-        {/* Left: Live feed */}
-        <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-5">
+        {/* Left: Live feed — grows with content; page scrolls via DashboardShell main */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Live activity</p>
           <p className="mt-1 mb-4 text-sm text-text-sec">
             Running and queued tasks show here first — expand completed and orchestration history when you need it.
@@ -784,8 +784,8 @@ export default function AgentCommandCenter({
           )}
         </div>
 
-        {/* Right: Scorecard */}
-        <div className="min-w-0 max-h-[360px] overflow-y-auto overflow-x-auto rounded-2xl border border-gray-100 bg-white p-5">
+        {/* Right: Scorecard — horizontal scroll only when table is wider than viewport */}
+        <div className="min-w-0 overflow-x-auto rounded-2xl border border-gray-100 bg-white p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Agent scorecard</p>
           <p className="mt-1 mb-4 text-sm text-text-sec">
             Last run, saved output count, and schedule status per agent — open a row for the full archive.
