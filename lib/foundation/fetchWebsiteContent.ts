@@ -1,5 +1,10 @@
 import { exaReadSite } from '@/lib/research/exa'
 import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
+import { fetchPublicWebsiteHtml } from '@/lib/security/fetchPublicWebsiteHtml'
+import {
+  assertPublicWebsiteUrl,
+  UnsafeWebsiteUrlError,
+} from '@/lib/security/publicWebsiteUrl'
 
 export type WebsiteContent = {
   url: string
@@ -8,20 +13,7 @@ export type WebsiteContent = {
   source: 'direct' | 'exa'
 }
 
-async function fetchWebsiteHtml(
-  websiteUrl: string,
-): Promise<{ status: number; finalUrl: string; html: string }> {
-  const res = await fetch(websiteUrl, {
-    headers: {
-      'User-Agent': 'Agent7even-Foundation-Enrichment/1.0 (+https://www.agent7even.ai)',
-      Accept: 'text/html,application/xhtml+xml',
-    },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(15000),
-  })
-  const html = await res.text()
-  return { status: res.status, finalUrl: res.url, html }
-}
+export { UnsafeWebsiteUrlError }
 
 function htmlToText(html: string): string {
   return html
@@ -38,17 +30,24 @@ export async function fetchWebsiteContent(rawUrl: string): Promise<WebsiteConten
   const websiteUrl = normalizeWebsiteUrl(rawUrl)
   if (!websiteUrl) return null
 
+  // Fail closed before any network I/O (including Exa fallback).
+  const publicWebsiteUrl = await assertPublicWebsiteUrl(websiteUrl)
+
   try {
-    const { finalUrl, html } = await fetchWebsiteHtml(websiteUrl)
+    const { finalUrl, html } = await fetchPublicWebsiteHtml(publicWebsiteUrl, {
+      userAgent: 'Agent7even-Foundation-Enrichment/1.0 (+https://www.agent7even.ai)',
+      timeoutMs: 15000,
+    })
     const text = htmlToText(html)
     if (text.length >= 200) {
       return { url: finalUrl, text, source: 'direct' }
     }
-  } catch {
+  } catch (err) {
+    if (err instanceof UnsafeWebsiteUrlError) throw err
     // fall through to Exa
   }
 
-  const exa = await exaReadSite(websiteUrl)
+  const exa = await exaReadSite(publicWebsiteUrl)
   if (exa?.text?.trim()) {
     return {
       url: exa.url,

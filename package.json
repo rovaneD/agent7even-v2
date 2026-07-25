@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "verify:production": "npx tsx scripts/verify-production-readiness.ts",
+    "verify:public-website-url": "npx tsx scripts/verify-public-website-url.ts",
     "verify:trial-credits": "npx tsx --env-file=.env.local scripts/verify_trial_credits.ts",
     "verify:stripe-trial": "npx tsx --env-file=.env.local scripts/verify_stripe_trial_qa.ts"
   },
