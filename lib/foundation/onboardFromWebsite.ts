@@ -8,6 +8,7 @@ import type { OnboardingBusinessTypeId } from '@/lib/foundation/onboardingBusine
 import { synthesizeOnboardingAnswers } from '@/lib/foundation/synthesizeOnboardingAnswers'
 import type { SiteSnapshot } from '@/lib/foundation/siteSnapshot'
 import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
+import { validatePublicWebsiteUrl } from '@/lib/security/publicWebsiteUrl'
 import {
   exaReadSite,
   exaSynthesizeFoundation,
@@ -109,21 +110,25 @@ export async function onboardFromWebsite(input: {
   const normalized = normalizeWebsiteUrl(input.website.trim())
   if (!normalized) return { ok: false, reason: 'invalid_url' }
 
-  const companyName = input.companyName?.trim() || hostnameFromUrl(normalized)
+  // Block private/internal targets before any server-side fetch or Exa call.
+  const publicUrl = await validatePublicWebsiteUrl(normalized)
+  if (!publicUrl.ok) return { ok: false, reason: 'invalid_url' }
 
-  const siteRead = await exaReadSite(normalized)
-  const seed = companyName || siteRead?.title || normalized
+  const companyName = input.companyName?.trim() || hostnameFromUrl(publicUrl.url)
+
+  const siteRead = await exaReadSite(publicUrl.url)
+  const seed = companyName || siteRead?.title || publicUrl.url
 
   const [exaSynthesis, snapshotResult] = await Promise.all([
     seed ? exaSynthesizeFoundation(seed, siteRead?.text) : Promise.resolve(null),
-    enrichFromWebsite({ websiteUrl: normalized, companyName }).catch(() => null),
+    enrichFromWebsite({ websiteUrl: publicUrl.url, companyName }).catch(() => null),
   ])
 
   const exaSuggestions = mergeExaSuggestions(exaSynthesis?.suggestions, null)
 
   const synthesized = await synthesizeOnboardingAnswers({
     companyName,
-    websiteUrl: normalized,
+    websiteUrl: publicUrl.url,
     siteText: siteRead?.text,
     siteTitle: siteRead?.title ?? null,
     exaSuggestions: Object.keys(exaSuggestions).length ? exaSuggestions : null,
@@ -157,8 +162,8 @@ export async function onboardFromWebsite(input: {
     ok: true,
     answers,
     businessType,
-    websiteUrl: normalized,
-    hostname: hostnameFromUrl(normalized),
+    websiteUrl: publicUrl.url,
+    hostname: hostnameFromUrl(publicUrl.url),
     siteTitle: siteRead?.title ?? null,
     siteSnapshot: snapshotResult,
     checklist: buildChecklist(answers),
