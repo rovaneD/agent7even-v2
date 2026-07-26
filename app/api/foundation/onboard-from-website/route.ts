@@ -1,7 +1,9 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { ensurePaidSubscriptionForClerkUser } from '@/lib/billing/subscriptionGate'
 import { buildIdentityUpdateWithSnapshot, legacyColumnsFromAnswers } from '@/lib/foundation/answersSnapshot'
 import { onboardFromWebsite } from '@/lib/foundation/onboardFromWebsite'
 
@@ -20,25 +22,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'website required' }, { status: 400 })
     }
 
+    const supabase = createServiceClient()
+    const email = await getClerkSessionEmail()
+    const gate = await ensurePaidSubscriptionForClerkUser(supabase, userId, email)
+    if (!gate.ok) {
+      return NextResponse.json({ error: 'Subscription required' }, { status: 402 })
+    }
+
+    const profile = await resolveClerkProfile<{
+      id: string
+      foundation_answers: Record<string, unknown> | null
+      foundation_complete: boolean | null
+      company_name: string | null
+      stripe_customer_id: string | null
+      stripe_subscription_id: string | null
+      plan: string | null
+      created_at: string
+    }>(
+      supabase,
+      userId,
+      'id, foundation_answers, foundation_complete, company_name, stripe_customer_id, stripe_subscription_id, plan, created_at',
+    )
+
+    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+    if (profile.foundation_complete) {
+      return NextResponse.json(
+        { error: 'Foundation already complete', ok: false, reason: 'already_complete' },
+        { status: 409 },
+      )
+    }
+
+    // Provider/website work only after paid access + incomplete Foundation are confirmed.
     const result = await onboardFromWebsite({ website, companyName: businessName })
 
     if (!result.ok) {
       const status = result.reason === 'invalid_url' ? 400 : 422
       return NextResponse.json({ ok: false, reason: result.reason }, { status })
     }
-
-    const supabase = createServiceClient()
-    const profile = await resolveClerkProfile<{
-      id: string
-      foundation_answers: Record<string, unknown> | null
-      company_name: string | null
-      stripe_customer_id: string | null
-      stripe_subscription_id: string | null
-      plan: string | null
-      created_at: string
-    }>(supabase, userId, 'id, foundation_answers, company_name, stripe_customer_id, stripe_subscription_id, plan, created_at')
-
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     const answersRecord = result.answers as unknown as Record<string, unknown>
 
@@ -59,10 +80,23 @@ export async function POST(req: Request) {
       patch.site_snapshot_enabled = true
     }
 
-    await supabase
+    const { data: updatedRows, error: updateError } = await supabase
       .from('profiles')
       .update(buildIdentityUpdateWithSnapshot(profile.foundation_answers, patch))
       .eq('id', profile.id)
+      .neq('foundation_complete', true)
+      .select('id')
+
+    if (updateError) {
+      console.error('[onboard-from-website] profile update failed:', updateError)
+      return NextResponse.json({ error: 'Failed to save onboarding draft' }, { status: 500 })
+    }
+    if (!updatedRows?.length) {
+      return NextResponse.json(
+        { error: 'Foundation already complete', ok: false, reason: 'already_complete' },
+        { status: 409 },
+      )
+    }
 
     return NextResponse.json({
       ok: true,

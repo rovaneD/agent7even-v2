@@ -1,7 +1,9 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { ensurePaidSubscriptionForClerkUser } from '@/lib/billing/subscriptionGate'
 import { buildIdentityUpdateWithSnapshot, legacyColumnsFromAnswers } from '@/lib/foundation/answersSnapshot'
 import { normalizeOnboardingAnswers } from '@/lib/foundation/onboardingAnswerShape'
 import { normalizeBusinessType } from '@/lib/foundation/onboardingBusinessTypes'
@@ -28,25 +30,43 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'answers required' }, { status: 400 })
     }
 
+    const supabase = createServiceClient()
+    const email = await getClerkSessionEmail()
+    const gate = await ensurePaidSubscriptionForClerkUser(supabase, userId, email)
+    if (!gate.ok) {
+      return NextResponse.json({ error: 'Subscription required' }, { status: 402 })
+    }
+
     const answers = normalizeOnboardingAnswers(rawAnswers)
 
-    const supabase = createServiceClient()
     const profile = await resolveClerkProfile<{
       id: string
       foundation_answers: Record<string, unknown> | null
+      foundation_complete: boolean | null
       foundation_score: number | null
       company_name: string | null
       plan: string | null
       stripe_customer_id: string | null
       stripe_subscription_id: string | null
       created_at: string
-    }>(supabase, userId, 'id, foundation_answers, foundation_score, company_name, plan, stripe_customer_id, stripe_subscription_id, created_at')
+    }>(
+      supabase,
+      userId,
+      'id, foundation_answers, foundation_complete, foundation_score, company_name, plan, stripe_customer_id, stripe_subscription_id, created_at',
+    )
 
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
+    if (profile.foundation_complete) {
+      return NextResponse.json(
+        { error: 'Foundation already complete', ok: false, reason: 'already_complete' },
+        { status: 409 },
+      )
+    }
+
     const answersRecord = answers as unknown as Record<string, unknown>
 
-    await supabase
+    const { data: updatedRows, error: updateError } = await supabase
       .from('profiles')
       .update(
         buildIdentityUpdateWithSnapshot(profile.foundation_answers, {
@@ -62,6 +82,19 @@ export async function POST(req: Request) {
         }),
       )
       .eq('id', profile.id)
+      .neq('foundation_complete', true)
+      .select('id')
+
+    if (updateError) {
+      console.error('[complete-onboarding] profile update failed:', updateError)
+      return NextResponse.json({ error: 'Failed to save onboarding answers' }, { status: 500 })
+    }
+    if (!updatedRows?.length) {
+      return NextResponse.json(
+        { error: 'Foundation already complete', ok: false, reason: 'already_complete' },
+        { status: 409 },
+      )
+    }
 
     const scoreResult = await runFoundationScore(supabase, profile, answersRecord)
     if (!scoreResult.ok) {
