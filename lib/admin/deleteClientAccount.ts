@@ -3,6 +3,60 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { disconnectAllZernioProfiles, collectZernioProfileIds } from '@/lib/social/zernioProfileIds'
 import { getStripeClient } from '@/lib/stripe'
 
+export type DeleteClientAccountResult =
+  | { ok: true }
+  | { ok: false; error: string; status: number }
+
+/** Minimal Stripe surface used before irreversible account deletion. */
+export type StripeCancelClient = {
+  subscriptions: {
+    retrieve: (id: string) => Promise<{ status: string }>
+    cancel: (id: string) => Promise<unknown>
+  }
+}
+
+/** Stripe errors that mean the subscription is already gone — safe to continue delete. */
+export function isBenignStripeCancelError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const code = 'code' in err ? String((err as { code?: unknown }).code ?? '') : ''
+  return code === 'resource_missing'
+}
+
+/**
+ * Cancel a live Stripe subscription before deleting the profile.
+ * Returns null when teardown succeeded (or is already canceled/missing).
+ * Fails closed when Stripe is misconfigured or cancel/retrieve fails.
+ */
+export async function cancelStripeSubscriptionBeforeDelete(
+  subscriptionId: string,
+  stripe: StripeCancelClient | null,
+): Promise<DeleteClientAccountResult | null> {
+  if (!stripe) {
+    return {
+      ok: false,
+      error:
+        'Billing is not configured; cannot cancel the Stripe subscription before deleting this account.',
+      status: 503,
+    }
+  }
+
+  try {
+    const existing = await stripe.subscriptions.retrieve(subscriptionId)
+    if (existing.status === 'canceled') return null
+    await stripe.subscriptions.cancel(subscriptionId)
+    return null
+  } catch (err) {
+    if (isBenignStripeCancelError(err)) return null
+    console.error('[deleteClientAccount] Stripe cancel failed:', err)
+    return {
+      ok: false,
+      error:
+        'Failed to cancel the Stripe subscription before deleting this account. Cancel it in Stripe and retry.',
+      status: 502,
+    }
+  }
+}
+
 const USER_ID_TABLES = [
   'agent_constraints',
   'agent_outputs',
@@ -41,10 +95,6 @@ const PROFILE_ID_TABLES = [
   'foundation_proposals',
   'analytics_briefings',
 ] as const
-
-export type DeleteClientAccountResult =
-  | { ok: true }
-  | { ok: false; error: string; status: number }
 
 type ClientProfileRow = {
   id: string
@@ -94,18 +144,17 @@ export async function deleteClientAccount(
   }
 
   if (row.stripe_subscription_id) {
-    try {
-      const stripe = getStripeClient()
-      if (stripe) {
-        await stripe.subscriptions.cancel(row.stripe_subscription_id)
-      }
-    } catch (err) {
-      console.error('[deleteClientAccount] Stripe cancel failed:', err)
-    }
+    const cancelResult = await cancelStripeSubscriptionBeforeDelete(
+      row.stripe_subscription_id,
+      getStripeClient(),
+    )
+    if (cancelResult) return cancelResult
   }
 
   const zernioIds = collectZernioProfileIds(row)
   if (zernioIds.length) {
+    // Best-effort: stale Zernio profile ids return false from teardown and must not
+    // permanently block admin deletes. Stripe cancel above is the hard fail-closed gate.
     await disconnectAllZernioProfiles(zernioIds).catch(err =>
       console.error('[deleteClientAccount] Zernio teardown failed:', err),
     )
