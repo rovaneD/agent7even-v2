@@ -6,6 +6,7 @@ import {
   trialEndingNotificationBody,
 } from '@/lib/billing/trialPolicy'
 import { allocateTrialCredits, grantPaidPlanAllowanceAfterTrial } from '@/lib/billing/trialCredits'
+import { completeCreditTopupOnce } from '@/lib/billing/completeCreditTopup'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { PLAN_CREDITS } from '@/lib/credits'
@@ -63,49 +64,40 @@ export async function POST(req: Request) {
 
     // ── Credit top-up (mode: payment + credits in metadata) ────────────────
     if (session.mode === 'payment' && session.metadata?.credits && session.metadata?.user_id) {
-      const credits  = parseInt(session.metadata.credits, 10)
-      const userId   = session.metadata.user_id
-      const now      = new Date().toISOString()
+      const credits = parseInt(session.metadata.credits, 10)
+      const userId = session.metadata.user_id
 
-      await supabase
-        .from('credit_topups')
-        .update({
-          status:            'completed',
-          stripe_payment_id: session.payment_intent as string ?? null,
-          completed_at:      now,
+      let result
+      try {
+        result = await completeCreditTopupOnce(supabase, {
+          stripeSessionId: session.id,
+          userId,
+          credits,
+          paymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+          amountTotalCents: session.amount_total,
         })
-        .eq('stripe_session_id', session.id)
+      } catch (err) {
+        console.error('Credit top-up fulfillment failed:', err)
+        // Non-2xx so Stripe retries; CAS claim keeps retries from double-granting
+        // once the pending row was already moved to completed.
+        return NextResponse.json({ error: 'Top-up fulfillment failed' }, { status: 500 })
+      }
 
-      const { data: balRows } = await supabase
-        .from('credit_balances')
-        .select('balance')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
-        .limit(1)
+      if (!result.granted && result.reason === 'missing_topup') {
+        console.error('Credit top-up missing pending row', { sessionId: session.id, userId })
+        return NextResponse.json({ error: 'Top-up row missing' }, { status: 500 })
+      }
 
-      const prevBalance = balRows?.[0]?.balance ?? 0
-      const newBalance  = prevBalance + credits
-
-      await supabase
-        .from('credit_balances')
-        .upsert({ user_id: userId, balance: newBalance, updated_at: now })
-
-      await supabase.from('credit_ledger').insert({
-        user_id:       userId,
-        type:          'topup',
-        credits,
-        balance_after: newBalance,
-        description:   `Credit top-up — ${credits} credits ($${(session.amount_total ?? 0) / 100})`,
-      })
-
-      await createNotification({
-        userId,
-        title: `${credits} credits added`,
-        body:  `Your credit top-up is complete. You now have ${newBalance} credits available.`,
-        type:  'credit_topup',
-        link:  '/dashboard/billing',
-        sendEmail: false,
-      })
+      if (result.granted) {
+        await createNotification({
+          userId: result.userId,
+          title: `${result.credits} credits added`,
+          body: `Your credit top-up is complete. You now have ${result.newBalance} credits available.`,
+          type: 'credit_topup',
+          link: '/dashboard/billing',
+          sendEmail: false,
+        })
+      }
 
       return NextResponse.json({ received: true })
     }
