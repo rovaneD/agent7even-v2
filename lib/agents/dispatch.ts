@@ -23,7 +23,7 @@ async function notifyScheduledRunFailure(
     await createNotification({
       userId: opts.userId,
       title: `${agentName} run failed`,
-      body: `The scheduled ${agentName} run could not complete. It will try again on its next scheduled run — open the agent to run it manually or review its setup.`,
+      body: `The scheduled ${agentName} run could not complete. It will retry on the next hourly check — open the agent to run it manually or review its setup.`,
       type: 'agent_run_failed',
       link: `/dashboard/agents/${opts.agentId}/outputs`,
       sendEmail: false,
@@ -38,7 +38,7 @@ export async function dispatchAgentTask(opts: {
   agent: string
   input: Record<string, unknown>
   userId: string
-}) {
+}): Promise<{ ok: boolean }> {
   const agentId = opts.agent.replace(/-/g, '_') as AgentId
   const supabase = createServiceClient()
 
@@ -61,7 +61,10 @@ export async function dispatchAgentTask(opts: {
         })
         .eq('id', opts.taskId)
       await notifyScheduledRunFailure(supabase, { taskId: opts.taskId, agentId, userId: opts.userId })
+      return { ok: false }
     }
+
+    return { ok: true }
   } catch (err) {
     console.error('Agent dispatch error:', err)
     await supabase
@@ -74,5 +77,6 @@ export async function dispatchAgentTask(opts: {
       })
       .eq('id', opts.taskId)
     await notifyScheduledRunFailure(supabase, { taskId: opts.taskId, agentId, userId: opts.userId })
+    return { ok: false }
   }
 }

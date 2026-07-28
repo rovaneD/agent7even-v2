@@ -6,7 +6,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
 import { COMMAND_CENTER_AGENTS, type AgentId } from '@/lib/agents/registry'
-import { ensureDefaultAgentSchedules, reconcileStaleAgentSchedules } from '@/lib/agents/ensureDefaultSchedules'
+import { ensureDefaultAgentSchedules } from '@/lib/agents/ensureDefaultSchedules'
 import { listPendingApprovalTasks } from '@/lib/agents/pendingApprovals'
 import AgentCommandCenter from './AgentCommandCenter'
 import AgentsLegacyRedirects from './AgentsLegacyRedirects'
@@ -83,9 +83,6 @@ export default async function AgentsPage() {
   // Backfill: existing accounts never got their autonomous schedules seeded
   await ensureDefaultAgentSchedules(supabase, dataUserId).catch(err =>
     console.error('Schedule seeding failed (non-fatal):', err),
-  )
-  await reconcileStaleAgentSchedules(supabase, dataUserId).catch(err =>
-    console.error('Schedule reconcile failed (non-fatal):', err),
   )
 
   const [
