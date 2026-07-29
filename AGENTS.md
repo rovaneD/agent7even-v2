@@ -114,6 +114,7 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - `35_notifications_type_check.sql` — `approval_pending` in notifications CHECK (**applied**).
 - `36_foundation_proposal_decisions.sql` — proposal user decisions (**run if not applied**).
 - `37_foundation_layers.sql` — approved Foundation evolution layers (**run if not applied**).
+- `46_foundation_layers_source_proposal_unique.sql` — unique index on `foundation_layers.source_proposal_id` (**run if not applied**).
 - `41_foundation_knowledge_classification.sql` — upload purpose tags on `foundation_knowledge` (**applied Jul 8, 2026**).
 - `45_agent_run_failed_notification_type.sql` — `agent_run_failed` in notifications CHECK (**run before deploying the failed-run notification, added Jul 18, 2026**).
 
