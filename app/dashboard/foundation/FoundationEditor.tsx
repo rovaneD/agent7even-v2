@@ -483,12 +483,26 @@ export default function FoundationEditor({
   async function handleRescore() {
     setRescoring(true)
     try {
+      // Persist answers before scoring — score no longer writes foundation_answers
+      // (avoids clobbering newer Hub/Maya saves with a stale rescore payload).
+      const saveRes = await fetch('/api/foundation/save-answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers }),
+      })
+      if (!saveRes.ok) {
+        throw new Error('Could not save your Foundation answers. Please try again.')
+      }
+
       const res = await fetch('/api/foundation/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers }),
       })
       const data = await res.json()
+      if (!res.ok || typeof data.overallScore !== 'number') {
+        throw new Error(data.error || 'Could not score your Foundation answers. Please try again.')
+      }
 
       const newScore: number = data.overallScore
       const newFieldScores: Record<string, FieldScore> = data.fieldScores ?? {}
@@ -513,6 +527,8 @@ export default function FoundationEditor({
       })
         .catch(err => console.error('[foundation] doc generation failed:', err))
         .finally(() => setGenerating(false))
+    } catch (err) {
+      console.error('[foundation] rescore failed:', err)
     } finally {
       setRescoring(false)
     }

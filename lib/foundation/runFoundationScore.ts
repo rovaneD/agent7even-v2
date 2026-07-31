@@ -4,6 +4,7 @@ import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCr
 import { logActivity } from '@/lib/activity'
 import { computeOverallFoundationScore } from '@/lib/foundation/sections'
 import { FIELD_EXPECTATIONS, mergeScoredFields, topWeakFieldKeys } from '@/lib/foundation/score'
+import { replaceFoundationFieldScores } from '@/lib/foundation/persistFoundationFieldScores'
 
 type ScoreProfile = {
   id: string
@@ -88,10 +89,15 @@ Return format exactly:
     return { ok: false, error: 'Score parsing failed' }
   }
 
-  const { data: previousRows } = await supabase
+  const { data: previousRows, error: previousScoresError } = await supabase
     .from('foundation_field_scores')
     .select('field_key, score, feedback')
     .eq('user_id', profile.id)
+
+  if (previousScoresError) {
+    console.error('[foundation/score] failed to load previous field scores:', previousScoresError.message)
+    return { ok: false, error: 'Score persistence failed' }
+  }
 
   const previousScores = Object.fromEntries(
     (previousRows ?? []).map(row => [
@@ -109,8 +115,6 @@ Return format exactly:
   const overallScore = computeOverallFoundationScore(completeFieldScores)
   const topWeakFields = topWeakFieldKeys(completeFieldScores)
 
-  await supabase.from('foundation_field_scores').delete().eq('user_id', profile.id)
-
   const fieldScoreRows = Object.entries(completeFieldScores).map(([key, val]) => ({
     user_id: profile.id,
     field_key: key,
@@ -119,18 +123,34 @@ Return format exactly:
     updated_at: new Date().toISOString(),
   }))
 
-  if (fieldScoreRows.length > 0) {
-    await supabase.from('foundation_field_scores').insert(fieldScoreRows)
+  const previousKeys = (previousRows ?? []).map(row => row.field_key as string)
+  const persistResult = await replaceFoundationFieldScores(
+    supabase,
+    profile.id,
+    fieldScoreRows,
+    previousKeys,
+  )
+  if (!persistResult.ok) {
+    console.error('[foundation/score] failed to persist field scores:', persistResult.error)
+    return { ok: false, error: 'Score persistence failed' }
   }
 
-  await supabase
+  // Score only — callers that need to persist answers (save-answers, save-step,
+  // complete-onboarding, save-exa-confirm) must write foundation_answers themselves.
+  // Writing client-supplied answers here races with Hub/Maya saves and can clobber
+  // newer Foundation content with a stale rescore payload.
+  const { error: profileUpdateError } = await supabase
     .from('profiles')
     .update({
       foundation_score: overallScore,
-      foundation_answers: answers,
       foundation_updated_at: new Date().toISOString(),
     })
     .eq('id', profile.id)
+
+  if (profileUpdateError) {
+    console.error('[foundation/score] failed to update profile:', profileUpdateError.message)
+    return { ok: false, error: 'Score persistence failed' }
+  }
 
   logActivity(profile.id, 'foundation_updated', { score: overallScore }).catch(() => {})
 
