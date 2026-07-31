@@ -27,17 +27,23 @@ export async function POST(req: Request) {
       id: string
       foundation_answers: Record<string, unknown> | null
       foundation_score: number | null
+      foundation_complete: boolean | null
       company_name: string | null
       stripe_customer_id: string | null
       stripe_subscription_id: string | null
       plan: string | null
       created_at: string
-    }>(supabase, userId, 'id, foundation_answers, foundation_score, company_name')
+    }>(supabase, userId, 'id, foundation_answers, foundation_score, foundation_complete, company_name')
     if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+
+    // Wizard confirm is pre-completion only — never clobber a finished Foundation.
+    if (profile.foundation_complete) {
+      return NextResponse.json({ ok: true, skipped: true })
+    }
 
     const normalizedWebsite = websiteUrl ? normalizeWebsiteUrl(websiteUrl) : null
 
-    await supabase
+    const { error: saveError } = await supabase
       .from('profiles')
       .update(buildIdentityUpdateWithSnapshot(profile.foundation_answers, {
         foundation_answers: answers,
@@ -49,6 +55,11 @@ export async function POST(req: Request) {
         updated_at: new Date().toISOString(),
       }))
       .eq('id', profile.id)
+      .neq('foundation_complete', true)
+
+    if (saveError) {
+      return NextResponse.json({ error: 'Failed to save answers' }, { status: 500 })
+    }
 
     scheduleCreativeDirectionCacheRefresh(
       profile.id,
