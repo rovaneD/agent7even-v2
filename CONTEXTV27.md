@@ -135,7 +135,7 @@ Still set `NEXT_PUBLIC_APP_URL=https://www.agent7even.ai` on Vercel Production; 
 | Zernio first production pilot | Owner connect on `www.agent7even.ai` Analytics |
 | Zernio tenant isolation write-up | Chat with Elean — non-blocking for first pilot |
 | Hub rescore field-score refresh | Open since June |
-| AGENTS.md CTA URLs | Still reference `app.agent7even.com` — intentional until full `.ai` cutover comms |
+| AGENTS.md CTA URLs | ~~Still reference `app.agent7even.com`~~ — **closed Jul 28, 2026** in `AGENTS.md` + `CONTEXTV30.md` §10 |
 
 ---
 

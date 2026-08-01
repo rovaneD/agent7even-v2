@@ -1,8 +1,10 @@
 ## REPO IDENTITY — READ FIRST
-This is the EXPERIMENTAL v2 app.
+This repo is the LIVE customer-facing product.
 GitHub: rovaneD/agent7even-v2
-Vercel: agent7even-v2.vercel.app
-Production app lives at rovaneD/agent7even-app — never touch it from this folder.
+Vercel project: agent7even-v2
+Serves: https://www.agent7even.ai (primary) and agent7even-v2.vercel.app
+Pushing to `main` deploys to real customers. Treat it as production.
+Legacy portal `rovaneD/agent7even-app` (app.agent7even.com) is frozen — never touch it from this folder.
 Before every push: run `git remote -v` and confirm it shows agent7even-v2.
 
 ---
@@ -15,37 +17,44 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 20, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: July 28, 2026 — keep this date current at the end of every session -->
 
-## Two related projects
-- `~/agent7even/` — marketing site (agent7even.com) — deploys from `master` branch
-- `~/agent7even-app/` — **production** client portal SaaS (app.agent7even.com) — separate repo; deploys from `main`
-- **This folder** — experimental v2 (`rovaneD/agent7even-v2`, agent7even-v2.vercel.app) — port to production when ready; never edit `agent7even-app` from here
+## Properties
+
+| Property | Repo | Status |
+|----------|------|--------|
+| `www.agent7even.ai` | **this repo** (`rovaneD/agent7even-v2`) | **Live product.** Marketing site and app in one Next.js app. |
+| `app.agent7even.com` | `~/agent7even-app/` (`rovaneD/agent7even-app`) | Legacy portal. Frozen. Do not edit or deploy from here. |
+| `agent7even.com` | `~/agent7even/` (`master`) | Legacy marketing site. Redirect decision open — see `PRODUCTION_GREENLIGHT.md` §2. |
+
+`.ai` is a replacement for both `.com` properties, not a companion. It is self-contained
+and must not link to either of them.
 
 ## Ground rules
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
-2. Always check both projects before making changes. Pricing, CTAs, auth links, and the chatbot system prompt all have counterparts in both codebases.
+2. Do not port CTAs, auth links, or app URLs between repos. `.ai` is self-contained; the legacy `.com` repos are frozen. Pricing and product claims must still stay consistent wherever they appear.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV29.md > CONTEXTV28.md > CONTEXTV27.md > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV30.md > CONTEXTV29.md > CONTEXTV28.md > CONTEXTV27.md > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
 Agent7even is a SaaS subscription platform — not a one-time project agency.
 
 **3 subscription tiers:**
-- Starter — $49/mo ($490/yr) — 3-day free trial (Starter only)
-- Growth — $89/mo ($890/yr) — no trial, charged immediately
-- ProAgent — $149/mo ($1,490/yr) — no trial, charged immediately
+- Starter — $49/mo ($490/yr)
+- Growth — $89/mo ($890/yr)
+- ProAgent — $149/mo ($1,490/yr)
 
-**Trial:** Starter only — 3-day free trial. Card collected upfront, no charge for 3 days. Limits during trial: 5 AI Toolkit runs total, Brand Kit locked. After trial converts to paid, normal Starter limits apply.
+**Trial:** 7-day free trial on all paid tiers (`lib/billing/trialPolicy.ts`). Card collected upfront; first charge on day 8. Limits during trial: 5 AI Toolkit runs total, Brand Kit locked. Trial signal is Stripe `subscription.status === 'trialing'` — use `isProfileOnTrial()`, not plan name alone. Post-sign-up gate: `/start-trial` when profile lacks subscription (admin/owner/billing_exempt bypass via `profileBypassesSubscriptionGate()`).
 
 **Team seats:** $15/mo per extra seat beyond plan's included seats (Starter: 1, Growth: 3, ProAgent: 5). `STRIPE_SEAT_PRICE_ID = price_1TbBQ6CjXyyqncdvakHy4jce`
 
-**CTA standard:**
-- Nav / footer "Sign up" → `https://app.agent7even.com/sign-up`
-- Primary marketing CTAs "Start your free trial" → `https://app.agent7even.com/pricing`
-- Pricing — Starter: "Start your free trial" · Growth/ProAgent: "Get started"
+**CTA standard** (this repo — internal routes, never absolute `.com` URLs):
+- Nav / footer "Sign up" → `/sign-up`
+- Primary marketing CTAs "Start your free trial" → `/pricing`
+- Pricing — all three tiers: "Start your free trial" (trial is tier-neutral, see `lib/billing/trialPolicy.ts`)
 - No "Book a free call" anywhere
+- Never emit `app.agent7even.com` or `agent7even.com` in this codebase. Only exception: `hello@agent7even.com` as the Resend sender until the sending domain moves to `.ai`.
 
 **Add-on services** are available inside the platform. No prices shown on marketing site. Design & Development and Packaging Design require scope — route to inquiry form, not order modal.
 
@@ -59,12 +68,15 @@ Next.js 16 uses `proxy.ts` not `middleware.ts`.
 - **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026). Publer is dashboard-first, also not a multi-tenant fit. **Zernio** is the integrated publisher (`lib/social/publisher.ts`). **DPA:** Signed both sides (Trust Center, Jul 2026). **Go-live (Jul 8, 2026):** Zernio cleared paying customers' live social accounts. Runbook: `vendor/zernio/go_live_runbook.md`; readiness: `scripts/verify-zernio-go-live-readiness.ts`. Tenant isolation answers still in chat (non-blocking pilot). Details: `vendor/zernio/`, `zernio_social_evaluation_backlog.md`.
 - **Instagram Lucide icon** — does not exist. Use `Hash` icon instead.
 
-## This app (agent7even-v2) — experimental
-Changes are made deliberately and committed before moving on. Production lives
-in `rovaneD/agent7even-app` and must not be touched from this folder.
+## This app (agent7even-v2) — live
+Changes are made deliberately and committed before moving on. Pushes to `main`
+reach paying customers on `www.agent7even.ai`. The legacy portal in
+`rovaneD/agent7even-app` is frozen and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV29.md` — latest handoff: post-audit Phases 1–4, autonomous schedules, billing enforcement, Maya context fixes, scroll-story homepage hero on `/` (old hero at `/lab5`) (July 20, 2026).
+- `CONTEXTV30.md` — latest handoff: website-first onboarding, trial v2 (7-day tier-neutral), admin delete, Maya hub actuation, auth/homepage copy, agent schedule fixes, Agents scroll UX (July 24, 2026).
+- `SESSION_2026-07-24.md` — July 20–24 session log (onboarding, trial gate, agents UX, commits through `704c316`).
+- `CONTEXTV29.md` — prior handoff: post-audit Phases 1–4, autonomous schedules, billing enforcement, Maya context fixes, scroll-story homepage hero on `/` (old hero at `/lab5`) (July 20, 2026).
 - `SESSION_2026-07-20.md` — July 13–20 session log (audit fixes, homepage swap, mobile auto-play hero, commits through `a3e1eca`).
 - `CONTEXTV28.md` — prior handoff: full codebase audit — `resolveClerkProfile` enforced at all 45 call sites, 16 dead API routes deleted, proxy/env cleanup, pre-push guard created (July 13, 2026).
 - `SESSION_2026-07-13.md` — July 13 session log (audit findings + fixes, commit 8aa8719).
@@ -120,10 +132,14 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 ## Key implementation notes (July 2026)
 - **Canonical profile resolution:** `lib/profiles/resolveClerkProfile.ts` — use for any Clerk-scoped API route or page that reads `profiles`. Billing: `getBillingProfileForClerkUser`. Dashboard: `getDashboardProfileForClerkUser`. Analytics SSR: `getAnalyticsProfileForClerkUser`. GA OAuth: `lib/analytics/gaOAuthProfile.ts` (`saveGaOAuthTokensForClerkUser` saves by profile **id**). Never `.eq('clerk_user_id').single()` when duplicates may exist — enforced repo-wide July 13, 2026 (commit `8aa8719`); the pattern greps to zero, keep it that way.
 - **Paid feature access:** API routes must use `hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt)` rather than checking `profile.plan` alone. Failed payments retain the paid plan while setting `status = 'paused'`; plan-only gates let delinquent accounts invoke paid provider work.
-- **Autonomous agent schedules:** `lib/agents/ensureDefaultAgentSchedules.ts` seeds `agent_schedules` when Foundation completes (+ Agents page backfill). Pause/resume: `PATCH /api/agents/schedules/[id]`; UI in `AgentCommandCenter` SchedulesPanel. Cron skips paused/churned users (`run-scheduled-agents`).
+- **Trial + subscription gate:** SSOT `lib/billing/trialPolicy.ts` (7-day, tier-neutral, day-8 charge). Gate helpers in `lib/billing/subscriptionGate.ts`; checkout recovery in `activateCheckoutSession.ts`. Dashboard entry redirects to `/start-trial` without subscription unless `profileBypassesSubscriptionGate()` (admin/owner/billing_exempt).
+- **Website-first onboarding:** `POST /api/foundation/onboard-from-website` → confirm (`FoundationOnboardConfirm`) → `POST /api/foundation/complete-onboarding`. Core: `onboardFromWebsite.ts`, `synthesizeOnboardingAnswers.ts`, `runFoundationGeneration.ts`.
+- **Admin delete account:** `lib/admin/deleteClientAccount.ts` + `POST /api/admin/clients/[id]/delete`. Guards: no self-delete, no admin/owner, no owner with team. UI in `ClientHealthView` + `ClientDetail`.
+- **Autonomous agent schedules:** `lib/agents/ensureDefaultAgentSchedules.ts` seeds `agent_schedules` when Foundation completes (+ Agents page backfill). Cron always advances `next_run_at` via `advanceAgentScheduleNextRun`; `reconcileStaleAgentSchedules` on Agents page load. Pause/resume: `PATCH /api/agents/schedules/[id]`; UI in `AgentCommandCenter` SchedulesPanel. Cron skips paused/churned users (`run-scheduled-agents`).
+- **Auto vs approval outputs:** `autonomyLevel: 'autonomous'` agents save outputs as approved — not in approval queue. Find in scorecard / Recent outputs / `/dashboard/agents/[id]/outputs`. Pending queue SSOT remains `pendingApprovals.ts`.
 - **Maya page context:** `hooks/useMayaContext.ts` snapshots to `window.__MAYA_CANVAS_CONTEXT__` for late listeners. `DashboardShell` clears `canvasData` during render on pathname change (not in an effect). `MayChatPanel` waits for rich `canvasData` before greeting; re-greets on nav if user hasn't typed.
 - **Marketing homepage hero:** `/` renders `HomepageSiteBrandStoryB` (`app/design-concept/homepage-site-brand-b/`). Desktop: scroll-story sticky hero. Mobile (≤860px): auto-play story when stage enters view. Previous hero preserved at `/lab5`.
-- **Analytics / cookie chrome:** `components/analytics/DeferredChrome.tsx` — cookie banner + GA only outside app prefixes (`/dashboard`, `/admin`, `/foundation`, `/maya`, `/sign-in`, `/sign-up`). Vercel Analytics sitewide.
+- **Analytics / cookie chrome:** `components/analytics/DeferredChrome.tsx` — cookie banner + GA only outside app prefixes (`/dashboard`, `/admin`, `/foundation`, `/maya`, `/sign-in`, `/sign-up`, `/start-trial`). Vercel Analytics sitewide.
 - **Agent guided setup:** dedicated run pages at `/dashboard/agents/[agentId]/run` — not modals on Command Center hub (`lib/agents/guidedSetup.ts`).
 - **Pending approval count SSOT:** `lib/agents/pendingApprovals.ts` — count/list from `agent_outputs.status = 'pending_approval'`. Used by dashboard brief, lifecycle bar, sidebar badge, Agents Command Center, digest generate, and approvals API. Do not reintroduce `Math.max` with `daily_digests.approvals` or parallel `agent_tasks`-only counts for surfacing.
 - **Foundation competitors:** store as `string[]` via `lib/foundation/competitorsArray.ts` — never comma-split prose into slots.
@@ -138,17 +154,18 @@ in `rovaneD/agent7even-app` and must not be touched from this folder.
 - Pink `#F5349B` is reserved for the logo and restrained accent moments (e.g. “Maya” in hero).
 - Standard dashboard cards use white surfaces, `rounded-2xl`, `border-gray-100`, and no default shadow.
 - Marketing homepage cards (`.lcard`, `.use`) use white surfaces, cropped product UI widgets at bottom — see `CONTEXTV18.md`.
-- Live homepage hero (`/`) uses scroll-story variant B — display headline, Maya subline with `MayaOrb`, production dashboard mockup stage; below-the-fold sections match lab5. See `CONTEXTV29.md` §4.
+- Live homepage hero (`/`) uses scroll-story variant B — display headline, centered Maya subline with `MayaOrb`, production dashboard mockup stage; below-the-fold sections match lab5. Approval copy: “You approve before anything goes live.” See `CONTEXTV30.md` §5–§6.
 - The Dashboard Command Center and Agents Command Center hero cards are intentional soft-shadow exceptions.
 - Dashboard pages use a centered constrained canvas with internally left-aligned content.
 
 ## Deployment rules — READ BEFORE ANY DEPLOY
 
-**How this v2 project works:**
-- `agent7even-v2.vercel.app` is served by the Vercel project `agent7even-v2`
-- GitHub branch pushes create Vercel deployments for this experimental project
+**How this project works:**
+- The Vercel project `agent7even-v2` serves `www.agent7even.ai` and `agent7even-v2.vercel.app`
+- GitHub branch pushes create Vercel deployments; `main` deploys to the live domain
 - **`main`** is the active integration branch (merged June 12, 2026)
-- Production app deployment rules belong to `rovaneD/agent7even-app`, not this repo
+- There is no separate production repo to deploy. This is it.
+- Zernio is live with paying customers' social accounts (Jul 8, 2026). A bad push can affect real publishing.
 
 **Never do this:**
 - Run `vercel --prod` with uncommitted local changes

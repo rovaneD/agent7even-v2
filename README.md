@@ -1,22 +1,17 @@
 # Agent7even v2
 
-Experimental v2 client portal and AI marketing workspace.
+Live client portal and AI marketing workspace for www.agent7even.ai.
 
 ```txt
 GitHub: rovaneD/agent7even-v2
 Vercel: agent7even-v2.vercel.app
-Production app repository: rovaneD/agent7even-app
+Production URL: https://www.agent7even.ai
+Legacy portal repository (frozen): rovaneD/agent7even-app
+Branch: main
+Latest handoff: CONTEXTV30.md (July 24, 2026)
 ```
 
-Do not make production-repository changes from this workspace.
-
-## Current Branch
-
-The active visual-system work is on:
-
-```txt
-design-system/color-tokens
-```
+Do not make legacy-repository changes from this workspace.
 
 Before every push, confirm:
 
@@ -28,10 +23,11 @@ The remote must show `rovaneD/agent7even-v2`.
 
 ## Read First
 
-- `AGENTS.md`
-- `CONTEXTV12.md`
-- `MAYA_CONTEXT_V03.md`
-- `AUDIT_FIXES_2026-06-02.md`
+- `AGENTS.md` — product rules, deployment guardrails, implementation SSOT
+- `CONTEXTV30.md` — latest handoff (onboarding v2, trial billing, agents UX)
+- `CONTEXTV29.md` — prior handoff (audit phases, homepage hero)
+- `MAYA_CONTEXT_V10.md` — Maya product context
+- `SESSION_2026-07-24.md` — recent commit ledger
 
 ## Development
 
@@ -67,6 +63,8 @@ configuration gaps.
 
 - Maya is page-context-aware and should assist with the work visible on the
   current canvas.
+- Foundation onboarding is website-first: URL synthesis → confirm → generate.
+- Trial is 7-day tier-neutral; card required; charge on day 8 (`lib/billing/trialPolicy.ts`).
 - Services is the request/generation/order-history workspace.
 - Deliverables is the permanent saved asset library.
 - Blue is the primary interaction color.
