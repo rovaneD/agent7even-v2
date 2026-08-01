@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import MarketingJsonLd from '@/components/marketing/MarketingJsonLd'
 import { TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 import { marketingPageMetadata } from '@/lib/marketing/seoMetadata'
-import HomepageSiteBrandStoryB from './design-concept/homepage-site-brand-b/HomepageSiteBrandStoryB'
+import HomepageLeftHeaderBack from './design-concept/homepage-left-header-back/HomepageLeftHeaderBack'
 
 export const metadata: Metadata = marketingPageMetadata({
   title: 'AI Marketing Strategist & Automation for Small Business | Agent7even',
@@ -12,14 +12,14 @@ export const metadata: Metadata = marketingPageMetadata({
 })
 
 /**
- * Homepage — scroll-story hero (variant B) + the same below-the-fold sections
- * as before. The previous hero remains intact at /lab5 for A/B comparison.
+ * Homepage — left-aligned hero, HeaderBack.jpg backdrop, static dashboard mockup.
+ * Scroll-story variant B: /design-concept/homepage-site-brand-b · legacy hero: /lab5
  */
 export default function HomePage() {
   return (
     <>
       <MarketingJsonLd />
-      <HomepageSiteBrandStoryB />
+      <HomepageLeftHeaderBack />
     </>
   )
 }
