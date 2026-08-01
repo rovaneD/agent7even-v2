@@ -59,6 +59,8 @@ export type RunFoundationGenerationInput = {
   answers: Record<string, any>
   sections?: string[]
   markComplete?: boolean
+  /** When true, each doc run reserves credits. Default false = platform-funded onboarding. */
+  chargeCredits?: boolean
 }
 
 export type RunFoundationGenerationResult =
@@ -91,7 +93,15 @@ export async function runFoundationGeneration(
   supabase: SupabaseClient,
   input: RunFoundationGenerationInput,
 ): Promise<RunFoundationGenerationResult> {
-  const { profileId, userPlan, companyName, answers, sections: sectionFilter, markComplete = true } = input
+  const {
+    profileId,
+    userPlan,
+    companyName,
+    answers,
+    sections: sectionFilter,
+    markComplete = true,
+    chargeCredits = false,
+  } = input
 
   const context = buildContext(answers, companyName)
   const docFilter = sectionFilter?.length
@@ -129,7 +139,7 @@ export async function runFoundationGeneration(
           plan: userPlan,
           orchestrationId,
           maxTokens: 1000,
-          chargeCredits: false,
+          chargeCredits,
         })
         if (!result.content) throw new Error(`Empty content returned for ${doc.type}`)
         return { ...doc, content: result.content }
