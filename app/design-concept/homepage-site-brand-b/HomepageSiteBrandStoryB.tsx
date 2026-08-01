@@ -89,6 +89,8 @@ const STATS = [
 const HERO_HEIGHT = 480
 /** Vertical gap between hero copy and the dashboard mockup at rest. */
 const HERO_STAGE_GAP = 80
+/** Vertical gap between dashboard mockup bottom and scroll narration. */
+const NARR_STAGE_GAP = 56
 
 /**
  * Story timeline as a function of progress p ∈ [0,1] — shared by the desktop
@@ -156,7 +158,7 @@ function renderVals(p: number, vw: number, vh: number) {
   const gNarr: CSSProperties = {
     position: 'absolute',
     left: '50%',
-    top: vh / 2 + 300 * s + 18,
+    top: vh / 2 + 300 * s + NARR_STAGE_GAP,
     width: Math.min(620, vw - 32),
     height: 96,
     transform: 'translateX(-50%)',
@@ -384,7 +386,7 @@ function DesktopStory() {
       <div ref={scrollRef} style={{ height: '750vh', position: 'relative' }}>
         <div style={{ position: 'sticky', top: 0, height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           {/* Metaballs — production WebGL shader in two places, bleeding off the page edges */}
-          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0, opacity: vals.blobsO, pointerEvents: 'none' }} aria-hidden>
+          <div className="hsb-blob-layer" style={{ position: 'absolute', inset: 0, overflow: 'hidden', zIndex: 0, opacity: vals.blobsO, pointerEvents: 'none' }} aria-hidden>
             <DeferredMetaballs className="hsb-metaballs hsb-metaballs--top-left" count={7} />
             <DeferredMetaballs className="hsb-metaballs hsb-metaballs--bottom-right" count={7} />
           </div>
@@ -688,7 +690,7 @@ function MobileStory() {
 
   return (
     <div ref={rootRef} className="hsb-b hsb-b--mobile">
-      <div className="hsb-mobile-metaballs" aria-hidden>
+      <div className="hsb-mobile-metaballs hsb-blob-layer" aria-hidden>
         <DeferredMetaballs className="hsb-metaballs hsb-metaballs--top-left" count={7} />
         <DeferredMetaballs className="hsb-metaballs hsb-metaballs--bottom-right" count={7} />
       </div>
@@ -751,11 +753,10 @@ export default function HomepageSiteBrandStoryB() {
   }, [])
 
   return (
-    <div className="lab5">
-      {/* NAV — production marketing nav */}
+    <div className="lab5 lab5--hsb-header-back">
       <MarketingNav />
+      <div className="hsb-header-backdrop" aria-hidden />
 
-      {/* HERO — desktop scroll-story / mobile auto-play */}
       <ScrollHero />
 
       {/* Everything below the fold is identical to the production homepage. */}
