@@ -1,17 +1,9 @@
 import * as publisher from '@/lib/social/publisher'
 
-/** Deduped Zernio profile IDs for a tenant (primary + array). */
-export function collectZernioProfileIds(profile: {
-  zernio_profile_id?: string | null
-  zernio_profile_ids?: string[] | null
-}): string[] {
-  const ids = [...((profile.zernio_profile_ids as string[] | null) ?? [])]
-  const primary = profile.zernio_profile_id as string | null | undefined
-  if (primary && !ids.includes(primary)) {
-    ids.unshift(primary)
-  }
-  return Array.from(new Set(ids.filter(Boolean)))
-}
+export {
+  collectZernioProfileIds,
+  isOwnedZernioCallbackProfileId,
+} from '@/lib/social/zernioOwnedProfileIds'
 
 /** Live platform list across every tenant Zernio profile. */
 export async function syncTenantConnectedPlatforms(profileIds: string[]): Promise<string[]> {

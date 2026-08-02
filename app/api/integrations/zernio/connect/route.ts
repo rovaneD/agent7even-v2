@@ -156,7 +156,12 @@ export async function POST(req: Request) {
       })
       .eq('id', profile.id)
     if (updateErr) {
+      // Fail closed: callback only accepts already-owned Zernio profile IDs.
       console.error('[zernio/connect] failed to store profile_id:', updateErr)
+      return NextResponse.json(
+        { error: 'Could not save your connection profile. Please try again.' },
+        { status: 500 },
+      )
     }
   }
 

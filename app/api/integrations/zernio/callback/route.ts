@@ -3,6 +3,10 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { consumeOAuthState } from '@/lib/oauth-state'
 import { oauthCallbackBaseFromRequest } from '@/lib/oauthCallbackBase'
+import {
+  collectZernioProfileIds,
+  isOwnedZernioCallbackProfileId,
+} from '@/lib/social/zernioOwnedProfileIds'
 import * as publisher from '@/lib/social/publisher'
 
 function safeReturnPath(returnTo: string | null): string {
@@ -62,26 +66,15 @@ async function persistConnectedPlatform(opts: {
     return NextResponse.redirect(`${opts.appBase}${opts.returnPath}?zernio_error=profile_not_found`)
   }
 
-  const existingIds = (profile.zernio_profile_ids as string[] | null) ?? []
-  const updatedIds = opts.profileId ? Array.from(new Set([...existingIds, opts.profileId])) : existingIds
-  const primaryId = profile.zernio_profile_id || opts.profileId || null
-
-  const updatePayload: Record<string, unknown> = {
-    zernio_profile_ids: updatedIds,
-  }
-  if (primaryId && profile.zernio_profile_id !== primaryId) {
-    updatePayload.zernio_profile_id = primaryId
-  }
-
-  if (opts.profileId && (!profile.zernio_profile_id || !existingIds.includes(opts.profileId))) {
-    const { error: profileUpdateErr } = await supabase
-      .from('profiles')
-      .update(updatePayload)
-      .eq('id', profile.id)
-    if (profileUpdateErr) {
-      console.error('[zernio/callback] failed to store zernio_profile_id / zernio_profile_ids:', profileUpdateErr)
-      return NextResponse.redirect(`${opts.appBase}${opts.returnPath}?zernio_error=save_failed`)
-    }
+  // Never persist a callback profileId that was not already bound at connect time.
+  // The shared Zernio API key makes an unbound id a cross-tenant takeover.
+  if (!isOwnedZernioCallbackProfileId(profile, opts.profileId)) {
+    console.error('[zernio/callback] rejected unbound profileId', {
+      clerkId: opts.clerkId,
+      profileId: opts.profileId,
+      owned: collectZernioProfileIds(profile),
+    })
+    return NextResponse.redirect(`${opts.appBase}${opts.returnPath}?zernio_error=invalid_profile`)
   }
 
   const existing = (profile.zernio_connected_platforms as string[] | null) ?? []
@@ -139,6 +132,26 @@ export async function GET(req: NextRequest) {
     const clerkId = await consumeOAuthState(nonce, 'zernio:facebook')
     if (!clerkId) {
       return NextResponse.redirect(`${appBase}${returnPath}?zernio_error=invalid_state`)
+    }
+
+    // Ownership check before any Zernio mutation with attacker-controlled profileId.
+    const supabase = createServiceClient()
+    const earlyProfile = await resolveClerkProfile<{
+      id: string
+      zernio_profile_id: string | null
+      zernio_profile_ids: string[] | null
+      stripe_customer_id: string | null
+      stripe_subscription_id: string | null
+      plan: string | null
+      created_at: string
+    }>(supabase, clerkId, 'id, zernio_profile_id, zernio_profile_ids')
+    if (!earlyProfile || !isOwnedZernioCallbackProfileId(earlyProfile, profileId)) {
+      console.error('[zernio/callback] rejected unbound facebook profileId', {
+        clerkId,
+        profileId,
+        owned: earlyProfile ? collectZernioProfileIds(earlyProfile) : [],
+      })
+      return NextResponse.redirect(`${appBase}${returnPath}?zernio_error=invalid_profile`)
     }
 
     try {
