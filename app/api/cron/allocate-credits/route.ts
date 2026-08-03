@@ -41,7 +41,11 @@ export async function GET(req: Request) {
       }
     }
 
-    const granted = await allocatePlanCredits(profile.id, profile.plan)
+    // Preserve unused purchased top-ups; skip if this UTC month already allocated
+    // so a double cron fire cannot wipe surplus after the first successful write.
+    const granted = await allocatePlanCredits(profile.id, profile.plan, {
+      skipIfAllocatedThisMonth: true,
+    })
     if (granted != null) allocated++
   }
 
