@@ -3,6 +3,10 @@ import { getClerkUserSafe } from '@/lib/clerk/sessionUser'
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import {
+  checkoutTrialPeriodDays,
+  isEligibleForCheckoutTrial,
+} from '@/lib/billing/checkoutTrialEligibility'
+import {
   comparePlanTier,
   isPaidPlanKey,
   TRIAL_DAYS,
@@ -177,9 +181,32 @@ export async function POST(req: Request) {
       supabase,
     })
 
+    // Cancel → resubscribe must not mint another free trial. Stripe does not
+    // enforce "trial once" when trial_period_days is passed unconditionally.
+    const priorSubs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'all',
+      limit: 100,
+    })
+    const { data: existingTrialCredit } = await supabase
+      .from('credit_ledger')
+      .select('id')
+      .eq('user_id', billingProfile?.id ?? profile.id)
+      .eq('type', 'allocation')
+      .ilike('description', '%Trial allocation%')
+      .limit(1)
+      .maybeSingle()
+
+    const trialEligible = isEligibleForCheckoutTrial({
+      subscriptions: priorSubs.data,
+      profileStatus: billingProfile?.status ?? null,
+      hadTrialCreditGrant: Boolean(existingTrialCredit),
+    })
+    const trialPeriodDays = checkoutTrialPeriodDays(trialEligible, TRIAL_DAYS)
+
     const subscriptionData: Stripe.Checkout.SessionCreateParams['subscription_data'] = {
       metadata: { clerk_user_id: userId, plan },
-      trial_period_days: TRIAL_DAYS,
+      ...(trialPeriodDays != null ? { trial_period_days: trialPeriodDays } : {}),
     }
 
     const session = await stripe.checkout.sessions.create({
