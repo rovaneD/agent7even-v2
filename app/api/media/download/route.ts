@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       '_',
     )
 
-    return new Response(fetched.bytes, {
+    return new Response(Buffer.from(fetched.bytes), {
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${filename}"`,
