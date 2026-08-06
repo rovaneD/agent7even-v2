@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { logProviderError } from '@/lib/agents/sanitizeProviderError'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
+import { finalizeVideoOutput } from '@/lib/agents/videoGeneration/finalizeVideoOutput'
 
 export const maxDuration = 60
 
@@ -219,39 +220,21 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
     return
   }
 
-  // Insert agent_outputs row as pending_approval — same shape as image generation
-  const content = {
-    raw: 'Generated video ready for review.',
-    media_storage_path: storagePath,
-    media_mime: 'video/mp4',
-    generated: {
-      model: videoModel,
-      job_id: jobId,
-      brief_excerpt: briefExcerpt,
-      qa_passed: true,
-    },
-  }
-
-  const { error: outputError } = await supabase.from('agent_outputs').insert({
-    task_id:     taskId,
-    user_id:     userId,
-    agent:       'video_generation',
-    output_type: 'social_post',
-    title:       'Generated video',
-    content,
-    status:          'pending_approval',
-    lifecycle_stage: 'review',
+  // Persist pending_approval output before marking completed. On failure leave
+  // the task running so Approvals-page reconcile can retry (reconcile only
+  // scans status=running — completing here permanently orphans paid videos).
+  const finalized = await finalizeVideoOutput(supabase, {
+    taskId,
+    userId,
+    storagePath,
+    videoModel,
+    jobId,
+    briefExcerpt,
   })
-
-  if (outputError) {
-    console.error('[openrouter-video] agent_outputs insert failed:', outputError.message, 'task:', taskId)
+  if (!finalized.ok) {
+    console.error('[openrouter-video]', finalized.error, 'task:', taskId)
+    return
   }
-
-  // Mark task completed
-  await supabase
-    .from('agent_tasks')
-    .update({ status: 'completed', completed_at: new Date().toISOString() })
-    .eq('id', taskId)
 
   console.log('[openrouter-video] Video ready, task:', taskId, 'path:', storagePath)
 }

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolvePostsWorkspace } from '@/lib/profiles/resolvePostsWorkspace'
 import { pollVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
+import { finalizeVideoOutput } from '@/lib/agents/videoGeneration/finalizeVideoOutput'
 import { logProviderError } from '@/lib/agents/sanitizeProviderError'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
@@ -108,32 +109,15 @@ export async function POST(): Promise<NextResponse> {
 
       if (uploadError) throw new Error(`Upload: ${uploadError.message}`)
 
-      // Insert agent_output
-      await supabase.from('agent_outputs').insert({
-        task_id:     task.id,
-        user_id:     task.user_id,
-        agent:       'video_generation',
-        output_type: 'social_post',
-        title:       'Generated video',
-        content: {
-          raw:                'Generated video ready for review.',
-          media_storage_path: storagePath,
-          media_mime:         'video/mp4',
-          generated: {
-            model:         videoModel,
-            job_id:        jobId,
-            brief_excerpt: briefExcerpt,
-            qa_passed:     true,
-          },
-        },
-        status: 'pending_approval',
-        lifecycle_stage: 'review',
+      const finalized = await finalizeVideoOutput(supabase, {
+        taskId: task.id as string,
+        userId: task.user_id as string,
+        storagePath,
+        videoModel,
+        jobId,
+        briefExcerpt,
       })
-
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'completed', completed_at: new Date().toISOString() })
-        .eq('id', task.id as string)
+      if (!finalized.ok) throw new Error(finalized.error)
 
       result.processed++
     } catch (err) {
