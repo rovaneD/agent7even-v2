@@ -1,10 +1,12 @@
 import { auth } from '@clerk/nextjs/server'
 import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
+import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
 import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { getPendingApprovalCount } from '@/lib/agents/pendingApprovals'
 import { getTeamPermissions } from '@/lib/teamPermissions'
+import { ensurePaidSubscriptionForClerkUser, startTrialPath } from '@/lib/billing/subscriptionGate'
 import DashboardShell from './DashboardShell'
 
 export default async function DashboardLayout({
@@ -36,6 +38,16 @@ export default async function DashboardLayout({
   if (userId) {
     const email = await getClerkSessionEmail()
     const { profile: p, workspace } = await loadDashboardSession(supabase, userId, email)
+
+    // Subscription gate for the whole dashboard tree — not only `/dashboard`.
+    // Team members inherit the owner's workspace and skip personal checkout.
+    const isTeamMember = workspace?.isTeamMember ?? false
+    if (!isTeamMember) {
+      const gate = await ensurePaidSubscriptionForClerkUser(supabase, userId, email)
+      if (!gate.ok) {
+        redirect(startTrialPath())
+      }
+    }
 
     if (p?.id) {
       profile = p

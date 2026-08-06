@@ -1,28 +1,52 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { assessTextFairUse } from '@/lib/credits/textFairUse'
+import { hasPlatformAccess } from '@/lib/plans'
+import { profileBypassesSubscriptionGate } from '@/lib/billing/subscriptionGate'
+import {
+  getWorkspaceAuthContext,
+  workspaceActorId,
+  workspaceDataUserId,
+} from '@/lib/profiles/workspaceSession'
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-  const body = await req.json()
+  const authCtx = await getWorkspaceAuthContext(supabase)
+  if (!authCtx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const profile = await resolveClerkProfile<{
-    id: string
-    company_name: string | null
-    foundation_answers: Record<string, unknown> | null
-    stripe_customer_id: string | null
-    stripe_subscription_id: string | null
-    plan: string | null
-    created_at: string
-  }>(supabase, userId, 'id, company_name, foundation_answers')
+  const body = await req.json()
+  const workspaceId = workspaceDataUserId(authCtx.session)
+  const memberId = workspaceActorId(authCtx.session)
+  const isTeamMember = memberId !== workspaceId
+
+  // Campaign generate is 0-credit LLM spend — require workspace billing standing.
+  const { data: billingRow } = await supabase
+    .from('profiles')
+    .select('plan, status, billing_exempt, role, stripe_subscription_id')
+    .eq('id', isTeamMember ? workspaceId : memberId)
+    .maybeSingle()
+  const billingAllowed = isTeamMember
+    ? hasPlatformAccess(
+        billingRow?.plan,
+        billingRow?.status,
+        billingRow?.billing_exempt ?? false,
+      )
+    : Boolean(billingRow && profileBypassesSubscriptionGate(billingRow))
+  if (!billingAllowed) {
+    return NextResponse.json(
+      { error: 'An active subscription is required to generate campaigns.', code: 'NO_ACTIVE_PLAN' },
+      { status: 403 },
+    )
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, company_name, foundation_answers')
+    .eq('id', workspaceId)
+    .maybeSingle()
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 

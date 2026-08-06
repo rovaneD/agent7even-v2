@@ -32,9 +32,6 @@ import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { getPendingApprovalCount, listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
 import { listTasksAssignedToMember } from '@/lib/team/taskAssignments'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
-import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
-import { profileBypassesSubscriptionGate, startTrialPath } from '@/lib/billing/subscriptionGate'
-
 export default async function DashboardPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
@@ -44,13 +41,8 @@ export default async function DashboardPage() {
   const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
   const workspaceProfile = workspace?.workspaceProfile ?? profile
   const isTeamMember = workspace?.isTeamMember ?? false
-
-  if (!isTeamMember) {
-    const billing = await getBillingProfileForClerkUser(supabase, userId, email)
-    if (billing && !profileBypassesSubscriptionGate(billing)) {
-      redirect(startTrialPath())
-    }
-  }
+  // Subscription gate lives in `app/dashboard/layout.tsx` so deep links
+  // (`/dashboard/campaigns`, `/dashboard/agents`, …) cannot skip `/start-trial`.
 
   const dataUserId = workspace?.workspaceId ?? profile?.id
   const teamPerms = profile?.id ? await getTeamPermissions(profile.id) : null
