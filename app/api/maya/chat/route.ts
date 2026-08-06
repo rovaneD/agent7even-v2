@@ -23,10 +23,12 @@ import { assessTextFairUse } from '@/lib/credits/textFairUse'
 import { MAYA_NO_FAKE_ACTIONS } from '@/lib/maya/voiceRules'
 import { buildFormActuationSystemSection, type FormSurfaceSnapshot } from '@/lib/maya/formActuation'
 import {
-  getWorkspaceSessionFromRequest,
+  getWorkspaceAuthContext,
   workspaceActorId,
   workspaceDataUserId,
 } from '@/lib/profiles/workspaceSession'
+import { hasPlatformAccess } from '@/lib/plans'
+import { profileBypassesSubscriptionGate } from '@/lib/billing/subscriptionGate'
 import {
   loadWorkspaceTeamContext,
   formatWorkspaceTeamContextForMaya,
@@ -95,11 +97,34 @@ You are completing a specific task, not building a new campaign. Never say "spin
   })
 
   const supabase = createServiceClient()
-  const session = await getWorkspaceSessionFromRequest(supabase)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authCtx = await getWorkspaceAuthContext(supabase)
+  if (!authCtx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const { session } = authCtx
   const workspaceId = workspaceDataUserId(session)
   const memberId = workspaceActorId(session)
+  const isTeamMember = memberId !== workspaceId
+
+  // Maya chat is 0 credits / unlimited text — must not be reachable without a
+  // paid/trialing/comp workspace. Team members inherit the owner's standing.
+  const { data: billingRow } = await supabase
+    .from('profiles')
+    .select('plan, status, billing_exempt, role, stripe_subscription_id')
+    .eq('id', isTeamMember ? workspaceId : memberId)
+    .maybeSingle()
+  const billingAllowed = isTeamMember
+    ? hasPlatformAccess(
+        billingRow?.plan,
+        billingRow?.status,
+        billingRow?.billing_exempt ?? false,
+      )
+    : Boolean(billingRow && profileBypassesSubscriptionGate(billingRow))
+  if (!billingAllowed) {
+    return NextResponse.json(
+      { error: 'An active subscription is required to use Maya.', code: 'NO_ACTIVE_PLAN' },
+      { status: 403 },
+    )
+  }
 
   // ── 1. Fetch workspace profile (Foundation + business facts SSOT) ───────────
   const PROFILE_SELECT = `
