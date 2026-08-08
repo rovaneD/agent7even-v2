@@ -7,6 +7,11 @@ import {
   parsePlatformTargets,
   validatePost,
 } from '@/lib/social/postConstraints'
+import {
+  findForeignAccountId,
+  isOwnedZernioAccountId,
+  loadOwnedAccountIdSet,
+} from '@/lib/social/zernioOwnedAccountIds'
 
 export async function GET(req: NextRequest) {
   if (!process.env.ZERNIO_API_KEY) {
@@ -24,10 +29,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'invalid_profile' }, { status: 400 })
     }
 
+    const accountId = searchParams.get('accountId') ?? undefined
+    if (accountId) {
+      const ownedAccountIds = await loadOwnedAccountIdSet(profileIds)
+      if (!isOwnedZernioAccountId(ownedAccountIds, accountId)) {
+        return NextResponse.json({ error: 'foreign_account' }, { status: 403 })
+      }
+    }
+
     const status = searchParams.get('status') as 'draft' | 'scheduled' | 'published' | 'failed' | null
     const raw = await publisher.listPosts({
       profileId,
-      accountId: searchParams.get('accountId') ?? undefined,
+      accountId,
       platform: searchParams.get('platform') ?? undefined,
       status: status ?? undefined,
       page: Number(searchParams.get('page') ?? '1') || 1,
@@ -101,6 +114,17 @@ export async function POST(req: NextRequest) {
         { error: 'validation_failed', messages: validationErrors, message: validationErrors[0] },
         { status: 400 },
       )
+    }
+
+    if (platformTargets.length > 0) {
+      const ownedAccountIds = await loadOwnedAccountIdSet(profileIds)
+      const foreign = findForeignAccountId(
+        ownedAccountIds,
+        platformTargets.map((target) => target.accountId),
+      )
+      if (foreign) {
+        return NextResponse.json({ error: 'foreign_account' }, { status: 403 })
+      }
     }
 
     const zernioPlatforms = buildZernioPlatformTargets(platformTargets)

@@ -4,6 +4,11 @@ import { withZernioProfileUsage } from '@/lib/social/requireZernioProfile'
 import { parseSinglePost, readZernioPostProfileId } from '@/lib/social/zernioPostsParse'
 import { createServiceClient } from '@/lib/supabase/server'
 import { syncOutputLifecycleFromZernioPost } from '@/lib/content/agentOutputLifecycle'
+import {
+  extractPlatformAccountIds,
+  findForeignAccountId,
+  loadOwnedAccountIdSet,
+} from '@/lib/social/zernioOwnedAccountIds'
 
 async function loadOwnedPost(postId: string, profileIds: string[]) {
   const raw = await publisher.getPost(postId)
@@ -43,6 +48,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ po
       body = await req.json()
     } catch {
       return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
+    }
+
+    if (Array.isArray(body.platforms)) {
+      const platformAccountIds = extractPlatformAccountIds(body.platforms)
+      if (platformAccountIds.length > 0) {
+        const ownedAccountIds = await loadOwnedAccountIdSet(ctx.profileIds)
+        const foreign = findForeignAccountId(ownedAccountIds, platformAccountIds)
+        if (foreign) {
+          return NextResponse.json({ error: 'foreign_account' }, { status: 403 })
+        }
+      }
     }
 
     try {
