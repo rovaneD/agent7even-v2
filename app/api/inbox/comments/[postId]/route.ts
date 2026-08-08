@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as publisher from '@/lib/social/publisher'
 import { withZernioProfileUsage } from '@/lib/social/requireZernioProfile'
 import { parseInboxPostComments } from '@/lib/social/zernioInboxWorkspace'
+import {
+  isOwnedZernioAccountId,
+  loadOwnedAccountIdSet,
+} from '@/lib/social/zernioOwnedAccountIds'
 
 type RouteContext = { params: Promise<{ postId: string }> }
 
@@ -15,6 +19,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const accountId = req.nextUrl.searchParams.get('accountId') ?? ''
     if (!accountId) {
       return NextResponse.json({ error: 'accountId_required' }, { status: 400 })
+    }
+
+    const ownedAccountIds = await loadOwnedAccountIdSet(ctx.profileIds)
+    if (!isOwnedZernioAccountId(ownedAccountIds, accountId)) {
+      return NextResponse.json({ error: 'foreign_account' }, { status: 403 })
     }
 
     for (const profileId of ctx.profileIds) {
@@ -52,6 +61,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const commentId = typeof body.commentId === 'string' ? body.commentId.trim() : undefined
     if (!accountId) return NextResponse.json({ error: 'accountId_required' }, { status: 400 })
     if (!message) return NextResponse.json({ error: 'message_required' }, { status: 400 })
+
+    const ownedAccountIds = await loadOwnedAccountIdSet(ctx.profileIds)
+    if (!isOwnedZernioAccountId(ownedAccountIds, accountId)) {
+      return NextResponse.json({ error: 'foreign_account' }, { status: 403 })
+    }
 
     for (const profileId of ctx.profileIds) {
       const raw = await publisher.sendInboxCommentReply({
