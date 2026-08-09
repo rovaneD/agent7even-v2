@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       merged.competitors = serializeCompetitorSlots(answers.competitors)
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
       .update(buildIdentityUpdateWithSnapshot(profile.foundation_answers, {
         foundation_answers: merged,
@@ -43,6 +43,11 @@ export async function POST(req: Request) {
         updated_at: new Date().toISOString(),
       }))
       .eq('id', profile.id)
+
+    if (updateError) {
+      console.error('[foundation/save-answers] profile update failed:', updateError.message)
+      return NextResponse.json({ error: 'save_failed' }, { status: 500 })
+    }
 
     scheduleCreativeDirectionCacheRefresh(
       profile.id,

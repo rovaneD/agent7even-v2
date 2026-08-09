@@ -369,6 +369,9 @@ export async function runAgent(opts: {
     lifecycle_stage: lifecycleStage,
   })
 
+  // Fail closed: never mark the task completed (or return success) without a durable
+  // agent_outputs row. Otherwise approval_required work vanishes from the queue while
+  // credits stay deducted — same class of bug as the video finalize path.
   if (outputErr) {
     console.error(
       `[runAgent] agent_outputs insert failed task=${taskId} agent=${opts.agentId}:`,
@@ -376,7 +379,22 @@ export async function runAgent(opts: {
       outputErr.message,
       outputErr.details,
     )
-  } else if (outputStatus === 'pending_approval') {
+    await updateTaskStatus(taskId, 'failed')
+    if (shouldChargeCredits) {
+      await refundCredits(
+        opts.userId,
+        creditsNeeded,
+        `${opts.agentId} output persist failed — refund`,
+        taskId,
+      ).catch(() => {})
+    }
+    if (opts.orchestrationId) {
+      await setOrchestrationAgentStatus(opts.orchestrationId, opts.agentId, 'failed')
+    }
+    throw new Error(`agent_outputs_insert_failed: ${outputErr.message}`)
+  }
+
+  if (outputStatus === 'pending_approval') {
     const { notifyApprovalPending } = await import('@/lib/agents/notifyApprovalPending')
     await notifyApprovalPending({
       workspaceId: opts.userId,

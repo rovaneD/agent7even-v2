@@ -69,10 +69,15 @@ export async function POST(req: Request) {
     }
   })()
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('profiles')
     .update({ ...base, ...stepFields })
     .eq('id', profile.id)
+
+  if (updateError) {
+    console.error('[foundation/save-step] profile update failed:', updateError.message)
+    return NextResponse.json({ error: 'save_failed' }, { status: 500 })
+  }
 
   return NextResponse.json({ success: true })
 }
