@@ -8,7 +8,7 @@ import {
 import { allocateTrialCredits, grantPaidPlanAllowanceAfterTrial } from '@/lib/billing/trialCredits'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
-import { PLAN_CREDITS } from '@/lib/credits'
+import { addCredits, PLAN_CREDITS } from '@/lib/credits'
 import { createNotification } from '@/lib/createNotification'
 import { getStripeClient, sanitizeSecretEnvValue } from '@/lib/stripe'
 import { getPlanFromSubscription } from '@/lib/stripe/planFromPrice'
@@ -63,40 +63,47 @@ export async function POST(req: Request) {
 
     // ── Credit top-up (mode: payment + credits in metadata) ────────────────
     if (session.mode === 'payment' && session.metadata?.credits && session.metadata?.user_id) {
-      const credits  = parseInt(session.metadata.credits, 10)
-      const userId   = session.metadata.user_id
-      const now      = new Date().toISOString()
+      const credits = parseInt(session.metadata.credits, 10)
+      const userId = session.metadata.user_id
+      const now = new Date().toISOString()
 
+      if (!Number.isFinite(credits) || credits <= 0) {
+        console.error('Credit top-up invalid credits metadata', { sessionId: session.id, credits })
+        return NextResponse.json({ error: 'Invalid top-up credits' }, { status: 400 })
+      }
+
+      // Mark the purchase row completed before granting. Same-session webhook
+      // retries still need CAS (open PR #33); this path fixes concurrent
+      // *distinct* top-ups losing credits via non-atomic balance RMW.
       await supabase
         .from('credit_topups')
         .update({
           status:            'completed',
-          stripe_payment_id: session.payment_intent as string ?? null,
+          stripe_payment_id: typeof session.payment_intent === 'string' ? session.payment_intent : null,
           completed_at:      now,
         })
         .eq('stripe_session_id', session.id)
 
-      const { data: balRows } = await supabase
-        .from('credit_balances')
-        .select('balance')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-
-      const prevBalance = balRows?.[0]?.balance ?? 0
-      const newBalance  = prevBalance + credits
-
-      await supabase
-        .from('credit_balances')
-        .upsert({ user_id: userId, balance: newBalance, updated_at: now })
-
-      await supabase.from('credit_ledger').insert({
-        user_id:       userId,
-        type:          'topup',
-        credits,
-        balance_after: newBalance,
-        description:   `Credit top-up — ${credits} credits ($${(session.amount_total ?? 0) / 100})`,
-      })
+      let newBalance: number
+      try {
+        const result = await addCredits(
+          userId,
+          credits,
+          `Credit top-up — ${credits} credits ($${(session.amount_total ?? 0) / 100})`,
+          { type: 'topup' },
+        )
+        newBalance = result.balance
+      } catch (err) {
+        console.error('Credit top-up atomic grant failed:', err)
+        // Non-2xx so Stripe retries. Revert completed flag so a later attempt
+        // (or PR #33 CAS) can reclaim the pending row.
+        await supabase
+          .from('credit_topups')
+          .update({ status: 'pending', stripe_payment_id: null, completed_at: null })
+          .eq('stripe_session_id', session.id)
+          .eq('status', 'completed')
+        return NextResponse.json({ error: 'Top-up fulfillment failed' }, { status: 500 })
+      }
 
       await createNotification({
         userId,

@@ -117,3 +117,43 @@ export async function refundCredits(
 
   return { balance: Number(data ?? 0) }
 }
+
+/**
+ * Atomically add credits and write a ledger row (RPC `add_credits`).
+ * Required for Stripe top-up fulfillment — non-atomic read-modify-write
+ * loses purchased credits when two distinct top-ups complete concurrently
+ * (or races with deduct_credits).
+ */
+export async function addCredits(
+  profileId: string,
+  credits: number,
+  description: string,
+  opts?: { type?: string; taskId?: string },
+): Promise<CreditMutationResult> {
+  if (!Number.isFinite(credits) || credits < 0) {
+    throw new Error('INVALID_AMOUNT')
+  }
+
+  if (credits === 0) {
+    const supabase = createServiceClient()
+    const { data } = await supabase
+      .from('credit_balances')
+      .select('balance')
+      .eq('user_id', profileId)
+      .maybeSingle()
+    return { balance: Number(data?.balance ?? 0) }
+  }
+
+  const supabase = createServiceClient()
+  const { data, error } = await supabase.rpc('add_credits', {
+    p_user_id:     profileId,
+    p_amount:      credits,
+    p_type:        opts?.type ?? 'topup',
+    p_description: description,
+    p_task_id:     opts?.taskId ?? null,
+  })
+
+  if (error) throw new Error(error.message)
+
+  return { balance: Number(data ?? 0) }
+}
