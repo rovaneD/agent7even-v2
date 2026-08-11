@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import {
+  clawbackCompletedTopupOnce,
+  isFullyRefundedCharge,
+} from '@/lib/billing/clawbackTopupOnRefund'
+import { syncExtraSeatQuantityForProfile } from '@/lib/billing/syncExtraSeatQuantity'
+import {
   isPaidPlanKey,
   TRIAL_MEDIA_CREDITS,
   trialEndingNotificationBody,
@@ -190,6 +195,10 @@ export async function POST(req: Request) {
     const status = profileStatusFromSubscription(subscription)
 
     let profileId: string | undefined
+    // Capture plan before this webhook writes so seat sync can detect real plan
+    // swaps. Seat-quantity invite edits leave profiles.plan unchanged and must
+    // not rewrite the seat line item mid-invite.
+    let previousStoredPlan: string | null = null
 
     if (plan) {
       const update: Record<string, unknown> = { plan, updated_at: new Date().toISOString() }
@@ -197,18 +206,20 @@ export async function POST(req: Request) {
 
       const { data: linkedProfile } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, plan')
         .eq('stripe_subscription_id', subscription.id)
         .maybeSingle()
 
       profileId = linkedProfile?.id
+      previousStoredPlan = (linkedProfile?.plan as string | null) ?? null
 
       if (linkedProfile?.id) {
         const { error } = await supabase.from('profiles').update(update).eq('id', linkedProfile.id)
         if (error) console.error('Supabase update error (subscription.updated):', error)
       } else if (clerkUserId) {
-        const canonical = await resolveClerkProfile(supabase, clerkUserId, 'id')
+        const canonical = await resolveClerkProfile(supabase, clerkUserId, 'id, plan')
         profileId = canonical?.id
+        previousStoredPlan = (canonical?.plan as string | null) ?? null
         const { error } = await supabase
           .from('profiles')
           .update(update)
@@ -224,6 +235,30 @@ export async function POST(req: Request) {
       subscription.status === 'active'
     ) {
       await grantPaidPlanAllowanceAfterTrial(profileId, plan)
+    }
+
+    // Plan swaps via Billing Portal (or any path that changes the plan price)
+    // must re-sync the $15 seat line item — otherwise a ProAgent→Starter
+    // downgrade leaves roster seats beyond the new included allotment unpaid.
+    if (
+      profileId &&
+      plan &&
+      isPaidPlanKey(previousStoredPlan) &&
+      previousStoredPlan !== plan &&
+      process.env.STRIPE_SEAT_PRICE_ID
+    ) {
+      try {
+        await syncExtraSeatQuantityForProfile({
+          stripe,
+          supabase,
+          profileId,
+          subscriptionId: subscription.id,
+          plan,
+        })
+      } catch (err) {
+        console.error('Seat sync failed after subscription.updated plan change:', err)
+        return NextResponse.json({ error: 'Seat sync failed' }, { status: 500 })
+      }
     }
   }
 
@@ -344,6 +379,47 @@ export async function POST(req: Request) {
         sendEmail: true,
         emailSubject: 'Your Agent7even subscription has ended',
       })
+    }
+
+    return NextResponse.json({ received: true })
+  }
+
+  // ── charge.refunded ─────────────────────────────────────────────────────────
+  // Credit top-ups are mode:payment Checkout. Without clawback, a Dashboard
+  // refund or chargeback returns cash while purchased credits stay spendable.
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object as Stripe.Charge
+    if (!isFullyRefundedCharge(charge)) {
+      return NextResponse.json({ received: true })
+    }
+
+    const paymentIntentId =
+      typeof charge.payment_intent === 'string'
+        ? charge.payment_intent
+        : charge.payment_intent?.id
+
+    if (!paymentIntentId) {
+      return NextResponse.json({ received: true })
+    }
+
+    try {
+      const result = await clawbackCompletedTopupOnce(supabase, { paymentIntentId })
+      if (result.ok) {
+        await createNotification({
+          userId: result.userId,
+          title: 'Credit top-up refunded',
+          body:
+            result.clawed > 0
+              ? `${result.clawed} credits were removed after your top-up refund. Current balance: ${result.balance}.`
+              : `Your credit top-up was refunded. No unused credits remained to remove.`,
+          type: 'credit_topup',
+          link: '/dashboard/billing',
+          sendEmail: false,
+        })
+      }
+    } catch (err) {
+      console.error('Credit top-up refund clawback failed:', err)
+      return NextResponse.json({ error: 'Top-up clawback failed' }, { status: 500 })
     }
 
     return NextResponse.json({ received: true })

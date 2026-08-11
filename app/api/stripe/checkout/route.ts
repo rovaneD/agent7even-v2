@@ -13,6 +13,7 @@ import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { createServiceClient } from '@/lib/supabase/server'
 import { linkExistingStripeSubscriptionForClerkUser } from '@/lib/billing/activateCheckoutSession'
+import { syncExtraSeatQuantityForProfile } from '@/lib/billing/syncExtraSeatQuantity'
 import {
   assertCheckoutPrice,
   formatStripeCheckoutError,
@@ -163,6 +164,29 @@ export async function POST(req: Request) {
           .from('profiles')
           .update({ plan, status: 'active', updated_at: new Date().toISOString() })
           .eq('id', billingProfile.id)
+
+        // Downgrade (or upgrade that changes included seats) must bill/remove
+        // $15 extras so roster size cannot exceed the new plan unpaid.
+        if (process.env.STRIPE_SEAT_PRICE_ID) {
+          try {
+            await syncExtraSeatQuantityForProfile({
+              stripe,
+              supabase,
+              profileId: billingProfile.id,
+              subscriptionId: billingProfile.stripe_subscription_id,
+              plan,
+            })
+          } catch (err) {
+            console.error('[stripe/checkout] seat sync after plan change failed:', err)
+            return NextResponse.json(
+              {
+                error:
+                  'Plan updated but team seat billing could not be synced. Contact support before inviting more members.',
+              },
+              { status: 500 },
+            )
+          }
+        }
 
         return NextResponse.json({ url: `${appUrl}/dashboard/billing?plan_changed=${plan}` })
       }
