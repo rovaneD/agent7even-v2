@@ -65,12 +65,12 @@ if (!webhook.includes('syncExtraSeatQuantityForProfile')) {
   failures.push('subscription.updated webhook must sync seats on item changes')
 }
 
-if (!webhook.includes('planFromPreviousSubscriptionItems')) {
-  failures.push('webhook must detect plan changes via previous plan price (not all item edits)')
+if (!webhook.includes('previousStoredPlan') || !webhook.includes('previousStoredPlan !== plan')) {
+  failures.push('webhook must detect plan changes via stored profiles.plan (not seat-only edits)')
 }
 
-if (!webhook.includes('previousPlan !== plan')) {
-  failures.push('webhook seat sync must require previousPlan !== plan')
+if (!webhook.includes("select('id, plan')")) {
+  failures.push('webhook must read profiles.plan before overwriting it on subscription.updated')
 }
 
 if (failures.length) {

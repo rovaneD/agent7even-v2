@@ -16,30 +16,8 @@ import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { PLAN_CREDITS } from '@/lib/credits'
 import { createNotification } from '@/lib/createNotification'
 import { getStripeClient, sanitizeSecretEnvValue } from '@/lib/stripe'
-import { getPlanFromSubscription, planFromPriceId } from '@/lib/stripe/planFromPrice'
-import type { PaidPlan } from '@/lib/plans'
+import { getPlanFromSubscription } from '@/lib/stripe/planFromPrice'
 import { collectZernioProfileIds, disconnectAllZernioProfiles } from '@/lib/social/zernioProfileIds'
-
-/**
- * Stripe only includes changed item fields in previous_attributes. When the
- * plan price swaps, the old plan item appears here; seat-quantity edits do not
- * resolve to a PaidPlan — so we can distinguish plan changes from seat syncs
- * (and avoid undoing an invite that just incremented the seat item).
- */
-function planFromPreviousSubscriptionItems(
-  previous: Partial<Stripe.Subscription> | undefined,
-): PaidPlan | null {
-  const data = (previous?.items as { data?: Array<{ price?: string | { id?: string } | null }> } | undefined)
-    ?.data
-  if (!data?.length) return null
-  for (const item of data) {
-    const priceId = typeof item.price === 'string' ? item.price : item.price?.id
-    if (!priceId) continue
-    const plan = planFromPriceId(priceId)
-    if (plan) return plan
-  }
-  return null
-}
 
 /**
  * Map Stripe's subscription status to the profile status field. Hardcoding
@@ -217,6 +195,10 @@ export async function POST(req: Request) {
     const status = profileStatusFromSubscription(subscription)
 
     let profileId: string | undefined
+    // Capture plan before this webhook writes so seat sync can detect real plan
+    // swaps. Seat-quantity invite edits leave profiles.plan unchanged and must
+    // not rewrite the seat line item mid-invite.
+    let previousStoredPlan: string | null = null
 
     if (plan) {
       const update: Record<string, unknown> = { plan, updated_at: new Date().toISOString() }
@@ -224,18 +206,20 @@ export async function POST(req: Request) {
 
       const { data: linkedProfile } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, plan')
         .eq('stripe_subscription_id', subscription.id)
         .maybeSingle()
 
       profileId = linkedProfile?.id
+      previousStoredPlan = (linkedProfile?.plan as string | null) ?? null
 
       if (linkedProfile?.id) {
         const { error } = await supabase.from('profiles').update(update).eq('id', linkedProfile.id)
         if (error) console.error('Supabase update error (subscription.updated):', error)
       } else if (clerkUserId) {
-        const canonical = await resolveClerkProfile(supabase, clerkUserId, 'id')
+        const canonical = await resolveClerkProfile(supabase, clerkUserId, 'id, plan')
         profileId = canonical?.id
+        previousStoredPlan = (canonical?.plan as string | null) ?? null
         const { error } = await supabase
           .from('profiles')
           .update(update)
@@ -256,14 +240,11 @@ export async function POST(req: Request) {
     // Plan swaps via Billing Portal (or any path that changes the plan price)
     // must re-sync the $15 seat line item — otherwise a ProAgent→Starter
     // downgrade leaves roster seats beyond the new included allotment unpaid.
-    // Only run when previous_attributes carries an old *plan* price so invite
-    // seat-quantity updates do not get rewritten before the member row exists.
-    const previousPlan = planFromPreviousSubscriptionItems(previous)
     if (
       profileId &&
       plan &&
-      previousPlan &&
-      previousPlan !== plan &&
+      isPaidPlanKey(previousStoredPlan) &&
+      previousStoredPlan !== plan &&
       process.env.STRIPE_SEAT_PRICE_ID
     ) {
       try {
