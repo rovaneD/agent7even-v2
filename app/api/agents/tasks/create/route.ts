@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { createTask } from '@/lib/agents/runner'
 import { dispatchAgentTask } from '@/lib/agents/dispatch'
 import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
+import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration'
 import { AgentId } from '@/lib/agents/registry'
 import { readPostMediaRef } from '@/lib/postAssets'
 import { logActivity } from '@/lib/activity'
@@ -42,14 +43,28 @@ export async function POST(req: Request) {
   if (!agent) return NextResponse.json({ error: 'agent is required' }, { status: 400 })
 
   const taskInput = (input ?? {}) as Record<string, unknown>
+  const mediaRef = readPostMediaRef(taskInput)
   if (
     agent === 'content_posting'
     && resolveContentPostingFlow(taskInput) === 'single'
-    && !readPostMediaRef(taskInput).media_storage_path
+    && !mediaRef.media_storage_path
   ) {
     return NextResponse.json(
       { error: 'Attach the post image before running Single post.' },
       { status: 400 },
+    )
+  }
+
+  // Client-supplied storage paths must stay under this workspace. Without this
+  // check, executeAgentRun's service-role download + approve publish can read
+  // and redistribute another tenant's private post-assets.
+  if (
+    mediaRef.media_storage_path
+    && !assertPostAssetOwnedByProfile(mediaRef.media_storage_path, workspaceId)
+  ) {
+    return NextResponse.json(
+      { error: 'Invalid media path.', code: 'invalid_storage_path' },
+      { status: 403 },
     )
   }
 

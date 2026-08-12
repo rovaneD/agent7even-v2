@@ -344,5 +344,7 @@ export async function editImageOption(opts: {
 }
 
 export function assertPostAssetOwnedByProfile(storagePath: string, profileId: string): boolean {
+  // Fail closed: empty ids must never authorize a storage download.
+  if (!storagePath || !profileId) return false
   return storagePath.startsWith(`${profileId}/`)
 }

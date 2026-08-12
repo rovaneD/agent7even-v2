@@ -17,6 +17,7 @@ import { formatAgentRunDateLong, normalizeSeoScanReportDate } from '@/lib/agents
 import { buildCampaignOfferGuardrails } from '@/lib/agents/productOfferGuardrails'
 import { parseAndValidateIdeaAnalysis } from '@/lib/agents/ideaAnalysis'
 import { readPostMediaRef } from '@/lib/postAssets'
+import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration'
 import {
   buildImageCaptionSystemAddon,
   buildVisionUserMessageFromStorage,
@@ -71,6 +72,18 @@ export async function executeAgentRun(opts: {
 
   if (!taskRow || taskRow.user_id !== userId) {
     return { ok: false, status: 404, error: 'Not found' }
+  }
+
+  if (
+    media.media_storage_path
+    && !assertPostAssetOwnedByProfile(media.media_storage_path, userId)
+  ) {
+    await updateTaskStatus(taskId, 'failed').catch(() => {})
+    return {
+      ok: false,
+      status: 403,
+      error: 'Invalid media path for this workspace.',
+    }
   }
 
   const { data: profile } = await supabase
