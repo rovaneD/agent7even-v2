@@ -4,6 +4,7 @@ import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
+import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration'
 import { createPostAssetSignedUrl, readPostMediaRef } from '@/lib/postAssets'
 import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { listPendingApprovalTasks, reconcileOrphanedPendingApprovalOutputs } from '@/lib/agents/pendingApprovals'
@@ -76,9 +77,11 @@ export default async function ApprovalsPage() {
     const outputs = await Promise.all((task.agent_outputs ?? []).map(async (output: Record<string, unknown>) => {
       const content = (output.content ?? {}) as Record<string, unknown>
       const media = readPostMediaRef(content)
-      const mediaPreviewUrl = media.media_storage_path
-        ? await createPostAssetSignedUrl(media.media_storage_path)
-        : null
+      const mediaPreviewUrl =
+        media.media_storage_path
+        && assertPostAssetOwnedByProfile(media.media_storage_path, dataUserId)
+          ? await createPostAssetSignedUrl(media.media_storage_path)
+          : null
       return { ...output, mediaPreviewUrl }
     }))
     return { ...task, agent_outputs: outputs }

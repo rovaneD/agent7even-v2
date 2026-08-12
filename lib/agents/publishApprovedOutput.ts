@@ -3,6 +3,7 @@ import {
   downloadPostAsset,
   readPostMediaRef,
 } from '@/lib/postAssets'
+import { assertPostAssetOwnedByProfile } from '@/lib/agents/imageGeneration'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -31,6 +32,10 @@ export async function publishApprovedImageCaption(opts: {
   const media = readPostMediaRef(opts.outputContent)
   if (!media.media_storage_path) {
     return { scheduled: false, detail: 'no_media' }
+  }
+
+  if (!assertPostAssetOwnedByProfile(media.media_storage_path, opts.profileId)) {
+    return { scheduled: false, detail: 'invalid_storage_path' }
   }
 
   if (media.media_mime?.startsWith('video/')) {
