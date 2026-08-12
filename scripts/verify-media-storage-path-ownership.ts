@@ -6,7 +6,6 @@
  */
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { assertPostAssetOwnedByProfile } from '../lib/agents/imageGeneration'
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg)
@@ -14,6 +13,12 @@ function assert(cond: unknown, msg: string): asserts cond {
 
 function assertIncludes(src: string, needle: string, label: string): void {
   assert(src.includes(needle), `${label} must include ${needle}`)
+}
+
+/** Mirror of assertPostAssetOwnedByProfile — keep in sync with generateOptions.ts. */
+function assertPostAssetOwnedByProfile(storagePath: string, profileId: string): boolean {
+  if (!storagePath || !profileId) return false
+  return storagePath.startsWith(`${profileId}/`)
 }
 
 function main() {
@@ -35,6 +40,14 @@ function main() {
   assert(assertPostAssetOwnedByProfile('', owner) === false, 'empty path must fail closed')
   assert(assertPostAssetOwnedByProfile(`${owner}/x.jpg`, '') === false, 'empty profile must fail closed')
 
+  const helperSrc = readFileSync(
+    join(process.cwd(), 'lib/agents/imageGeneration/generateOptions.ts'),
+    'utf8',
+  )
+  assertIncludes(helperSrc, 'export function assertPostAssetOwnedByProfile', 'generateOptions helper')
+  assertIncludes(helperSrc, 'if (!storagePath || !profileId) return false', 'generateOptions helper')
+  assertIncludes(helperSrc, 'storagePath.startsWith(`${profileId}/`)', 'generateOptions helper')
+
   const createSrc = readFileSync(
     join(process.cwd(), 'app/api/agents/tasks/create/route.ts'),
     'utf8',
@@ -42,8 +55,8 @@ function main() {
   assertIncludes(createSrc, 'assertPostAssetOwnedByProfile', 'tasks/create route')
   assertIncludes(createSrc, 'invalid_storage_path', 'tasks/create route')
   assert(
-    createSrc.includes('createTask') &&
-      createSrc.indexOf('assertPostAssetOwnedByProfile') < createSrc.indexOf('createTask'),
+    createSrc.includes('await createTask(') &&
+      createSrc.indexOf('assertPostAssetOwnedByProfile') < createSrc.indexOf('await createTask('),
     'tasks/create must reject foreign media paths before createTask',
   )
 
@@ -56,8 +69,9 @@ function main() {
     'executeAgentRun must reject foreign paths before vision download',
   )
   assert(
-    executeSrc.includes('deductCredits') &&
-      executeSrc.indexOf('assertPostAssetOwnedByProfile') < executeSrc.indexOf('deductCredits'),
+    executeSrc.includes('await deductCredits(') &&
+      executeSrc.indexOf('assertPostAssetOwnedByProfile') <
+        executeSrc.indexOf('await deductCredits('),
     'executeAgentRun must reject foreign paths before credit reservation',
   )
 
@@ -68,8 +82,9 @@ function main() {
   assertIncludes(publishSrc, 'assertPostAssetOwnedByProfile', 'publishApprovedOutput')
   assertIncludes(publishSrc, 'invalid_storage_path', 'publishApprovedOutput')
   assert(
-    publishSrc.includes('downloadPostAsset') &&
-      publishSrc.indexOf('assertPostAssetOwnedByProfile') < publishSrc.indexOf('downloadPostAsset'),
+    publishSrc.includes('await downloadPostAsset(') &&
+      publishSrc.indexOf('assertPostAssetOwnedByProfile') <
+        publishSrc.indexOf('await downloadPostAsset('),
     'publish must reject foreign paths before downloadPostAsset',
   )
 
@@ -79,9 +94,9 @@ function main() {
   )
   assertIncludes(approvalsSrc, 'assertPostAssetOwnedByProfile', 'approvals page')
   assert(
-    approvalsSrc.includes('createPostAssetSignedUrl') &&
+    approvalsSrc.includes('await createPostAssetSignedUrl(') &&
       approvalsSrc.indexOf('assertPostAssetOwnedByProfile') <
-        approvalsSrc.indexOf('createPostAssetSignedUrl'),
+        approvalsSrc.indexOf('await createPostAssetSignedUrl('),
     'approvals page must not sign URLs for foreign media paths',
   )
 
