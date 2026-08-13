@@ -109,6 +109,8 @@ export async function ensureProfileForClerkUser(
     }
   }
 
+  // Insert-only. A conflict upsert of status/role would clobber a live profile
+  // if this create raced with checkout or a delayed Clerk user.created delivery.
   const { data: created, error: insertError } = await supabase
     .from('profiles')
     .upsert(
@@ -120,14 +122,23 @@ export async function ensureProfileForClerkUser(
         role: 'client',
         status: 'onboarding',
       },
-      { onConflict: 'clerk_user_id' },
+      { onConflict: 'clerk_user_id', ignoreDuplicates: true },
     )
     .select(FOUNDATION_SELECT)
-    .single()
+    .maybeSingle()
 
   if (insertError) {
     console.error('[ensureProfile] insert failed:', insertError.message)
     return { profile: null, error: insertError.message }
+  }
+
+  if (!created) {
+    const { data: raced } = await supabase
+      .from('profiles')
+      .select(FOUNDATION_SELECT)
+      .eq('clerk_user_id', userId)
+      .maybeSingle()
+    return { profile: raced }
   }
 
   if (created?.id && email) {

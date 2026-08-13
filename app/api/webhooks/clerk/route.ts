@@ -8,6 +8,10 @@ import { getResendClient } from '@/lib/resend'
 import { transactionalFromAddress } from '@/lib/email/transactionalTemplate'
 import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 import { notifyAdminNewSignupOnce } from '@/lib/notifyAdminNewSignup'
+import {
+  decideClerkUserCreatedAction,
+  isClerkProfileUniqueViolation,
+} from '@/lib/profiles/clerkUserCreatedWrite'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET
@@ -50,18 +54,45 @@ export async function POST(req: Request) {
     const email = email_addresses?.[0]?.email_address ?? ''
     const fullName = [first_name, last_name].filter(Boolean).join(' ')
 
+    const { data: existingByClerk } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('clerk_user_id', id)
+      .maybeSingle()
+
     // Same email + new Clerk user used to create a second profile row. Reuse canonical.
+    let existingByEmail: {
+      id: string
+      clerk_user_id: string | null
+      stripe_customer_id: string | null
+      stripe_subscription_id: string | null
+      plan: string | null
+      status: string | null
+      created_at: string
+    }[] = []
     if (email) {
-      const { data: existingByEmail } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('id, clerk_user_id, stripe_customer_id, stripe_subscription_id, plan, status, created_at')
         .ilike('email', email)
         .neq('status', 'churned')
         .order('created_at', { ascending: true })
+      existingByEmail = data ?? []
+    }
 
-      const others = (existingByEmail ?? []).filter(p => p.clerk_user_id !== id)
-      if (others.length > 0) {
-        const canonical = [...(existingByEmail ?? [])].sort((a, b) => {
+    const writeAction = decideClerkUserCreatedAction({
+      existingByClerkUserId: existingByClerk,
+      emailMatches: existingByEmail,
+      incomingClerkUserId: id,
+    })
+
+    // Redelivery / at-least-once: do not upsert status/role/onboarding_complete.
+    if (writeAction === 'noop') {
+      return new Response('OK', { status: 200 })
+    }
+
+    if (writeAction === 'relink_email') {
+        const canonical = [...existingByEmail].sort((a, b) => {
           if (a.stripe_customer_id && !b.stripe_customer_id) return -1
           if (!a.stripe_customer_id && b.stripe_customer_id) return 1
           if (a.plan && !b.plan) return -1
@@ -79,7 +110,7 @@ export async function POST(req: Request) {
           })
           .eq('id', canonical.id)
 
-        const orphanIds = (existingByEmail ?? [])
+        const orphanIds = existingByEmail
           .filter(p => p.id !== canonical.id && !p.stripe_customer_id && !p.stripe_subscription_id)
           .map(p => p.id)
 
@@ -96,10 +127,9 @@ export async function POST(req: Request) {
         })
 
         return new Response('OK', { status: 200 })
-      }
     }
 
-    const { data: newProfile, error } = await supabase.from('profiles').upsert({
+    const { data: inserted, error: insertError } = await supabase.from('profiles').insert({
       clerk_user_id: id,
       email,
       full_name: fullName,
@@ -107,10 +137,22 @@ export async function POST(req: Request) {
       role: 'client',
       status: 'onboarding',
       onboarding_complete: false,
-    }, { onConflict: 'clerk_user_id' }).select('id').single()
+    }).select('id').maybeSingle()
 
-    if (error) {
-      console.error('Supabase upsert error (user.created):', error)
+    let newProfile = inserted
+    let persistError = insertError
+    if (isClerkProfileUniqueViolation(insertError)) {
+      const { data: raced } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('clerk_user_id', id)
+        .maybeSingle()
+      newProfile = raced
+      persistError = null
+    }
+
+    if (persistError) {
+      console.error('Supabase insert error (user.created):', persistError)
     }
 
     // Activate any pending team invite for this email
@@ -139,7 +181,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (newProfile?.id && !error) {
+    if (newProfile?.id && !persistError) {
       try {
         await track('Signup', {
           source: 'clerk_webhook',
