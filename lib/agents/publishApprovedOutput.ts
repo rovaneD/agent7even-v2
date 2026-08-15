@@ -9,6 +9,7 @@ import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { createServiceClient } from '@/lib/supabase/server'
 import { primaryPlatformFromInput } from '@/lib/agents/visionCaption'
 import { shouldPublishApprovedPost, singlePostPublishBlockReason } from '@/lib/agents/contentPosting'
+import { captionFromOutputContent } from '@/lib/agents/approvedPublishTargets'
 import { linkOutputToZernioPost } from '@/lib/content/agentOutputLifecycle'
 
 const PUBLISH_CREDIT_COST = ACTION_CREDIT_COST.publish
@@ -141,45 +142,6 @@ export async function publishApprovedImageCaption(opts: {
   }
     },
   )
-}
-
-export function captionFromOutputContent(outputContent: Record<string, unknown>): string {
-  return typeof outputContent.raw === 'string' ? outputContent.raw : ''
-}
-
-export type ApprovedPublishTarget = {
-  outputId: string
-  taskId: string
-  agentId: string
-  taskInput: Record<string, unknown>
-  outputContent: Record<string, unknown>
-  caption: string
-}
-
-/** Rows that single-approve already publishes — bulk approve must use the same gate. */
-export function selectApprovedPublishTargets(
-  outputs: Array<{ id: string; task_id: string; content: unknown }>,
-  tasksById: Map<string, { agent?: string | null; input?: unknown }>,
-): ApprovedPublishTarget[] {
-  const targets: ApprovedPublishTarget[] = []
-  for (const output of outputs) {
-    const task = tasksById.get(output.task_id)
-    if (!task) continue
-    const outputContent = (output.content ?? {}) as Record<string, unknown>
-    const caption = captionFromOutputContent(outputContent)
-    const agentId = (task.agent as string) ?? ''
-    const taskInput = (task.input ?? {}) as Record<string, unknown>
-    if (!shouldPublishApprovedPost({ agentId, taskInput, outputContent, caption })) continue
-    targets.push({
-      outputId: output.id,
-      taskId: output.task_id,
-      agentId,
-      taskInput,
-      outputContent,
-      caption,
-    })
-  }
-  return targets
 }
 
 export async function publishAndLinkApprovedPost(opts: {

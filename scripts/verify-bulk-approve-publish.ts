@@ -4,7 +4,7 @@
  * Usage:
  *   npx tsx scripts/verify-bulk-approve-publish.ts
  */
-import { selectApprovedPublishTargets } from '../lib/agents/publishApprovedOutput'
+import { selectApprovedPublishTargets } from '../lib/agents/approvedPublishTargets'
 
 function assert(cond: unknown, message: string): asserts cond {
   if (!cond) throw new Error(message)

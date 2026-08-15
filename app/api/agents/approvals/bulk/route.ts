@@ -2,10 +2,8 @@ import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
 import { buildRequeueTaskInput } from '@/lib/agents/requeueTaskInput'
-import {
-  publishAndLinkApprovedPost,
-  selectApprovedPublishTargets,
-} from '@/lib/agents/publishApprovedOutput'
+import { selectApprovedPublishTargets } from '@/lib/agents/approvedPublishTargets'
+import { publishAndLinkApprovedPost } from '@/lib/agents/publishApprovedOutput'
 import { logActivity } from '@/lib/activity'
 import {
   logBulkApprovalChangelog,
