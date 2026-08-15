@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/server'
 import { buildRequeueTaskInput } from '@/lib/agents/requeueTaskInput'
+import {
+  publishAndLinkApprovedPost,
+  selectApprovedPublishTargets,
+} from '@/lib/agents/publishApprovedOutput'
 import { logActivity } from '@/lib/activity'
 import {
   logBulkApprovalChangelog,
@@ -14,6 +18,8 @@ import {
   workspaceDataUserId,
 } from '@/lib/profiles/workspaceSession'
 import { requireWorkspaceOwner } from '@/lib/team/requireWorkspaceOwner'
+
+export const maxDuration = 120
 
 export async function POST(req: Request) {
   const { action, taskIds, feedback, feedbackNote, rerun = false } = await req.json()
@@ -49,7 +55,8 @@ export async function POST(req: Request) {
         .from('agent_tasks')
         .update({ approved_at: now, reviewed_at: now, reviewed_by: memberId })
         .in('id', taskIds)
-        .eq('user_id', workspaceId),
+        .eq('user_id', workspaceId)
+        .select('id, agent, input'),
       // Scope to pending rows only — a task can carry rejected/superseded
       // outputs that must not flip to approved in a bulk action.
       supabase
@@ -57,13 +64,39 @@ export async function POST(req: Request) {
         .update({ status: 'approved', approved_at: now, lifecycle_stage: 'approved' })
         .in('task_id', taskIds)
         .eq('user_id', workspaceId)
-        .eq('status', 'pending_approval'),
+        .eq('status', 'pending_approval')
+        .select('id, task_id, content'),
     ])
     if (tasksRes.error) return NextResponse.json({ error: tasksRes.error.message }, { status: 500 })
     if (outputsRes.error) return NextResponse.json({ error: outputsRes.error.message }, { status: 500 })
+
+    const tasksById = new Map(
+      (tasksRes.data ?? []).map(task => [task.id as string, task]),
+    )
+    const publishTargets = selectApprovedPublishTargets(outputsRes.data ?? [], tasksById)
+    let publishedCount = 0
+    for (const target of publishTargets) {
+      const { publish } = await publishAndLinkApprovedPost({
+        supabase,
+        profileId: workspaceId,
+        outputId: target.outputId,
+        taskId: target.taskId,
+        agentId: target.agentId,
+        taskInput: target.taskInput,
+        outputContent: target.outputContent,
+        caption: target.caption,
+      })
+      if (publish?.scheduled) publishedCount += 1
+    }
+
     logActivity(memberId, 'agent_bulk_approved', { count: taskIds.length }, workspaceId).catch(() => {})
     void logBulkApprovalChangelog(memberId, taskIds).catch(err => {
       console.error('[foundation-changelog] bulk approve log failed:', err)
+    })
+    return NextResponse.json({
+      success: true,
+      count: taskIds.length,
+      publishedCount,
     })
   } else {
     const { data: tasksToRequeue } = await supabase

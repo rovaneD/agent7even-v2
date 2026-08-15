@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
-import { publishApprovedImageCaption } from '@/lib/agents/publishApprovedOutput'
-import { shouldPublishApprovedPost, singlePostPublishBlockReason } from '@/lib/agents/contentPosting'
-import { linkOutputToZernioPost } from '@/lib/content/agentOutputLifecycle'
+import { publishAndLinkApprovedPost } from '@/lib/agents/publishApprovedOutput'
 import { logApprovalChangelog } from '@/lib/foundation/changelog'
 import { recordApprovalDecisionNote } from '@/lib/agents/approvalNotes'
 import {
@@ -88,35 +86,15 @@ export async function POST(
   ])
 
   const outputContent = (outputUpdate.content ?? output?.content ?? {}) as Record<string, unknown>
-  const caption = typeof outputContent.raw === 'string' ? outputContent.raw : ''
-
-  const publishOpts = {
+  const { publish, publishBlocked } = await publishAndLinkApprovedPost({
+    supabase,
+    profileId: workspaceId,
+    outputId,
+    taskId,
     agentId: (task?.agent as string) ?? '',
     taskInput: (task?.input ?? {}) as Record<string, unknown>,
     outputContent,
-    caption,
-  }
-
-  let publish: Awaited<ReturnType<typeof publishApprovedImageCaption>> | null = null
-  const publishBlocked = singlePostPublishBlockReason(publishOpts)
-  if (shouldPublishApprovedPost(publishOpts)) {
-    publish = await publishApprovedImageCaption({
-      profileId: workspaceId,
-      outputId,
-      taskInput: publishOpts.taskInput,
-      outputContent,
-      caption,
-      taskId,
-    })
-    if (publish?.scheduled && publish.postId) {
-      await linkOutputToZernioPost(supabase, {
-        userId: workspaceId,
-        outputId,
-        zernioPostId: publish.postId,
-        stage: 'draft',
-      })
-    }
-  }
+  })
 
   logActivity(memberId, 'agent_approved', {
     taskId,

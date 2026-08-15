@@ -838,7 +838,7 @@ export default function ApprovalsClient({
     if (checkedIds.size === 0) return
     setBulkLoading(true)
     try {
-      await fetch('/api/agents/approvals/bulk', {
+      const data = await fetch('/api/agents/approvals/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -849,16 +849,25 @@ export default function ApprovalsClient({
           rerun:        false,
         }),
       }).then(async res => {
+        const body = await res.json().catch(() => ({}))
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}))
-          throw new Error(typeof data.error === 'string' ? data.error : 'Bulk action failed')
+          throw new Error(typeof body.error === 'string' ? body.error : 'Bulk action failed')
         }
+        return body as { publishedCount?: number }
       })
       const done = new Set(checkedIds)
       setTasks(prev => prev.filter(t => !done.has(t.id)))
       setCheckedIds(new Set())
       setBulkAction(null)
       setBulkNote('')
+      if (action === 'approve' && typeof data.publishedCount === 'number' && data.publishedCount > 0) {
+        setApproveNotice({
+          message: data.publishedCount === 1
+            ? '1 approved post is saved as a draft on Posts — ready to schedule.'
+            : `${data.publishedCount} approved posts are saved as drafts on Posts — ready to schedule.`,
+          postsLink: '/dashboard/posts?status=draft',
+        })
+      }
     } catch (err) {
       window.alert(err instanceof Error ? err.message : 'Bulk action failed')
     } finally {
