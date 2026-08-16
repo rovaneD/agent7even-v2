@@ -1,5 +1,9 @@
 import type Stripe from 'stripe'
-import { allocateTrialCredits, grantPaidPlanAllowanceAfterTrial } from '@/lib/billing/trialCredits'
+import { grantCheckoutActivationCreditsOnce } from '@/lib/billing/trialCredits'
+import {
+  isAccessGrantingSubscriptionStatus,
+  profileStatusFromSubscription,
+} from '@/lib/billing/subscriptionStatus'
 import { isPaidPlanKey, TRIAL_MEDIA_CREDITS } from '@/lib/billing/trialPolicy'
 import type { PaidPlan } from '@/lib/plans'
 import { PLAN_CREDITS } from '@/lib/credits'
@@ -20,6 +24,21 @@ function resolveSubscriptionPlan(subscription: Stripe.Subscription): PaidPlan | 
 export type ActivateCheckoutResult =
   | { ok: true; plan: string; profileId: string; alreadyActive: boolean }
   | { ok: false; reason: string }
+
+async function linkedResultIfAccessGranted(
+  linked: ActivateCheckoutResult,
+): Promise<ActivateCheckoutResult | null> {
+  if (!linked.ok) return null
+  const supabase = createServiceClient()
+  const { data: refreshed } = await supabase
+    .from('profiles')
+    .select('status')
+    .eq('id', linked.profileId)
+    .maybeSingle()
+  // past_due/unpaid map to paused — recovery must not report success for access gates
+  if (refreshed?.status !== 'active') return null
+  return linked
+}
 
 /** Idempotent — safe when webhook already ran or client polls after success redirect. */
 export async function activateSubscriptionFromCheckoutSession(
@@ -55,6 +74,11 @@ export async function activateSubscriptionFromCheckoutSession(
   const plan = resolveSubscriptionPlan(subscription)
   if (!plan) return { ok: false, reason: 'unknown_plan' }
 
+  const profileStatus = profileStatusFromSubscription(subscription)
+  if (!profileStatus || !isAccessGrantingSubscriptionStatus(subscription.status)) {
+    return { ok: false, reason: 'subscription_not_active' }
+  }
+
   const supabase = createServiceClient()
   const profile = await resolveClerkProfile(
     supabase,
@@ -84,7 +108,7 @@ export async function activateSubscriptionFromCheckoutSession(
     .from('profiles')
     .update({
       plan,
-      status: 'active',
+      status: profileStatus,
       stripe_customer_id: customerId,
       stripe_subscription_id: subscriptionId,
       updated_at: new Date().toISOString(),
@@ -103,29 +127,20 @@ export async function activateSubscriptionFromCheckoutSession(
       .eq('user_id', profile.id)
       .eq('is_active', false)
 
-    const { data: existingTrialCredit } = await supabase
-      .from('credit_ledger')
-      .select('id')
-      .eq('user_id', profile.id)
-      .eq('type', 'allocation')
-      .ilike('description', '%Trial allocation%')
-      .limit(1)
-      .maybeSingle()
+    const isTrialing = subscription.status === 'trialing'
+    const creditsGranted = await grantCheckoutActivationCreditsOnce(
+      profile.id,
+      plan,
+      isTrialing,
+    )
 
-    if (!existingTrialCredit) {
-      const isTrialing = subscription.status === 'trialing'
-      const creditsGranted = isTrialing
-        ? await allocateTrialCredits(profile.id)
-        : await grantPaidPlanAllowanceAfterTrial(profile.id, plan)
-
+    if (creditsGranted != null) {
       await createNotification({
         userId: profile.id,
         title: 'Welcome to Agent7even!',
-        body: creditsGranted != null
-          ? isTrialing
-            ? `Your ${plan} trial is active with ${TRIAL_MEDIA_CREDITS} media credits to explore.`
-            : `Your ${plan} plan is active with ${PLAN_CREDITS[plan]} credits ready to use.`
-          : `Your ${plan} plan is now active. You have full access to your dashboard.`,
+        body: isTrialing
+          ? `Your ${plan} trial is active with ${TRIAL_MEDIA_CREDITS} media credits to explore.`
+          : `Your ${plan} plan is active with ${PLAN_CREDITS[plan]} credits ready to use.`,
         type: 'plan_activated',
         link: '/foundation',
         sendEmail: false,
@@ -149,13 +164,18 @@ export async function linkExistingStripeSubscriptionForClerkUser(
     limit: 10,
   })
 
-  const live = subs.data.find(s =>
-    ['trialing', 'active', 'past_due'].includes(s.status),
-  )
+  // Prefer access-granting statuses. past_due/unpaid may still be linked for
+  // consistency, but must map to paused — never re-activate delinquent access.
+  const live =
+    subs.data.find(s => isAccessGrantingSubscriptionStatus(s.status)) ??
+    subs.data.find(s => s.status === 'past_due' || s.status === 'unpaid')
   if (!live) return null
 
   const plan = resolveSubscriptionPlan(live)
   if (!plan) return null
+
+  const profileStatus = profileStatusFromSubscription(live)
+  if (!profileStatus) return null
 
   const supabase = createServiceClient()
   const profile = await resolveClerkProfile(supabase, clerkUserId, 'id, stripe_subscription_id')
@@ -167,7 +187,7 @@ export async function linkExistingStripeSubscriptionForClerkUser(
     .from('profiles')
     .update({
       plan,
-      status: 'active',
+      status: profileStatus,
       stripe_customer_id: customerId,
       stripe_subscription_id: live.id,
       updated_at: new Date().toISOString(),
@@ -175,17 +195,7 @@ export async function linkExistingStripeSubscriptionForClerkUser(
     .eq('id', profile.id)
 
   if (!alreadyLinked && live.status === 'trialing') {
-    const { data: existingTrialCredit } = await supabase
-      .from('credit_ledger')
-      .select('id')
-      .eq('user_id', profile.id)
-      .eq('type', 'allocation')
-      .ilike('description', '%Trial allocation%')
-      .limit(1)
-      .maybeSingle()
-    if (!existingTrialCredit) {
-      await allocateTrialCredits(profile.id)
-    }
+    await grantCheckoutActivationCreditsOnce(profile.id, plan, true)
   }
 
   return { ok: true, plan, profileId: profile.id, alreadyActive: alreadyLinked }
@@ -207,7 +217,10 @@ export async function recoverPaidSubscriptionForClerkUser(
       clerkUserId,
       billing.stripe_customer_id,
     )
-    if (linked?.ok) return linked
+    if (linked) {
+      const granted = await linkedResultIfAccessGranted(linked)
+      if (granted) return granted
+    }
   }
 
   const normalizedEmail = email?.trim()
@@ -235,7 +248,10 @@ export async function recoverPaidSubscriptionForClerkUser(
     }
 
     const linked = await linkExistingStripeSubscriptionForClerkUser(clerkUserId, customer.id)
-    if (linked?.ok) return linked
+    if (linked) {
+      const granted = await linkedResultIfAccessGranted(linked)
+      if (granted) return granted
+    }
 
     const sessions = await stripe.checkout.sessions.list({
       customer: customer.id,
