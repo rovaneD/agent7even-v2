@@ -1714,6 +1714,15 @@
 .lab5 .footer-in { max-width: var(--l5-maxw); margin: 0 auto; }
 .lab5 .footer-top { display: grid; grid-template-columns: 1.6fr repeat(4,1fr); gap: 40px; padding-bottom: 48px; border-bottom: 1px solid var(--l5-line-2); }
 .lab5 .footer-brand p { font-size: 13.5px; color: var(--l5-muted); line-height: 1.6; max-width: 230px; margin-top: 14px; }
+.lab5 .footer-social { display: flex; gap: 10px; margin-top: 18px; }
+.lab5 .footer-social a {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 999px;
+  border: 1px solid var(--l5-line-2); color: var(--l5-muted);
+  transition: color .15s, border-color .15s, background .15s;
+}
+.lab5 .footer-social a:hover { color: var(--l5-ink); border-color: var(--l5-line); background: #fff; }
+.lab5 .footer-social svg { width: 16px; height: 16px; display: block; }
 .lab5 .fcol h5 { font-family: var(--l5-mono); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .12em; color: var(--l5-faint); margin-bottom: 16px; }
 .lab5 .fcol a { display: block; font-size: 14px; color: var(--l5-muted); margin-bottom: 11px; transition: color .15s; }
 .lab5 .fcol a:hover { color: var(--l5-ink); }
