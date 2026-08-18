@@ -8,7 +8,8 @@
     "start": "next start",
     "verify:production": "npx tsx scripts/verify-production-readiness.ts",
     "verify:trial-credits": "npx tsx --env-file=.env.local scripts/verify_trial_credits.ts",
-    "verify:stripe-trial": "npx tsx --env-file=.env.local scripts/verify_stripe_trial_qa.ts"
+    "verify:stripe-trial": "npx tsx --env-file=.env.local scripts/verify_stripe_trial_qa.ts",
+    "verify:bulk-approve-publish": "npx tsx scripts/verify-bulk-approve-publish.ts"
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.193",
