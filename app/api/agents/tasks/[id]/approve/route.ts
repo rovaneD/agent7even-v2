@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
-import { publishApprovedImageCaption } from '@/lib/agents/publishApprovedOutput'
+import {
+  publishApprovedImageCaption,
+  shouldRevertApprovalAfterPublish,
+} from '@/lib/agents/publishApprovedOutput'
 import { shouldPublishApprovedPost, singlePostPublishBlockReason } from '@/lib/agents/contentPosting'
 import { linkOutputToZernioPost } from '@/lib/content/agentOutputLifecycle'
 import { logApprovalChangelog } from '@/lib/foundation/changelog'
@@ -99,22 +102,82 @@ export async function POST(
 
   let publish: Awaited<ReturnType<typeof publishApprovedImageCaption>> | null = null
   const publishBlocked = singlePostPublishBlockReason(publishOpts)
-  if (shouldPublishApprovedPost(publishOpts)) {
-    publish = await publishApprovedImageCaption({
-      profileId: workspaceId,
-      outputId,
-      taskInput: publishOpts.taskInput,
-      outputContent,
-      caption,
-      taskId,
-    })
-    if (publish?.scheduled && publish.postId) {
-      await linkOutputToZernioPost(supabase, {
-        userId: workspaceId,
+  const intendedToPublish = shouldPublishApprovedPost(publishOpts)
+
+  async function revertClaimedApproval() {
+    const [outputRevert, taskRevert] = await Promise.all([
+      supabase
+        .from('agent_outputs')
+        .update({
+          status: 'pending_approval',
+          approved_at: null,
+          lifecycle_stage: 'review',
+        })
+        .eq('id', outputId)
+        .eq('user_id', workspaceId)
+        .eq('status', 'approved'),
+      supabase
+        .from('agent_tasks')
+        .update({ approved_at: null, reviewed_at: null, reviewed_by: null })
+        .eq('id', taskId)
+        .eq('user_id', workspaceId),
+    ])
+    if (outputRevert.error) {
+      console.error('[approve] failed to restore pending_approval after publish failure:', outputRevert.error)
+    }
+    if (taskRevert.error) {
+      console.error('[approve] failed to clear task approval timestamps after publish failure:', taskRevert.error)
+    }
+  }
+
+  if (intendedToPublish) {
+    try {
+      publish = await publishApprovedImageCaption({
+        profileId: workspaceId,
         outputId,
-        zernioPostId: publish.postId,
-        stage: 'draft',
+        taskInput: publishOpts.taskInput,
+        outputContent,
+        caption,
+        taskId,
       })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : 'publish_threw'
+      console.error('[approve] publish threw after claiming output:', detail)
+      await revertClaimedApproval()
+      return NextResponse.json(
+        {
+          error: 'publish_failed',
+          detail,
+          message: 'Could not create a Posts draft. The item is still awaiting approval — try again.',
+        },
+        { status: 502 },
+      )
+    }
+
+    if (shouldRevertApprovalAfterPublish({ intendedToPublish: true, publish })) {
+      await revertClaimedApproval()
+      return NextResponse.json(
+        {
+          error: 'publish_failed',
+          detail: publish?.detail ?? 'publish_failed',
+          message: 'Could not create a Posts draft. The item is still awaiting approval — try again.',
+        },
+        { status: 502 },
+      )
+    }
+
+    if (publish?.scheduled && publish.postId) {
+      try {
+        await linkOutputToZernioPost(supabase, {
+          userId: workspaceId,
+          outputId,
+          zernioPostId: publish.postId,
+          stage: 'draft',
+        })
+      } catch (err) {
+        // Draft already exists in Zernio — keep approved so a retry cannot mint a second post.
+        console.error('[approve] failed to link zernio_post_id after draft create:', err)
+      }
     }
   }
 

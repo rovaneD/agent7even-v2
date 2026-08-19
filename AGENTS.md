@@ -17,7 +17,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 28, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: August 19, 2026 — keep this date current at the end of every session -->
 
 ## Properties
 
@@ -142,6 +142,7 @@ reach paying customers on `www.agent7even.ai`. The legacy portal in
 - **Analytics / cookie chrome:** `components/analytics/DeferredChrome.tsx` — cookie banner + GA only outside app prefixes (`/dashboard`, `/admin`, `/foundation`, `/maya`, `/sign-in`, `/sign-up`, `/start-trial`). Vercel Analytics sitewide.
 - **Agent guided setup:** dedicated run pages at `/dashboard/agents/[agentId]/run` — not modals on Command Center hub (`lib/agents/guidedSetup.ts`).
 - **Pending approval count SSOT:** `lib/agents/pendingApprovals.ts` — count/list from `agent_outputs.status = 'pending_approval'`. Used by dashboard brief, lifecycle bar, sidebar badge, Agents Command Center, digest generate, and approvals API. Do not reintroduce `Math.max` with `daily_digests.approvals` or parallel `agent_tasks`-only counts for surfacing.
+- **Single approve + Zernio publish:** `/api/agents/tasks/[id]/approve` CAS-claims `pending_approval` then publishes. Retryable publish failures (`shouldRevertApprovalAfterPublish`) must restore `pending_approval` and return 502 so the owner can retry. Do not leave `approved` with no draft. Verify: `npm run verify:approve-publish-retry`.
 - **Foundation competitors:** store as `string[]` via `lib/foundation/competitorsArray.ts` — never comma-split prose into slots.
 - **Structured approval views:** Campaign Builder, Ad Variations, Email Sequence use dedicated parsers + view components in `lib/agents/*Parse.ts` and `components/agents/*OutputView.tsx`.
 - **Foundation site snapshot:** `34_foundation_site_snapshot.sql` + `lib/foundation/siteSnapshot.ts` — separate from guarded Phase 1 answers; enable via `site_snapshot_enabled`.

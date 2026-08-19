@@ -10,6 +10,31 @@ import { primaryPlatformFromInput } from '@/lib/agents/visionCaption'
 
 const PUBLISH_CREDIT_COST = ACTION_CREDIT_COST.publish
 
+/** Expected skips — keep the local approval; do not send back to the queue. */
+export const NON_RETRYABLE_PUBLISH_SKIP_DETAILS = [
+  'no_media',
+  'video_not_supported',
+  'zernio_not_configured',
+  'not_connected',
+  'no_account_for_platform',
+] as const
+
+/**
+ * After the approve route CAS-claims a pending output, a failed Zernio
+ * publish must restore `pending_approval` or the owner gets `409 not_pending`
+ * and cannot retry. Configuration skips (not connected, no account) stay approved.
+ */
+export function shouldRevertApprovalAfterPublish(opts: {
+  intendedToPublish: boolean
+  publish: { scheduled: boolean; detail?: string } | null
+}): boolean {
+  if (!opts.intendedToPublish) return false
+  if (opts.publish?.scheduled) return false
+  const detail = opts.publish?.detail
+  if (!detail) return true
+  return !(NON_RETRYABLE_PUBLISH_SKIP_DETAILS as readonly string[]).includes(detail)
+}
+
 function normalizePlatform(value: string): string {
   const v = value.toLowerCase().trim()
   if (v.includes('instagram') || v === 'ig') return 'instagram'
@@ -55,10 +80,17 @@ export async function publishApprovedImageCaption(opts: {
 
   const platformLabel = primaryPlatformFromInput(opts.taskInput)
   const platform = normalizePlatform(platformLabel)
-  const accounts = await publisher.withZernioUsageContext(
-    { userId: opts.profileId, zernioProfileId },
-    () => publisher.getProfileAccounts(zernioProfileId),
-  )
+  let accounts: Array<{ id: string; platform: string; username: string }>
+  try {
+    accounts = await publisher.withZernioUsageContext(
+      { userId: opts.profileId, zernioProfileId },
+      () => publisher.getProfileAccountsStrict(zernioProfileId),
+    )
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : 'accounts_fetch_failed'
+    console.error('[publishApprovedImageCaption] accounts fetch failed:', detail)
+    return { scheduled: false, detail: 'accounts_fetch_failed' }
+  }
   const account = accounts.find(a => a.platform.toLowerCase() === platform)
     ?? accounts.find(a => platformLabel.toLowerCase().includes(a.platform.toLowerCase()))
     ?? accounts[0]

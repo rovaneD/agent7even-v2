@@ -802,7 +802,13 @@ export default function ApprovalsClient({
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
-      window.alert(typeof data.error === 'string' ? data.error : 'Approve failed — try again.')
+      window.alert(
+        typeof data.message === 'string'
+          ? data.message
+          : typeof data.error === 'string'
+            ? data.error
+            : 'Approve failed — try again.',
+      )
       return
     }
     removeTask(taskId)

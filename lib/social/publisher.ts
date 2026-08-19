@@ -425,6 +425,25 @@ export async function getProfileAccounts(
   }
 }
 
+/**
+ * Same as getProfileAccounts, but throws on Zernio/network errors.
+ * An empty array means the profile truly has no connected accounts.
+ * Use this on publish paths that must retry after a transient outage
+ * instead of treating a failed listing as "no account".
+ */
+export async function getProfileAccountsStrict(
+  profileId: string,
+): Promise<Array<{ id: string; platform: string; username: string }>> {
+  const data = await zCall<{ accounts?: ZernioAccountRow[]; results?: ZernioAccountRow[] }>(
+    `/accounts?profileId=${encodeURIComponent(profileId)}`,
+  )
+  const arr = Array.isArray(data.accounts) ? data.accounts : Array.isArray(data.results) ? data.results : []
+  return arr
+    .map(parseConnectedAccountRow)
+    .filter((a): a is ZernioConnectedAccountInfo => a !== null)
+    .map(({ id, platform, username }) => ({ id, platform, username }))
+}
+
 /** Connected accounts with usernames and reconnect timestamps for UI labels. */
 export async function getProfileConnectedAccounts(profileId: string): Promise<ZernioConnectedAccountInfo[]> {
   try {
