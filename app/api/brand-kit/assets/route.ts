@@ -1,25 +1,13 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createBrandAssetSignedUrl } from '@/lib/brandKit/signAssetUrl'
+import { brandKitGateResponse, requireBrandKitWorkspace } from '@/lib/brandKit/brandKitWorkspace'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  const profile = profileRows?.[0] ?? null
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-
-  const profileId = profile.id
+  const gate = await requireBrandKitWorkspace(supabase)
+  if (!gate.ok) return brandKitGateResponse(gate)
+  const profileId = gate.workspaceId
   const contentType = req.headers.get('content-type') ?? ''
 
   // Mode A: multipart/form-data — file upload
