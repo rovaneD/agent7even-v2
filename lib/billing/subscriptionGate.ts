@@ -15,6 +15,16 @@ type GateProfile = {
   status?: string | null
 }
 
+/** Ops / comp accounts — no customer billing emails or churn side-effects from Stripe webhooks. */
+export function isInternalPlatformAccount(profile: {
+  role?: string | null
+  billing_exempt?: boolean | null
+}): boolean {
+  if (profile.role === 'admin' || profile.role === 'owner') return true
+  if (profile.billing_exempt) return true
+  return false
+}
+
 /** Internal admin/owner accounts, comp access, or an active paid/trialing Stripe subscription. */
 export function profileBypassesSubscriptionGate(profile: GateProfile): boolean {
   if (profile.role === 'admin' || profile.role === 'owner') return true

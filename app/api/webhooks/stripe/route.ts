@@ -5,6 +5,7 @@ import {
   TRIAL_MEDIA_CREDITS,
   trialEndingNotificationBody,
 } from '@/lib/billing/trialPolicy'
+import { isInternalPlatformAccount } from '@/lib/billing/subscriptionGate'
 import { allocateTrialCredits, grantPaidPlanAllowanceAfterTrial } from '@/lib/billing/trialCredits'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
@@ -235,17 +236,19 @@ export async function POST(req: Request) {
 
     const { data: linkedProfile } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, role, billing_exempt')
       .eq('stripe_subscription_id', subscription.id)
       .maybeSingle()
 
     let profileId = linkedProfile?.id as string | undefined
+    let trialProfile: { role?: string | null; billing_exempt?: boolean | null } | null = linkedProfile
     if (!profileId && clerkUserId) {
-      const canonical = await resolveClerkProfile(supabase, clerkUserId, 'id')
+      const canonical = await resolveClerkProfile(supabase, clerkUserId, 'id, role, billing_exempt')
       profileId = canonical?.id
+      trialProfile = canonical
     }
 
-    if (profileId && subscription.trial_end) {
+    if (profileId && subscription.trial_end && !isInternalPlatformAccount(trialProfile ?? {})) {
       const endsAt = new Date(subscription.trial_end * 1000)
       const endsLabel = endsAt.toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC',
@@ -278,6 +281,8 @@ export async function POST(req: Request) {
     const cancelledProfile = clerkUserId
       ? await resolveClerkProfile<{
           id: string
+          role: string | null
+          billing_exempt: boolean | null
           zernio_profile_id: string | null
           zernio_profile_ids: string[] | null
           zernio_connected_platforms: string[] | null
@@ -285,16 +290,20 @@ export async function POST(req: Request) {
           stripe_subscription_id: string | null
           plan: string | null
           created_at: string
-        }>(supabase, clerkUserId, 'id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
+        }>(supabase, clerkUserId, 'id, role, billing_exempt, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
       : (
           await supabase
             .from('profiles')
-            .select('id, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
+            .select('id, role, billing_exempt, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms')
             .eq('stripe_subscription_id', subscription.id)
             .single()
         ).data
 
-    if (cancelledProfile) {
+    const internalCancellation = cancelledProfile
+      ? isInternalPlatformAccount(cancelledProfile)
+      : false
+
+    if (cancelledProfile && !internalCancellation) {
       const zernioProfileIds = collectZernioProfileIds(cancelledProfile)
       if (zernioProfileIds.length > 0) {
         const teardownResults = await disconnectAllZernioProfiles(zernioProfileIds)
@@ -308,32 +317,44 @@ export async function POST(req: Request) {
       }
     }
 
-    const churnUpdate = {
-      plan: null, status: 'churned', stripe_subscription_id: null,
-      zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
-      updated_at: new Date().toISOString(),
-    }
-    if (cancelledProfile?.id) {
-      await supabase.from('profiles').update(churnUpdate).eq('id', cancelledProfile.id)
-    } else if (clerkUserId) {
-      await supabase.from('profiles').update(churnUpdate).eq('clerk_user_id', clerkUserId)
-    } else {
-      await supabase.from('profiles').update(churnUpdate).eq('stripe_subscription_id', subscription.id)
-    }
-
-    // Stop autonomous agent runs — otherwise the hourly cron keeps burning
-    // model spend for churned accounts.
-    if (cancelledProfile?.id) {
-      const { error: scheduleError } = await supabase
-        .from('agent_schedules')
-        .update({ is_active: false })
-        .eq('user_id', cancelledProfile.id)
-      if (scheduleError) {
-        console.error('Failed to deactivate agent schedules on cancellation:', scheduleError)
+    if (!internalCancellation) {
+      const churnUpdate = {
+        plan: null, status: 'churned', stripe_subscription_id: null,
+        zernio_connected_platforms: [], zernio_profile_id: null, zernio_profile_ids: [],
+        updated_at: new Date().toISOString(),
       }
+      if (cancelledProfile?.id) {
+        await supabase.from('profiles').update(churnUpdate).eq('id', cancelledProfile.id)
+      } else if (clerkUserId) {
+        await supabase.from('profiles').update(churnUpdate).eq('clerk_user_id', clerkUserId)
+      } else {
+        await supabase.from('profiles').update(churnUpdate).eq('stripe_subscription_id', subscription.id)
+      }
+
+      // Stop autonomous agent runs — otherwise the hourly cron keeps burning
+      // model spend for churned accounts.
+      if (cancelledProfile?.id) {
+        const { error: scheduleError } = await supabase
+          .from('agent_schedules')
+          .update({ is_active: false })
+          .eq('user_id', cancelledProfile.id)
+        if (scheduleError) {
+          console.error('Failed to deactivate agent schedules on cancellation:', scheduleError)
+        }
+      }
+    } else if (cancelledProfile?.id) {
+      // Clear stale Stripe link only — keep plan/status for internal accounts.
+      await supabase
+        .from('profiles')
+        .update({
+          stripe_subscription_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', cancelledProfile.id)
+      console.log('[stripe/webhook] Skipped churn side-effects for internal account', cancelledProfile.id)
     }
 
-    const notifyUserId = cancelledProfile?.id
+    const notifyUserId = !internalCancellation ? cancelledProfile?.id : undefined
     if (notifyUserId) {
       await createNotification({
         userId: notifyUserId,
@@ -362,9 +383,14 @@ export async function POST(req: Request) {
     if (subscriptionId) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, role, billing_exempt')
         .eq('stripe_subscription_id', subscriptionId)
         .single()
+
+      if (profile && isInternalPlatformAccount(profile)) {
+        console.log('[stripe/webhook] Skipped payment_failed for internal account', profile.id)
+        return NextResponse.json({ received: true })
+      }
 
       await supabase
         .from('profiles')

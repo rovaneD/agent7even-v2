@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { isInternalPlatformAccount } from '@/lib/billing/subscriptionGate'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { getResendClient } from '@/lib/resend'
 import { buildTransactionalEmailHtml, transactionalFromAddress } from '@/lib/email/transactionalTemplate'
@@ -41,6 +42,12 @@ interface CreateNotificationParams {
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.agent7even.com'
 
+const BILLING_LIFECYCLE_TYPES = new Set<NotificationType>([
+  'payment_failed',
+  'subscription_canceled',
+  'trial_ending',
+])
+
 export async function createNotification({
   userId,
   senderId,
@@ -53,6 +60,17 @@ export async function createNotification({
   emailHtml,
 }: CreateNotificationParams) {
   const supabase = createServiceClient()
+
+  if (sendEmail && BILLING_LIFECYCLE_TYPES.has(type)) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, billing_exempt')
+      .eq('id', userId)
+      .maybeSingle()
+    if (profile && isInternalPlatformAccount(profile)) {
+      return
+    }
+  }
 
   // Create in-app notification
   const { error } = await supabase.from('notifications').insert({
