@@ -1,10 +1,10 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { BRAND_KIT_TRIAL_LOCKED, isBrandKitLockedForClerkUser } from '@/lib/billing/brandKitLock'
+import { brandKitGateResponse, requireBrandKitWorkspace } from '@/lib/brandKit/brandKitWorkspace'
 
 const COST = ACTION_CREDIT_COST.brandkit_gen
 
@@ -12,25 +12,22 @@ interface FontDef { family: string; weight: string; size_guide: string }
 interface Pairing { name: string; rationale: string; heading: FontDef; body: FontDef }
 
 export async function POST() {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
+  const gate = await requireBrandKitWorkspace(supabase)
+  if (!gate.ok) return brandKitGateResponse(gate)
 
-  if (await isBrandKitLockedForClerkUser(supabase, userId)) {
+  if (await isBrandKitLockedForClerkUser(supabase, gate.clerkUserId)) {
     return NextResponse.json(
       { error: 'Brand Kit is locked during your free trial.', code: BRAND_KIT_TRIAL_LOCKED },
       { status: 403 },
     )
   }
 
-  const { data: profileRows } = await supabase
+  const { data: profile } = await supabase
     .from('profiles')
     .select('id, company_name, foundation_answers')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const profile = profileRows?.[0] ?? null
+    .eq('id', gate.workspaceId)
+    .maybeSingle()
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
   try {

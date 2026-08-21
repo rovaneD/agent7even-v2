@@ -1,9 +1,9 @@
-import { auth } from '@clerk/nextjs/server'
 import { formatCompetitorsForAgent } from '@/lib/foundation/competitorsArray'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { BRAND_KIT_TRIAL_LOCKED, isBrandKitLockedForClerkUser } from '@/lib/billing/brandKitLock'
+import { brandKitGateResponse, requireBrandKitWorkspace } from '@/lib/brandKit/brandKitWorkspace'
 
 const DOC_TITLE_MAP: Record<string, string> = {
   brief: 'Business Brief',
@@ -20,9 +20,6 @@ const DOC_TITLE_MAP: Record<string, string> = {
 const VALID_DOC_TYPES = ['brief', 'icp', 'positioning', 'voice']
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const { docType } = await req.json()
 
   if (!docType || !VALID_DOC_TYPES.includes(docType)) {
@@ -33,23 +30,21 @@ export async function POST(req: Request) {
   }
 
   const supabase = createServiceClient()
+  const gate = await requireBrandKitWorkspace(supabase)
+  if (!gate.ok) return brandKitGateResponse(gate)
 
-  if (await isBrandKitLockedForClerkUser(supabase, userId)) {
+  if (await isBrandKitLockedForClerkUser(supabase, gate.clerkUserId)) {
     return NextResponse.json(
       { error: 'Brand Kit is locked during your free trial.', code: BRAND_KIT_TRIAL_LOCKED },
       { status: 403 },
     )
   }
 
-  // Fetch profile with foundation_answers
-  const { data: profileRows } = await supabase
+  const { data: profile } = await supabase
     .from('profiles')
     .select('id, company_name, foundation_answers')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  const profile = profileRows?.[0] ?? null
+    .eq('id', gate.workspaceId)
+    .maybeSingle()
 
   if (!profile) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
