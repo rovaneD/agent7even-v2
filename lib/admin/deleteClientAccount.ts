@@ -15,7 +15,6 @@ const USER_ID_TABLES = [
   'brand_kit_fonts',
   'brand_kit_sections',
   'campaigns',
-  'chat_sessions',
   'creative_asset_folders',
   'creative_assets',
   'credit_balances',

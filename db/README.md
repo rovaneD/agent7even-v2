@@ -30,7 +30,7 @@ After **any** schema change in the Supabase console (new table, column, index, c
 
 - **`maya_sessions`:** `UNIQUE(user_id)` existed in early docs but was dropped in the live DB with no repo record. Multiple sessions per profile are intentional.
 - **`maya_sessions.created_at`:** Referenced in legacy `CONTEXTV8` docs; **does not exist** live. Use `updated_at`.
-- **`chat_sessions`:** Orphan table (0 rows). Removal pending Gate 2 confirmation — see Maya recon handoff F3.
+- **`chat_sessions`:** Orphan table (0 rows). Code references removed in F3; table drop pending `SUPABASE_DB_URL` + `scripts/f3-drop-chat-sessions.ts`.
 
 ## `maya_sessions` indexes (live-confirmed — no action)
 

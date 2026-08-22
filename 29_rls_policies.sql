@@ -84,7 +84,6 @@ DECLARE
     'brand_kit_fonts',
     'brand_kit_sections',
     'campaigns',
-    'chat_sessions',
     'creative_asset_folders',
     'creative_assets',
     'credit_balances',
@@ -132,20 +131,6 @@ BEGIN
       t
     );
   END LOOP;
-END $$;
-
--- Tables with RLS but non-standard columns: deny client access if still uncovered
-DO $$
-BEGIN
-  IF to_regclass('public.chat_sessions') IS NOT NULL
-     AND NOT EXISTS (
-       SELECT 1 FROM pg_policies
-       WHERE schemaname = 'public' AND tablename = 'chat_sessions'
-     ) THEN
-    CREATE POLICY "No direct client access"
-      ON public.chat_sessions FOR ALL TO anon, authenticated
-      USING (false) WITH CHECK (false);
-  END IF;
 END $$;
 
 -- ── profile_id tenant tables ──────────────────────────────────────────────────
