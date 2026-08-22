@@ -46,6 +46,11 @@ export async function POST(req: Request) {
   const { messages: rawMessages, isEdit, priorOption, canvasContext, canvasData, isOpenCanvas, isHelpMode, attachments, chatSurface, formSurface } = await req.json()
   const converted = await convertToModelMessages(rawMessages as Parameters<typeof convertToModelMessages>[0])
 
+  const helpMode = isHelpMode === true
+  const openCanvas = isOpenCanvas === true
+  // Only valid surface after MayaShell removal; unrecognized values fall back silently.
+  const validatedChatSurface = chatSurface === 'sidebar' ? 'sidebar' : 'sidebar'
+
   if (!converted?.length) {
     return NextResponse.json({ error: 'No messages provided' }, { status: 400 })
   }
@@ -252,7 +257,7 @@ Reference these specifics. Ask one focused question to learn more about their bu
     const knowledgeSection = formatFoundationKnowledgeForMaya(knowledgeRows)
     const teamSection = teamContext ? formatWorkspaceTeamContextForMaya(teamContext) : ''
 
-    const helpSection = isHelpMode ? `
+    const helpSection = helpMode ? `
 PRODUCT KNOWLEDGE — AGENT7EVEN MAYA PLATFORM:
 
 NAVIGATION SECTIONS:
@@ -288,7 +293,7 @@ YOUR ROLE IN HELP MODE:
 You are a helpful guide for the Maya platform. Answer questions about how to use any feature. Be specific, direct, and practical. Walk users through exact steps. Do not talk about pricing unless asked. Do not speculate about features that don't exist. If someone asks how to do something, give them the literal steps — not vague suggestions.
 ` : ''
 
-    const openCanvasSection = isOpenCanvas
+    const openCanvasSection = openCanvas
       ? `
 OPEN CANVAS MODE:
 The user is building a custom campaign from scratch. They have a specific situation, idea, or problem.
@@ -305,7 +310,8 @@ Do NOT say this until you have: what they're promoting, who the audience is, and
 `
       : ''
 
-    const isSidebarChat = chatSurface === 'sidebar' || (!chatSurface && !isOpenCanvas && !isHelpMode)
+    const isSidebarChat =
+      validatedChatSurface === 'sidebar' && !openCanvas && !helpMode
 
     const sidebarChatSection = isSidebarChat ? `
 SIDEBAR CHAT — CRITICAL (this panel cannot run agents):
@@ -315,15 +321,6 @@ ${MAYA_NO_FAKE_ACTIONS}
 - Content Posting is NOT Campaign Builder. Do not pivot to 30-day plans unless they explicitly ask for a campaign.
 - If their intent is clear, ask at most ONE clarifying question total before acting (steps or draft). No six-question interviews.
 ` : ''
-
-    const orchestrateSection =
-      chatSurface === 'maya_shell' && !isHelpMode && !isOpenCanvas
-        ? `WHEN TO ORCHESTRATE — after 4–6 meaningful exchanges on campaign planning only:
-Say exactly: "Got everything I need. I'm spinning up the Campaign Builder now — it'll have your full 30-day plan ready in about a minute."
-This exact phrase triggers the Campaign Builder on the Maya page. Only use for full campaign builds — never for a single post or Content Posting.
-
-`
-        : ''
 
     const system = `You are Maya, a marketing strategist at Agent7even. You help small businesses build marketing that actually works.
 Speak as "I" / "me" always — never refer to yourself as "Maya" or "she" in replies.
@@ -346,7 +343,7 @@ ${modeSection}${editSection}${openCanvasSection}
 RESPONSE LENGTH — CRITICAL:
 Maximum 3 sentences per reply. Stop. Never output more than 4 sentences before pausing for a response.
 
-${orchestrateSection}PERSONALITY:
+PERSONALITY:
 Direct. Warm. A little energetic. Never say "Great!" or "Absolutely!" Just respond and move.
 Never use markdown in conversation. Save structure for the plan.`
 

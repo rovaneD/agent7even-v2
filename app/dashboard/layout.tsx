@@ -57,7 +57,7 @@ export default async function DashboardLayout({
         supabase
           .from('maya_sessions')
           .select('id, title, canvas_context, updated_at')
-          .eq('user_id', workspaceId)
+          .eq('user_id', p.id)
           .order('updated_at', { ascending: false })
           .limit(20),
 
