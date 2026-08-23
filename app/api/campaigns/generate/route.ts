@@ -1,35 +1,25 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { requireCampaignWorkspace } from '@/lib/campaigns/campaignWorkspace'
 import { openRouterComplete } from '@/lib/agents/openrouter'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { assessTextFairUse } from '@/lib/credits/textFairUse'
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
+  const workspace = await requireCampaignWorkspace(supabase)
+  if (!workspace.ok) {
+    return NextResponse.json({ error: workspace.error }, { status: workspace.status })
+  }
+
   const body = await req.json()
-
-  const profile = await resolveClerkProfile<{
-    id: string
-    company_name: string | null
-    foundation_answers: Record<string, unknown> | null
-    stripe_customer_id: string | null
-    stripe_subscription_id: string | null
-    plan: string | null
-    created_at: string
-  }>(supabase, userId, 'id, company_name, foundation_answers')
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const { workspaceId, profile } = workspace
 
   const model = body.model ?? 'anthropic/claude-sonnet-4'
   const credits = ACTION_CREDIT_COST.text_run
 
-  const fairUse = await assessTextFairUse(profile.id)
+  const fairUse = await assessTextFairUse(workspaceId)
   if (fairUse.warn) {
     console.warn('[campaigns/generate] text fair-use:', fairUse.message)
   }
@@ -39,7 +29,7 @@ export async function POST(req: Request) {
     : buildOpenCanvasPrompt(body, profile)
 
   try {
-    await deductCredits(profile.id, credits, `Campaign generation — ${model} reserved`)
+    await deductCredits(workspaceId, credits, `Campaign generation — ${model} reserved`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : ''
     if (msg === 'INSUFFICIENT_CREDITS') {
@@ -58,7 +48,7 @@ export async function POST(req: Request) {
       temperature: 0.7,
     })
   } catch (err) {
-    await refundCredits(profile.id, credits, `Campaign generation failed — ${model} refund`).catch(() => {})
+    await refundCredits(workspaceId, credits, `Campaign generation failed — ${model} refund`).catch(() => {})
     console.error('[campaigns/generate] openrouter error:', err)
     return NextResponse.json({ error: 'Generation failed' }, { status: 500 })
   }
@@ -68,7 +58,7 @@ export async function POST(req: Request) {
     const clean = result.content.replace(/```json|```/g, '').trim()
     campaign = JSON.parse(clean)
   } catch {
-    await refundCredits(profile.id, credits, `Campaign parse failed — ${model} refund`).catch(() => {})
+    await refundCredits(workspaceId, credits, `Campaign parse failed — ${model} refund`).catch(() => {})
     console.error('[campaigns/generate] JSON parse failed:', result.content.slice(0, 200))
     return NextResponse.json({ error: 'Failed to parse campaign plan' }, { status: 500 })
   }
@@ -76,7 +66,7 @@ export async function POST(req: Request) {
   const { data: saved, error: insertError } = await supabase
     .from('campaigns')
     .insert({
-      user_id: profile.id,
+      user_id: workspaceId,
       title: campaign.title,
       plan: {
         mode: body.mode,
@@ -94,7 +84,7 @@ export async function POST(req: Request) {
     .single()
 
   if (insertError) {
-    await refundCredits(profile.id, credits, `Campaign save failed — ${model} refund`).catch(() => {})
+    await refundCredits(workspaceId, credits, `Campaign save failed — ${model} refund`).catch(() => {})
     console.error('[campaigns/generate] insert error:', insertError.message)
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
