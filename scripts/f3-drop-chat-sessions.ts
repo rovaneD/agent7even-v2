@@ -1,12 +1,19 @@
 /**
- * F3 — drop empty chat_sessions table. Requires SUPABASE_DB_URL in .env.local.
+ * F3 — drop empty chat_sessions table. Uses direct Postgres (see resolve-direct-db-url.ts).
  *
  * Usage: npx tsx --env-file=.env.local scripts/f3-drop-chat-sessions.ts
  */
+import { execSync } from 'child_process'
+
 async function main() {
-  const dbUrl = process.env.SUPABASE_DB_URL?.trim()
+  const dbUrl = execSync('npx --yes tsx --env-file=.env.local scripts/resolve-direct-db-url.ts', {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'inherit'],
+  }).trim()
+
   if (!dbUrl) {
-    console.error('SUPABASE_DB_URL not set in .env.local')
+    console.error('Could not resolve direct DB URL')
     process.exit(1)
   }
 
@@ -14,6 +21,12 @@ async function main() {
   const sql = postgres(dbUrl, { max: 1 })
 
   try {
+    const reg = await sql`select to_regclass('public.chat_sessions') as reg`
+    if (!reg[0]?.reg) {
+      console.log('chat_sessions already absent — nothing to drop')
+      return
+    }
+
     const [{ count }] = await sql`
       select count(*)::int as count from public.chat_sessions
     `
@@ -26,10 +39,8 @@ async function main() {
     await sql.unsafe('drop table if exists public.chat_sessions cascade')
     console.log('Dropped public.chat_sessions')
 
-    const exists = await sql`
-      select to_regclass('public.chat_sessions') as reg
-    `
-    if (exists[0]?.reg) {
+    const after = await sql`select to_regclass('public.chat_sessions') as reg`
+    if (after[0]?.reg) {
       console.error('Drop failed — table still exists')
       process.exit(1)
     }

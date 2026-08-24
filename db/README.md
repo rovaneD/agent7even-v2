@@ -12,9 +12,9 @@ After **any** schema change in the Supabase console (new table, column, index, c
 
 1. Re-run the schema snapshot:
    ```bash
-   SUPABASE_DB_URL='postgresql://…' npx tsx --env-file=.env.local scripts/f2-live-schema.ts
+   bash scripts/pg-dump-schema.sh db/schema_live_2026-08-21.sql
    ```
-   Without `SUPABASE_DB_URL`, the script falls back to PostgREST OpenAPI introspection (less complete for constraints and indexes).
+   Uses `DIRECT_URL` or `SUPABASE_DB_URL` from `.env.local` (Session pooler, port 5432). Requires PostgreSQL 17 `pg_dump` (Homebrew: `postgresql@17`).
 
 2. Commit the updated `schema_live_YYYY-MM-DD.sql` in the **same session** as the console change.
 
@@ -24,13 +24,13 @@ After **any** schema change in the Supabase console (new table, column, index, c
 
 | File | Notes |
 |------|--------|
-| `schema_live_2026-08-21.sql` | Pre–Phase 2 Maya fixes. `maya_sessions` indexes live-confirmed (see below). |
+| `schema_live_2026-08-21.sql` | Live `pg_dump --schema-only` (5039 lines). Includes constraints, indexes, RLS policies. |
 
 ## Known drift (documented, not hidden)
 
 - **`maya_sessions`:** `UNIQUE(user_id)` existed in early docs but was dropped in the live DB with no repo record. Multiple sessions per profile are intentional.
 - **`maya_sessions.created_at`:** Referenced in legacy `CONTEXTV8` docs; **does not exist** live. Use `updated_at`.
-- **`chat_sessions`:** Orphan table (0 rows). Code references removed in F3; table drop pending `SUPABASE_DB_URL` + `scripts/f3-drop-chat-sessions.ts`.
+- **`chat_sessions`:** Orphan table removed 2026-08-24 (0 rows). Dropped live; no longer in schema dump.
 
 ## `maya_sessions` indexes (live-confirmed — no action)
 
@@ -43,3 +43,14 @@ CREATE INDEX idx_maya_sessions_user_updated ON public.maya_sessions USING btree 
 ```
 
 `maya_sessions_user_id_idx` is redundant (composite index covers `user_id` as a leading prefix). Negligible write overhead; not worth a migration to drop.
+
+## `DIRECT_URL` / `SUPABASE_DB_URL` for pg_dump
+
+Copy **Session pooler** (port **5432**) from the top-bar **Connect** button. Prefer `DIRECT_URL` in `.env.local`; scripts also accept `SUPABASE_DB_URL`. Remove `[` `]` placeholder brackets from passwords.
+
+For `jianzyolobriaqpttamt`, pooler host is **`aws-1-us-east-1.pooler.supabase.com`**.
+
+```bash
+bash scripts/pg-dump-schema.sh db/schema_live_2026-08-21.sql
+bash scripts/f3-drop-chat-sessions.sh   # only if re-running drop
+```
