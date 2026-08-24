@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getNotifyEmail } from '@/lib/getNotifyEmail'
 import { createNotification } from '@/lib/createNotification'
 import { formatOrderNumber } from '@/lib/orders/formatOrderNumber'
+import { orderWorkspaceGateResponse, requireOrderWorkspace } from '@/lib/orders/orderWorkspace'
 import { openRouterCompleteWithFallback } from '@/lib/agents/openrouter'
 import { displayServiceBrief, VIRAL_HOOKS_FRAMEWORK, VIRAL_HOOKS_OUTPUT_MARKER } from '@/lib/services/viralHooks'
 import { saveViralHooksDeliverable } from '@/lib/services/saveViralHooksDeliverable'
@@ -23,27 +23,16 @@ function errorMessage(error: unknown) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const supabase = createServiceClient()
+    const workspace = await requireOrderWorkspace(supabase)
+    if (!workspace.ok) return orderWorkspaceGateResponse(workspace)
+    const { workspaceId, memberId, profile } = workspace
 
     const { service_type, title, brief } = await req.json()
 
     if (!service_type || !title || !brief) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
-
-    const supabase = createServiceClient()
-
-    // Get profile id
-    const { data: profileRows } = await supabase
-      .from('profiles')
-      .select('id, email, full_name, company_name, plan, status, billing_exempt, foundation_answers, business_type, ideal_customer, top_goals, marketing_challenge')
-      .eq('clerk_user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-    const profile = profileRows?.[0]
-
-    if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
     if (!hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt ?? false)) {
       return NextResponse.json(
@@ -60,7 +49,7 @@ export async function POST(req: NextRequest) {
         const { count } = await supabase
           .from('orders')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', profile.id)
+          .eq('user_id', workspaceId)
           .neq('service_type', 'viral_hooks')
           .not('status', 'in', '("approved","cancelled","completed")')
         if ((count ?? 0) >= limit) {
@@ -81,7 +70,7 @@ export async function POST(req: NextRequest) {
       const { data: brandDocs } = await supabase
         .from('brand_documents')
         .select('type, content')
-        .eq('user_id', profile.id)
+        .eq('user_id', workspaceId)
         .in('type', ['voice', 'positioning', 'persona'])
 
       const brandContext = (brandDocs ?? [])
@@ -153,7 +142,7 @@ ${VIRAL_HOOKS_FRAMEWORK}`
       const { data: order, error } = await supabase
         .from('orders')
         .insert({
-          user_id: profile.id,
+          user_id: workspaceId,
           service_type,
           title,
           brief: storedBrief,
@@ -184,7 +173,7 @@ ${result.content.trim()}`
       const { data: ticket, error: ticketError } = await supabase
         .from('support_tickets')
         .insert({
-          user_id: profile.id,
+          user_id: workspaceId,
           subject: `Self-serve service: ${title}`,
           body: supportBody,
           priority: 'low',
@@ -215,13 +204,13 @@ ${result.content.trim()}`
           .insert([
             {
               ticket_id: ticket.id,
-              sender_id: profile.id,
+              sender_id: memberId,
               sender_role: 'client',
               body: visibleBrief,
             },
             {
               ticket_id: ticket.id,
-              sender_id: profile.id,
+              sender_id: memberId,
               sender_role: 'admin',
               body: result.content.trim(),
             },
@@ -244,7 +233,7 @@ ${result.content.trim()}`
       try {
         deliverable = await saveViralHooksDeliverable({
           supabase,
-          profileId: profile.id,
+          profileId: workspaceId,
           order,
           generatedOutput: result.content.trim(),
         })
@@ -254,7 +243,7 @@ ${result.content.trim()}`
       }
 
       await createNotification({
-        userId: profile.id,
+        userId: memberId,
         title: 'Your Viral Hooks are ready',
         body: deliverable
           ? `${orderNumber} is ready and the PDF was saved to Deliverables.`
@@ -279,7 +268,7 @@ ${result.content.trim()}`
     const { data: order, error } = await supabase
       .from('orders')
       .insert({
-        user_id: profile.id,
+        user_id: workspaceId,
         service_type,
         title,
         brief,
@@ -306,7 +295,7 @@ ${brief}`
     const { data: ticket, error: ticketError } = await supabase
       .from('support_tickets')
       .insert({
-        user_id: profile.id,
+        user_id: workspaceId,
         subject: `Service request: ${title}`,
         body: supportBody,
         priority: 'medium',
@@ -325,7 +314,7 @@ ${brief}`
         .from('support_messages')
         .insert({
           ticket_id: ticket.id,
-          sender_id: profile.id,
+          sender_id: memberId,
           sender_role: 'client',
           body: supportBody,
         })
@@ -338,7 +327,7 @@ ${brief}`
 
     // Notify client — request confirmed
     await createNotification({
-      userId: profile.id,
+      userId: memberId,
       title: 'Service request submitted',
       body: `Your ${title} request ${orderNumber} has been submitted. We'll be in touch within 1 business day.`,
       type: 'order_status',

@@ -1,26 +1,21 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { orderWorkspaceGateResponse, requireOrderWorkspace } from '@/lib/orders/orderWorkspace'
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = createServiceClient()
+  const workspace = await requireOrderWorkspace(supabase)
+  if (!workspace.ok) return orderWorkspaceGateResponse(workspace)
+  const { workspaceId } = workspace
 
   const { order_id } = await req.json()
   if (!order_id) return NextResponse.json({ error: 'Order ID required' }, { status: 400 })
-
-  const supabase = createServiceClient()
-
-  const profile = await resolveClerkProfile(supabase, userId, 'id')
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
   const { data: order } = await supabase
     .from('orders')
     .select('id, service_type')
     .eq('id', order_id)
-    .eq('user_id', profile.id)
+    .eq('user_id', workspaceId)
     .single()
 
   if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
@@ -32,7 +27,7 @@ export async function POST(req: NextRequest) {
   const { data: tickets } = await supabase
     .from('support_tickets')
     .select('id, body')
-    .eq('user_id', profile.id)
+    .eq('user_id', workspaceId)
     .ilike('subject', 'Self-serve service:%')
 
   const relatedTicketIds = (tickets ?? [])
@@ -48,7 +43,7 @@ export async function POST(req: NextRequest) {
     .from('orders')
     .delete()
     .eq('id', order.id)
-    .eq('user_id', profile.id)
+    .eq('user_id', workspaceId)
     .eq('service_type', 'viral_hooks')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
