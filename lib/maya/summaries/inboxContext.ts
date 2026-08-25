@@ -1,5 +1,5 @@
 import type { MayaPageContext } from '@/lib/maya/contextTypes'
-import type { InboxDataState } from '@/app/dashboard/inbox/page'
+import type { InboxDataState } from '@/lib/inbox/inboxDataState'
 import type { InboxComment, InboxCommentPost, InboxConversation } from '@/lib/social/zernioInboxWorkspace'
 
 export interface InboxMayaInput {

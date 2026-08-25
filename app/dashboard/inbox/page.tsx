@@ -1,49 +1,32 @@
 import { Suspense } from 'react'
 import { auth } from '@clerk/nextjs/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { getAnalyticsProfileForClerkUser } from '@/lib/profiles/getAnalyticsProfile'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
+import { getInboxState, type InboxDataState } from '@/lib/inbox/inboxDataState'
 import * as publisher from '@/lib/social/publisher'
 import InboxClient from './InboxClient'
 
-export type InboxDataState = 'mock' | 'live' | 'empty'
-
-function getInboxState(profile: {
-  plan: string | null
-  zernio_profile_id?: string | null
-  zernio_connected_platforms?: string[] | null
-}): InboxDataState {
-  if (!profile.plan) return 'mock'
-  if (!profile.zernio_profile_id || !profile.zernio_connected_platforms?.length) return 'empty'
-  return 'live'
-}
+export type { InboxDataState }
 
 export default async function InboxPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-  const profile = await resolveClerkProfile<{
-    id: string
-    company_name: string | null
-    plan: string | null
-    zernio_profile_id: string | null
-    zernio_profile_ids: string[] | null
-    zernio_connected_platforms: string[] | null
-    stripe_customer_id: string | null
-    stripe_subscription_id: string | null
-    created_at: string
-  }>(
-    supabase,
-    userId,
-    'id, company_name, plan, zernio_profile_id, zernio_profile_ids, zernio_connected_platforms',
-  )
+  const email = await getClerkSessionEmail()
 
-  if (profile?.id) {
-    const teamPerms = await getTeamPermissions(profile.id)
+  const memberProfile = await resolveClerkProfile(supabase, userId, 'id', email)
+  if (memberProfile?.id) {
+    const teamPerms = await getTeamPermissions(memberProfile.id)
     if (!hasPermission(teamPerms, 'analytics')) redirect('/dashboard')
   }
+
+  // Workspace owner — team members have plan/zernio null on their own row.
+  const profile = await getAnalyticsProfileForClerkUser(supabase, userId, email)
 
   const profileIds = (profile?.zernio_profile_ids as string[] | null) ?? []
   const primaryProfileId = profile?.zernio_profile_id ?? profileIds[0] ?? null
