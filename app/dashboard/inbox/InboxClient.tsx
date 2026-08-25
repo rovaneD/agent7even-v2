@@ -5,7 +5,7 @@ import {
   ArrowLeft, ExternalLink, Hash, MessageCircle, Plus, RefreshCw, Send, User,
   Sparkles, Loader2,
 } from 'lucide-react'
-import type { InboxDataState } from './page'
+import type { InboxDataState } from '@/lib/inbox/inboxDataState'
 import { useMayaContext } from '@/hooks/useMayaContext'
 import { buildInboxMayaContext } from '@/lib/maya/summaries/inboxContext'
 import {
