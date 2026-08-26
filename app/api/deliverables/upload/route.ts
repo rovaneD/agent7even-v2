@@ -1,4 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import {
   findOrCreateProject,
@@ -6,18 +5,17 @@ import {
   safeStorageSegment,
   uploadDeliverableFile,
 } from '@/lib/deliverables/projectDeliverables'
+import {
+  deliverableWorkspaceGateResponse,
+  requireDeliverableWorkspace,
+} from '@/lib/deliverables/deliverableWorkspace'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const supabase = createServiceClient()
-
-  const profile = await resolveClerkProfile(supabase, userId, 'id')
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const workspace = await requireDeliverableWorkspace(supabase)
+  if (!workspace.ok) return deliverableWorkspaceGateResponse(workspace)
+  const { workspaceId, memberId } = workspace
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -34,11 +32,11 @@ export async function POST(req: Request) {
 
   const project = await findOrCreateProject({
     supabase,
-    userId: profile.id,
+    userId: workspaceId,
     title: projectName.trim(),
     description: 'Client uploaded deliverables and project files.',
   })
-  const filePath = `${profile.id}/${safeStorageSegment(projectName)}/${Date.now()}_${safeStorageSegment(file.name)}`
+  const filePath = `${workspaceId}/${safeStorageSegment(projectName)}/${Date.now()}_${safeStorageSegment(file.name)}`
   const buffer = new Uint8Array(await file.arrayBuffer())
 
   try {
@@ -57,7 +55,7 @@ export async function POST(req: Request) {
     .from('deliverables')
     .insert({
       project_id: project.id,
-      uploaded_by: profile.id,
+      uploaded_by: memberId,
       title: file.name,
       file_url: filePath,
       file_size: file.size,
