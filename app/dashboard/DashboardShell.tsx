@@ -144,6 +144,7 @@ const NAV_ITEM_ACCESS: Record<string, PermissionKey | 'owner_only'> = {
   '/dashboard/deliverables': 'deliverables',
   '/dashboard/support': 'support',
   '/dashboard/brand-kit': 'brand_kit',
+  '/dashboard/ai-toolkit': 'ai_toolkit',
   '/dashboard/analytics': 'analytics',
   '/dashboard/inbox': 'analytics',
   '/dashboard/posts': 'analytics',
