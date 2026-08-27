@@ -1,7 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import AIToolkitClient from './AIToolkitClient'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import { getToolkitPlanLimits } from '@/lib/ai/toolkitPlanLimits'
@@ -11,20 +12,16 @@ export default async function AIToolkitPage() {
   if (!userId) redirect('/sign-in')
 
   const supabase = createServiceClient()
-
-  const profile = await resolveClerkProfile<{
-    id: string
-    company_name: string | null
-    plan: string | null
-    stripe_customer_id: string | null
-    stripe_subscription_id: string | null
-    created_at: string
-  }>(supabase, userId, 'id, company_name, plan, stripe_subscription_id')
+  const email = await getClerkSessionEmail()
+  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
   if (!profile) redirect('/dashboard')
 
   const teamPerms = await getTeamPermissions(profile.id)
   if (!hasPermission(teamPerms, 'ai_toolkit')) redirect('/dashboard')
+
+  const dataUserId = workspace?.workspaceId ?? profile.id
+  const workspaceProfile = workspace?.workspaceProfile ?? profile
 
   const [promptsResult, savedPromptsResult, usageStatsResult, brandDocsResult, toolkitLimits] = await Promise.all([
     supabase
@@ -40,12 +37,16 @@ export default async function AIToolkitPage() {
     supabase
       .from('ai_tool_usage')
       .select('time_saved_mins')
-      .eq('user_id', profile.id),
+      .eq('user_id', dataUserId),
     supabase
       .from('brand_documents')
       .select('type, title')
-      .eq('user_id', profile.id),
-    getToolkitPlanLimits(supabase, profile),
+      .eq('user_id', dataUserId),
+    getToolkitPlanLimits(supabase, {
+      id: dataUserId,
+      plan: workspaceProfile.plan,
+      stripe_subscription_id: workspaceProfile.stripe_subscription_id,
+    }),
   ])
 
   const prompts = promptsResult.data ?? []
@@ -67,9 +68,9 @@ export default async function AIToolkitPage() {
       savedPrompts={savedPrompts}
       totalTimeSaved={totalTimeSaved}
       totalRuns={totalRuns}
-      plan={profile.plan ?? null}
+      plan={workspaceProfile.plan ?? null}
       toolkitLimits={toolkitLimits}
-      companyName={profile.company_name ?? ''}
+      companyName={workspaceProfile.company_name ?? ''}
       hasBrandKit={hasBrandKit}
       brandKitComplete={brandKitComplete}
     />

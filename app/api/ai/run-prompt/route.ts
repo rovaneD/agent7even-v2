@@ -1,19 +1,18 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { getToolkitPlanLimits } from '@/lib/ai/toolkitPlanLimits'
 import { CATEGORY_MIN_PLAN, meetsPlanRequirement } from '@/lib/ai/toolkitCategoryPlan'
+import {
+  requireToolkitWorkspace,
+  toolkitWorkspaceGateResponse,
+} from '@/lib/ai/toolkitWorkspace'
 import { hasPlatformAccess } from '@/lib/plans'
 import { TRIAL_TOOLKIT_RUNS } from '@/lib/billing/trialPolicy'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const {
     promptId,
     prompt,
@@ -22,21 +21,14 @@ export async function POST(req: Request) {
   } = await req.json()
 
   const supabase = createServiceClient()
+  const workspace = await requireToolkitWorkspace(supabase)
+  if (!workspace.ok) return toolkitWorkspaceGateResponse(workspace)
 
-  const profile = await resolveClerkProfile<{
-    id: string
-    plan: string | null
-    status: string | null
-    stripe_customer_id: string | null
-    stripe_subscription_id: string | null
-    created_at: string
-  }>(supabase, userId, 'id, plan, status, stripe_subscription_id')
+  const { workspaceId, profile } = workspace
 
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-
-  // Require a paid plan in good billing standing — failed payments set
-  // status 'paused' while plan stays populated.
-  if (!hasPlatformAccess(profile.plan, profile.status)) {
+  // Require the workspace owner's paid plan in good billing standing —
+  // failed payments set status 'paused' while plan stays populated.
+  if (!hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt ?? false)) {
     return NextResponse.json({ error: 'No active plan', code: 'NO_PLAN' }, { status: 403 })
   }
 
@@ -58,7 +50,11 @@ export async function POST(req: Request) {
     }
   }
 
-  const limits = await getToolkitPlanLimits(supabase, profile)
+  const limits = await getToolkitPlanLimits(supabase, {
+    id: workspaceId,
+    plan: profile.plan,
+    stripe_subscription_id: profile.stripe_subscription_id,
+  })
 
   if (!limits.unlimited && limits.runsUsed >= limits.runLimit) {
     if (limits.onTrial) {
@@ -83,7 +79,7 @@ export async function POST(req: Request) {
     const { data: brandDocs } = await supabase
       .from('brand_documents')
       .select('type, content')
-      .eq('user_id', profile.id)
+      .eq('user_id', workspaceId)
       .in('type', ['voice', 'positioning', 'persona'])
 
     if (brandDocs && brandDocs.length > 0) {
@@ -118,7 +114,7 @@ Now complete the following task:`
   const output = message.content[0].type === 'text' ? message.content[0].text : ''
 
   await supabase.from('ai_tool_usage').insert({
-    user_id: profile.id,
+    user_id: workspaceId,
     tool: 'prompt_library',
     prompt_id: promptId ?? null,
     output_length: output.length,
