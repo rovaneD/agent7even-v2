@@ -3,7 +3,9 @@ import CanvasContextDispatcher from '@/components/maya/CanvasContextDispatcher'
 import { buildAgentOutputsMayaContext } from '@/lib/maya/summaries/phase3Context'
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@clerk/nextjs/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
 import { createServiceClient } from '@/lib/supabase/server'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { contentPostingStatsAgentIds } from '@/lib/agents/contentPosting'
 import { formatOutputLifecycle } from '@/lib/content/outputLifecycleLabel'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
@@ -83,16 +85,13 @@ export default async function AgentOutputsPage({
   const { output: selectedOutputParam } = await searchParams
   const agent = AGENTS[rawAgentId]
   const supabase = createServiceClient()
-
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id, company_name, ideal_customer')
-    .eq('clerk_user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-  const profile = profileRows?.[0] ?? null
+  const email = await getClerkSessionEmail()
+  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
 
   if (!profile) redirect('/foundation')
+
+  const workspaceProfile = workspace?.workspaceProfile ?? profile
+  const dataUserId = workspace?.workspaceId ?? profile.id
 
   const outputAgentIds = rawAgentId === 'content_posting'
     ? contentPostingStatsAgentIds()
@@ -101,7 +100,7 @@ export default async function AgentOutputsPage({
   const { data: outputs } = await supabase
     .from('agent_outputs')
     .select('id, task_id, agent, output_type, title, content, status, lifecycle_stage, created_at')
-    .eq('user_id', profile.id)
+    .eq('user_id', dataUserId)
     .in('agent', outputAgentIds)
     .order('created_at', { ascending: false })
     .limit(100)
@@ -114,7 +113,7 @@ export default async function AgentOutputsPage({
 
   const mayaPayload = buildAgentOutputsMayaContext({
     agentName: agent.name,
-    companyName: profile.company_name ?? 'Your business',
+    companyName: workspaceProfile.company_name ?? 'Your business',
     outputCount: outputRows.length,
     selectedTitle: selectedOutput ? getOutputDescription(selectedOutput, rawAgentId) : null,
     selectedStatus: selectedOutput?.status ?? null,
@@ -136,7 +135,7 @@ export default async function AgentOutputsPage({
             {agent.name}
           </h1>
           <p style={{ fontSize: 14, color: '#64748B', margin: '0 0 8px' }}>
-            {profile.company_name ?? 'Your business'} · {outputRows.length} saved output{outputRows.length !== 1 ? 's' : ''}
+            {workspaceProfile.company_name ?? 'Your business'} · {outputRows.length} saved output{outputRows.length !== 1 ? 's' : ''}
           </p>
           <p style={{ fontSize: 12.5, color: '#94A3B8', margin: 0, maxWidth: 520, lineHeight: 1.55 }}>
             Review → approve in Approvals → post content becomes a draft on Posts. Other outputs stay here in your archive.
@@ -201,7 +200,7 @@ export default async function AgentOutputsPage({
             content={getOutputText(selectedOutput)}
             outputContent={selectedOutput.content}
             viralHooksHints={{
-              audience: profile.ideal_customer ?? undefined,
+              audience: workspaceProfile.ideal_customer ?? undefined,
             }}
           />
         </div>
