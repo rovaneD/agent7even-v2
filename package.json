@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "verify:production": "npx tsx scripts/verify-production-readiness.ts",
+    "verify:team-invite-existing-workspace": "npx tsx scripts/verify-team-invite-existing-workspace.ts",
     "verify:trial-credits": "npx tsx --env-file=.env.local scripts/verify_trial_credits.ts",
     "verify:stripe-trial": "npx tsx --env-file=.env.local scripts/verify_stripe_trial_qa.ts"
   },

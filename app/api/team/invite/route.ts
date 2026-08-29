@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
 import { getStripeClient } from '@/lib/stripe'
+import { decideTeamInviteActivation } from '@/lib/team/teamInviteActivation'
 import { randomUUID } from 'crypto'
 
 const PLAN_SEAT_LIMITS: Record<string, number> = {
@@ -45,6 +46,26 @@ export async function POST(req: Request) {
 
   if (existing && existing.status !== 'removed') {
     return NextResponse.json({ error: 'This email has already been invited' }, { status: 400 })
+  }
+
+  const { data: existingProfiles } = await supabase
+    .from('profiles')
+    .select('id, is_account_owner, account_id, plan, status, stripe_customer_id, stripe_subscription_id, foundation_complete, onboarding_complete, role, billing_exempt')
+    .ilike('email', email.trim())
+    .neq('status', 'churned')
+
+  const blockingProfile = (existingProfiles ?? []).find(row => {
+    const decision = decideTeamInviteActivation(row, profile.id)
+    return decision.action === 'refuse_existing_workspace'
+  })
+  if (blockingProfile) {
+    return NextResponse.json(
+      {
+        error: 'This email already has its own Agent7even workspace. Invite a different email, or ask them to join from a new account.',
+        code: 'EXISTING_WORKSPACE',
+      },
+      { status: 409 },
+    )
   }
 
   // Count current members
