@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+export { resolveSiteSnapshotScrapeUrl } from './resolveSiteSnapshotScrapeUrl'
+
 export const SiteSnapshotSchema = z.object({
   businessOverview: z.string(),
   marketPositioning: z.object({
