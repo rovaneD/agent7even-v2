@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { pickCanonicalProfile } from './ensureProfile'
+import { filterRowsByExactEmail, selectWithEmail } from './emailMatch'
 
 const BILLING_SELECT =
   'id, plan, status, billing_exempt, stripe_customer_id, stripe_subscription_id, role, created_at'
@@ -39,14 +40,18 @@ export async function getBillingProfileForClerkUser(
 
   const { data: byEmail } = await supabase
     .from('profiles')
-    .select(BILLING_SELECT)
+    .select(selectWithEmail(BILLING_SELECT))
     .ilike('email', normalizedEmail)
     .neq('status', 'churned')
     .order('created_at', { ascending: true })
 
-  if (!byEmail?.length) return null
+  const exactEmailRows = filterRowsByExactEmail(
+    byEmail as Array<BillingProfile & { email?: string | null }> | null,
+    normalizedEmail,
+  )
+  if (!exactEmailRows.length) return null
 
-  const canonical = pickCanonicalProfile(byEmail as BillingProfile[])
+  const canonical = pickCanonicalProfile(exactEmailRows)
   return {
     ...canonical,
     billing_exempt: canonical.billing_exempt ?? false,

@@ -8,6 +8,7 @@ import { getResendClient } from '@/lib/resend'
 import { transactionalFromAddress } from '@/lib/email/transactionalTemplate'
 import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 import { notifyAdminNewSignupOnce } from '@/lib/notifyAdminNewSignup'
+import { filterRowsByExactEmail } from '@/lib/profiles/emailMatch'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET
@@ -54,14 +55,18 @@ export async function POST(req: Request) {
     if (email) {
       const { data: existingByEmail } = await supabase
         .from('profiles')
-        .select('id, clerk_user_id, stripe_customer_id, stripe_subscription_id, plan, status, created_at')
+        .select('id, clerk_user_id, email, stripe_customer_id, stripe_subscription_id, plan, status, created_at')
         .ilike('email', email)
         .neq('status', 'churned')
         .order('created_at', { ascending: true })
 
-      const others = (existingByEmail ?? []).filter(p => p.clerk_user_id !== id)
+      // ILIKE treats `_` as a wildcard (`jane_doe@` matches `jane.doe@`). Keep
+      // the case-insensitive lookup, then require a literal email match before
+      // relinking clerk_user_id or deleting "orphan" rows.
+      const exactEmailRows = filterRowsByExactEmail(existingByEmail, email)
+      const others = exactEmailRows.filter(p => p.clerk_user_id !== id)
       if (others.length > 0) {
-        const canonical = [...(existingByEmail ?? [])].sort((a, b) => {
+        const canonical = [...exactEmailRows].sort((a, b) => {
           if (a.stripe_customer_id && !b.stripe_customer_id) return -1
           if (!a.stripe_customer_id && b.stripe_customer_id) return 1
           if (a.plan && !b.plan) return -1
@@ -79,7 +84,7 @@ export async function POST(req: Request) {
           })
           .eq('id', canonical.id)
 
-        const orphanIds = (existingByEmail ?? [])
+        const orphanIds = exactEmailRows
           .filter(p => p.id !== canonical.id && !p.stripe_customer_id && !p.stripe_subscription_id)
           .map(p => p.id)
 

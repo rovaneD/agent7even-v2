@@ -2,6 +2,7 @@ import type { User } from '@clerk/nextjs/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 import { notifyAdminNewSignupOnce } from '@/lib/notifyAdminNewSignup'
+import { filterRowsByExactEmail } from '@/lib/profiles/emailMatch'
 
 export type FoundationProfile = {
   id: string
@@ -15,7 +16,7 @@ const FOUNDATION_SELECT =
   'id, company_name, business_type, foundation_complete, foundation_step'
 
 const LINK_SELECT =
-  'id, clerk_user_id, stripe_customer_id, stripe_subscription_id, plan, status, created_at, company_name, business_type, foundation_complete, foundation_step'
+  'id, clerk_user_id, email, stripe_customer_id, stripe_subscription_id, plan, status, created_at, company_name, business_type, foundation_complete, foundation_step'
 
 function roleRank(role?: string | null): number {
   if (role === 'owner') return 0
@@ -71,7 +72,7 @@ export async function ensureProfileForClerkUser(
       .neq('status', 'churned')
       .order('created_at', { ascending: true })
 
-    const rows = existingByEmail ?? []
+    const rows = filterRowsByExactEmail(existingByEmail, email)
     if (rows.length > 0) {
       const canonical = pickCanonicalProfile(rows)
 

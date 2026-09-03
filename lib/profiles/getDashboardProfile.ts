@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { pickCanonicalProfile } from './ensureProfile'
+import { filterRowsByExactEmail, selectWithEmail } from './emailMatch'
 
 export const DASHBOARD_PROFILE_SELECT = `
   id, company_name, full_name, business_type, plan, role,
@@ -72,12 +73,16 @@ export async function getDashboardProfileForClerkUser(
 
   const { data: byEmail } = await supabase
     .from('profiles')
-    .select(DASHBOARD_PROFILE_SELECT)
+    .select(selectWithEmail(DASHBOARD_PROFILE_SELECT))
     .ilike('email', normalizedEmail)
     .neq('status', 'churned')
     .order('created_at', { ascending: true })
 
-  if (!byEmail?.length) return null
+  const exactEmailRows = filterRowsByExactEmail(
+    byEmail as Array<DashboardProfile & { email?: string | null }> | null,
+    normalizedEmail,
+  )
+  if (!exactEmailRows.length) return null
 
-  return pickCanonicalProfile(byEmail as DashboardProfile[])
+  return pickCanonicalProfile(exactEmailRows)
 }
