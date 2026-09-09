@@ -1,6 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/createNotification'
-import { executeAgentRun } from '@/lib/agents/executeAgentRun'
 import { AGENTS, type AgentId } from '@/lib/agents/registry'
 
 /**
@@ -43,6 +42,7 @@ export async function dispatchAgentTask(opts: {
   const supabase = createServiceClient()
 
   try {
+    const { executeAgentRun } = await import('@/lib/agents/executeAgentRun')
     const result = await executeAgentRun({
       agentId,
       taskId: opts.taskId,

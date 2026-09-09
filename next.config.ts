@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // Turbopack must not bundle sharp — use the platform-installed native binary.
+  serverExternalPackages: ['sharp'],
   turbopack: {
     root: __dirname,
   },

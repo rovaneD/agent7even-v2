@@ -1,16 +1,22 @@
-import sharp from 'sharp'
-
 /** OpenRouter/Google inline base64 limit is 5 MB — stay under with headroom. */
 export const API_IMAGE_PAYLOAD_MAX_BYTES = 3_800_000
+
+type SharpInstance = import('sharp').Sharp
+
+async function loadSharp(): Promise<(input: Buffer) => SharpInstance> {
+  const mod = await import('sharp')
+  return mod.default
+}
 
 export async function compressImageForApiPayload(
   bytes: Buffer,
   opts?: { maxDimension?: number; maxBytes?: number },
 ): Promise<{ bytes: Buffer; mime: string }> {
+  const sharp = await loadSharp()
   const maxDimension = opts?.maxDimension ?? 1536
   const maxBytes = opts?.maxBytes ?? API_IMAGE_PAYLOAD_MAX_BYTES
 
-  async function encode(input: ReturnType<typeof sharp>): Promise<Buffer> {
+  async function encode(input: SharpInstance): Promise<Buffer> {
     for (const quality of [88, 82, 76, 70, 64, 58]) {
       const out = await input.clone().jpeg({ quality, mozjpeg: true }).toBuffer()
       if (out.byteLength <= maxBytes) return out

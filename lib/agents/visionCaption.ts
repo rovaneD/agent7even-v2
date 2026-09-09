@@ -1,7 +1,6 @@
 import { AGENT_MODELS } from '@/lib/agents/cost'
 import { buildImageContextCapabilityPrompt } from '@/lib/posts/imageContextCapabilities'
 import { downloadPostAsset } from '@/lib/postAssets'
-import { compressImageForApiPayload } from '@/lib/postAssetsImagePayload'
 
 export const VISION_CAPTION_MODEL = AGENT_MODELS.sonnet
 
@@ -11,6 +10,7 @@ export async function loadPostAssetDataUrl(
   const bytes = await downloadPostAsset(storagePath)
   if (!bytes) return null
   try {
+    const { compressImageForApiPayload } = await import('@/lib/postAssetsImagePayload')
     const compressed = await compressImageForApiPayload(bytes)
     const dataUrl = `data:${compressed.mime};base64,${compressed.bytes.toString('base64')}`
     return { dataUrl, mime: compressed.mime, bytes: compressed.bytes }
