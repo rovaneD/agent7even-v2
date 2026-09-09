@@ -17,7 +17,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: July 28, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: September 4, 2026 — keep this date current at the end of every session -->
 
 ## Properties
 
@@ -63,6 +63,7 @@ Always use `'2026-04-22.dahlia'` cast as `as any`. **Never use `'2025-04-30.basi
 
 ## Middleware filename
 Next.js 16 uses `proxy.ts` not `middleware.ts`.
+`/api/cron(.*)` and `/api/digest/generate` must stay in `isPublicRoute`. Vercel cron sends `Authorization: Bearer CRON_SECRET`, which is not a Clerk JWT — `auth.protect()` rewrites those requests to 404 (`protect-rewrite`, `token-invalid`). Route handlers still enforce the cron bearer (digest generate also accepts a signed-in workspace session).
 
 ## Key third-party notes
 - **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026). Publer is dashboard-first, also not a multi-tenant fit. **Zernio** is the integrated publisher (`lib/social/publisher.ts`). **DPA:** Signed both sides (Trust Center, Jul 2026). **Go-live (Jul 8, 2026):** Zernio cleared paying customers' live social accounts. Runbook: `vendor/zernio/go_live_runbook.md`; readiness: `scripts/verify-zernio-go-live-readiness.ts`. Tenant isolation answers still in chat (non-blocking pilot). Details: `vendor/zernio/`, `zernio_social_evaluation_backlog.md`.

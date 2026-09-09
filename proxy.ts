@@ -31,6 +31,11 @@ const isPublicRoute = createRouteMatcher([
   '/lab-use-cases(.*)',
   '/design-concept(.*)',
   '/api/webhooks(.*)',
+  // Vercel cron sends Authorization: Bearer CRON_SECRET (not a Clerk JWT).
+  // auth.protect() rewrites those to 404 (protect-rewrite, token-invalid).
+  '/api/cron(.*)',
+  // Morning-digest cron POSTs here with the same cron bearer.
+  '/api/digest/generate',
   '/api/analytics/ga-callback(.*)',
   '/api/integrations/zernio/callback(.*)',
   '/api/marketing/chat(.*)',
