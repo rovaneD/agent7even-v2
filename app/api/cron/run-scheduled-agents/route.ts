@@ -3,18 +3,20 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { createTask } from '@/lib/agents/runner'
 import { dispatchAgentTask } from '@/lib/agents/dispatch'
 import { AgentId } from '@/lib/agents/registry'
-import { advanceAgentScheduleNextRun } from '@/lib/agents/ensureDefaultSchedules'
+import {
+  advanceAgentScheduleNextRun,
+  shouldAdvanceAgentScheduleAfterCronAttempt,
+} from '@/lib/agents/ensureDefaultSchedules'
 
 async function bumpSchedule(
   supabase: ReturnType<typeof createServiceClient>,
   schedule: { id: string; frequency: string; hour_of_day?: number | null; agent?: string },
   from: Date,
-  markLastRun: boolean,
 ) {
   await supabase
     .from('agent_schedules')
     .update({
-      ...(markLastRun ? { last_run_at: from.toISOString() } : {}),
+      last_run_at: from.toISOString(),
       next_run_at: advanceAgentScheduleNextRun(schedule, from),
     })
     .eq('id', schedule.id)
@@ -67,7 +69,8 @@ export async function GET(req: NextRequest) {
 
   for (const schedule of schedules) {
     if (!isEligible(schedule.user_id)) {
-      await bumpSchedule(supabase, schedule, now, false)
+      // Leave next_run_at due so a same-day reactivation still receives the run.
+      // Churned accounts are deactivated above.
       results.push(`${schedule.agent} skipped for user ${schedule.user_id} (billing not active)`)
       continue
     }
@@ -79,17 +82,22 @@ export async function GET(req: NextRequest) {
         triggerType: 'scheduled',
       })
 
-      await dispatchAgentTask({
+      const dispatched = await dispatchAgentTask({
         taskId: task.id,
         agent: schedule.agent,
         input: schedule.config ?? {},
         userId: schedule.user_id,
       })
 
-      await bumpSchedule(supabase, schedule, now, true)
+      if (!shouldAdvanceAgentScheduleAfterCronAttempt(dispatched.ok ? 'fired' : 'failed')) {
+        results.push(`${schedule.agent} FAILED for user ${schedule.user_id}`)
+        continue
+      }
+
+      await bumpSchedule(supabase, schedule, now)
       results.push(`${schedule.agent} fired for user ${schedule.user_id}`)
     } catch (err) {
-      await bumpSchedule(supabase, schedule, now, false)
+      // Do not advance — keep the schedule due so the next hourly tick retries.
       results.push(`${schedule.agent} FAILED: ${String(err)}`)
     }
   }
