@@ -27,11 +27,17 @@ export async function GET(req: Request) {
   const { data: existingProfile } = await supabase
     .from('profiles')
     .select('id')
-    .eq('email', invite.invited_email)
-    .single()
+    .ilike('email', invite.invited_email)
+    .neq('status', 'churned')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
   if (existingProfile) {
-    await activateTeamInviteForProfile(supabase, existingProfile.id, invite.invited_email)
+    const activation = await activateTeamInviteForProfile(supabase, existingProfile.id, invite.invited_email)
+    if (activation?.refused) {
+      return NextResponse.redirect(`${appUrl}/dashboard?error=invite_existing_workspace`)
+    }
     return NextResponse.redirect(`${appUrl}/dashboard?team_joined=true`)
   }
 
