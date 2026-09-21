@@ -16,7 +16,7 @@ export default function VsSchedulingCompareSection() {
           <span className="eyebrow">The difference</span>
           <h2 className="t-h2">Publish button vs marketing&nbsp;OS.</h2>
           <p className="t-lead">
-            Scheduling tools excel at timing. Agent7even plans campaigns, drafts in your voice, and holds publishable work for your approval. You schedule when you are ready.
+            Every post, email, and ad waits for your approval. Agent7even drafts in your voice from your Foundation. You schedule when you are ready.
             <br />
             <Link href="/how-it-works">See the full workflow →</Link>
           </p>

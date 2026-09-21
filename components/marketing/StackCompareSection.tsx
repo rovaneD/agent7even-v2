@@ -47,7 +47,7 @@ export default function StackCompareSection() {
 
             <div className="stack-flow-side stack-flow-side-os">
               <span className="stack-flow-label">With Agent7even</span>
-              <p className="stack-flow-os">One Foundation. Twelve specialist agents. Nothing publishes without your approval.</p>
+              <p className="stack-flow-os">Every post, email, and ad waits for your approval.</p>
             </div>
           </div>
 

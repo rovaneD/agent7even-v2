@@ -51,7 +51,7 @@ export default function MarketingHomepageBelowFold({
               You approve before anything goes live.
             </h2>
             <p className="t-lead">
-              No briefs, no tool-hopping. Maya reads your Foundation and Brand Kit, coordinates specialist agents, and holds publishable work for your approval before anything goes live.
+              Every post, email, and ad waits for your approval. Maya reads your Foundation and Brand Kit and coordinates specialist agents so you skip the tool stack.
               <br />
               <a href="/how-it-works">See the full AI marketing automation workflow →</a>
             </p>
@@ -72,7 +72,7 @@ export default function MarketingHomepageBelowFold({
               One shared Foundation.
             </h2>
             <p className="t-lead">
-              Every agent reads Foundation and Brand Kit before drafting. Campaigns, posts, and creative wait in your approval queue; scheduled reports save to your agent archive.
+              Every agent reads your Foundation and Brand Kit before drafting campaigns, posts, ad copy, and email copy for your approval.
               <br />
               <a href="/agents">See our AI marketing automation features →</a>
             </p>
@@ -82,7 +82,7 @@ export default function MarketingHomepageBelowFold({
             <div className="feat-copy">
               <div className="feat-relief">Campaigns</div>
               <h3 className="t-h3">Campaign Builder reads Foundation first.</h3>
-              <p className="t-body">You name the offer. The Campaign Builder pulls from your Foundation and Brand Kit, then drafts strategy, email copy, social posts, ad variations, and a timeline for your approval before anything publishes.</p>
+              <p className="t-body">You name the offer. The Campaign Builder pulls from your Foundation and Brand Kit, then drafts strategy, email copy, social posts, ad variations, and a timeline for your approval.</p>
               <div className="checks">
                 <div className="check"><i>✓</i>Email variants drafted from your Foundation.</div>
                 <div className="check"><i>✓</i>30-day plan drafted from your saved positioning</div>
@@ -119,9 +119,9 @@ export default function MarketingHomepageBelowFold({
                 before it ships.
               </h3>
               <p className="t-body">
-                Publishable posts, emails, and campaign drafts wait in your approval queue, drafted from the same Foundation and Brand Kit each week.
+                Every post, email, and ad waits for your approval before it ships.
                 Review what&rsquo;s there, approve what&rsquo;s right, and publish on your schedule.
-                Autonomous reports land in your agent archive without blocking your review flow.
+                Scheduled SEO, trend, and performance reports save to your agent archive without blocking your review flow.
               </p>
             </div>
             <div className="feat-visual"><div className="mk" data-mk="approvals"></div></div>
@@ -153,7 +153,7 @@ export default function MarketingHomepageBelowFold({
                 your Foundation.
               </h3>
               <p className="t-body">
-                The Competitor Analysis agent drafts weekly briefings from your saved positioning and market context, filtered for your brand — for example, flagging that Coffee Collective launched a Father&apos;s Day campaign three hours ago.
+                The Competitor Analysis agent drafts weekly briefings from your saved positioning and market context, filtered for your brand. For example, it can flag that Coffee Collective launched a Father&apos;s Day campaign three hours ago.
                 You review the report and decide what to act on.
               </p>
             </div>
@@ -161,7 +161,7 @@ export default function MarketingHomepageBelowFold({
           </div>
 
           <p className="agents-bridge reveal">
-            Marketing intelligence, SEO, and email agents run on the same Foundation. Publishable drafts wait for approval; scheduled reports save to your archive.
+            Marketing intelligence, SEO, and email agents draft from the same Foundation. You approve what ships.
             <br />
             <a href="/agents">Explore our AI marketing agents</a>
             {' · '}
@@ -184,7 +184,7 @@ export default function MarketingHomepageBelowFold({
             <div className="lcard reveal">
               <div className="lcard-copy">
                 <h3>Campaigns from Foundation</h3>
-                <p>Name the offer — Campaign Builder drafts strategy, emails, posts, and ad variations from your saved context for your approval before anything publishes.</p>
+                <p>Name the offer. Campaign Builder drafts strategy, email copy, social posts, and ad variations from your saved context for your approval.</p>
                 <a href="#features">See it →</a>
               </div>
               <div className="card-widget"><div data-mk="widget-campaign"></div></div>
@@ -200,7 +200,7 @@ export default function MarketingHomepageBelowFold({
             <div className="lcard reveal">
               <div className="lcard-copy">
                 <h3>Approval queue before publish</h3>
-                <p>Nothing publishes without your approval. Review publishable drafts, then schedule when you&rsquo;re ready.</p>
+                <p>Every post, email, and ad waits for your approval. Review your drafts, then schedule when you&rsquo;re ready.</p>
                 <a href="#how">See it →</a>
               </div>
               <div className="card-widget"><div data-mk="widget-approvals"></div></div>
@@ -208,7 +208,7 @@ export default function MarketingHomepageBelowFold({
             <div className="lcard reveal">
               <div className="lcard-copy">
                 <h3>One Foundation, every channel</h3>
-                <p>Every email, post, and caption starts from the same Foundation and Brand Kit — not a fresh prompt each time.</p>
+                <p>Every email draft, post, and caption starts from the same Foundation and Brand Kit, not a fresh prompt each time.</p>
                 <a href="#how">See it →</a>
               </div>
               <div className="card-widget"><div data-mk="widget-voice"></div></div>
@@ -306,16 +306,14 @@ export default function MarketingHomepageBelowFold({
         <DeferredMetaballs className="cta-orb" loadWhenVisible />
         <div className="cta-in">
           <h2>
-            One Foundation.
+            Every post, email, and ad
             <br />
-            Twelve specialist agents.
-            <br />
-            Nothing publishes without your approval.
+            waits for your approval.
           </h2>
           <p className="cta-lead">
-            Maya reads your Foundation and Brand Kit before every draft.
+            Nothing publishes without your sign-off.
             <br />
-            Publishable work waits for your sign-off; autonomous reports save to your agent archive.
+            Maya reads your Foundation and Brand Kit before every draft.
           </p>
           <div className="cta-btns">
             <a

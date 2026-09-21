@@ -7,7 +7,7 @@ import HomepageLeftHeaderBack from './design-concept/homepage-left-header-back/H
 export const metadata: Metadata = marketingPageMetadata({
   title: 'AI Marketing Strategist & Automation for Small Business | Agent7even',
   description:
-    `Maya AI plans campaigns and writes content from your Foundation. Nothing publishes without your approval. Start your ${TRIAL_LABEL.toLowerCase()} — no setup fees, cancel anytime.`,
+    `Every post, email, and ad waits for your approval. Start your ${TRIAL_LABEL.toLowerCase()}. No setup fees. Cancel anytime.`,
   path: '/',
 })
 

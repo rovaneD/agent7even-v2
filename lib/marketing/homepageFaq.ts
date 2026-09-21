@@ -9,31 +9,31 @@ export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   },
   {
     q: 'Do I need marketing experience to use Maya?',
-    a: 'No. Maya is built for owners who are great at the work but not trained marketers. You complete Foundation and Brand Kit once, then tell Maya what you want in plain language — she drafts campaigns, posts, and emails for your approval. You stay in control without learning another complex tool stack.',
+    a: 'No. Maya is built for owners who are great at the work but not trained marketers. You complete Foundation and Brand Kit once, then tell Maya what you want in plain language. She drafts campaigns, posts, and email copy for your approval. You stay in control without learning another complex tool stack.',
   },
   {
     q: 'How is AI marketing different from traditional marketing?',
-    a: 'Traditional marketing stacks agencies, freelancers, and scheduling tools — you re-explain your business in every app and stitch the work together yourself. Agent7even keeps context in Foundation and Brand Kit, coordinates twelve specialist agents from one conversation, and nothing publishes without your approval.',
+    a: 'Traditional marketing stacks agencies, freelancers, and scheduling tools. You re-explain your business in every app and stitch the work together yourself. Agent7even keeps context in Foundation and Brand Kit and coordinates twelve specialist agents from one conversation. Every post, email, and ad waits for your approval.',
   },
   {
     q: 'What is AI marketing automation?',
-    a: 'Specialist agents read your Foundation and Brand Kit and draft campaigns and content instead of you writing every post, email, and ad variation from scratch. Publishable work waits for your approval; scheduled reports save to your agent archive.',
+    a: 'Specialist agents read your Foundation and Brand Kit and draft campaigns and content instead of you writing every post, email, and ad variation from scratch. Every post, email, and ad waits for your approval.',
   },
   {
     q: 'How does AI marketing work for small business?',
-    a: 'You complete Foundation and Brand Kit once. Maya coordinates twelve specialist agents that read that context before drafting. Nothing publishes without your approval; autonomous reports save to your agent archive.',
+    a: 'You complete Foundation and Brand Kit once. Maya coordinates twelve specialist agents that read that context before drafting campaigns, posts, and email copy. Every post, email, and ad waits for your approval.',
   },
   {
     q: 'What exactly is Agent7even?',
-    a: 'A marketing platform built around Maya. She reads your Brand Kit and Foundation and coordinates twelve specialist agents to draft campaigns and content. Nothing publishes without your approval; scheduled reports save to your agent archive.',
+    a: 'A marketing platform built around Maya. She reads your Brand Kit and Foundation and coordinates twelve specialist agents to draft campaigns, posts, ad copy, and email copy. Every post, email, and ad waits for your approval.',
   },
   {
     q: 'Does the copy actually sound like me?',
-    a: 'Every draft starts from your Foundation and Brand Kit — business context, tone, offers, and boundaries saved once. Agents read that source before writing, so copy reflects how you actually sell instead of generic AI output.',
+    a: 'Every draft starts from your Foundation and Brand Kit: business context, tone, offers, and boundaries saved once. Agents read that source before writing, so copy reflects how you actually sell instead of generic AI output.',
   },
   {
     q: 'How does the approval flow work?',
-    a: "Publishable posts, emails, and campaign drafts wait in your approval queue. You review, edit, approve, or send them back. Nothing goes live until you sign off, then you publish or schedule in a click. Autonomous reports save to your agent archive on schedule.",
+    a: "Every post, email, and ad waits for your approval before it ships. You review, edit, approve, or send drafts back. Nothing goes live until you sign off, then you publish or schedule in a click. Scheduled SEO, trend, and performance reports save to your agent archive on schedule.",
   },
   {
     q: 'What channels does Agent7even cover?',
@@ -53,6 +53,6 @@ export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   },
   {
     q: 'How is this different from a social media scheduling tool?',
-    a: 'Scheduling tools publish what you upload. Agent7even agents read Foundation and Brand Kit, draft campaigns, captions, images, and video, and hold publishable work for your approval. You publish when you\'re ready.',
+    a: 'Scheduling tools publish what you upload. Agent7even agents read Foundation and Brand Kit and draft campaigns, captions, images, and video for your approval. You publish when you\'re ready.',
   },
 ]
