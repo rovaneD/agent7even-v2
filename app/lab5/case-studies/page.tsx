@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { trackEvent } from '@/lib/gtag'
 import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
+import { TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 
 const PLANNED_TOPICS = [
   'Local service — filling slow weeks with promos drafted in the owner\'s voice',
@@ -76,7 +77,7 @@ export default function CaseStudiesPage() {
       <div className="cta-section">
         <div className="cta-in">
           <h2>See it on your business first.</h2>
-          <p className="cta-lead">3-day Starter trial — draft real campaigns before any case study goes live.</p>
+          <p className="cta-lead">{TRIAL_LABEL} on every plan — draft real campaigns before any case study goes live.</p>
           <div className="cta-btns">
             <Link
               className="btn btn-white btn-lg"

@@ -9,6 +9,7 @@ import HowItWorksSteps from '@/components/marketing/HowItWorksSteps'
 import {
   HOW_IT_WORKS_WORKFLOW,
 } from '@/lib/marketing/howItWorksContent'
+import { FIRST_CHARGE_DAY, TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 
 export default function HowItWorksPage() {
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function HowItWorksPage() {
               Meet the agents →
             </Link>
           </div>
-          <p className="cta-note">3-day free trial on Starter. No charge until day 4.</p>
+          <p className="cta-note">{TRIAL_LABEL} on every plan. No charge until day {FIRST_CHARGE_DAY}.</p>
         </div>
       </div>
 

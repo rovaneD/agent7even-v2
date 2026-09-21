@@ -8,6 +8,7 @@ import MarketingFooter from '../MarketingFooter'
 import BlogImage from '@/components/marketing/BlogImage'
 import type { PostSummary } from '@/lib/blog'
 import { formatPostDateShort } from '@/lib/marketing/renderBlogContent'
+import { TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 
 export default function BlogIndexClient({ posts }: { posts: PostSummary[] }) {
   useEffect(() => {
@@ -71,7 +72,7 @@ export default function BlogIndexClient({ posts }: { posts: PostSummary[] }) {
       <div className="cta-section">
         <div className="cta-in">
           <h2>Stop reading. Start running.</h2>
-          <p className="cta-lead">Maya and twelve specialist agents draft campaigns you approve — from $49/mo with a 3-day Starter trial.</p>
+          <p className="cta-lead">Maya and twelve specialist agents draft campaigns you approve — from $49/mo with a {TRIAL_LABEL.toLowerCase()} on every plan.</p>
           <div className="cta-btns">
             <Link
               className="btn btn-white btn-lg"

@@ -130,15 +130,15 @@ Create in **Live mode** Dashboard → Products:
 
 | Product | Monthly | Annual | Notes |
 |---------|---------|--------|-------|
-| **Starter** | $49/mo | $490/yr | 3-day trial via Checkout (`trial_period_days: 3`) |
-| **Growth** | $89/mo | $890/yr | No trial — charged immediately |
-| **ProAgent** | $149/mo | $1,490/yr | No trial |
+| **Starter** | $49/mo | $490/yr | 7-day trial via Checkout (`TRIAL_DAYS` from `lib/billing/trialPolicy.ts`) |
+| **Growth** | $89/mo | $890/yr | 7-day trial via Checkout (`TRIAL_DAYS`) |
+| **ProAgent** | $149/mo | $1,490/yr | 7-day trial via Checkout (`TRIAL_DAYS`) |
 | **Extra seat** | $15/mo | — | `STRIPE_SEAT_PRICE_ID` — recurring add-on line item |
 | **Credit top-ups** | $5 / $15 / $40 | — | 100 / 350 / 1000 credits (`lib/credits-packages.ts`) |
 
 - [ ] Copy all **live** price IDs into Vercel Production env
-- [ ] Verify trial is **only** on Starter (code: `app/api/stripe/checkout/route.ts`)
-- [ ] Verify Growth/ProAgent charge immediately on subscribe
+- [ ] Verify **7-day trial on all three tiers** (code: `app/api/stripe/checkout/route.ts` → `trial_period_days: TRIAL_DAYS`)
+- [ ] Verify first charge on day 8 unless canceled during trial
 
 ### 4.3 Live API keys & webhooks
 
@@ -163,9 +163,9 @@ Subscribe to events handled in `app/api/webhooks/stripe/route.ts`:
 
 ### 4.4 Billing flows to QA (live, small real charge)
 
-- [ ] **Starter trial** — card collected, $0 for 3 days, then $49/mo
-- [ ] **Growth subscribe** — immediate charge $89/mo
-- [ ] **ProAgent subscribe** — immediate charge $149/mo
+- [ ] **Starter trial** — card collected, $0 for 7 days, then $49/mo
+- [ ] **Growth trial** — card collected, $0 for 7 days, then $89/mo
+- [ ] **ProAgent trial** — card collected, $0 for 7 days, then $149/mo
 - [ ] **Annual billing** — correct price + interval
 - [ ] **Upgrade / downgrade** — plan change updates `profiles.plan` + credits
 - [ ] **Cancel subscription** — status → churned, Zernio disconnect (webhook calls `disconnectAllZernioProfiles`)
@@ -392,7 +392,7 @@ Configured in `vercel.json` (requires Vercel plan with Cron support):
 - [ ] All v2 marketing pages (`/`, `/pricing`, `/agents`, `/use-cases`) CTAs → `/sign-up` and `/pricing` on **same host** (not `app.agent7even.com`)
 - [ ] Footer links: Privacy, Terms, Security, Data Deletion
 - [ ] Pricing page matches live Stripe prices ($49 / $89 / $149)
-- [ ] Starter CTA: "Start your free trial" · Growth/ProAgent: "Get started"
+- [ ] All paid tier CTAs: "Start your free trial" (tier-neutral trial per `trialPolicy.ts`)
 - [ ] No "Book a free call" CTAs
 - [ ] Optional: redirect `agent7even.com` marketing site to `.ai` when cutover complete
 - [ ] Update `~/agent7even` marketing repo links if `.com` still sends traffic to old app
@@ -418,7 +418,7 @@ Run on **production** env with real keys, using a **fresh test email** and a **r
 
 1. [ ] Land on `www.agent7even.ai` → Sign up → Foundation flow starts
 2. [ ] Complete Foundation (or skip path) → Dashboard loads
-3. [ ] Pricing → Starter free trial Checkout → success → `profiles.plan = starter`, trial status
+3. [ ] Pricing → any tier free trial Checkout → success → `profiles.plan` set, Stripe `subscription.status = trialing`
 4. [ ] AI Toolkit — run prompt (within trial limit); 6th run blocked with `TRIAL_LIMIT`
 5. [ ] Brand Kit locked during trial
 6. [ ] Connect Google Analytics (if enabled)
@@ -476,7 +476,7 @@ Run on **production** env with real keys, using a **fresh test email** and a **r
 | QA script | | | ☐ |
 | Marketing CTAs | | | ☐ |
 
-**Greenlight criteria:** All **BLOCKER** items checked + QA script passed + one successful live Starter trial subscription end-to-end.
+**Greenlight criteria:** All **BLOCKER** items checked + QA script passed + one successful live trial subscription end-to-end (any paid tier).
 
 ---
 

@@ -46,7 +46,7 @@ Replaced the old Foundation research race with a URL-driven synthesis → confir
 - `lib/foundation/onboardFromWebsite.ts` — Exa read + synthesis, merges with `enrichFromWebsite`, returns normalized `OnboardingAnswers` + checklist.
 - `lib/foundation/synthesizeOnboardingAnswers.ts` — maps enrichment output to all Foundation answer fields.
 - `lib/foundation/runFoundationGeneration.ts` — shared doc generation after confirm.
-- `POST /api/foundation/onboard-from-website` — public/authed entry for URL onboarding.
+- `POST /api/foundation/onboard-from-website` — **auth-only** entry for URL onboarding (Clerk session required; returns 401 when signed out).
 - `POST /api/foundation/complete-onboarding` — score, generate Foundation docs, mark complete, seed schedules.
 
 **UI:**

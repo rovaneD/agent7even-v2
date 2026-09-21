@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
+import { TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 
 export default function AboutPage() {
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function AboutPage() {
             <h2 className="t-h2">How we work</h2>
             <p className="t-body">
               We are a small product team building in public on{' '}
-              <a href="https://www.agent7even.ai">agent7even.ai</a>. Starter plans include a 3-day trial so you can see Maya draft real work for your business before you pay.
+              <a href="https://www.agent7even.ai">agent7even.ai</a>. Every plan includes a {TRIAL_LABEL.toLowerCase()} so you can see Maya draft real work for your business before you pay.
             </p>
             <p className="t-body">
               Questions? Visit our <Link href="/contact">contact page</Link> or read the <Link href="/how-it-works">how-it-works overview</Link>.

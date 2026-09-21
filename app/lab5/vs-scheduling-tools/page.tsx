@@ -8,6 +8,7 @@ import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
 import VsSchedulingCompareSection from '@/components/marketing/VsSchedulingCompareSection'
 import { VS_SCHEDULING_WORKFLOW } from '@/lib/marketing/vsSchedulingToolsContent'
+import { FIRST_CHARGE_DAY, TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 
 export default function VsSchedulingToolsPage() {
   useEffect(() => {
@@ -96,7 +97,7 @@ export default function VsSchedulingToolsPage() {
               Meet the agents →
             </Link>
           </div>
-          <p className="cta-note">3-day free trial on Starter. No charge until day 4.</p>
+          <p className="cta-note">{TRIAL_LABEL} on every plan. No charge until day {FIRST_CHARGE_DAY}.</p>
         </div>
       </div>
 

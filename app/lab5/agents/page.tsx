@@ -6,6 +6,7 @@ import Metaballs from '../SafeMetaballs'
 import MarketingNav from '../MarketingNav'
 import MarketingFooter from '../MarketingFooter'
 import MarketingConnectSources from '../MarketingConnectSources'
+import { FIRST_CHARGE_DAY, TRIAL_LABEL } from '@/lib/billing/trialPolicy'
 
 declare global {
   interface Window {
@@ -316,7 +317,7 @@ export default function AgentsPage() {
             <a className="btn btn-white btn-lg" href="/pricing">Start your free trial</a>
             <a className="btn btn-dark-ghost btn-lg" href="/pricing">See plans →</a>
           </div>
-          <p className="cta-note">3-day free trial. No charge until day 4.</p>
+          <p className="cta-note">{TRIAL_LABEL} on every plan. No charge until day {FIRST_CHARGE_DAY}.</p>
         </div>
       </div>
 
