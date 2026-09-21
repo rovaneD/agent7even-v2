@@ -30,7 +30,8 @@ After **any** schema change in the Supabase console (new table, column, index, c
 
 - **`maya_sessions`:** `UNIQUE(user_id)` existed in early docs but was dropped in the live DB with no repo record. Multiple sessions per profile are intentional.
 - **`maya_sessions.created_at`:** Referenced in legacy `CONTEXTV8` docs; **does not exist** live. Use `updated_at`.
-- **`chat_sessions`:** Orphan table removed 2026-08-24 (0 rows). Dropped live; no longer in schema dump.
+- **`chat_sessions`:** Orphan table removed August 2026 (`e6e7fb9` code pass, `1332923` live drop). 0 rows; no longer in schema dump.
+- **Snapshot refresh:** After console DDL changes, re-run pg_dump and commit in the same session. Latest on main: `1332923` (Aug 2026).
 
 ## `maya_sessions` indexes (live-confirmed — no action)
 

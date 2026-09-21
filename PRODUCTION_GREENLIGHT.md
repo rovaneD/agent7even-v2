@@ -377,10 +377,13 @@ Configured in `vercel.json` (requires Vercel plan with Cron support):
 | Inactive nudge | Daily 09:00 | `/api/cron/nudge-inactive` |
 | Morning digest | Daily 12:00 | `/api/cron/morning-digest` |
 
-- [ ] **BLOCKER — Vercel Cron enabled** on production project (Pro plan)
-- [ ] `CRON_SECRET` set; each route rejects unauthorized calls
-- [ ] **`calculate-engagement`** — never verified in v2; run manually once before relying on it
-- [ ] Monitor first week of cron logs in Vercel
+- [x] **Vercel Cron enabled** on production project (team Pro plan) — `vercel.json` schedules active
+- [x] `CRON_SECRET` set; routes reject unauthorized calls (**401** without bearer — verified Sep 9, 2026)
+- [x] **`proxy.ts` cron exemption** — `/api/cron(.*)` + `/api/digest/generate` in `isPublicRoute` (Clerk otherwise 404s cron bearer). See `scripts/verify-cron-public-proxy.ts`
+- [x] **Sharp startup fix** — `serverExternalPackages: ['sharp']` + lazy imports (`b98889c`); cron handlers no longer 500 at module load
+- [ ] **`calculate-engagement`** — never verified end-to-end in v2; run manually once before relying on digest/engagement UX
+- [ ] **Supabase Pro** — prod project `jianzyolobriaqpttamt` on Free tier; auto-pause risk. Crons restore DB activity but Pro is the durable fix
+- [ ] Monitor cron logs weekly in Vercel (expect **200** from scheduled invocations, not 404/500)
 
 ---
 

@@ -8,7 +8,7 @@ Vercel: agent7even-v2.vercel.app
 Production URL: https://www.agent7even.ai
 Legacy portal repository (frozen): rovaneD/agent7even-app
 Branch: main
-Latest handoff: CONTEXTV30.md (July 24, 2026)
+Latest handoff: CONTEXTV31.md (September 21, 2026)
 ```
 
 Do not make legacy-repository changes from this workspace.
@@ -24,10 +24,11 @@ The remote must show `rovaneD/agent7even-v2`.
 ## Read First
 
 - `AGENTS.md` — product rules, deployment guardrails, implementation SSOT
-- `CONTEXTV30.md` — latest handoff (onboarding v2, trial billing, agents UX)
-- `CONTEXTV29.md` — prior handoff (audit phases, homepage hero)
-- `MAYA_CONTEXT_V10.md` — Maya product context
-- `SESSION_2026-07-24.md` — recent commit ledger
+- `CONTEXTV31.md` — latest handoff (HeaderBack homepage, Maya Phase 2, cron repair)
+- `CONTEXTV30.md` — prior handoff (onboarding v2, trial billing, agents UX)
+- `MAYA_CONTEXT_V11.md` — Maya Phase 2 addendum (sessions, dead path removal)
+- `MAYA_CONTEXT_V10.md` — Maya product context (image gen, Assets)
+- `SESSION_2026-09-21.md` — recent commit ledger + doc audit
 
 ## Development
 

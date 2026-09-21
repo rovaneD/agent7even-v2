@@ -17,7 +17,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: September 4, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: September 21, 2026 — keep this date current at the end of every session -->
 
 ## Properties
 
@@ -34,7 +34,7 @@ and must not link to either of them.
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Do not port CTAs, auth links, or app URLs between repos. `.ai` is self-contained; the legacy `.com` repos are frozen. Pricing and product claims must still stay consistent wherever they appear.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV30.md > CONTEXTV29.md > CONTEXTV28.md > CONTEXTV27.md > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V10.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV31.md > CONTEXTV30.md > CONTEXTV29.md > CONTEXTV28.md > CONTEXTV27.md > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V11.md > MAYA_CONTEXT_V10.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -75,7 +75,9 @@ reach paying customers on `www.agent7even.ai`. The legacy portal in
 `rovaneD/agent7even-app` is frozen and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV30.md` — latest handoff: website-first onboarding, trial v2 (7-day tier-neutral), admin delete, Maya hub actuation, auth/homepage copy, agent schedule fixes, Agents scroll UX (July 24, 2026).
+- `CONTEXTV31.md` — latest handoff: HeaderBack homepage, Maya Phase 2 (per-member sessions, MayaShell removed), schema snapshot, Vercel cron repair (Clerk + sharp), internal billing guard (September 21, 2026).
+- `SESSION_2026-09-21.md` — September 2026 session log (doc audit, commits `704c316` → `b98889c`).
+- `CONTEXTV30.md` — prior handoff: website-first onboarding, trial v2 (7-day tier-neutral), admin delete, Maya hub actuation, auth/homepage copy, agent schedule fixes, Agents scroll UX (July 24, 2026).
 - `SESSION_2026-07-24.md` — July 20–24 session log (onboarding, trial gate, agents UX, commits through `704c316`).
 - `CONTEXTV29.md` — prior handoff: post-audit Phases 1–4, autonomous schedules, billing enforcement, Maya context fixes, scroll-story homepage hero on `/` (old hero at `/lab5`) (July 20, 2026).
 - `SESSION_2026-07-20.md` — July 13–20 session log (audit fixes, homepage swap, mobile auto-play hero, commits through `a3e1eca`).
@@ -96,7 +98,8 @@ reach paying customers on `www.agent7even.ai`. The legacy portal in
 - `CONTEXTV20.md` — Content Posting 3-step UX (hub → format picker → setup), platform formats, brand icons, back-nav rules.
 - `CONTEXTV19.md` — prior handoff (image gen v1.1, video gen v1 + hardening, creative assets, brief QA).
 - `CONTEXTV18.md` — prior handoff (launch prep, auth/billing, lab5 homepage, analytics/GA, Zernio connect).
-- `MAYA_CONTEXT_V10.md` — current versioned Maya product context (image gen UX, Assets, brief safety).
+- `MAYA_CONTEXT_V11.md` — Maya Phase 2 addendum (per-member sessions, MayaShell/orchestration removal, chat_sessions drop).
+- `MAYA_CONTEXT_V10.md` — Maya product context (image gen UX, Assets, brief safety).
 - `MAYA_CONTEXT_V09.md` — prior Maya snapshot (homepage, inbox, scheduling FAQ).
 - `creative_generation_handoff.md` — v1 spec + v1.1 addendum (June 21).
 - `SESSION_2026-06-23.md` — June 23 session log (Content Posting workflow UX: hub, format picker, platform previews, nav fixes).
@@ -138,8 +141,11 @@ reach paying customers on `www.agent7even.ai`. The legacy portal in
 - **Admin delete account:** `lib/admin/deleteClientAccount.ts` + `POST /api/admin/clients/[id]/delete`. Guards: no self-delete, no admin/owner, no owner with team. UI in `ClientHealthView` + `ClientDetail`.
 - **Autonomous agent schedules:** `lib/agents/ensureDefaultAgentSchedules.ts` seeds `agent_schedules` when Foundation completes (+ Agents page backfill). Cron always advances `next_run_at` via `advanceAgentScheduleNextRun`; `reconcileStaleAgentSchedules` on Agents page load. Pause/resume: `PATCH /api/agents/schedules/[id]`; UI in `AgentCommandCenter` SchedulesPanel. Cron skips paused/churned users (`run-scheduled-agents`).
 - **Auto vs approval outputs:** `autonomyLevel: 'autonomous'` agents save outputs as approved — not in approval queue. Find in scorecard / Recent outputs / `/dashboard/agents/[id]/outputs`. Pending queue SSOT remains `pendingApprovals.ts`.
+- **Maya sessions:** `maya_sessions.user_id` = acting profile id (`app/dashboard/layout.tsx` → `p.id`). Teammates see their own sessions only. `chat_sessions` table dropped (Aug 2026). `MayaShell` / `runOrchestration()` removed — see `MAYA_CONTEXT_V11.md`.
 - **Maya page context:** `hooks/useMayaContext.ts` snapshots to `window.__MAYA_CANVAS_CONTEXT__` for late listeners. `DashboardShell` clears `canvasData` during render on pathname change (not in an effect). `MayChatPanel` waits for rich `canvasData` before greeting; re-greets on nav if user hasn't typed.
-- **Marketing homepage hero:** `/` renders `HomepageSiteBrandStoryB` (`app/design-concept/homepage-site-brand-b/`). Desktop: scroll-story sticky hero. Mobile (≤860px): auto-play story when stage enters view. Previous hero preserved at `/lab5`.
+- **Marketing homepage hero:** `/` renders `HomepageLeftHeaderBack` (`app/design-concept/homepage-left-header-back/`) — left-aligned copy, `HeaderBack.jpg` backdrop, static dashboard mockup. Scroll-story variant B preserved at `/design-concept/homepage-site-brand-b`. Legacy hero at `/lab5`.
+- **Vercel crons:** `vercel.json` schedules six routes; `proxy.ts` must keep `/api/cron(.*)` and `/api/digest/generate` public (Clerk otherwise 404s cron bearer). Handlers require `CRON_SECRET`. `sharp` is `serverExternalPackages` + lazy-loaded — do not static-import image compress into cron import chains. Verify: `scripts/verify-cron-public-proxy.ts`.
+- **Supabase (prod):** project `jianzyolobriaqpttamt`. Free tier auto-pauses after inactivity — upgrade to Pro for production safety. Schema SSOT: `db/schema_live_2026-08-21.sql`; refresh via `scripts/pg-dump-schema.sh`.
 - **Analytics / cookie chrome:** `components/analytics/DeferredChrome.tsx` — cookie banner + GA only outside app prefixes (`/dashboard`, `/admin`, `/foundation`, `/maya`, `/sign-in`, `/sign-up`, `/start-trial`). Vercel Analytics sitewide.
 - **Agent guided setup:** dedicated run pages at `/dashboard/agents/[agentId]/run` — not modals on Command Center hub (`lib/agents/guidedSetup.ts`).
 - **Pending approval count SSOT:** `lib/agents/pendingApprovals.ts` — count/list from `agent_outputs.status = 'pending_approval'`. Used by dashboard brief, lifecycle bar, sidebar badge, Agents Command Center, digest generate, and approvals API. Do not reintroduce `Math.max` with `daily_digests.approvals` or parallel `agent_tasks`-only counts for surfacing.
@@ -155,7 +161,7 @@ reach paying customers on `www.agent7even.ai`. The legacy portal in
 - Pink `#F5349B` is reserved for the logo and restrained accent moments (e.g. “Maya” in hero).
 - Standard dashboard cards use white surfaces, `rounded-2xl`, `border-gray-100`, and no default shadow.
 - Marketing homepage cards (`.lcard`, `.use`) use white surfaces, cropped product UI widgets at bottom — see `CONTEXTV18.md`.
-- Live homepage hero (`/`) uses scroll-story variant B — display headline, centered Maya subline with `MayaOrb`, production dashboard mockup stage; below-the-fold sections match lab5. Approval copy: “You approve before anything goes live.” See `CONTEXTV30.md` §5–§6.
+- Live homepage hero (`/`) uses HeaderBack left-aligned layout — static dashboard mockup, `HeaderBack.jpg` backdrop. Approval copy: “You approve before anything goes live.” Scroll-story variant B is at `/design-concept/homepage-site-brand-b`. See `CONTEXTV31.md` §1.
 - The Dashboard Command Center and Agents Command Center hero cards are intentional soft-shadow exceptions.
 - Dashboard pages use a centered constrained canvas with internally left-aligned content.
 

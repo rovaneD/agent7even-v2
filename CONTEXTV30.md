@@ -1,5 +1,5 @@
 # CONTEXTV30 — Website-first onboarding, trial v2, agents UX hardening
-*Snapshot: July 24, 2026 (updated July 28 — domain correction in §10) — supersedes `CONTEXTV29.md`*
+*Snapshot: July 24, 2026 (updated July 28 — domain correction in §10) — **superseded by `CONTEXTV31.md` (September 21, 2026)** — supersedes `CONTEXTV29.md`*
 
 ---
 
