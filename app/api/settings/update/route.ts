@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
-import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
+import { validatePublicWebsiteUrl } from '@/lib/security/publicWebsiteUrl'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
@@ -25,8 +25,16 @@ export async function POST(req: Request) {
     updated_at: new Date().toISOString(),
   }
   if (companyName      !== undefined) updatePayload.company_name      = companyName || null
-  if (websiteUrl       !== undefined) {
-    updatePayload.website_url = websiteUrl ? normalizeWebsiteUrl(websiteUrl) : null
+  if (websiteUrl !== undefined) {
+    if (!websiteUrl) {
+      updatePayload.website_url = null
+    } else {
+      const publicUrl = await validatePublicWebsiteUrl(websiteUrl)
+      if (!publicUrl.ok) {
+        return NextResponse.json({ error: publicUrl.reason }, { status: 400 })
+      }
+      updatePayload.website_url = publicUrl.url
+    }
   }
   if (instagramHandle  !== undefined) updatePayload.instagram_handle  = instagramHandle || null
   if (employeeCountBucket !== undefined) updatePayload.employee_count_bucket = employeeCountBucket || null

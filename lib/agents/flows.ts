@@ -2,6 +2,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { resolveContentPostingFlow } from '@/lib/agents/contentPosting'
 import { agentOutputContentText } from '@/lib/agents/agentOutputText'
 import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
+import { fetchPublicWebsiteHtml } from '@/lib/security/fetchPublicWebsiteHtml'
+import { validatePublicWebsiteUrl } from '@/lib/security/publicWebsiteUrl'
 import { exaReadSite } from '@/lib/research/exa'
 import { buildSeoScannerRunMetadata } from '@/lib/agents/runMetadata'
 import { AGENTS, type AgentId } from './registry'
@@ -99,22 +101,18 @@ ${campaigns}`
 }
 
 async function fetchWebsiteHtml(websiteUrl: string): Promise<{ status: number; finalUrl: string; html: string }> {
-  const res = await fetch(websiteUrl, {
-    signal: AbortSignal.timeout(12000),
-    redirect: 'follow',
-    headers: {
-      'User-Agent': 'Agent7even-SEO-Scanner/1.0 (+https://www.agent7even.ai)',
-      Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-    },
+  const { status, finalUrl, html } = await fetchPublicWebsiteHtml(websiteUrl, {
+    userAgent: 'Agent7even-SEO-Scanner/1.0 (+https://www.agent7even.ai)',
+    accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+    timeoutMs: 12000,
   })
-  const html = await res.text()
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`)
+  if (!status || status < 200 || status >= 300) {
+    throw new Error(`HTTP ${status}`)
   }
   if (!html.trim()) {
     throw new Error('Empty response body')
   }
-  return { status: res.status, finalUrl: res.url || websiteUrl, html }
+  return { status, finalUrl, html }
 }
 
 function extractJsonLdTypes(html: string): string[] {
@@ -176,17 +174,22 @@ async function websiteSnapshotContext(userId: string, input: AgentInput): Promis
       : 'No website URL is saved on the profile.'
   }
 
+  const publicUrl = await validatePublicWebsiteUrl(websiteUrl)
+  if (!publicUrl.ok) {
+    return `No valid website URL — ${publicUrl.reason} Save a public business website URL like https://www.agent7even.ai in Settings or Foundation.`
+  }
+
   try {
-    const { status, finalUrl, html } = await fetchWebsiteHtml(websiteUrl)
+    const { status, finalUrl, html } = await fetchWebsiteHtml(publicUrl.url)
     return parseWebsiteHtmlSnapshot(finalUrl, status, html, 'direct fetch')
   } catch (directErr) {
     const directMessage = directErr instanceof Error ? directErr.message : String(directErr)
     try {
-      const exa = await exaReadSite(websiteUrl)
+      const exa = await exaReadSite(publicUrl.url)
       if (exa?.text?.trim()) {
         const preview = exa.text.trim().slice(0, 3500)
         return `## Website Snapshot
-- URL: ${websiteUrl}
+- URL: ${publicUrl.url}
 - Source: Exa read (direct fetch failed: ${directMessage})
 - Title: ${exa.title?.trim() || 'unknown'}
 - Page text preview:
@@ -197,7 +200,7 @@ ${preview}`
     }
 
     return `## Website Snapshot
-- URL: ${websiteUrl}
+- URL: ${publicUrl.url}
 - Fetch failed: ${directMessage}
 - Note: Verify the URL includes https:// and loads in a browser. Re-run after saving the correct website in Foundation → Your Business or Settings.`
   }

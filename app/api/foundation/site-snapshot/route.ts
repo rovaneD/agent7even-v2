@@ -6,6 +6,7 @@ import { resolveWorkspaceProfileId } from '@/lib/profiles/workspaceProfile'
 import { enrichFromWebsite } from '@/lib/foundation/enrichFromWebsite'
 import { parseSiteSnapshot, type SiteSnapshot } from '@/lib/foundation/siteSnapshot'
 import { normalizeWebsiteUrl } from '@/lib/maya/canonicalWebsite'
+import { UnsafeWebsiteUrlError } from '@/lib/security/publicWebsiteUrl'
 
 async function resolveProfile(clerkUserId: string) {
   const supabase = createServiceClient()
@@ -98,6 +99,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ snapshot, enabled: true })
   } catch (err) {
+    if (err instanceof UnsafeWebsiteUrlError) {
+      return NextResponse.json({ error: err.message }, { status: 400 })
+    }
     const message = err instanceof Error ? err.message : 'Internal error'
     return NextResponse.json({ error: message }, { status: 500 })
   }

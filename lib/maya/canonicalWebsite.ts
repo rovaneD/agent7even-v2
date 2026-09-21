@@ -3,12 +3,17 @@
 export function normalizeWebsiteUrl(raw: string | null | undefined): string | null {
   if (!raw?.trim()) return null
   let url = raw.trim()
+  // Reject non-http(s) schemes before prepending https://
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url) && !/^https?:\/\//i.test(url)) return null
   if (!/^https?:\/\//i.test(url)) url = `https://${url}`
   try {
     const parsed = new URL(url)
+    if ((parsed.protocol !== 'https:' && parsed.protocol !== 'http:') || !parsed.hostname) {
+      return null
+    }
     return parsed.toString().replace(/\/$/, '')
   } catch {
-    return raw.trim()
+    return null
   }
 }
 
