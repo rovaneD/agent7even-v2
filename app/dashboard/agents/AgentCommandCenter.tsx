@@ -639,7 +639,7 @@ export default function AgentCommandCenter({
       )}
 
       {/* ═══ ZONE 2: Agent Activity ═══ */}
-      <div className="mb-6 grid gap-6 xl:grid-cols-[0.9fr_1.25fr]">
+      <div className="mb-6 grid items-start gap-6 xl:grid-cols-[0.9fr_1.25fr]">
 
         {/* Left: Live feed — grows with content; page scrolls via DashboardShell main */}
         <div className="rounded-2xl border border-gray-100 bg-white p-5">
@@ -784,8 +784,8 @@ export default function AgentCommandCenter({
           )}
         </div>
 
-        {/* Right: Scorecard — horizontal scroll only when table is wider than viewport */}
-        <div className="min-w-0 overflow-x-auto rounded-2xl border border-gray-100 bg-white p-5">
+        {/* Right: Scorecard — page scrolls vertically; inner wrapper horizontal-only on narrow viewports */}
+        <div className="min-w-0 rounded-2xl border border-gray-100 bg-white p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-menu-muted">Agent scorecard</p>
           <p className="mt-1 mb-4 text-sm text-text-sec">
             Last run, saved output count, and schedule status per agent — open a row for the full archive.
@@ -801,6 +801,7 @@ export default function AgentCommandCenter({
               </p>
             </div>
           )}
+          <div className="overflow-x-auto">
           <div className="grid min-w-[460px] grid-cols-[1fr_auto_auto_auto_28px] items-center gap-x-4">
             {/* Header */}
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Agent</span>
@@ -861,6 +862,7 @@ export default function AgentCommandCenter({
                 </span>
               </Link>
             ))}
+          </div>
           </div>
         </div>
       </div>
