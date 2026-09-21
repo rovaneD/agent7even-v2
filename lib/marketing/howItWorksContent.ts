@@ -27,9 +27,9 @@ export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
   {
     n: '03',
     kicker: 'Approval queue',
-    title: 'Everything waits',
-    titleBreak: 'for your approval.',
-    body: 'Every post, email, ad, and image lands in one approval queue. Review what changed, make edits, then publish when you\'re ready.',
+    title: 'Every draft comes',
+    titleBreak: 'to you first.',
+    body: 'Every post, campaign, and ad draft comes to you first. Nothing publishes without your sign-off. Review what changed, make edits, then publish when you\'re ready.',
     accent: 'green',
   },
 ]

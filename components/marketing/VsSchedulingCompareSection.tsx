@@ -16,7 +16,7 @@ export default function VsSchedulingCompareSection() {
           <span className="eyebrow">The difference</span>
           <h2 className="t-h2">Publish button vs marketing&nbsp;OS.</h2>
           <p className="t-lead">
-            Every post, campaign, and ad draft comes to you first. Agent7even drafts in your voice from your Foundation. Nothing publishes without your approval. You schedule when you are ready.
+            Every post, campaign, and ad draft comes to you first. Agent7even drafts in your voice from your Foundation. Nothing publishes without your sign-off. You schedule when you are ready.
             <br />
             <Link href="/how-it-works">See the full workflow →</Link>
           </p>

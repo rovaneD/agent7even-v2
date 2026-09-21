@@ -119,7 +119,7 @@ export default function MarketingHomepageBelowFold({
                 You publish when you are ready.
               </h3>
               <p className="t-body">
-                Every post, campaign, and ad draft comes to you first. Nothing publishes without your approval.
+                Every post, campaign, and ad draft comes to you first. Nothing publishes without your sign-off.
                 Review what&rsquo;s there, approve what&rsquo;s right, and publish on your schedule.
                 Scheduled SEO, trend, and performance reports save to your agent archive without blocking your review flow.
               </p>
@@ -311,7 +311,7 @@ export default function MarketingHomepageBelowFold({
             comes to you first.
           </h2>
           <p className="cta-lead">
-            Nothing publishes without your approval.
+            Nothing publishes without your sign-off.
             <br />
             Maya reads your Foundation and Brand Kit before every draft.
           </p>

@@ -37,7 +37,7 @@ export default function HowItWorksPage() {
           <span className="eyebrow">How it works</span>
           <h1 className="t-display">How AI marketing automation works</h1>
           <p className="t-lead">
-            One conversation with Maya. Campaigns, content, and creative drafted in your voice — queued for your approval before anything goes live.
+            Every post, campaign, and ad draft comes to you first. Nothing publishes without your sign-off.
           </p>
         </div>
       </header>

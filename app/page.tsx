@@ -7,7 +7,7 @@ import HomepageLeftHeaderBack from './design-concept/homepage-left-header-back/H
 export const metadata: Metadata = marketingPageMetadata({
   title: 'AI Marketing Strategist & Automation for Small Business | Agent7even',
   description:
-    `Every post, campaign, and ad draft comes to you first. Nothing publishes without your approval. Start your ${TRIAL_LABEL.toLowerCase()}. No setup fees. Cancel anytime.`,
+    `Every post, campaign, and ad draft comes to you first. Nothing publishes without your sign-off. Start your ${TRIAL_LABEL.toLowerCase()}. No setup fees. Cancel anytime.`,
   path: '/',
 })
 

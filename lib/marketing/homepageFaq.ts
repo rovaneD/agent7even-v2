@@ -33,7 +33,7 @@ export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   },
   {
     q: 'How does the approval flow work?',
-    a: "Every post, campaign, and ad draft comes to you first. Nothing publishes without your approval. You review, edit, approve, or send drafts back, then you publish or schedule in a click. Scheduled SEO, trend, and performance reports save to your agent archive on schedule.",
+    a: "Every post, campaign, and ad draft comes to you first. Nothing publishes without your sign-off. You review, edit, approve, or send drafts back, then you publish or schedule in a click. Scheduled SEO, trend, and performance reports save to your agent archive on schedule.",
   },
   {
     q: 'What channels does Agent7even cover?',

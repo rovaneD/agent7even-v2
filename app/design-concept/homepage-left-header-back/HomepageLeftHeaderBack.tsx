@@ -33,7 +33,7 @@ function HeroCopyLeft() {
               <span className="maya">Maya</span> handles the work.
             </span>
           </div>
-          <p className="hsb-b-sub-secondary">Nothing publishes without your approval.</p>
+          <p className="hsb-b-sub-secondary">Nothing publishes without your sign-off.</p>
         </div>
       </div>
       <p className="hsb-b-body">
