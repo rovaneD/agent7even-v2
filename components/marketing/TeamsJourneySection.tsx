@@ -33,13 +33,13 @@ export default function TeamsJourneySection() {
     <section id="teams" className="teams-journey" aria-labelledby="teams-journey-heading">
       <div className="wrap">
         <div className="teams-journey-head reveal">
-          <span className="teams-journey-badge">Small teams. One approval queue.</span>
+          <span className="teams-journey-badge">Small teams. Shared Foundation.</span>
           <h2 id="teams-journey-heading" className="t-h2 teams-journey-title">
             Marketing that moves your{' '}
             <span className="teams-journey-title-keep">whole team.</span>
           </h2>
           <p className="t-lead teams-journey-lead">
-            Invite collaborators. Share one Foundation. Review drafts in one queue —
+            Invite collaborators. Share one Foundation. Review publishable drafts together —
             nothing publishes until someone signs off.
           </p>
         </div>

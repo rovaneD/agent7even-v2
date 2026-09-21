@@ -37,8 +37,8 @@ function HeroCopyLeft() {
         </div>
       </div>
       <p className="hsb-b-body">
-        Maya plans campaigns, writes the content, and routes every draft to one queue. Every image, caption, and
-        email pulls from your Foundation. You decide what gets published.
+        Maya plans campaigns and writes content from your Foundation. Nothing publishes without your approval.
+        Autonomous agents deliver SEO, trend, and performance reports to your archive on schedule.
       </p>
       <Link
         href="/pricing"
