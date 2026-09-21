@@ -51,7 +51,7 @@ export default function MarketingHomepageBelowFold({
               You approve before anything goes live.
             </h2>
             <p className="t-lead">
-              Every post, email, and ad waits for your approval. Maya reads your Foundation and Brand Kit and coordinates specialist agents so you skip the tool stack.
+              Every post, campaign, and ad draft comes to you first. Maya reads your Foundation and Brand Kit and coordinates specialist agents so you skip the tool stack.
               <br />
               <a href="/how-it-works">See the full AI marketing automation workflow →</a>
             </p>
@@ -114,12 +114,12 @@ export default function MarketingHomepageBelowFold({
             <div className="feat-copy">
               <div className="feat-relief">Approval Queue</div>
               <h3 className="t-h3">
-                Everything waits for your approval
+                Every draft comes to you first.
                 <br />
-                before it ships.
+                You publish when you are ready.
               </h3>
               <p className="t-body">
-                Every post, email, and ad waits for your approval before it ships.
+                Every post, campaign, and ad draft comes to you first. Nothing publishes without your approval.
                 Review what&rsquo;s there, approve what&rsquo;s right, and publish on your schedule.
                 Scheduled SEO, trend, and performance reports save to your agent archive without blocking your review flow.
               </p>
@@ -200,7 +200,7 @@ export default function MarketingHomepageBelowFold({
             <div className="lcard reveal">
               <div className="lcard-copy">
                 <h3>Approval queue before publish</h3>
-                <p>Every post, email, and ad waits for your approval. Review your drafts, then schedule when you&rsquo;re ready.</p>
+                <p>Every post, campaign, and ad draft comes to you first. Review your drafts, then schedule when you&rsquo;re ready.</p>
                 <a href="#how">See it →</a>
               </div>
               <div className="card-widget"><div data-mk="widget-approvals"></div></div>
@@ -306,12 +306,12 @@ export default function MarketingHomepageBelowFold({
         <DeferredMetaballs className="cta-orb" loadWhenVisible />
         <div className="cta-in">
           <h2>
-            Every post, email, and ad
+            Every post, campaign, and ad draft
             <br />
-            waits for your approval.
+            comes to you first.
           </h2>
           <p className="cta-lead">
-            Nothing publishes without your sign-off.
+            Nothing publishes without your approval.
             <br />
             Maya reads your Foundation and Brand Kit before every draft.
           </p>

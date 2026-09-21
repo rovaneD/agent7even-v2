@@ -33,11 +33,11 @@ function HeroCopyLeft() {
               <span className="maya">Maya</span> handles the work.
             </span>
           </div>
-          <p className="hsb-b-sub-secondary">You approve before anything goes live.</p>
+          <p className="hsb-b-sub-secondary">Nothing publishes without your approval.</p>
         </div>
       </div>
       <p className="hsb-b-body">
-        Every post, email, and ad waits for your approval.
+        Every post, campaign, and ad draft comes to you first.
       </p>
       <Link
         href="/pricing"

@@ -13,19 +13,19 @@ export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   },
   {
     q: 'How is AI marketing different from traditional marketing?',
-    a: 'Traditional marketing stacks agencies, freelancers, and scheduling tools. You re-explain your business in every app and stitch the work together yourself. Agent7even keeps context in Foundation and Brand Kit and coordinates twelve specialist agents from one conversation. Every post, email, and ad waits for your approval.',
+    a: 'Traditional marketing stacks agencies, freelancers, and scheduling tools. You re-explain your business in every app and stitch the work together yourself. Agent7even keeps context in Foundation and Brand Kit and coordinates twelve specialist agents from one conversation. Every post, campaign, and ad draft comes to you first.',
   },
   {
     q: 'What is AI marketing automation?',
-    a: 'Specialist agents read your Foundation and Brand Kit and draft campaigns and content instead of you writing every post, email, and ad variation from scratch. Every post, email, and ad waits for your approval.',
+    a: 'Specialist agents read your Foundation and Brand Kit and draft campaigns and content instead of you writing every post, email, and ad variation from scratch. Every post, campaign, and ad draft comes to you first.',
   },
   {
     q: 'How does AI marketing work for small business?',
-    a: 'You complete Foundation and Brand Kit once. Maya coordinates twelve specialist agents that read that context before drafting campaigns, posts, and email copy. Every post, email, and ad waits for your approval.',
+    a: 'You complete Foundation and Brand Kit once. Maya coordinates twelve specialist agents that read that context before drafting campaigns, posts, and email copy. Every post, campaign, and ad draft comes to you first.',
   },
   {
     q: 'What exactly is Agent7even?',
-    a: 'A marketing platform built around Maya. She reads your Brand Kit and Foundation and coordinates twelve specialist agents to draft campaigns, posts, ad copy, and email copy. Every post, email, and ad waits for your approval.',
+    a: 'A marketing platform built around Maya. She reads your Brand Kit and Foundation and coordinates twelve specialist agents to draft campaigns, posts, ad copy, and email copy. Every post, campaign, and ad draft comes to you first.',
   },
   {
     q: 'Does the copy actually sound like me?',
@@ -33,7 +33,7 @@ export const HOMEPAGE_FAQ_ITEMS: HomepageFaqItem[] = [
   },
   {
     q: 'How does the approval flow work?',
-    a: "Every post, email, and ad waits for your approval before it ships. You review, edit, approve, or send drafts back. Nothing goes live until you sign off, then you publish or schedule in a click. Scheduled SEO, trend, and performance reports save to your agent archive on schedule.",
+    a: "Every post, campaign, and ad draft comes to you first. Nothing publishes without your approval. You review, edit, approve, or send drafts back, then you publish or schedule in a click. Scheduled SEO, trend, and performance reports save to your agent archive on schedule.",
   },
   {
     q: 'What channels does Agent7even cover?',
