@@ -3,7 +3,7 @@ This repo is the LIVE customer-facing product.
 GitHub: rovaneD/agent7even-v2
 Vercel project: agent7even-v2
 Serves: https://www.agent7even.ai (primary) and agent7even-v2.vercel.app
-Pushing to `main` deploys to real customers. Treat it as production.
+Pushing to `main` deploys to production (`www.agent7even.ai`). Treat it as production.
 Legacy portal `rovaneD/agent7even-app` (app.agent7even.com) is frozen — never touch it from this folder.
 Before every push: run `git remote -v` and confirm it shows agent7even-v2.
 
@@ -34,7 +34,7 @@ and must not link to either of them.
 1. Never revert changes without being told to. If unsure whether a change was intentional, ask before reverting.
 2. Do not port CTAs, auth links, or app URLs between repos. `.ai` is self-contained; the legacy `.com` repos are frozen. Pricing and product claims must still stay consistent wherever they appear.
 3. Before any significant change, remind the user to commit what's working. After completing a feature, commit and push before moving on.
-4. Source of truth: instructions in chat > CONTEXTV31.md > CONTEXTV30.md > CONTEXTV29.md > CONTEXTV28.md > CONTEXTV27.md > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V11.md > MAYA_CONTEXT_V10.md > code in this repo.
+4. Source of truth: instructions in chat > CONTEXTV32.md > CONTEXTV31.md > CONTEXTV30.md > CONTEXTV29.md > CONTEXTV28.md > CONTEXTV27.md > CONTEXTV26.md > CONTEXTV25.md > CONTEXTV24.md > CONTEXTV23.md > CONTEXTV22.md > MAYA_CONTEXT_V11.md > MAYA_CONTEXT_V10.md > code in this repo.
 5. At the end of every session: review and update AGENTS.md if anything changed, and ensure the latest CONTEXT version reflects all work done.
 
 ## Current product direction (do not revert)
@@ -58,6 +58,20 @@ Agent7even is a SaaS subscription platform — not a one-time project agency.
 
 **Add-on services** are available inside the platform. No prices shown on marketing site. Design & Development and Packaging Design require scope — route to inquiry form, not order modal.
 
+## Customer counts (verified Sep 21, 2026)
+
+**0 active external customers.** Two historical external signups, both churned. Exclude these **internal accounts** from all customer/churn/revenue counts:
+
+| Email | profile_id |
+|-------|------------|
+| `rovane@dursodesign.com` | `bfa73081-3906-4b5b-b24e-d9df3fb07384` |
+| `melissa@agent7even.com` | `79a1aae2-de3c-40b1-9f8a-6142895b129b` |
+| `rovdurs@gmail.com` | `f5702a77-f81f-48f7-8847-78318e428c52` |
+
+Details: `CONTEXTV32.md` § Customer counts.
+
+**Counting rule:** Verify customer and payment counts against **live Stripe** (subscriptions, invoices). Never infer paying status from `profiles.stripe_subscription_id` alone.
+
 ## Stripe API version
 Always use `'2026-04-22.dahlia'` cast as `as any`. **Never use `'2025-04-30.basil'`** — causes build failure.
 
@@ -66,16 +80,17 @@ Next.js 16 uses `proxy.ts` not `middleware.ts`.
 `/api/cron(.*)` and `/api/digest/generate` must stay in `isPublicRoute`. Vercel cron sends `Authorization: Bearer CRON_SECRET`, which is not a Clerk JWT — `auth.protect()` rewrites those requests to 404 (`protect-rewrite`, `token-invalid`). Route handlers still enforce the cron bearer (digest generate also accepts a signed-in workspace session).
 
 ## Key third-party notes
-- **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026). Publer is dashboard-first, also not a multi-tenant fit. **Zernio** is the integrated publisher (`lib/social/publisher.ts`). **DPA:** Signed both sides (Trust Center, Jul 2026). **Go-live (Jul 8, 2026):** Zernio cleared paying customers' live social accounts. Runbook: `vendor/zernio/go_live_runbook.md`; readiness: `scripts/verify-zernio-go-live-readiness.ts`. Tenant isolation answers still in chat (non-blocking pilot). Details: `vendor/zernio/`, `zernio_social_evaluation_backlog.md`.
+- **Social scheduling** — Buffer is OUT for multi-tenant publishing (verified June 4, 2026). Publer is dashboard-first, also not a multi-tenant fit. **Zernio** is the integrated publisher (`lib/social/publisher.ts`). **DPA:** Signed both sides (Trust Center, Jul 2026). **Go-live (Jul 8, 2026):** Zernio cleared for external customers' live social accounts (0 active external customers as of Sep 21, 2026). Runbook: `vendor/zernio/go_live_runbook.md`; readiness: `scripts/verify-zernio-go-live-readiness.ts`. Tenant isolation answers still in chat (non-blocking pilot). Details: `vendor/zernio/`, `zernio_social_evaluation_backlog.md`.
 - **Instagram Lucide icon** — does not exist. Use `Hash` icon instead.
 
 ## This app (agent7even-v2) — live
 Changes are made deliberately and committed before moving on. Pushes to `main`
-reach paying customers on `www.agent7even.ai`. The legacy portal in
+deploy to production on `www.agent7even.ai` (0 active external customers as of Sep 21, 2026). The legacy portal in
 `rovaneD/agent7even-app` is frozen and must not be touched from this folder.
 
 ## Current docs to read first
-- `CONTEXTV31.md` — latest handoff: HeaderBack homepage, Maya Phase 2 (per-member sessions, MayaShell removed), schema snapshot, Vercel cron repair (Clerk + sharp), internal billing guard (September 21, 2026).
+- `CONTEXTV32.md` — latest handoff: customer count audit, internal account exclusions, marketing copy push, PR #62 prep (September 21, 2026).
+- `CONTEXTV31.md` — prior handoff: HeaderBack homepage, Maya Phase 2 (per-member sessions, MayaShell removed), schema snapshot, Vercel cron repair (Clerk + sharp), internal billing guard (September 21, 2026).
 - `SESSION_2026-09-21.md` — September 2026 session log (doc audit, commits `704c316` → `b98889c`).
 - `CONTEXTV30.md` — prior handoff: website-first onboarding, trial v2 (7-day tier-neutral), admin delete, Maya hub actuation, auth/homepage copy, agent schedule fixes, Agents scroll UX (July 24, 2026).
 - `SESSION_2026-07-24.md` — July 20–24 session log (onboarding, trial gate, agents UX, commits through `704c316`).
@@ -172,7 +187,7 @@ reach paying customers on `www.agent7even.ai`. The legacy portal in
 - GitHub branch pushes create Vercel deployments; `main` deploys to the live domain
 - **`main`** is the active integration branch (merged June 12, 2026)
 - There is no separate production repo to deploy. This is it.
-- Zernio is live with paying customers' social accounts (Jul 8, 2026). A bad push can affect real publishing.
+- Zernio is live for external customer social publishing (Jul 8, 2026). A bad push can affect connected social accounts (including internal test accounts).
 
 **Never do this:**
 - Run `vercel --prod` with uncommitted local changes
