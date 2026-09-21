@@ -8,6 +8,11 @@ import { getResendClient } from '@/lib/resend'
 import { transactionalFromAddress } from '@/lib/email/transactionalTemplate'
 import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 import { notifyAdminNewSignupOnce } from '@/lib/notifyAdminNewSignup'
+import {
+  decideClerkUserCreatedAction,
+  isClerkProfileUniqueViolation,
+} from '@/lib/profiles/clerkUserCreatedWrite'
+import { filterRowsByExactEmail } from '@/lib/profiles/emailMatch'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET
@@ -50,56 +55,83 @@ export async function POST(req: Request) {
     const email = email_addresses?.[0]?.email_address ?? ''
     const fullName = [first_name, last_name].filter(Boolean).join(' ')
 
-    // Same email + new Clerk user used to create a second profile row. Reuse canonical.
+    const { data: existingByClerk } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('clerk_user_id', id)
+      .maybeSingle()
+
+    let existingByEmail: {
+      id: string
+      clerk_user_id: string | null
+      email: string | null
+      stripe_customer_id: string | null
+      stripe_subscription_id: string | null
+      plan: string | null
+      status: string | null
+      created_at: string
+    }[] = []
+
     if (email) {
-      const { data: existingByEmail } = await supabase
+      const { data } = await supabase
         .from('profiles')
-        .select('id, clerk_user_id, stripe_customer_id, stripe_subscription_id, plan, status, created_at')
+        .select('id, clerk_user_id, email, stripe_customer_id, stripe_subscription_id, plan, status, created_at')
         .ilike('email', email)
         .neq('status', 'churned')
         .order('created_at', { ascending: true })
 
-      const others = (existingByEmail ?? []).filter(p => p.clerk_user_id !== id)
-      if (others.length > 0) {
-        const canonical = [...(existingByEmail ?? [])].sort((a, b) => {
-          if (a.stripe_customer_id && !b.stripe_customer_id) return -1
-          if (!a.stripe_customer_id && b.stripe_customer_id) return 1
-          if (a.plan && !b.plan) return -1
-          if (!a.plan && b.plan) return 1
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        })[0]
-
-        await supabase
-          .from('profiles')
-          .update({
-            clerk_user_id: id,
-            full_name: fullName || undefined,
-            ...(image_url ? { avatar_url: image_url } : {}),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', canonical.id)
-
-        const orphanIds = (existingByEmail ?? [])
-          .filter(p => p.id !== canonical.id && !p.stripe_customer_id && !p.stripe_subscription_id)
-          .map(p => p.id)
-
-        if (orphanIds.length > 0) {
-          await supabase.from('profiles').delete().in('id', orphanIds)
-        }
-
-        await activateTeamInviteForProfile(supabase, canonical.id, email)
-
-        console.warn('[clerk/webhook] Blocked duplicate profile for email', email, {
-          clerkUserId: id,
-          canonicalProfileId: canonical.id,
-          removedOrphans: orphanIds,
-        })
-
-        return new Response('OK', { status: 200 })
-      }
+      existingByEmail = filterRowsByExactEmail(data, email)
     }
 
-    const { data: newProfile, error } = await supabase.from('profiles').upsert({
+    const writeAction = decideClerkUserCreatedAction({
+      existingByClerkUserId: existingByClerk,
+      emailMatches: existingByEmail,
+      incomingClerkUserId: id,
+    })
+
+    if (writeAction === 'noop') {
+      return new Response('OK', { status: 200 })
+    }
+
+    if (writeAction === 'relink_email') {
+      const canonical = [...existingByEmail].sort((a, b) => {
+        if (a.stripe_customer_id && !b.stripe_customer_id) return -1
+        if (!a.stripe_customer_id && b.stripe_customer_id) return 1
+        if (a.plan && !b.plan) return -1
+        if (!a.plan && b.plan) return 1
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      })[0]
+
+      await supabase
+        .from('profiles')
+        .update({
+          clerk_user_id: id,
+          full_name: fullName || undefined,
+          ...(image_url ? { avatar_url: image_url } : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', canonical.id)
+
+      const orphanIds = existingByEmail
+        .filter(p => p.id !== canonical.id && !p.stripe_customer_id && !p.stripe_subscription_id)
+        .map(p => p.id)
+
+      if (orphanIds.length > 0) {
+        await supabase.from('profiles').delete().in('id', orphanIds)
+      }
+
+      await activateTeamInviteForProfile(supabase, canonical.id, email)
+
+      console.warn('[clerk/webhook] Blocked duplicate profile for email', email, {
+        clerkUserId: id,
+        canonicalProfileId: canonical.id,
+        removedOrphans: orphanIds,
+      })
+
+      return new Response('OK', { status: 200 })
+    }
+
+    const { data: inserted, error: insertError } = await supabase.from('profiles').insert({
       clerk_user_id: id,
       email,
       full_name: fullName,
@@ -107,20 +139,30 @@ export async function POST(req: Request) {
       role: 'client',
       status: 'onboarding',
       onboarding_complete: false,
-    }, { onConflict: 'clerk_user_id' }).select('id').single()
+    }).select('id').maybeSingle()
 
-    if (error) {
-      console.error('Supabase upsert error (user.created):', error)
+    let newProfile = inserted
+    let persistError = insertError
+    if (isClerkProfileUniqueViolation(insertError)) {
+      const { data: raced } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('clerk_user_id', id)
+        .maybeSingle()
+      newProfile = raced
+      persistError = null
     }
 
-    // Activate any pending team invite for this email
+    if (persistError) {
+      console.error('Supabase insert error (user.created):', persistError)
+    }
+
     let joinedViaTeamInvite = false
     if (newProfile?.id && email) {
       const teamActivation = await activateTeamInviteForProfile(supabase, newProfile.id, email)
       if (teamActivation?.activated) joinedViaTeamInvite = true
     }
 
-    // Welcome email — skip for team invitees (they already got an invite email)
     if (email && !joinedViaTeamInvite) {
       try {
         const resend = getResendClient()
@@ -134,12 +176,11 @@ export async function POST(req: Request) {
           text: welcomeEmailText(first_name ?? ''),
         })
       } catch (emailError) {
-        // Log but don't fail the webhook — user is still created
         console.error('Welcome email failed:', emailError)
       }
     }
 
-    if (newProfile?.id && !error) {
+    if (newProfile?.id && !persistError) {
       try {
         await track('Signup', {
           source: 'clerk_webhook',

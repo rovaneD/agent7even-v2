@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { pickCanonicalProfile } from './ensureProfile'
+import { filterRowsByExactEmail, selectWithEmail } from './emailMatch'
 
 type CanonicalProfileRow = {
   id: string
@@ -56,14 +57,18 @@ export async function resolveClerkProfile<T extends CanonicalProfileRow>(
 
   const { data: byEmail } = await supabase
     .from('profiles')
-    .select(selectFields)
+    .select(selectWithEmail(selectFields))
     .ilike('email', normalizedEmail)
     .neq('status', 'churned')
     .order('created_at', { ascending: true })
 
-  if (!byEmail?.length) return null
+  const exactEmailRows = filterRowsByExactEmail(
+    byEmail as Array<T & { email?: string | null }> | null,
+    normalizedEmail,
+  )
+  if (!exactEmailRows.length) return null
 
-  return pickCanonicalProfile(byEmail as unknown as T[])
+  return pickCanonicalProfile(exactEmailRows)
 }
 
 /**
