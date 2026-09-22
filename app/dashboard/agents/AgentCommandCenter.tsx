@@ -801,8 +801,9 @@ export default function AgentCommandCenter({
               </p>
             </div>
           )}
-          <div className="overflow-x-auto">
-          <div className="grid min-w-[460px] grid-cols-[1fr_auto_auto_auto_28px] items-center gap-x-4">
+          {/* Horizontal scroll only below xl; overflow-y-hidden prevents CSS from adding a nested vertical scrollbar */}
+          <div className="max-xl:overflow-x-auto max-xl:overflow-y-hidden">
+          <div className="grid min-w-[460px] xl:min-w-0 grid-cols-[1fr_auto_auto_auto_28px] items-center gap-x-4">
             {/* Header */}
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Agent</span>
             <span className="border-b border-border pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-muted">Last run</span>
