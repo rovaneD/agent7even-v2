@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
-import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
+import { getClerkSessionEmail, getClerkUserSafe } from '@/lib/clerk/sessionUser'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -33,7 +33,9 @@ import { getPendingApprovalCount, listPendingApprovalDigestItems } from '@/lib/a
 import { listTasksAssignedToMember } from '@/lib/team/taskAssignments'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
 import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
-import { profileBypassesSubscriptionGate, startTrialPath } from '@/lib/billing/subscriptionGate'
+import { startTrialPath } from '@/lib/billing/subscriptionGate'
+import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
+import { mayaAccessAfterProfile } from '@/lib/auth/mayaAccessAfterProfile'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -41,15 +43,17 @@ export default async function DashboardPage() {
 
   const supabase = createServiceClient()
   const email = await getClerkSessionEmail()
-  const { profile, workspace } = await loadDashboardSession(supabase, userId, email)
+  let { profile, workspace } = await loadDashboardSession(supabase, userId, email)
+  if (!profile) {
+    const user = await getClerkUserSafe()
+    await ensureProfileForClerkUser(supabase, userId, user)
+    ;({ profile, workspace } = await loadDashboardSession(supabase, userId, email))
+  }
   const workspaceProfile = workspace?.workspaceProfile ?? profile
   const isTeamMember = workspace?.isTeamMember ?? false
-
-  if (!isTeamMember) {
-    const billing = await getBillingProfileForClerkUser(supabase, userId, email)
-    if (billing && !profileBypassesSubscriptionGate(billing)) {
-      redirect(startTrialPath())
-    }
+  const billing = await getBillingProfileForClerkUser(supabase, userId, email)
+  if (mayaAccessAfterProfile({ profile, isTeamMember, billing }) === 'start-trial') {
+    redirect(startTrialPath())
   }
 
   const dataUserId = workspace?.workspaceId ?? profile?.id

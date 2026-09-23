@@ -6,8 +6,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { welcomeEmailHtml, welcomeEmailText } from '@/emails/welcome'
 import { getResendClient } from '@/lib/resend'
 import { transactionalFromAddress } from '@/lib/email/transactionalTemplate'
-import { activateTeamInviteForProfile } from '@/lib/team/activateTeamInvite'
 import { notifyAdminNewSignupOnce } from '@/lib/notifyAdminNewSignup'
+import { handleClerkUserCreated } from '@/lib/auth/handleClerkUserCreated'
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET
@@ -45,120 +45,29 @@ export async function POST(req: Request) {
   const supabase = createServiceClient()
 
   if (evt.type === 'user.created') {
-    const { id, email_addresses, first_name, last_name, image_url } = evt.data
-
-    const email = email_addresses?.[0]?.email_address ?? ''
-    const fullName = [first_name, last_name].filter(Boolean).join(' ')
-
-    // Same email + new Clerk user used to create a second profile row. Reuse canonical.
-    if (email) {
-      const { data: existingByEmail } = await supabase
-        .from('profiles')
-        .select('id, clerk_user_id, stripe_customer_id, stripe_subscription_id, plan, status, created_at')
-        .ilike('email', email)
-        .neq('status', 'churned')
-        .order('created_at', { ascending: true })
-
-      const others = (existingByEmail ?? []).filter(p => p.clerk_user_id !== id)
-      if (others.length > 0) {
-        const canonical = [...(existingByEmail ?? [])].sort((a, b) => {
-          if (a.stripe_customer_id && !b.stripe_customer_id) return -1
-          if (!a.stripe_customer_id && b.stripe_customer_id) return 1
-          if (a.plan && !b.plan) return -1
-          if (!a.plan && b.plan) return 1
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        })[0]
-
-        await supabase
-          .from('profiles')
-          .update({
-            clerk_user_id: id,
-            full_name: fullName || undefined,
-            ...(image_url ? { avatar_url: image_url } : {}),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', canonical.id)
-
-        const orphanIds = (existingByEmail ?? [])
-          .filter(p => p.id !== canonical.id && !p.stripe_customer_id && !p.stripe_subscription_id)
-          .map(p => p.id)
-
-        if (orphanIds.length > 0) {
-          await supabase.from('profiles').delete().in('id', orphanIds)
-        }
-
-        await activateTeamInviteForProfile(supabase, canonical.id, email)
-
-        console.warn('[clerk/webhook] Blocked duplicate profile for email', email, {
-          clerkUserId: id,
-          canonicalProfileId: canonical.id,
-          removedOrphans: orphanIds,
-        })
-
-        return new Response('OK', { status: 200 })
-      }
-    }
-
-    const { data: newProfile, error } = await supabase.from('profiles').upsert({
-      clerk_user_id: id,
-      email,
-      full_name: fullName,
-      avatar_url: image_url ?? '',
-      role: 'client',
-      status: 'onboarding',
-      onboarding_complete: false,
-    }, { onConflict: 'clerk_user_id' }).select('id').single()
-
-    if (error) {
-      console.error('Supabase upsert error (user.created):', error)
-    }
-
-    // Activate any pending team invite for this email
-    let joinedViaTeamInvite = false
-    if (newProfile?.id && email) {
-      const teamActivation = await activateTeamInviteForProfile(supabase, newProfile.id, email)
-      if (teamActivation?.activated) joinedViaTeamInvite = true
-    }
-
-    // Welcome email — skip for team invitees (they already got an invite email)
-    if (email && !joinedViaTeamInvite) {
-      try {
+    const result = await handleClerkUserCreated(supabase, evt.data, {
+      sendWelcome: async ({ email, firstName }) => {
         const resend = getResendClient()
         if (!resend) throw new Error('Missing RESEND_API_KEY')
-
         await resend.emails.send({
           from: transactionalFromAddress(),
           to: email,
           subject: 'Welcome to Agent7even — your portal is ready',
-          html: welcomeEmailHtml(first_name ?? ''),
-          text: welcomeEmailText(first_name ?? ''),
+          html: welcomeEmailHtml(firstName),
+          text: welcomeEmailText(firstName),
         })
-      } catch (emailError) {
-        // Log but don't fail the webhook — user is still created
-        console.error('Welcome email failed:', emailError)
-      }
-    }
-
-    if (newProfile?.id && !error) {
-      try {
+      },
+      notifyAdmin: notifyAdminNewSignupOnce,
+      trackSignup: async ({ teamInvite }) => {
         await track('Signup', {
           source: 'clerk_webhook',
-          team_invite: joinedViaTeamInvite,
+          team_invite: teamInvite,
         })
-      } catch (trackError) {
-        console.error('Vercel analytics track failed (Signup):', trackError)
-      }
+      },
+    })
 
-      try {
-        await notifyAdminNewSignupOnce({
-          profileId: newProfile.id,
-          email,
-          fullName,
-          joinedViaTeamInvite,
-        })
-      } catch (adminNotifyError) {
-        console.error('Admin signup notify failed:', adminNotifyError)
-      }
+    if (result.action === 'skipped_atlas_only') {
+      console.info('[clerk/webhook] Atlas-only signup — skip Maya enrollment and welcome')
     }
   }
 

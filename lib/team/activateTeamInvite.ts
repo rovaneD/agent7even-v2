@@ -1,6 +1,23 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { notifyTeamMemberJoined } from '@/lib/team/notifyTeamMemberJoined'
 
+export async function findPendingTeamInviteByEmail(
+  supabase: SupabaseClient,
+  email: string,
+): Promise<{ id: string; account_id: string } | null> {
+  const normalizedEmail = email.trim().toLowerCase()
+  if (!normalizedEmail) return null
+
+  const { data } = await supabase
+    .from('team_members')
+    .select('id, account_id')
+    .eq('invited_email', normalizedEmail)
+    .eq('status', 'pending')
+    .maybeSingle()
+
+  return data ?? null
+}
+
 /** Link a profile to a pending team invite by email (idempotent when already linked). */
 export async function activateTeamInviteForProfile(
   supabase: SupabaseClient,
@@ -22,13 +39,7 @@ export async function activateTeamInviteForProfile(
     return { accountId: profile.account_id, activated: false }
   }
 
-  const { data: pendingInvite } = await supabase
-    .from('team_members')
-    .select('id, account_id')
-    .eq('invited_email', normalizedEmail)
-    .eq('status', 'pending')
-    .maybeSingle()
-
+  const pendingInvite = await findPendingTeamInviteByEmail(supabase, normalizedEmail)
   if (!pendingInvite) return null
 
   const { error: memberError } = await supabase
@@ -58,12 +69,16 @@ export async function activateTeamInviteForProfile(
     return null
   }
 
-  await notifyTeamMemberJoined({
-    accountId: pendingInvite.account_id,
-    memberEmail: profile.email ?? normalizedEmail,
-    memberName: profile.full_name,
-    memberProfileId: profileId,
-  }).catch(err => console.error('[team] join notification failed:', err))
+  try {
+    await notifyTeamMemberJoined({
+      accountId: pendingInvite.account_id,
+      memberEmail: profile.email ?? normalizedEmail,
+      memberName: profile.full_name,
+      memberProfileId: profileId,
+    })
+  } catch (err) {
+    console.error('[team] join notification failed:', err)
+  }
 
   return { accountId: pendingInvite.account_id, activated: true }
 }

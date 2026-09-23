@@ -17,7 +17,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: September 21, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: September 23, 2026 — keep this date current at the end of every session -->
 
 ## Properties
 
@@ -87,6 +87,10 @@ Next.js 16 uses `proxy.ts` not `middleware.ts`.
 Changes are made deliberately and committed before moving on. Pushes to `main`
 deploy to production on `www.agent7even.ai` (0 active external customers as of Sep 21, 2026). The legacy portal in
 `rovaneD/agent7even-app` is frozen and must not be touched from this folder.
+
+
+## Atlas signup on shared Clerk (23 Sep 2026)
+`user.created` treats `unsafe_metadata.product` / `public_metadata.product === "atlas"` as onboarding intent only. Atlas-only signups skip Maya profile + welcome. A pending Maya team invite still provisions and activates. Deliberate later Maya entry (`/dashboard`) calls `ensureProfileForClerkUser` and then the normal start-trial gate — no subscription is granted.
 
 ## Current docs to read first
 - `CONTEXTV32.md` — latest handoff: customer count audit, internal account exclusions, marketing copy push, PR #62 prep (September 21, 2026).
