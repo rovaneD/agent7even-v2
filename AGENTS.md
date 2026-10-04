@@ -17,7 +17,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- BEGIN:agent7even-product-rules -->
 # Agent7even — Product & Workspace Rules
-<!-- Last reviewed: September 23, 2026 — keep this date current at the end of every session -->
+<!-- Last reviewed: October 4, 2026 — keep this date current at the end of every session -->
 
 ## Properties
 
@@ -155,7 +155,7 @@ deploy to production on `www.agent7even.ai` (0 active external customers as of S
 ## Key implementation notes (July 2026)
 - **Canonical profile resolution:** `lib/profiles/resolveClerkProfile.ts` — use for any Clerk-scoped API route or page that reads `profiles`. Billing: `getBillingProfileForClerkUser`. Dashboard: `getDashboardProfileForClerkUser`. Analytics SSR: `getAnalyticsProfileForClerkUser`. GA OAuth: `lib/analytics/gaOAuthProfile.ts` (`saveGaOAuthTokensForClerkUser` saves by profile **id**). Never `.eq('clerk_user_id').single()` when duplicates may exist — enforced repo-wide July 13, 2026 (commit `8aa8719`); the pattern greps to zero, keep it that way.
 - **Paid feature access:** API routes must use `hasPlatformAccess(profile.plan, profile.status, profile.billing_exempt)` rather than checking `profile.plan` alone. Failed payments retain the paid plan while setting `status = 'paused'`; plan-only gates let delinquent accounts invoke paid provider work.
-- **Trial + subscription gate:** SSOT `lib/billing/trialPolicy.ts` (7-day, tier-neutral, day-8 charge). Gate helpers in `lib/billing/subscriptionGate.ts`; checkout recovery in `activateCheckoutSession.ts`. Dashboard entry redirects to `/start-trial` without subscription unless `profileBypassesSubscriptionGate()` (admin/owner/billing_exempt).
+- **Trial + subscription gate:** SSOT `lib/billing/trialPolicy.ts` (7-day, tier-neutral, day-8 charge). Gate helpers in `lib/billing/subscriptionGate.ts`; checkout recovery in `activateCheckoutSession.ts`. Every `/dashboard/*` route (layout) and Maya chat, campaign generate, and inbox draft-reply use `loadMayaProductAccess()` — the same decision as the home page (`mayaAccessAfterProfile`). Missing subscription redirects to `/start-trial` or returns 403. Admin/owner/billing_exempt and team members still pass via `profileBypassesSubscriptionGate()` / `isTeamMember`.
 - **Website-first onboarding:** `POST /api/foundation/onboard-from-website` → confirm (`FoundationOnboardConfirm`) → `POST /api/foundation/complete-onboarding`. Core: `onboardFromWebsite.ts`, `synthesizeOnboardingAnswers.ts`, `runFoundationGeneration.ts`.
 - **Admin delete account:** `lib/admin/deleteClientAccount.ts` + `POST /api/admin/clients/[id]/delete`. Guards: no self-delete, no admin/owner, no owner with team. UI in `ClientHealthView` + `ClientDetail`.
 - **Autonomous agent schedules:** `lib/agents/ensureDefaultAgentSchedules.ts` seeds `agent_schedules` when Foundation completes (+ Agents page backfill). Cron always advances `next_run_at` via `advanceAgentScheduleNextRun`; `reconcileStaleAgentSchedules` on Agents page load. Pause/resume: `PATCH /api/agents/schedules/[id]`; UI in `AgentCommandCenter` SchedulesPanel. Cron skips paused/churned users (`run-scheduled-agents`).

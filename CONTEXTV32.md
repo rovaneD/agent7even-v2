@@ -1,6 +1,8 @@
 # CONTEXTV32 — Customer count audit, marketing copy, PR #62 prep
 *Snapshot: September 21, 2026 — supersedes `CONTEXTV31.md`*
 
+**Oct 4, 2026:** Subscription gate now covers every `/dashboard/*` route and Maya chat, campaign generate, and inbox draft-reply (`loadMayaProductAccess`). A signed-in account with no subscription is sent to `/start-trial` (API calls 403) instead of only the dashboard home page.
+
 ---
 
 ## Repository state
