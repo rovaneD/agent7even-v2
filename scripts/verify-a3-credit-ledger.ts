@@ -37,7 +37,6 @@ const STALE_PATTERNS: { pattern: RegExp; label: string }[] = [
   { pattern: /Generate video \(40 credits\)/, label: 'UI still says 40 credits for video button' },
   { pattern: /40 credits are deducted when submitted/, label: 'UI still says 40 credits for video' },
   { pattern: /costs 40 credits/, label: 'sanitizeProviderError still references 40 credits' },
-  { pattern: /15 credits are deducted/, label: 'UI still says 15 credits for premium image' },
   { pattern: /2 credits used/, label: 'Brand Kit UI still says 2 credits used' },
   { pattern: /~15 seconds · 2 credits/, label: 'Analytics Maya still says 2 credits' },
   { pattern: /body\.credits \?\? 8/, label: 'Campaign generate still defaults to 8 credits' },
@@ -67,9 +66,9 @@ function staticChecks(): string[] {
     text_run: 0,
     maya_chat_turn: 0,
     image_standard: 3,
-    image_premium: 6,
+    image_premium: 15,
     video_standard: 10,
-    video_premium: 25,
+    video_premium: 40,
     publish: 1,
     brandkit_gen: 1,
     foundation_gen: 0,
@@ -85,10 +84,10 @@ function staticChecks(): string[] {
   }
   if (imageCreditCost('balanced', 'growth') !== 3) failures.push('standard image cost != 3')
   if (imageCreditCost('sharp-text', 'growth') !== -1) failures.push('Recraft on Growth not refused (-1)')
-  if (imageCreditCost('sharp-text', 'proagent') !== 6) failures.push('Recraft on ProAgent != 6')
+  if (imageCreditCost('sharp-text', 'proagent') !== 15) failures.push('Recraft on ProAgent != 15')
   if (videoCreditCost('veo-3-1-lite', 'growth') !== 10) failures.push('standard video cost != 10')
   if (videoCreditCost('kling-v3-std', 'growth') !== -1) failures.push('Kling on Growth not refused (-1)')
-  if (videoCreditCost('kling-v3-std', 'proagent') !== 25) failures.push('Kling on ProAgent != 25')
+  if (videoCreditCost('kling-v3-std', 'proagent') !== 40) failures.push('Kling on ProAgent != 40')
 
   const root = join(process.cwd())
   const files = [
