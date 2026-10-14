@@ -5,9 +5,19 @@ import { CREDIT_PACKAGES } from '@/lib/credits-packages'
 import { getStripeClient } from '@/lib/stripe'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 
+/** Phase 0: top-ups hidden until Phase 3 ships new packs. Webhook + packages config stay for reuse. */
+const CREDIT_TOPUP_CHECKOUT_ENABLED = false
+
+const TOPUP_PAUSED_MESSAGE =
+  'Credit top-up purchases are paused while we roll out new credit packs. Upgrade your plan from Billing for more monthly credits.'
+
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!CREDIT_TOPUP_CHECKOUT_ENABLED) {
+    return NextResponse.json({ error: TOPUP_PAUSED_MESSAGE }, { status: 403 })
+  }
 
   const { packageId } = await req.json()
   const stripe = getStripeClient()

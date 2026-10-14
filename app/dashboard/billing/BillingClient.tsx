@@ -6,7 +6,6 @@ import { buildBillingMayaContext } from '@/lib/maya/summaries/workspaceContext'
 import { useSearchParams } from 'next/navigation'
 import { Check, ExternalLink, Zap, TrendingUp, Star, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { TRIAL_LABEL } from '@/lib/billing/trialPolicy'
-import CreditTopUp from '@/components/billing/CreditTopUp'
 import CreditsUsage from '@/components/billing/CreditsUsage'
 import type { CreditsUsageData } from '@/components/billing/CreditsUsage'
 
@@ -320,8 +319,12 @@ function BillingInner({ plan, status, billingExempt = false, subscriptionId, inv
         </p>
       </div>
 
-      {/* Credit top-up */}
-      <CreditTopUp currentBalance={creditBalance} />
+      <div className="rounded-2xl border border-gray-100 bg-white px-5 py-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-soft">Need more media credits?</p>
+        <p className="mt-2 text-sm leading-relaxed text-text-sec">
+          One-time credit packs are temporarily unavailable. Upgrade your plan below for a higher monthly allowance.
+        </p>
+      </div>
 
       {/* Upgrade section */}
       {!billingExempt && upgradeTo.length > 0 && (

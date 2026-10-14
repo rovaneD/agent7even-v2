@@ -2,8 +2,6 @@
 
 import Link from 'next/link'
 import { X, Zap } from 'lucide-react'
-import CreditTopUp from './CreditTopUp'
-
 interface Props {
   balance:   number
   planMax:   number
@@ -39,11 +37,13 @@ export default function LowBalanceModal({ balance, planMax, onDismiss }: Props) 
           </button>
         </div>
 
-        <div style={{ padding: 24 }}>
-          <CreditTopUp currentBalance={balance} onSuccess={onDismiss} />
+        <div style={{ padding: '16px 24px 0' }}>
+          <p style={{ fontSize: 13, color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+            One-time credit packs are temporarily unavailable. Upgrade your plan for a higher monthly allowance.
+          </p>
         </div>
 
-        <div style={{ padding: '0 24px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ padding: '20px 24px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <Link
             href="/dashboard/billing"
             onClick={onDismiss}
@@ -53,10 +53,10 @@ export default function LowBalanceModal({ balance, planMax, onDismiss }: Props) 
               padding: '10px 0',
               fontSize: 13,
               fontWeight: 600,
-              color: '#3B82F6',
+              color: '#fff',
               textAlign: 'center',
               textDecoration: 'none',
-              border: '1px solid #E5E7EB',
+              background: '#3B82F6',
               borderRadius: 12,
             }}
           >

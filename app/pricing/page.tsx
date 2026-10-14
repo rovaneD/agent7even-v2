@@ -48,7 +48,7 @@ const FAQS = [
   },
   {
     q: "Do unused credits roll over?",
-    a: "No — media credits reset on your monthly billing date and don't roll over. If you consistently hit your limit, upgrade or top up from billing.",
+    a: "No — media credits reset on your monthly billing date and don't roll over. If you consistently hit your limit, upgrade your plan from billing.",
   },
   {
     q: "What's included in annual billing?",
