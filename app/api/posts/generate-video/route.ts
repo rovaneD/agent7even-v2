@@ -14,9 +14,11 @@ import {
 } from '@/lib/agents/foundationCreativeDirection'
 import { formatPostContextBriefBlock } from '@/lib/agents/imageGeneration/postContextBrief'
 import { postGroundingFromForm } from '@/lib/agents/imageGeneration/postGrounding'
+import { briefComposeModel } from '@/lib/agents/imageGeneration/briefCompose'
 import { composeVideoBrief } from '@/lib/agents/videoGeneration/briefComposeVideo'
 import { resolveVideoModel } from '@/lib/agents/videoGeneration/videoModelCatalog'
 import { submitVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
+import { resolveVideoActionType } from '@/lib/credits/resolveActionType'
 
 export const maxDuration = 60
 
@@ -115,6 +117,10 @@ export async function POST(req: Request) {
 
   // ── Step 1: Creative Direction → video brief (no side effects — fail early) ─
   let brief: string
+  let briefCostUsd = 0
+  let briefInputTokens = 0
+  let briefOutputTokens = 0
+  let briefModel = briefComposeModel()
   try {
     const creativeDirection = await getOrComputeCreativeDirection({
       profileId,
@@ -122,13 +128,18 @@ export async function POST(req: Request) {
     })
     const creativeDirectionBlock = formatCreativeDirectionBlock(creativeDirection, companyName)
 
-    brief = await composeVideoBrief({
+    const briefResult = await composeVideoBrief({
       creativeDirectionBlock,
       companyName,
       postContext,
       postContextBlock,
       sceneDirection: body.sceneDirection,
     })
+    brief = briefResult.brief
+    briefCostUsd = briefResult.costUsd
+    briefInputTokens = briefResult.inputTokens
+    briefOutputTokens = briefResult.outputTokens
+    briefModel = briefResult.model
   } catch (err) {
     logProviderError('generate-video brief-compose', err)
     return NextResponse.json(
@@ -167,6 +178,8 @@ export async function POST(req: Request) {
   }
 
   // ── Step 3: Create agent_task record (job already submitted) ─────────────
+  const videoActionType = resolveVideoActionType(modelEntry.id, profile.plan as string | null)
+
   const taskInput = {
     profileId,
     postGoal: body.postGoal,
@@ -175,7 +188,9 @@ export async function POST(req: Request) {
     audience: body.audience ?? null,
     brief_excerpt: brief.slice(0, 200),
     video_model: modelEntry.openRouterModel,
+    video_model_id: modelEntry.id,
     video_job_id: jobResult.id,
+    action_type: videoActionType,
   }
 
   const { data: task, error: taskError } = await supabase
@@ -184,6 +199,11 @@ export async function POST(req: Request) {
       user_id:          profileId,
       agent:            'video_generation',
       job_type:         'video_generate',
+      action_type:      videoActionType,
+      model:            briefModel,
+      input_tokens:     briefInputTokens,
+      output_tokens:    briefOutputTokens,
+      cost_usd:         briefCostUsd,
       input:            taskInput,
       status:           'running',
       started_at:       new Date().toISOString(),

@@ -14,6 +14,15 @@ export type GenerateImageOptionsResult = {
   imageModelId?: string
   imageModelLabel?: string
   options: GeneratedImageOption[]
+  costInstrumentation?: {
+    actionType: string
+    optionCount: number
+    briefCostUsd: number
+    imageCallsCostUsd: number
+    totalCostUsd: number
+    inputTokens: number
+    outputTokens: number
+  }
 }
 
 export type TextQaIssue = {

@@ -1,4 +1,5 @@
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import { calculateCost } from '@/lib/agents/cost'
 import { resolveImageGenerationModel, type ImageGenerationModelId } from './imageModelCatalog'
 import { prepareBriefForImageModel } from './briefValidation'
 import { GLOBAL_IMAGE_BRIEF_RULES, modelBriefRulesBlock } from './modelBriefRules'
@@ -42,7 +43,13 @@ export async function composeImageBriefs(opts: {
   postContextBlock?: string | null
   postContext?: PostGroundingContext
   imageModelId?: ImageGenerationModelId
-}): Promise<string[]> {
+}): Promise<{
+  briefs: string[]
+  briefModel: string
+  inputTokens: number
+  outputTokens: number
+  costUsd: number
+}> {
   const count = opts.count ?? imageOptionCount()
   const directionBlock = opts.sceneDirection?.trim()
     ? `\nOwner scene direction (honor if compatible with brand):\n${opts.sceneDirection.trim()}\n`
@@ -109,7 +116,18 @@ Do NOT mention "Foundation", "Creative Direction", or "Brand Kit" — write as i
     throw new Error(`Expected ${count} image briefs, got ${briefs.length}`)
   }
   const modelId = opts.imageModelId ?? resolveImageGenerationModel(null).id
-  return briefs
+  const prepared = briefs
     .slice(0, count)
     .map(brief => prepareBriefForImageModel(brief, modelId, opts.companyName, opts.postContext))
+
+  const briefModel = briefComposeModel()
+  const costUsd = await calculateCost(briefModel, result.inputTokens, result.outputTokens)
+
+  return {
+    briefs: prepared,
+    briefModel,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    costUsd,
+  }
 }

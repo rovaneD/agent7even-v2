@@ -5,6 +5,10 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { logProviderError } from '@/lib/agents/sanitizeProviderError'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
+import { estimateVideoJobCostUsd } from '@/lib/agents/cost'
+import { recordAgentTaskCost } from '@/lib/agents/taskInstrumentation'
+import { resolveVideoActionType } from '@/lib/credits/resolveActionType'
+import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 
 export const maxDuration = 60
 
@@ -134,7 +138,7 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
   // Find the agent_task with this job_id stored in input jsonb
   const { data: tasks, error: taskError } = await supabase
     .from('agent_tasks')
-    .select('id, user_id, input')
+    .select('id, user_id, input, action_type, cost_usd')
     .eq('input->>video_job_id', jobId)
     .limit(1)
 
@@ -247,7 +251,21 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
     console.error('[openrouter-video] agent_outputs insert failed:', outputError.message, 'task:', taskId)
   }
 
-  // Mark task completed
+  const videoModelId = (input.video_model_id as string | undefined) ?? null
+  const actionType =
+    (task.action_type as ActionCreditKey | null)
+    ?? (input.action_type as ActionCreditKey | undefined)
+    ?? resolveVideoActionType(videoModelId, null)
+
+  const videoJobCostUsd = estimateVideoJobCostUsd(videoModel)
+
+  await recordAgentTaskCost(taskId, {
+    action_type: actionType,
+    cost_usd: videoJobCostUsd,
+    add_cost_usd: true,
+    model: videoModel,
+  })
+
   await supabase
     .from('agent_tasks')
     .update({ status: 'completed', completed_at: new Date().toISOString() })

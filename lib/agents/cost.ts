@@ -174,3 +174,26 @@ export const BUDGET_CAPS_USD: Record<string, number> = {
   growth:   2.00,
   proagent: 5.00,
 }
+
+/** OpenRouter image endpoints often omit token usage — flat estimates for Phase 1 cost rows. */
+export const ESTIMATED_IMAGE_CALL_COST_USD: Record<string, number> = {
+  'recraft/recraft-v4-pro': 0.24,
+  'google/gemini-2.5-flash-image': 0.04,
+  'google/gemini-3.1-flash-image-preview': 0.05,
+  'black-forest-labs/flux.2-pro': 0.06,
+}
+
+export function estimateImageCallCostUsd(model: string): number {
+  if (ESTIMATED_IMAGE_CALL_COST_USD[model] != null) {
+    return ESTIMATED_IMAGE_CALL_COST_USD[model]!
+  }
+  if (model.includes('recraft')) return 0.24
+  return 0.05
+}
+
+/** Video job completion when provider payload omits cost (Phase 1 fallback). */
+export function estimateVideoJobCostUsd(openRouterModel: string): number {
+  if (openRouterModel.includes('kling')) return 1.0
+  if (openRouterModel.includes('veo')) return 0.55
+  return 0.5
+}

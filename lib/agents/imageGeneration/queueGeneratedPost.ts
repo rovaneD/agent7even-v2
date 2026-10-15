@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { imageCreditCost } from '@/lib/credits/actionCosts'
+import { resolveImageActionType } from '@/lib/credits/resolveActionType'
 import type { RunTier } from '@/lib/agents/cost'
 import {
   chargeAgentRun,
@@ -79,7 +80,9 @@ export async function queueGeneratedPost(
     .eq('id', profileId)
     .single()
 
-  bundleCost = generationBundleCreditCost(picked.imageModel, profileRow?.plan ?? null)
+  const plan = profileRow?.plan ?? null
+  bundleCost = generationBundleCreditCost(picked.imageModel, plan)
+  const actionType = resolveImageActionType(picked.imageModel, plan)
   if (bundleCost < 0) {
     return {
       ok: false,
@@ -93,6 +96,8 @@ export async function queueGeneratedPost(
     const task = await createTask({
       userId: profileId,
       agent: 'content_posting',
+      jobType: 'image_compose_queue',
+      actionType,
       input: taskInput,
       triggerType: 'user',
       priority: opts.priority ?? 'normal',
@@ -156,6 +161,7 @@ export async function queueGeneratedPost(
       model,
       creditsAlreadyDeducted: true,
       tier: BUNDLE_TIER,
+      actionType,
     })
 
     await updateTaskStatus(taskId, 'completed')

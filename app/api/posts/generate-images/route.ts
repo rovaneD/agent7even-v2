@@ -8,6 +8,8 @@ import { isImageGenerationEnabled } from '@/lib/posts/imageGenerationFlag'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hasPlatformAccess } from '@/lib/plans'
 import { imageCreditCost } from '@/lib/credits/actionCosts'
+import { insertImageOptionsCostTask } from '@/lib/agents/taskInstrumentation'
+import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 
 export const maxDuration = 180
 
@@ -100,6 +102,7 @@ export async function POST(req: Request) {
     const result = await generateImageOptions({
       profileId: workspaceId,
       companyName: (profile.company_name as string | null) ?? 'your business',
+      plan: profile.plan as string | null,
       sceneDirection: body.sceneDirection,
       useBrandKit: body.useBrandKit === true,
       includeLogo: body.includeLogo === true,
@@ -107,6 +110,21 @@ export async function POST(req: Request) {
       postContext: body.postContext,
       aspectRatio: resolveAspectRatio(body.aspectRatio),
     })
+
+    const inst = result.costInstrumentation
+    if (inst) {
+      await insertImageOptionsCostTask({
+        profileId: workspaceId,
+        actionType: inst.actionType as ActionCreditKey,
+        imageModel: result.imageModel,
+        imageModelId: result.imageModelId ?? 'balanced',
+        optionCount: inst.optionCount,
+        costUsd: inst.totalCostUsd,
+        inputTokens: inst.inputTokens,
+        outputTokens: inst.outputTokens,
+        briefModel: result.briefModel,
+      })
+    }
 
     return NextResponse.json(result)
   } catch (err) {

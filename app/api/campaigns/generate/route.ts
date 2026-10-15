@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import { calculateCost } from '@/lib/agents/cost'
 import { deductCredits, refundCredits } from '@/lib/credits'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { assessTextFairUse } from '@/lib/credits/textFairUse'
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Credit deduction failed' }, { status: 500 })
   }
 
-  let result: { content: string; modelUsed: string }
+  let result: { content: string; modelUsed: string; inputTokens: number; outputTokens: number }
   try {
     result = await openRouterComplete({
       model,
@@ -71,6 +72,35 @@ export async function POST(req: Request) {
     await refundCredits(profile.id, credits, `Campaign parse failed — ${model} refund`).catch(() => {})
     console.error('[campaigns/generate] JSON parse failed:', result.content.slice(0, 200))
     return NextResponse.json({ error: 'Failed to parse campaign plan' }, { status: 500 })
+  }
+
+  const costUsd = await calculateCost(result.modelUsed, result.inputTokens, result.outputTokens)
+  const now = new Date().toISOString()
+
+  const { data: costTask, error: costTaskError } = await supabase
+    .from('agent_tasks')
+    .insert({
+      user_id: profile.id,
+      actor_profile_id: profile.id,
+      agent: 'campaign_builder',
+      job_type: 'campaign_generate',
+      action_type: 'text_run',
+      model: result.modelUsed,
+      status: 'completed',
+      trigger_type: 'user',
+      priority: 'normal',
+      input: { mode: body.mode, model },
+      input_tokens: result.inputTokens,
+      output_tokens: result.outputTokens,
+      cost_usd: costUsd,
+      started_at: now,
+      completed_at: now,
+    })
+    .select('id')
+    .single()
+
+  if (costTaskError) {
+    console.error('[campaigns/generate] agent_tasks cost row failed:', costTaskError.message)
   }
 
   const { data: saved, error: insertError } = await supabase

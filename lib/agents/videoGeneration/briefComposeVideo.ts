@@ -1,4 +1,5 @@
 import { openRouterComplete } from '@/lib/agents/openrouter'
+import { calculateCost } from '@/lib/agents/cost'
 import { briefComposeModel } from '@/lib/agents/imageGeneration/briefCompose'
 import type { PostGroundingContext } from '@/lib/agents/imageGeneration/postGrounding'
 import { prepareBriefForVideo } from './briefValidationVideo'
@@ -11,7 +12,13 @@ export async function composeVideoBrief(opts: {
   postContext?: PostGroundingContext
   postContextBlock?: string | null
   sceneDirection?: string
-}): Promise<string> {
+}): Promise<{
+  brief: string
+  costUsd: number
+  inputTokens: number
+  outputTokens: number
+  model: string
+}> {
   const directionBlock = opts.sceneDirection?.trim()
     ? `\nOwner scene direction (honor if compatible with brand):\n${opts.sceneDirection.trim()}\n`
     : ''
@@ -56,5 +63,14 @@ ${opts.creativeDirectionBlock.trim()}`,
   const brief = parsed.brief?.trim()
   if (!brief || brief.length < 50) throw new Error(`Video brief too short or empty: ${brief}`)
 
-  return prepareBriefForVideo(brief, opts.companyName, opts.postContext)
+  const model = briefComposeModel()
+  const costUsd = await calculateCost(model, result.inputTokens, result.outputTokens)
+
+  return {
+    brief: prepareBriefForVideo(brief, opts.companyName, opts.postContext),
+    costUsd,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    model,
+  }
 }

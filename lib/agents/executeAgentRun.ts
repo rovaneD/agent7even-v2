@@ -211,6 +211,7 @@ export async function executeAgentRun(opts: {
       model: modelId,
       creditsAlreadyDeducted: true,
       tier,
+      actionType: 'text_run',
     })
 
     await updateTaskStatus(taskId, 'completed')

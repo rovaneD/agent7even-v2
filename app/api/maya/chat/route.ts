@@ -358,6 +358,7 @@ Never use markdown in conversation. Save structure for the plan.`
       actorProfileId: memberId,
       agent:   'maya',
       jobType: 'maya_chat',
+      actionType: 'maya_chat_turn',
       model:   MAYA_MODEL,
       input:   { messageCount: messages.length },
     })
@@ -435,6 +436,7 @@ Never use markdown in conversation. Save structure for the plan.`
             input_tokens:  inputTokens,
             output_tokens: outputTokens,
             cost_usd:      costUsd,
+            action_type:   'maya_chat_turn',
             updated_at:    now,
             completed_at:  now,
           })

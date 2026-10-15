@@ -5,6 +5,7 @@
 
 import { createServiceClient } from '@/lib/supabase/server'
 import { calculateCost, classifyRunTier, BUDGET_CAPS_USD, CREDIT_COST, type RunTier } from './cost'
+import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 import { openRouterComplete, openRouterCompleteWithFallback, type OpenRouterMessage } from './openrouter'
 import { buildAgentContext } from './buildAgentContext'
 import { resolveContentPostingFlow } from './contentPosting'
@@ -202,6 +203,7 @@ export async function createTask(opts: {
   agent?: AgentId | string     // used by external route callers
   agentId?: string             // used by runAgent internally
   jobType?: string             // finer-grained job label for wedge analysis
+  actionType?: ActionCreditKey
   model?: string
   input: Record<string, unknown>
   orchestrationId?: string
@@ -224,6 +226,7 @@ export async function createTask(opts: {
       actor_profile_id: opts.actorProfileId ?? opts.userId,
       agent:            agentValue,
       job_type:         opts.jobType ?? null,
+      action_type:      opts.actionType ?? null,
       model:            opts.model ?? null,
       input:            opts.input,
       status:           opts.scheduledFor ? 'scheduled' : 'pending',
@@ -395,6 +398,7 @@ export async function runAgent(opts: {
       output_tokens: raw.outputTokens,
       cost_usd:      costUsd,
       model:         raw.modelUsed,
+      action_type:   'text_run',
       updated_at:    new Date().toISOString(),
       completed_at:  new Date().toISOString(),
     })
@@ -441,6 +445,7 @@ export async function chargeAgentRun(opts: {
   model:        string
   creditsAlreadyDeducted?: boolean
   tier?:        RunTier
+  actionType?:  ActionCreditKey
 }): Promise<{ costUsd: number; creditsDeducted: number }> {
   const supabase = createServiceClient()
   const tier = opts.tier ?? classifyRunTier(1)
@@ -457,6 +462,8 @@ export async function chargeAgentRun(opts: {
 
   const costUsd = await calculateCost(opts.model, opts.inputTokens, opts.outputTokens)
 
+  const actionType = opts.actionType ?? 'text_run'
+
   await supabase
     .from('agent_tasks')
     .update({
@@ -464,6 +471,7 @@ export async function chargeAgentRun(opts: {
       output_tokens: opts.outputTokens,
       cost_usd:      costUsd,
       model:         opts.model,
+      action_type:   actionType,
       updated_at:    new Date().toISOString(),
     })
     .eq('id', opts.taskId)

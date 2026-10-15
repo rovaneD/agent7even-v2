@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto'
 import { createPostAssetSignedUrl, downloadPostAsset, uploadPostAsset } from '@/lib/postAssets'
 import { composeImageBriefs, briefComposeModel, defaultImageModel, imageOptionCount } from './briefCompose'
+import { estimateImageCallCostUsd } from '@/lib/agents/cost'
+import { resolveImageActionType } from '@/lib/credits/resolveActionType'
 import {
   appendQaFixToBrief,
   prepareBriefForImageModel,
@@ -41,6 +43,7 @@ function extForMime(mime: string): string {
 export async function generateImageOptions(opts: {
   profileId: string
   companyName: string
+  plan?: string | null
   sceneDirection?: string
   useBrandKit?: boolean
   includeLogo?: boolean
@@ -83,7 +86,7 @@ export async function generateImageOptions(opts: {
   const postContext = postGroundingFromForm(opts.postContext)
   const aspectRatio: ImageAspectRatio = opts.aspectRatio ?? '4:5'
 
-  const briefs = await composeImageBriefs({
+  const briefCompose = await composeImageBriefs({
     creativeDirectionBlock,
     companyName: opts.companyName,
     sceneDirection: opts.sceneDirection,
@@ -93,10 +96,13 @@ export async function generateImageOptions(opts: {
     postContext,
     imageModelId: modelEntry.id,
   })
+  const briefs = briefCompose.briefs
 
+  let imageCallsCostUsd = 0
   const bytesList = await Promise.all(
     briefs.map(async (brief, index) => {
       try {
+        imageCallsCostUsd += estimateImageCallCostUsd(imageModel)
         return await generateImageFromBrief(imageModel, brief, aspectRatio)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
@@ -123,13 +129,24 @@ export async function generateImageOptions(opts: {
     ),
   )
 
+  const totalCostUsd = Number((briefCompose.costUsd + imageCallsCostUsd).toFixed(6))
+
   return {
     briefId,
-    briefModel: briefComposeModel(),
+    briefModel: briefCompose.briefModel,
     imageModel,
     imageModelId: modelEntry.id,
     imageModelLabel: modelEntry.label,
     options,
+    costInstrumentation: {
+      actionType: resolveImageActionType(modelEntry.id, opts.plan ?? null),
+      optionCount: count,
+      briefCostUsd: briefCompose.costUsd,
+      imageCallsCostUsd,
+      totalCostUsd,
+      inputTokens: briefCompose.inputTokens,
+      outputTokens: briefCompose.outputTokens,
+    },
   }
 }
 
