@@ -123,6 +123,7 @@ Five phases, each gated: a phase starts only when the one before meets its exit 
 6. **Contract change = both repos.** The wallet contract doc is versioned; Atlas pins the version it uses, and any change updates both repos' AGENTS.md in the same session.
 7. **Session discipline.** Each session starts with `git remote -v` and a check of live code and data; completion is verified against ledger rows, not changelogs.
 8. **Test accounts excluded.** rovane@dursodesign.com, melissa@agent7even.com and rovdurs@gmail.com get unlimited internal credit and stay out of every cost and revenue query.
+9. **Printed evidence.** Any price, credit amount, or cost that drives a decision appears in the session report as printed code or SQL output, never as a description alone.
 
 ## Risks and open questions
 
