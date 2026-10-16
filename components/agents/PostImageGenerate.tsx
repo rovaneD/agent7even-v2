@@ -1,11 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, Sparkles } from 'lucide-react'
-import {
-  IMAGE_GENERATION_MODEL_CATALOG,
-  type ImageGenerationModelId,
-} from '@/lib/agents/imageGeneration/imageModelCatalog'
+import { Check, Loader2, Sparkles } from 'lucide-react'
+import type { ImageGenerationModelId } from '@/lib/agents/imageGeneration/imageModelCatalog'
 import type { GeneratedImageOption } from '@/lib/agents/imageGeneration/types'
 import type { ImageAspectRatio } from '@/lib/agents/imageGeneration/openRouterImage'
 import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
@@ -26,7 +23,11 @@ type Props = {
   onError?: (message: string) => void
 }
 
+// Styles choose their own models now; this id only selects the credit tier (standard).
 const DEFAULT_MODEL_ID: ImageGenerationModelId = 'balanced'
+const AUTO = 'auto'
+
+type StyleCard = { id: string; name: string; tagline: string; usesLogo: boolean; examples: string[] }
 
 /** Step 2 — brand + model, then generate three options. */
 export default function PostImageGenerate({
@@ -43,7 +44,20 @@ export default function PostImageGenerate({
   const [error, setError] = useState<string | null>(null)
   const [useBrandKit, setUseBrandKit] = useState(brandKitAvailable)
   const [includeLogo, setIncludeLogo] = useState(false)
-  const [imageModelId, setImageModelId] = useState<ImageGenerationModelId>(DEFAULT_MODEL_ID)
+  const imageModelId = DEFAULT_MODEL_ID
+  const [styles, setStyles] = useState<StyleCard[]>([])
+  const [styleId, setStyleId] = useState<string>(AUTO)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/posts/styles')
+      .then(r => (r.ok ? r.json() : { styles: [] }))
+      .then(d => { if (!cancelled) setStyles(Array.isArray(d.styles) ? d.styles : []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  const selectedStyle = styles.find(st => st.id === styleId)
 
   useEffect(() => {
     setUseBrandKit(brandKitAvailable)
@@ -75,6 +89,7 @@ export default function PostImageGenerate({
           imageModelId,
           postContext,
           aspectRatio,
+          styleId,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -88,12 +103,11 @@ export default function PostImageGenerate({
         onError?.(msg)
         return
       }
-      const picked = IMAGE_GENERATION_MODEL_CATALOG.find(m => m.id === imageModelId)
       onOptionsReady({
         briefId: data.briefId as string,
         options: data.options as GeneratedImageOption[],
         imageModelId: data.imageModelId as string | undefined,
-        imageModelLabel: (data.imageModelLabel as string | undefined) ?? picked?.label,
+        imageModelLabel: selectedStyle?.name ?? 'Maya\'s picks',
       })
     } catch {
       const msg = 'Generation failed. Try again.'
@@ -108,7 +122,7 @@ export default function PostImageGenerate({
     <div className="rounded-2xl border border-dashed border-brand-primary/30 bg-brand-primary/5 p-4">
       <p className="text-sm font-semibold text-text-primary">Generate with Maya</p>
       <p className="mt-1 text-xs leading-5 text-text-sec">
-        Set <strong>Post goal</strong> in the form above, then choose brand + model and generate three options.
+        Set <strong>Post goal</strong> in the form above, pick a style, and Maya generates three options.
       </p>
 
       {/* Step 1 — Brand */}
@@ -142,44 +156,38 @@ export default function PostImageGenerate({
             <span className="text-xs leading-5 text-text-primary">
               <span className="font-semibold">Include logo on this post</span>
               {hasUploadedLogo
-                ? ' — optional; most posts work better without'
+                ? ' — your real logo, placed on objects in Brand world and Witty object styles'
                 : ' — upload a logo in Brand Kit → Identity first'}
             </span>
           </label>
         </div>
       </div>
 
-      {/* Step 2 — Model */}
+      {/* Step 2 — Style */}
       <div className="mt-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-menu-muted">2 · Image model</p>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {IMAGE_GENERATION_MODEL_CATALOG.map(model => {
-            const selected = imageModelId === model.id
-            return (
-              <button
-                key={model.id}
-                type="button"
-                disabled={disabled || loading}
-                onClick={() => setImageModelId(model.id)}
-                className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                  selected
-                    ? 'border-brand-primary bg-white ring-1 ring-brand-primary/30'
-                    : 'border-gray-100 bg-white/80 hover:border-gray-200'
-                } disabled:opacity-60`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[13px] font-semibold text-text-primary">{model.label}</span>
-                  {model.recommended && (
-                    <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold text-brand-primary">
-                      Default
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-[11px] font-medium text-text-sec">{model.subtitle}</p>
-                <p className="mt-1 text-[10px] leading-4 text-text-soft">{model.hint}</p>
-              </button>
-            )
-          })}
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-menu-muted">2 · Style</p>
+        <div className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-3">
+          <StyleButton
+            selected={styleId === AUTO}
+            disabled={disabled || loading}
+            onClick={() => setStyleId(AUTO)}
+            name="Let Maya choose"
+            tagline="Three ideas, each in the style that fits it best"
+            images={styles.map(st => st.examples[0]).filter(Boolean).slice(0, 4) as string[]}
+            mosaic
+            badge="Default"
+          />
+          {styles.map(st => (
+            <StyleButton
+              key={st.id}
+              selected={styleId === st.id}
+              disabled={disabled || loading}
+              onClick={() => setStyleId(st.id)}
+              name={st.name}
+              tagline={st.tagline}
+              images={st.examples}
+            />
+          ))}
         </div>
       </div>
 
@@ -197,9 +205,63 @@ export default function PostImageGenerate({
           {loading ? 'Generating 3 options…' : 'Generate 3 options'}
         </button>
         {loading && (
-          <p className="mt-2 text-xs text-text-soft">Usually 30–90 seconds. Stay on this page.</p>
+          <p className="mt-2 text-xs text-text-soft">Usually 1–2 minutes. Stay on this page.</p>
         )}
       </div>
     </div>
+  )
+}
+
+function StyleButton(props: {
+  selected: boolean
+  disabled?: boolean
+  onClick: () => void
+  name: string
+  tagline: string
+  images: string[]
+  mosaic?: boolean
+  badge?: string
+}) {
+  const { selected, disabled, onClick, name, tagline, images, mosaic, badge } = props
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`group relative overflow-hidden rounded-xl border text-left transition-all ${
+        selected
+          ? 'border-brand-primary bg-white ring-2 ring-brand-primary/40'
+          : 'border-gray-100 bg-white/80 hover:border-gray-300'
+      } disabled:opacity-60`}
+    >
+      <div className={`grid aspect-[4/5] w-full gap-0.5 bg-gray-100 ${mosaic ? 'grid-cols-2 grid-rows-2' : 'grid-cols-3 grid-rows-2'}`}>
+        {images.length === 0 && <div className="col-span-full row-span-full animate-pulse bg-gray-100" />}
+        {images.slice(0, mosaic ? 4 : 3).map((src, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={src}
+            src={src}
+            alt=""
+            loading="lazy"
+            className={`h-full w-full object-cover ${!mosaic && i === 0 ? 'col-span-2 row-span-2' : ''} ${!mosaic && images.length === 1 ? 'col-span-3' : ''}`}
+          />
+        ))}
+      </div>
+      {selected && (
+        <span className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-white shadow">
+          <Check size={14} />
+        </span>
+      )}
+      <div className="px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[13px] font-semibold text-text-primary">{name}</span>
+          {badge && (
+            <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold text-brand-primary">{badge}</span>
+          )}
+        </div>
+        <p className="mt-0.5 text-[11px] leading-4 text-text-sec">{tagline}</p>
+      </div>
+    </button>
   )
 }
