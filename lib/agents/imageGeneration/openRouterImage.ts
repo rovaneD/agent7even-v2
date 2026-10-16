@@ -123,21 +123,53 @@ export async function generateImageEditFromSource(opts: {
   ])
 }
 
+/** OpenRouter's dedicated Image API — required by GPT Image, FLUX 3, Seedream and others. */
+export async function requestImagesEndpoint(
+  model: string,
+  prompt: string,
+  aspectRatio: ImageAspectRatio = '4:5',
+  referenceUrls: string[] = [],
+  resolution: '1K' | '2K' = '1K',
+): Promise<{ bytes: Buffer; costUsd: number | null }> {
+  const body: Record<string, unknown> = { model, prompt, n: 1, aspect_ratio: aspectRatio, resolution }
+  if (referenceUrls.length > 0) {
+    body.input_references = referenceUrls.map(url => ({ type: 'image_url', image_url: { url } }))
+  }
+  const res = await fetch(`${OPENROUTER_API_BASE}/images`, {
+    method: 'POST',
+    headers: openRouterHeaders(),
+    body: JSON.stringify(body),
+  })
+  const text = await res.text()
+  if (!res.ok) throw new Error(`OpenRouter images ${res.status}: ${text.slice(0, 400)}`)
+  const data = JSON.parse(text) as { data?: Array<{ b64_json?: string }>; usage?: { cost?: number } }
+  const b64 = data.data?.[0]?.b64_json
+  if (!b64) throw new Error(`No image in OpenRouter images response for ${model}`)
+  return { bytes: Buffer.from(b64, 'base64'), costUsd: typeof data.usage?.cost === 'number' ? data.usage.cost : null }
+}
+
 /**
- * Model comparison helper (internal bake-off): tries the usual modalities, then the other
- * shape — image-only models reject ['image','text'] and vice versa.
+ * Model comparison helper (internal bake-off). Gemini answers on chat/completions; newer image
+ * models only on /images. Tries the likely route first, then the other. Reference images (a real
+ * logo, product photos) go in as image parts / input_references so nothing is invented.
  */
 export async function generateImageForComparison(
   model: string,
   prompt: string,
   aspectRatio: ImageAspectRatio = '4:5',
-): Promise<Buffer> {
+  referenceUrls: string[] = [],
+): Promise<{ bytes: Buffer; costUsd: number | null; route: 'chat' | 'images' }> {
+  const chatFirst = model.startsWith('google/')
+  const content: ImageContentPart[] | string = referenceUrls.length > 0
+    ? [...referenceUrls.map(url => ({ type: 'image_url' as const, image_url: { url } })), { type: 'text' as const, text: prompt }]
+    : prompt
+  const viaChat = async () => ({ bytes: await requestImageGeneration(model, content, aspectRatio), costUsd: null, route: 'chat' as const })
+  const viaImages = async () => ({ ...(await requestImagesEndpoint(model, prompt, aspectRatio, referenceUrls)), route: 'images' as const })
   try {
-    return await requestImageGeneration(model, prompt, aspectRatio)
+    return chatFirst ? await viaChat() : await viaImages()
   } catch (first) {
-    const alt = model.startsWith('google/') ? ['image'] : ['image', 'text']
     try {
-      return await requestImageGeneration(model, prompt, aspectRatio, alt)
+      return chatFirst ? await viaImages() : await viaChat()
     } catch {
       throw first
     }

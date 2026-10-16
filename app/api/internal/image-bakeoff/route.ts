@@ -16,7 +16,7 @@ const INTERNAL_EMAILS = new Set([
   'rovdurs@gmail.com',
 ])
 
-type Body = { prompts?: string[]; models?: string[]; aspectRatio?: ImageAspectRatio; label?: string }
+type Body = { prompts?: string[]; models?: string[]; aspectRatio?: ImageAspectRatio; label?: string; references?: string[] }
 
 function sniffMime(b: Buffer): { mime: string; ext: string } {
   if (b[0] === 0x89 && b[1] === 0x50) return { mime: 'image/png', ext: 'png' }
@@ -43,7 +43,8 @@ export async function POST(req: Request) {
   const results = await Promise.all(jobs.map(async ({ prompt, pi, model }) => {
     const started = Date.now()
     try {
-      const bytes = await generateImageForComparison(model, prompt, body.aspectRatio ?? '4:5')
+      const references = (body.references ?? []).filter(u => /^https:\/\//.test(u)).slice(0, 4)
+      const { bytes, costUsd, route } = await generateImageForComparison(model, prompt, body.aspectRatio ?? '4:5', references)
       const { mime, ext } = sniffMime(bytes)
       const { storagePath } = await uploadPostAsset({
         profileId,
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
         bytes,
       })
       const url = await createPostAssetSignedUrl(storagePath, 60 * 60 * 24)
-      return { prompt: pi + 1, model, ms: Date.now() - started, url, storagePath }
+      return { prompt: pi + 1, model, route, costUsd, ms: Date.now() - started, url, storagePath }
     } catch (err) {
       return { prompt: pi + 1, model, ms: Date.now() - started, error: err instanceof Error ? err.message.slice(0, 300) : String(err) }
     }
