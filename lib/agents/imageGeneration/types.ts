@@ -15,7 +15,10 @@ export type GenerateImageOptionsResult = {
   imageModelLabel?: string
   options: GeneratedImageOption[]
   /** Writer's concept per option (message, headline, visual idea, prompt) — for debugging output quality. */
-  concepts?: { message: string; headline: string; visual_idea: string; prompt: string }[]
+  concepts?: { style_id: string; message: string; headline: string; visual_idea: string; prompt: string }[]
+  /** The writer's raw idea seeds before the critic pass. */
+  ideas?: string[]
+  styleMode?: 'fixed' | 'auto'
   costInstrumentation?: {
     actionType: string
     optionCount: number

@@ -19,6 +19,7 @@ type Body = {
   includeLogo?: boolean
   imageModelId?: string
   postContext?: Record<string, string>
+  styleId?: string
   aspectRatio?: ImageAspectRatio
 }
 
@@ -109,6 +110,7 @@ export async function POST(req: Request) {
       imageModelId: body.imageModelId,
       postContext: body.postContext,
       aspectRatio: resolveAspectRatio(body.aspectRatio),
+      styleId: typeof body.styleId === 'string' ? body.styleId : null,
     })
 
     const inst = result.costInstrumentation

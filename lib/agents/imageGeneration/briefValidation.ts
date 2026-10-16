@@ -43,6 +43,7 @@ export function validateBriefForModel(
   brief: string,
   modelId: ImageGenerationModelId,
   postContext?: PostGroundingContext,
+  opts: BriefOptions = {},
 ): TextQaIssue[] {
   const issues: TextQaIssue[] = []
 
@@ -89,7 +90,8 @@ export function validateBriefForModel(
     })
   }
 
-  const logoIssue = detectLogoLockupBrief(brief) ?? detectVagueSocialBrief(brief)
+  // Styles that attach the real logo describe where it sits — that is not an invented logo.
+  const logoIssue = (opts.allowLogo ? null : detectLogoLockupBrief(brief)) ?? detectVagueSocialBrief(brief)
   if (logoIssue) issues.push(logoIssue)
 
   const lifestyleIssue = detectLifestyleDefaultBrief(brief, postContext)
@@ -191,22 +193,28 @@ function extractThemeHint(brief: string): string {
 }
 
 /** Final brief sent to the image model — rewrite bad Photoreal briefs instead of appending fixes. */
+/** allowLogo: the style attaches the brand-kit logo as an image reference (real logo, not invented). */
+export type BriefOptions = { allowLogo?: boolean }
+
 export function prepareBriefForImageModel(
   brief: string,
   modelId: ImageGenerationModelId,
   companyName: string,
   postContext?: PostGroundingContext,
+  opts: BriefOptions = {},
 ): string {
-  return scrubCompanyName(prepareBriefInner(brief, modelId, companyName, postContext), companyName)
+  const out = prepareBriefInner(brief, modelId, companyName, postContext, opts)
+  return opts.allowLogo ? out : scrubCompanyName(out, companyName)
 }
 
 function prepareBriefInner(
   brief: string,
   modelId: ImageGenerationModelId,
   companyName: string,
-  postContext?: PostGroundingContext,
+  postContext: PostGroundingContext | undefined,
+  opts: BriefOptions,
 ): string {
-  const issues = validateBriefForModel(brief, modelId, postContext)
+  const issues = validateBriefForModel(brief, modelId, postContext, opts)
   if (issues.length === 0) return stripDesignSpecsFromBrief(brief)
 
   const hasPhotorealLayoutIssue = modelId === 'photoreal'
@@ -296,8 +304,10 @@ export function appendQaFixToBrief(
   modelId: ImageGenerationModelId,
   companyName: string,
   postContext?: PostGroundingContext,
+  opts: BriefOptions = {},
 ): string {
-  return scrubCompanyName(appendQaFixInner(brief, issues, modelId, companyName, postContext), companyName)
+  const out = appendQaFixInner(brief, issues, modelId, companyName, postContext)
+  return opts.allowLogo ? out : scrubCompanyName(out, companyName)
 }
 
 function appendQaFixInner(

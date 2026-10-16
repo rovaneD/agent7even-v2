@@ -19,7 +19,8 @@ import { resolveImageGenerationModel, type ImageGenerationModelId } from './imag
 import { formatPostContextBriefBlock } from './postContextBrief'
 import { postGroundingFromForm, type PostGroundingContext } from './postGrounding'
 import { buildTextOnlyRegenBrief, detectImageEditMode, extractExpectedHeadline, TEXT_EDIT_QA_MAX_RETRIES, type ImageEditMode } from './editPrompt'
-import { generateImageEditFromSource, generateImageFromBrief, isGoogleImageModel, type ImageAspectRatio } from './openRouterImage'
+import { generateImageEditFromSource, generateImageFromBrief, isGoogleImageModel, renderImage, type ImageAspectRatio } from './openRouterImage'
+import { LOGO_REFERENCE_LINE, loadBrandLogoReference, resolveRunStyles } from './postStyles'
 import { runTextQaGate } from './textQaGate'
 import { GENERATION_OPTION_QA_MAX_RETRIES, type GenerateImageOptionsResult } from './types'
 
@@ -50,6 +51,8 @@ export async function generateImageOptions(opts: {
   imageModelId?: ImageGenerationModelId | string | null
   postContext?: Record<string, string>
   aspectRatio?: ImageAspectRatio
+  /** post_styles id, or 'auto' / undefined to let Maya pick a different style per option. */
+  styleId?: string | null
 }): Promise<GenerateImageOptionsResult> {
   const briefId = randomUUID()
   const modelEntry = resolveImageGenerationModel(opts.imageModelId)
@@ -89,6 +92,9 @@ export async function generateImageOptions(opts: {
     : { headlineAngles: creativeDirection.headlineAngles, casting: creativeDirection.visualDirection.casting }
   const aspectRatio: ImageAspectRatio = opts.aspectRatio ?? '4:5'
 
+  const run = await resolveRunStyles(opts.styleId)
+  const logoRef = run.styles.some(st => st.uses_logo) ? await loadBrandLogoReference(opts.profileId) : null
+
   const briefCompose = await composeImageBriefs({
     creativeDirectionBlock,
     companyName: opts.companyName,
@@ -97,17 +103,47 @@ export async function generateImageOptions(opts: {
     brandKitBlock,
     postContextBlock: formatPostContextBriefBlock(opts.postContext),
     postContext,
-    imageModelId: modelEntry.id,
+    styles: run.styles,
+    styleMode: run.mode,
+    logoAvailable: Boolean(logoRef),
     aspectRatio,
   })
   const briefs = briefCompose.briefs
+  const styleById = new Map(run.styles.map(st => [st.id, st]))
+
+  // Each option renders with its own style's model; the real logo rides along when the style uses it.
+  const plans = briefs.map((brief, index) => {
+    const style = styleById.get(briefCompose.concepts[index]?.style_id ?? '') ?? run.styles[0]!
+    const refs = style.uses_logo && logoRef ? [logoRef] : []
+    return {
+      style,
+      refs,
+      brief: refs.length > 0 ? `${brief} ${LOGO_REFERENCE_LINE}` : brief,
+      headline: briefCompose.concepts[index]?.headline || null,
+    }
+  })
 
   let imageCallsCostUsd = 0
-  const bytesList = await Promise.all(
-    briefs.map(async (brief, index) => {
+  const render = async (plan: (typeof plans)[number], brief: string) => {
+    const models = [plan.style.model, plan.style.fallback_model].filter(Boolean) as string[]
+    let lastErr: unknown
+    for (const model of models) {
       try {
-        imageCallsCostUsd += estimateImageCallCostUsd(imageModel)
-        return await generateImageFromBrief(imageModel, brief, aspectRatio)
+        const out = await renderImage(model, brief, aspectRatio, plan.refs)
+        imageCallsCostUsd += out.costUsd ?? estimateImageCallCostUsd(model)
+        return { bytes: out.bytes, model }
+      } catch (err) {
+        lastErr = err
+        console.warn(`[image-render] ${plan.style.id} on ${model} failed:`, err instanceof Error ? err.message.slice(0, 200) : err)
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error(String(lastErr))
+  }
+
+  const firstRenders = await Promise.all(
+    plans.map(async (plan, index) => {
+      try {
+        return await render(plan, plan.brief)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         throw new Error(`Image option ${index + 1} failed: ${msg}`)
@@ -116,22 +152,22 @@ export async function generateImageOptions(opts: {
   )
 
   const options = await Promise.all(
-    bytesList.map((bytes, index) =>
-      ensureOptionPassesQa({
+    firstRenders.map((first, index) => {
+      const plan = plans[index]!
+      return ensureOptionPassesQa({
         profileId: opts.profileId,
         companyName: opts.companyName,
         postContext,
-        includeLogo: opts.includeLogo === true,
+        includeLogo: plan.refs.length > 0,
         briefId,
         optionIndex: index,
-        brief: briefs[index]!,
-        imageModel,
-        imageModelId: modelEntry.id,
-        initialBytes: bytes,
-        aspectRatio,
-        retryCost: () => { imageCallsCostUsd += estimateImageCallCostUsd(imageModel) },
-      }),
-    ),
+        brief: plan.brief,
+        expectedHeadline: plan.headline,
+        imageModel: first.model,
+        initialBytes: first.bytes,
+        rerender: async (brief: string) => (await render(plan, brief)).bytes,
+      })
+    }),
   )
 
   const totalCostUsd = Number((briefCompose.costUsd + imageCallsCostUsd).toFixed(6))
@@ -139,11 +175,13 @@ export async function generateImageOptions(opts: {
   return {
     briefId,
     briefModel: briefCompose.briefModel,
-    imageModel,
+    imageModel: plans[0]?.style.model ?? imageModel,
     imageModelId: modelEntry.id,
     imageModelLabel: modelEntry.label,
     options,
     concepts: briefCompose.concepts,
+    ideas: briefCompose.ideas,
+    styleMode: run.mode,
     costInstrumentation: {
       actionType: resolveImageActionType(modelEntry.id, opts.plan ?? null),
       optionCount: count,
@@ -187,23 +225,23 @@ async function uploadRegeneratedOption(opts: {
   }
 }
 
-/** Run vision QA and auto-regenerate options that leak design specs or fail text checks. */
+/** Run vision QA and re-render options that fail text checks (same scene, same model, targeted fixes). */
 async function ensureOptionPassesQa(opts: {
   profileId: string
   companyName: string
   postContext?: PostGroundingContext
+  /** True when the real brand-kit logo was attached — the company name/logo is then expected. */
   includeLogo?: boolean
   briefId: string
   optionIndex: number
   brief: string
+  expectedHeadline?: string | null
   imageModel: string
-  imageModelId: ImageGenerationModelId
   initialBytes: Buffer
-  aspectRatio: ImageAspectRatio
-  /** Called once per QA retry render so the set's measured cost includes retries. */
-  retryCost?: () => void
+  rerender: (brief: string) => Promise<Buffer>
 }): Promise<GenerateImageOptionsResult['options'][number]> {
-  let brief = prepareBriefForImageModel(opts.brief, opts.imageModelId, opts.companyName, opts.postContext)
+  const briefOpts = { allowLogo: opts.includeLogo === true }
+  let brief = opts.brief
   let bytes = opts.initialBytes
 
   for (let attempt = 0; attempt <= GENERATION_OPTION_QA_MAX_RETRIES; attempt++) {
@@ -224,6 +262,7 @@ async function ensureOptionPassesQa(opts: {
       postContext: opts.postContext,
       includeLogo: opts.includeLogo,
       brief: opts.brief,
+      expectedHeadline: opts.expectedHeadline,
     })
     if (qa.passed) return option
 
@@ -236,15 +275,8 @@ async function ensureOptionPassesQa(opts: {
       return option
     }
 
-    brief = appendQaFixToBrief(
-      brief,
-      qa.issues,
-      opts.imageModelId,
-      opts.companyName,
-      opts.postContext,
-    )
-    opts.retryCost?.()
-    bytes = await generateImageFromBrief(opts.imageModel, brief, opts.aspectRatio)
+    brief = appendQaFixToBrief(brief, qa.issues, 'balanced', opts.companyName, opts.postContext, briefOpts)
+    bytes = await opts.rerender(brief)
   }
 
   throw new Error('qa_finalize_failed')
@@ -259,7 +291,11 @@ export async function regenerateImageOption(opts: {
   imageModel?: string
 }): Promise<GenerateImageOptionsResult['options'][number]> {
   const imageModel = opts.imageModel?.trim() || defaultImageModel()
-  const bytes = await generateImageFromBrief(imageModel, opts.brief, '4:5')
+  // Re-attach the real logo when the original render used it (brief carries the reference line).
+  const refs = opts.brief.includes(LOGO_REFERENCE_LINE)
+    ? [await loadBrandLogoReference(opts.profileId)].filter((u): u is string => Boolean(u))
+    : []
+  const bytes = await generateImageFromBrief(imageModel, opts.brief, '4:5', refs)
   return uploadRegeneratedOption({
     ...opts,
     imageModel,

@@ -89,8 +89,10 @@ export async function generateImageFromBrief(
   model: string,
   prompt: string,
   aspectRatio: ImageAspectRatio = '4:5',
+  referenceUrls: string[] = [],
 ): Promise<Buffer> {
-  return requestImageGeneration(model, prompt, aspectRatio)
+  // Routes Gemini via chat/completions and GPT Image / FLUX / Seedream via /images.
+  return (await generateImageForComparison(model, prompt, aspectRatio, referenceUrls)).bytes
 }
 
 export function isGoogleImageModel(model: string): boolean {
@@ -162,6 +164,16 @@ export async function requestImagesEndpoint(
  * models only on /images. Tries the likely route first, then the other. Reference images (a real
  * logo, product photos) go in as image parts / input_references so nothing is invented.
  */
+/** Render one image on any OpenRouter image model; returns the measured cost when the API reports it. */
+export async function renderImage(
+  model: string,
+  prompt: string,
+  aspectRatio: ImageAspectRatio = '4:5',
+  referenceUrls: string[] = [],
+) {
+  return generateImageForComparison(model, prompt, aspectRatio, referenceUrls)
+}
+
 export async function generateImageForComparison(
   model: string,
   prompt: string,
