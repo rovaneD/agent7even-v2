@@ -39,11 +39,25 @@ export async function POST(req: Request) {
   const profileId = workspaceDataUserId(ctx.session)
   const run = `bakeoff-${Date.now()}`
 
+  // brand-assets is a private bucket, so stored "/object/public/brand-assets/..." URLs return 400
+  // to model providers. Re-sign them for 1 hour; pass other https URLs through.
+  const signedRefs: string[] = []
+  for (const ref of (body.references ?? []).slice(0, 4)) {
+    const m = ref.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/([^?]+)/)
+    if (m && ['brand-assets', 'post-assets'].includes(m[1]!)) {
+      const { data, error } = await supabase.storage.from(m[1]!).createSignedUrl(decodeURIComponent(m[2]!), 3600)
+      if (data?.signedUrl) signedRefs.push(data.signedUrl)
+      else console.warn('[image-bakeoff] could not sign reference', m[2], error?.message)
+    } else if (!m && /^https:\/\//.test(ref)) {
+      signedRefs.push(ref)
+    }
+  }
+
   const jobs = prompts.flatMap((prompt, pi) => models.map(model => ({ prompt, pi, model })))
   const results = await Promise.all(jobs.map(async ({ prompt, pi, model }) => {
     const started = Date.now()
     try {
-      const references = (body.references ?? []).filter(u => /^https:\/\//.test(u)).slice(0, 4)
+      const references = signedRefs
       const { bytes, costUsd, route } = await generateImageForComparison(model, prompt, body.aspectRatio ?? '4:5', references)
       const { mime, ext } = sniffMime(bytes)
       const { storagePath } = await uploadPostAsset({
