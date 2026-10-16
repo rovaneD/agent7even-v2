@@ -98,6 +98,7 @@ export async function generateImageOptions(opts: {
     postContextBlock: formatPostContextBriefBlock(opts.postContext),
     postContext,
     imageModelId: modelEntry.id,
+    aspectRatio,
   })
   const briefs = briefCompose.briefs
 

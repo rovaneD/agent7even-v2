@@ -53,6 +53,16 @@ function writerRules(count: number, modelId: ImageGenerationModelId | undefined)
   ].join('\n')
 }
 
+function frameWords(ratio?: string): string {
+  switch (ratio) {
+    case '1:1': return 'square'
+    case '9:16': return 'tall vertical'
+    case '16:9': return 'wide horizontal'
+    case '1.91:1': return 'wide horizontal'
+    default: return 'vertical portrait'
+  }
+}
+
 /** Compose N distinct grounded image briefs from Creative Direction + optional Brand Kit + post form. */
 export async function composeImageBriefs(opts: {
   creativeDirectionBlock: string
@@ -63,6 +73,8 @@ export async function composeImageBriefs(opts: {
   postContextBlock?: string | null
   postContext?: PostGroundingContext
   imageModelId?: ImageGenerationModelId
+  /** The frame the image model renders — the prompt must describe the same one. */
+  aspectRatio?: string
 }): Promise<{
   briefs: string[]
   concepts: ImageConcept[]
@@ -76,7 +88,7 @@ export async function composeImageBriefs(opts: {
 
   const sections = [
     `# Post images for ${opts.companyName}`,
-    `Create ${count} options for one social post image.`,
+    `Create ${count} options for one social post image. Frame: ${opts.aspectRatio ?? '4:5'} (${frameWords(opts.aspectRatio)}). Every prompt opens with exactly this frame, and keeps the headline and subject at least 8% inside every edge.`,
     opts.postContextBlock?.trim() || '## This post\n(No post details given — choose the strongest message from the customer pain and headline angles below.)',
     opts.sceneDirection?.trim() ? `## Owner's notes for this run\n${opts.sceneDirection.trim()}` : '',
     `## The brand\n${opts.creativeDirectionBlock.trim()}`,
