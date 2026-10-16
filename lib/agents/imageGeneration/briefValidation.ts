@@ -233,48 +233,60 @@ export function buildSafeFallbackBrief(
   return buildSocialPostReplacementBrief(companyName, postContext)
 }
 
+const SCENE_FIX_BY_CODE: Record<string, string> = {
+  invented_logo: 'Every surface, sign, cup, screen and garment is plain and unbranded.',
+  environmental_logo: 'Every surface, sign, cup, screen and garment is plain and unbranded.',
+  logo_lockup: 'Every surface, sign, cup, screen and garment is plain and unbranded.',
+  fake_screen_ui: 'Any screen in the frame is dark or softly out of focus.',
+  off_palette_grade: 'Cool-neutral color grade with clean whites.',
+  unwanted_cta: 'The headline is the only text in the image.',
+  design_leak: 'The headline is the only text in the image.',
+  font_leak: 'The headline is the only text in the image.',
+}
+
+/** Content failures where the idea itself is wrong — rewriting beats re-rendering. */
+const REWRITE_CODES = new Set([
+  'brief_logo_lockup',
+  'brief_lifestyle_default',
+  'brief_textless_stock',
+  'brief_vague',
+  'brief_unwanted_cta',
+  'vague_headline',
+])
+
+/**
+ * Build the retry prompt after a QA failure.
+ * - Not the final retry: keep the writer's scene and add positive fixes (spelling, unbranded
+ *   surfaces, dark screens). Throwing the scene away over a typo wasted good concepts.
+ * - Final retry, photoreal, or a content failure: type-led poster with the kept headline.
+ */
 export function appendQaFixToBrief(
   brief: string,
   issues: TextQaIssue[],
   modelId: ImageGenerationModelId,
   companyName: string,
   postContext?: PostGroundingContext,
+  opts: { finalRetry?: boolean } = {},
 ): string {
   if (modelId === 'photoreal') {
     return buildSafeFallbackBrief(modelId, companyName, postContext)
   }
 
-  const needsGroundedRewrite = issues.some(
-    i =>
-      i.code === 'logo_lockup'
-      || i.code === 'brief_logo_lockup'
-      || i.code === 'brief_lifestyle_default'
-      || i.code === 'vague_headline'
-      || i.code === 'unwanted_cta'
-      || i.code === 'brief_unwanted_cta'
-      || i.code === 'invented_logo'
-      || i.code === 'environmental_logo'
-      || i.code === 'off_palette_grade'
-      || i.code === 'fake_screen_ui'
-      || i.code === 'brief_textless_stock'
-      || i.code === 'missing_headline'
-      || i.code === 'typo'
-      || i.code === 'brief_vague',
-  )
-  if (needsGroundedRewrite) {
-    // Typo / spelling retries keep the intended copy; content failures (vague, logo) rewrite it.
-    const keepCopy = issues.every(i => i.code === 'typo' || i.code === 'missing_headline' || i.code === 'invented_logo' || i.code === 'environmental_logo' || i.code === 'fake_screen_ui' || i.code === 'off_palette_grade' || i.code === 'unwanted_cta')
+  const contentFailure = issues.some(i => REWRITE_CODES.has(i.code))
+  const headline = extractHeadlineFromBrief(brief)
+
+  if (opts.finalRetry || contentFailure) {
     return buildSocialPostReplacementBrief(
       companyName,
       postContext ?? { postGoal: extractThemeHint(brief) },
-      keepCopy ? extractHeadlineFromBrief(brief) : null,
+      issues.some(i => i.code === 'vague_headline') ? null : headline,
     )
   }
 
-  // Restate what we want instead of listing the failure: naming the mistake re-primes it.
   const stripped = stripDesignSpecsFromBrief(brief)
-  const headline = extractHeadlineFromBrief(stripped)
-  return headline
-    ? `${stripped} Typography: the headline "${headline}" spelled exactly as written, crisp and fully legible, and it is the only text in the image.`
-    : stripped
+  const fixes = [...new Set(issues.map(i => SCENE_FIX_BY_CODE[i.code]).filter(Boolean))]
+  const typography = headline
+    ? `Typography: the headline "${headline}" spelled exactly as written, large, crisp and fully legible, and it is the only text in the image.`
+    : ''
+  return [stripped, ...fixes, typography].filter(Boolean).join(' ')
 }

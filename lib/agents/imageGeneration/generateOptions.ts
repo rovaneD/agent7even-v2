@@ -128,6 +128,7 @@ export async function generateImageOptions(opts: {
         imageModelId: modelEntry.id,
         initialBytes: bytes,
         aspectRatio,
+        retryCost: () => { imageCallsCostUsd += estimateImageCallCostUsd(imageModel) },
       }),
     ),
   )
@@ -198,6 +199,8 @@ async function ensureOptionPassesQa(opts: {
   imageModelId: ImageGenerationModelId
   initialBytes: Buffer
   aspectRatio: ImageAspectRatio
+  /** Called once per QA retry render so the set's measured cost includes retries. */
+  retryCost?: () => void
 }): Promise<GenerateImageOptionsResult['options'][number]> {
   let brief = prepareBriefForImageModel(opts.brief, opts.imageModelId, opts.companyName, opts.postContext)
   let bytes = opts.initialBytes
@@ -223,6 +226,11 @@ async function ensureOptionPassesQa(opts: {
     })
     if (qa.passed) return option
 
+    console.warn(
+      `[image-qa] option ${opts.optionIndex + 1} attempt ${attempt} failed:`,
+      qa.issues.map(i => `${i.code}: ${i.message}`).join(' | '),
+    )
+
     if (attempt >= GENERATION_OPTION_QA_MAX_RETRIES) {
       return option
     }
@@ -233,7 +241,9 @@ async function ensureOptionPassesQa(opts: {
       opts.imageModelId,
       opts.companyName,
       opts.postContext,
+      { finalRetry: attempt + 1 >= GENERATION_OPTION_QA_MAX_RETRIES },
     )
+    opts.retryCost?.()
     bytes = await generateImageFromBrief(opts.imageModel, brief, opts.aspectRatio)
   }
 
