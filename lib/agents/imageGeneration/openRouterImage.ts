@@ -123,6 +123,15 @@ export async function generateImageEditFromSource(opts: {
   ])
 }
 
+/** Providers clamp to their own ratio sets; OpenAI image models reject 4:5 (accept 3:4, 2:3, …). */
+function imagesAspect(model: string, aspectRatio: ImageAspectRatio): string {
+  if (model.startsWith('openai/')) {
+    const map: Partial<Record<ImageAspectRatio, string>> = { '4:5': '3:4', '5:4': '4:3', '9:16': '2:3', '21:9': '16:9' }
+    return map[aspectRatio] ?? aspectRatio
+  }
+  return aspectRatio
+}
+
 /** OpenRouter's dedicated Image API — required by GPT Image, FLUX 3, Seedream and others. */
 export async function requestImagesEndpoint(
   model: string,
@@ -131,7 +140,7 @@ export async function requestImagesEndpoint(
   referenceUrls: string[] = [],
   resolution: '1K' | '2K' = '1K',
 ): Promise<{ bytes: Buffer; costUsd: number | null }> {
-  const body: Record<string, unknown> = { model, prompt, n: 1, aspect_ratio: aspectRatio, resolution }
+  const body: Record<string, unknown> = { model, prompt, n: 1, aspect_ratio: imagesAspect(model, aspectRatio), resolution }
   if (referenceUrls.length > 0) {
     body.input_references = referenceUrls.map(url => ({ type: 'image_url', image_url: { url } }))
   }
