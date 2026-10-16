@@ -25,7 +25,7 @@ Rules:
 - renderedAs = literal letters you see painted — NEVER autocorrect to the expected word
 - Watch for dropped INTERNAL letters (e.g. "Qualfied" missing i, "Awarenss" missing e) — these are common AI typos
 - If a letter is missing, extra, swapped, or garbled → correct: false
-- correct: true ONLY when renderedAs matches expected exactly (case-insensitive OK)
+- correct: true ONLY when the letters of renderedAs match expected exactly (case-insensitive OK; ignore punctuation such as periods and commas)
 - passed: true ONLY when every word in the expected headline has correct: true
 - Ignore CTA buttons, subheads, and corner brand names unless they are part of the expected headline string`
 }
@@ -46,7 +46,10 @@ function parseSpellingVerifyJson(raw: string): {
     .map(w => {
       const expected = w.expected!.trim()
       const renderedAs = (w.renderedAs ?? '').trim()
-      const exactMatch = renderedAs.toLowerCase() === expected.toLowerCase()
+      // Compare letters and digits only: a period or comma the renderer added or dropped
+      // is not a misspelling (live QA failed every option on "work" vs "work.").
+      const letters = (v: string) => v.replace(/[^\p{L}\p{N}]/gu, '').toLowerCase()
+      const exactMatch = letters(renderedAs) === letters(expected)
       return {
         expected,
         renderedAs,

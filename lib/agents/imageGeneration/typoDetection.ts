@@ -28,8 +28,9 @@ const GARBLED_WORD_PATTERNS: Array<{ pattern: RegExp; expected: string }> = [
   { pattern: /\bdemad\b/i, expected: 'demand' },
 ]
 
+/** Letters and digits only — punctuation ("work." vs "work", "results," vs "results") is not a spelling error. */
 function normalizeWord(word: string): string {
-  return word.replace(/'/g, '').toLowerCase()
+  return word.replace(/[^\p{L}\p{N}]/gu, '').toLowerCase()
 }
 
 function normalizeText(text: string): string {
