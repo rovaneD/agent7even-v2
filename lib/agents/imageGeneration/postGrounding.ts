@@ -151,5 +151,5 @@ export function buildGroundedSocialPostBrief(
     ? `Headline across the clear upper third in a bold clean sans, white with one key word in electric blue: "${headline}". This headline is the only text in the image.`
     : `Across the clear upper third, a short specific headline of four to eight words that ${objectiveAngle(rawGoal) ?? 'names the customer pain this company solves'}, in a bold clean sans, white with one key word in electric blue. That headline is the only text in the image.`
 
-  return `Vertical 4:5 social post photo for ${companyName}.${topic} Candid documentary shot of ${who}, in their own place of work, in the middle of one specific working moment, framed in the lower two thirds with a clear, uncluttered area above. Bright natural daylight, cool-neutral color grade with deep charcoal and clean white tones. 35mm documentary photography, natural skin texture, shallow depth of field. ${typeLine}`
+  return `Vertical 4:5 social post photo.${topic} Candid documentary shot of ${who}, in their own place of work, in the middle of one specific working moment, framed in the lower two thirds with a clear, uncluttered area above. Bright natural daylight, cool-neutral color grade with deep charcoal and clean white tones. 35mm documentary photography, natural skin texture, shallow depth of field. ${typeLine}`
 }

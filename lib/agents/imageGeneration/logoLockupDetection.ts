@@ -192,3 +192,33 @@ export function buildSocialPostReplacementBrief(
   const theme = typeof themeHint === 'string' ? themeHint.trim() : ''
   return buildGroundedSocialPostBrief(companyName, theme ? { postGoal: theme } : undefined, preservedHeadline)
 }
+
+/**
+ * Logo off → the company name must not appear anywhere outside the headline itself.
+ * The vision rule only caught a name beside a symbol or badge, so plain wordmarks and
+ * name + tagline lockups ("AGENT7EVEN · For Local Service Business Owners") passed.
+ */
+export function detectCompanyNameWithoutLogo(opts: {
+  transcription: string | null | undefined
+  companyNames: string[]
+  includeLogo?: boolean
+  expectedHeadline?: string | null
+  mustInclude?: string | null
+}): TextQaIssue[] {
+  if (opts.includeLogo) return []
+  const text = opts.transcription?.trim()
+  if (!text) return []
+  const squash = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '')
+  let rest = squash(text)
+  if (opts.expectedHeadline) rest = rest.split(squash(opts.expectedHeadline)).join('')
+  const names = opts.companyNames.map(squash).filter(n => n.length >= 3)
+  const requested = opts.mustInclude ? names.some(n => squash(opts.mustInclude!).includes(n)) : false
+  if (requested) return []
+  if (names.some(n => rest.includes(n))) {
+    return [{
+      code: 'invented_logo',
+      message: 'The company name appears in the image (wordmark or tagline) but no logo was requested.',
+    }]
+  }
+  return []
+}

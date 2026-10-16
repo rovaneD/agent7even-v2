@@ -4,7 +4,7 @@ import { buildVisionUserMessageFromStorage, VISION_CAPTION_MODEL } from '@/lib/a
 import { loadBrandKitGenerationSnapshot } from './brandKitSnapshot'
 import { detectDesignSpecInImageText } from './designSpecLeakDetection'
 import { detectFontMetadataInImageText } from './fontLeakDetection'
-import { detectLogoLockupInImageText, detectInventedLogoBadgeInImageText } from './logoLockupDetection'
+import { detectLogoLockupInImageText, detectInventedLogoBadgeInImageText, detectCompanyNameWithoutLogo } from './logoLockupDetection'
 import { detectGenericHeadlineInImageText, type PostGroundingContext } from './postGrounding'
 import { loadBrandTokensForQa } from './brandTokens'
 import { FAKE_SCREEN_UI_QA_RULE } from './fakeScreenUiDetection'
@@ -78,7 +78,7 @@ function buildQaInstruction(opts: {
 }): string {
   const logoRule = opts.includeLogo
     ? '- User opted IN to include a logo — a small logo placement zone is OK; still fail invented wrong logos that do not match uploaded assets.'
-    : '- User did NOT request a logo on this post — fail if the image includes ANY invented logo icon, wordmark beside a symbol, geometric identity grid, abstract brand mark, company name paired with a graphic mark, logo on a laptop lid or device, neon/wall brand signage, or circular badge in the scene (flag code invented_logo or environmental_logo). Colors and typography only.'
+    : '- User did NOT request a logo on this post — fail if the image includes ANY invented logo icon, wordmark beside a symbol, geometric identity grid, abstract brand mark, the company name or a tagline anywhere in the image (even as plain text), company name paired with a graphic mark, logo on a laptop lid or device, neon/wall brand signage, or circular badge in the scene (flag code invented_logo or environmental_logo). Colors and typography only.'
 
   const postLines: string[] = []
   if (opts.postContext?.postGoal) postLines.push(`Post goal: ${opts.postContext.postGoal}`)
@@ -233,6 +233,13 @@ export async function runTextQaGate(opts: {
     brandTokens,
     opts.includeLogo,
   )
+  const companyNameIssues = detectCompanyNameWithoutLogo({
+    transcription: parsed.transcribedText,
+    companyNames: [opts.companyName],
+    includeLogo: opts.includeLogo,
+    expectedHeadline: spellingHeadline,
+    mustInclude: opts.postContext?.mustInclude,
+  })
   const groundingIssues = detectGenericHeadlineInImageText(parsed.transcribedText, opts.postContext)
   const unwantedCtaIssues = detectUnwantedOnImageCtaButtons(parsed.transcribedText, opts.postContext)
   const missingHeadlineIssues = detectMissingOnImageHeadline(parsed.transcribedText, brandTokens)
@@ -259,6 +266,7 @@ export async function runTextQaGate(opts: {
     ...designLeakIssues,
     ...logoLockupIssues,
     ...inventedBadgeIssues,
+    ...(inventedBadgeIssues.length ? [] : companyNameIssues),
     ...groundingIssues,
     ...unwantedCtaIssues,
     ...missingHeadlineIssues,

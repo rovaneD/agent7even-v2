@@ -127,6 +127,26 @@ export function dropNegativeSentences(brief: string): string {
   return out.length >= 40 ? out : brief
 }
 
+/**
+ * Image models letter whatever names they are given, so the company name never reaches
+ * the image prompt (a real logo, when requested, is composited — never drawn).
+ * Quoted headline text is left untouched.
+ */
+export function scrubCompanyName(brief: string, companyName: string): string {
+  const name = companyName.trim()
+  if (name.length < 3) return brief
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const parts = brief.split(/(["\u201c][^"\u201d]*["\u201d])/)
+  return parts
+    .map(part => /^["\u201c]/.test(part)
+      ? part
+      : part
+        .replace(new RegExp(`\\s*\\b(?:for|by|from)\\s+${esc}\\b(?:'s)?`, 'gi'), '')
+        .replace(new RegExp(`\\b${esc}(?:'s)?\\b`, 'gi'), 'the business'))
+    .join('')
+    .replace(/\s{2,}/g, ' ')
+}
+
 /** Remove design-system tokens from brief text before sending to an image model. */
 export function stripDesignSpecsFromBrief(brief: string): string {
   let out = brief
@@ -177,6 +197,15 @@ export function prepareBriefForImageModel(
   companyName: string,
   postContext?: PostGroundingContext,
 ): string {
+  return scrubCompanyName(prepareBriefInner(brief, modelId, companyName, postContext), companyName)
+}
+
+function prepareBriefInner(
+  brief: string,
+  modelId: ImageGenerationModelId,
+  companyName: string,
+  postContext?: PostGroundingContext,
+): string {
   const issues = validateBriefForModel(brief, modelId, postContext)
   if (issues.length === 0) return stripDesignSpecsFromBrief(brief)
 
@@ -185,7 +214,7 @@ export function prepareBriefForImageModel(
 
   if (hasPhotorealLayoutIssue) {
     const theme = extractThemeHint(brief)
-    return `Editorial photograph for ${companyName} social post: one specific physical object that visually metaphorizes ${theme}, shot like a product photo on a plain seamless background. Soft studio lighting, shallow depth of field, generous negative space, the brand palette carried by the color grade. A clean, purely photographic frame.`
+    return `Editorial photograph for a social post: one specific physical object that visually metaphorizes ${theme}, shot like a product photo on a plain seamless background. Soft studio lighting, shallow depth of field, generous negative space, the brand palette carried by the color grade. A clean, purely photographic frame.`
   }
 
   const needsGroundedRewrite = issues.some(
@@ -227,7 +256,7 @@ export function buildSafeFallbackBrief(
   postContext?: PostGroundingContext,
 ): string {
   if (modelId === 'photoreal') {
-    return `Professional still-life photograph for ${companyName}: one specific object as a business metaphor on a plain seamless background, soft studio lighting, shallow depth of field. A clean, purely photographic frame.`
+    return `Professional still-life photograph: one specific object as a business metaphor on a plain seamless background, soft studio lighting, shallow depth of field. A clean, purely photographic frame.`
   }
 
   return buildSocialPostReplacementBrief(companyName, postContext)
@@ -262,6 +291,16 @@ const REWRITE_CODES = new Set([
  *   built from the company's casting, keeping the headline when it was fine
  */
 export function appendQaFixToBrief(
+  brief: string,
+  issues: TextQaIssue[],
+  modelId: ImageGenerationModelId,
+  companyName: string,
+  postContext?: PostGroundingContext,
+): string {
+  return scrubCompanyName(appendQaFixInner(brief, issues, modelId, companyName, postContext), companyName)
+}
+
+function appendQaFixInner(
   brief: string,
   issues: TextQaIssue[],
   modelId: ImageGenerationModelId,

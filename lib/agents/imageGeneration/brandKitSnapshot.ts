@@ -131,7 +131,6 @@ export function formatBrandKitBriefBlock(
     '- Prefer minimal on-image text: one short headline (under 8 words), optional one subhead — no CTA buttons or pills on the image.',
     '- Every image must connect to the post goal and offer — no generic "boost your brand" or coffee-chat filler.',
     '- Avoid carousel multi-step copy, fake UI chrome, and generic stock-SaaS templates.',
-    `- Brand name spelling when text appears: "${opts.companyName}" (exact casing and digits).`,
   )
 
   if (opts.includeLogo && snapshot.logos.length > 0) {
@@ -141,6 +140,7 @@ export function formatBrandKitBriefBlock(
     )
   } else {
     lines.push(
+      `- The company name ("${opts.companyName}") and any tagline never appear in the image or in the image prompt — the headline is the only text.`,
       '- Do NOT include any logo, wordmark, monogram, brand icon, or abstract identity mark in the image.',
       '- Do NOT invent or approximate a logo (no triangle-A marks, geometric grids, pillar bars as fake logos, or company name beside a symbol).',
       '- Brand Kit here means colors + typography only — identity marks are excluded for this post.',
