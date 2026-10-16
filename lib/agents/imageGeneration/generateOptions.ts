@@ -93,7 +93,9 @@ export async function generateImageOptions(opts: {
   const aspectRatio: ImageAspectRatio = opts.aspectRatio ?? '4:5'
 
   const run = await resolveRunStyles(opts.styleId)
-  const logoRef = run.styles.some(st => st.uses_logo) ? await loadBrandLogoReference(opts.profileId) : null
+  // The logo appears only when the user turned it on AND the style has a place for it.
+  const wantsLogo = opts.includeLogo === true
+  const logoRef = wantsLogo && run.styles.some(st => st.uses_logo) ? await loadBrandLogoReference(opts.profileId) : null
 
   const briefCompose = await composeImageBriefs({
     creativeDirectionBlock,
