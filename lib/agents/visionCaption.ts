@@ -14,9 +14,26 @@ export async function loadPostAssetDataUrl(
     const compressed = await compressImageForApiPayload(bytes)
     const dataUrl = `data:${compressed.mime};base64,${compressed.bytes.toString('base64')}`
     return { dataUrl, mime: compressed.mime, bytes: compressed.bytes }
-  } catch {
+  } catch (err) {
+    // Compression (sharp) failed. Log it, and send the original image when it is
+    // already small enough for the vision API instead of failing the whole step.
+    console.error('[visionCaption] image compression failed:', err instanceof Error ? err.message : err)
+    const mime = sniffImageMime(bytes)
+    if (mime && bytes.byteLength <= ORIGINAL_IMAGE_MAX_BYTES) {
+      return { dataUrl: `data:${mime};base64,${bytes.toString('base64')}`, mime, bytes }
+    }
     return null
   }
+}
+
+/** Matches API_IMAGE_PAYLOAD_MAX_BYTES in postAssetsImagePayload (kept local so a sharp load failure cannot break it). */
+const ORIGINAL_IMAGE_MAX_BYTES = 3_800_000
+
+function sniffImageMime(bytes: Buffer): string | null {
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png'
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg'
+  if (bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP') return 'image/webp'
+  return null
 }
 
 export function buildImageCaptionSystemAddon(params: {

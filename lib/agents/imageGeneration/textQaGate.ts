@@ -202,7 +202,8 @@ export async function runTextQaGate(opts: {
       textInstruction: instruction,
       storagePath: opts.storagePath,
     })
-  } catch {
+  } catch (err) {
+    console.error('[textQaGate] could not load image for QA:', opts.storagePath, err instanceof Error ? err.message : err)
     return {
       passed: false,
       transcription: null,
