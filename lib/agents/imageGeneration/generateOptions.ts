@@ -83,7 +83,10 @@ export async function generateImageOptions(opts: {
     })
   }
 
-  const postContext = postGroundingFromForm(opts.postContext)
+  const formContext = postGroundingFromForm(opts.postContext)
+  const postContext: PostGroundingContext | undefined = formContext
+    ? { ...formContext, headlineAngles: creativeDirection.headlineAngles }
+    : { headlineAngles: creativeDirection.headlineAngles }
   const aspectRatio: ImageAspectRatio = opts.aspectRatio ?? '4:5'
 
   const briefCompose = await composeImageBriefs({
@@ -138,6 +141,7 @@ export async function generateImageOptions(opts: {
     imageModelId: modelEntry.id,
     imageModelLabel: modelEntry.label,
     options,
+    concepts: briefCompose.concepts,
     costInstrumentation: {
       actionType: resolveImageActionType(modelEntry.id, opts.plan ?? null),
       optionCount: count,

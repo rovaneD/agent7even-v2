@@ -47,11 +47,11 @@ export function stripFakeScreenUiFromBrief(brief: string): string {
   let out = brief
   out = out.replace(
     /\b(?:laptop|computer) screen.{0,40}(?:shows|showing|displays|displaying|with).{0,60}(?:dashboard|chart|graph|analytics|ui)[^.]*/gi,
-    'laptop with screen turned away or defocused',
+    'laptop with its screen softly out of focus',
   )
   out = out.replace(
     /\b(?:scattered|spread).{0,20}(?:papers|documents|reports).{0,40}(?:chart|graph)[^.]*/gi,
-    'minimal desk props without readable charts',
+    'a few minimal desk props',
   )
   out = out.replace(/\bfake dashboard\b/gi, 'plain laptop')
   return out.replace(/\s{2,}/g, ' ').trim()

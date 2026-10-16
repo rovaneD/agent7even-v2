@@ -26,14 +26,18 @@ const LOGO_BRIEF_PATTERNS = [
 ]
 
 const LIFESTYLE_DEFAULT_BRIEF_PATTERNS = [
-  /\bcoffee shop\b/i,
-  /\bcozy caf[eé]\b/i,
-  /\bwarm candid\b/i,
+  // Coffee shops, golden hour and warm tones are legitimate for many customers
+  // (Foundation casting decides). Only the sepia/brown wash and office stock are flagged.
   /\bsepia\b/i,
-  /\bgolden hour\b/i,
-  /\bearth(?:y)? tones?\b/i,
   /\bterracotta (?:grade|grading|tone|palette|wash)\b/i,
   /\b(?:brown|amber|sepia) (?:color )?(?:grade|grading|wash|filter|tone)\b/i,
+  // Generic AI office stock — the default look owners called "AI slop".
+  /\b(?:conference|meeting|board) ?room\b/i,
+  /\b(?:open[- ]plan|glass[- ]walled) office\b/i,
+  /\b(?:team|colleagues|coworkers|professionals|people) (?:gathered|huddled|seated|sitting|standing|collaborating) (?:around|at)\b/i,
+  /\bhandshake\b/i,
+  /\bwhiteboard (?:session|meeting|brainstorm)\b/i,
+  /\bmodern (?:office|workspace)\b/i,
 ]
 
 /** Brief defaults to coffee-shop / sepia lifestyle stock instead of post-grounded SaaS visuals. */
@@ -48,14 +52,14 @@ export function detectLifestyleDefaultBrief(
   ]
     .filter(Boolean)
     .join(' ')
-  const allowsLifestyle = /\bcoffee|caf[eé]|lifestyle|cozy shop\b/i.test(postText)
+  const allowsLifestyle = /\bcoffee|caf[eé]|lifestyle|cozy shop|office|meeting|team photo|conference\b/i.test(postText)
   if (allowsLifestyle) return null
 
   for (const pattern of LIFESTYLE_DEFAULT_BRIEF_PATTERNS) {
     if (pattern.test(brief)) {
       return {
         code: 'brief_lifestyle_default',
-        message: 'Brief defaults to coffee-shop or warm sepia lifestyle stock — use neutral modern workspace or product-adjacent scenes instead.',
+        message: 'Brief defaults to generic stock (office, meeting room, sepia wash) — use a specific customer moment, an object metaphor, or a type-led visual tied to the headline.',
       }
     }
   }
@@ -180,12 +184,11 @@ export function detectVagueSocialBrief(brief: string): TextQaIssue | null {
 export function buildSocialPostReplacementBrief(
   companyName: string,
   themeHint?: string | PostGroundingContext,
+  preservedHeadline?: string | null,
 ): string {
   if (themeHint && typeof themeHint === 'object') {
-    return buildGroundedSocialPostBrief(companyName, themeHint)
+    return buildGroundedSocialPostBrief(companyName, themeHint, preservedHeadline)
   }
   const theme = typeof themeHint === 'string' ? themeHint.trim() : ''
-  return buildGroundedSocialPostBrief(companyName, {
-    postGoal: theme || 'the post goal and customer pain point',
-  })
+  return buildGroundedSocialPostBrief(companyName, theme ? { postGoal: theme } : undefined, preservedHeadline)
 }

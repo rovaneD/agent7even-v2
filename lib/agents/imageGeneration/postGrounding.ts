@@ -1,10 +1,12 @@
 import type { TextQaIssue } from './types'
 import type { ImageGenerationModelId } from './imageModelCatalog'
 import { modelRequiresOnImageHeadline } from './headlineRequiredBrief'
-import { LAPTOP_SCREEN_SAFE_LINE } from './fakeScreenUiDetection'
-import { NO_ON_IMAGE_CTA_RULE } from './onImageCtaDetection'
+import { hasObjectivePrefix, isPostGoalObjective, objectiveAngle, stripObjectivePrefix } from './postObjective'
 
 export type PostGroundingContext = {
+  topic?: string
+  /** Foundation headline angles — used when a retry needs a fresh headline. */
+  headlineAngles?: string[]
   postGoal?: string
   offer?: string
   audience?: string
@@ -15,6 +17,7 @@ export type PostGroundingContext = {
 export function postGroundingFromForm(form: Record<string, string> | undefined): PostGroundingContext | undefined {
   if (!form) return undefined
   const ctx: PostGroundingContext = {
+    topic: form.topic?.trim(),
     postGoal: form.postGoal?.trim(),
     offer: form.offer?.trim(),
     audience: form.audience?.trim(),
@@ -50,6 +53,13 @@ export function detectGenericHeadlineInImageText(
 
   const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean)
   const primary = lines[0] ?? text
+
+  if (lines.slice(0, 2).some(l => isPostGoalObjective(l) || hasObjectivePrefix(l))) {
+    return [{
+      code: 'vague_headline',
+      message: 'Headline prints the post objective label (e.g. "Awareness:") — objectives are strategy, not on-image copy. Write a real marketing line instead.',
+    }]
+  }
 
   for (const pattern of GENERIC_HEADLINE_PATTERNS) {
     if (pattern.test(primary) || pattern.test(text)) {
@@ -109,22 +119,36 @@ export function detectBriefMissingPostGrounding(
   return null
 }
 
+/**
+ * Fallback / retry brief sent straight to the image model. Positive description only:
+ * image models draw whatever a prompt names, so nothing unwanted is mentioned here.
+ */
 export function buildGroundedSocialPostBrief(
   companyName: string,
   ctx?: PostGroundingContext,
+  preservedHeadline?: string | null,
 ): string {
-  const goal = ctx?.postGoal?.trim() || 'the post goal from the form'
-  const offer = ctx?.offer?.trim()
-  const audience = ctx?.audience?.trim()
-  const mustInclude = ctx?.mustInclude?.trim()
+  const usable = (h?: string | null) => {
+    const t = h ? stripObjectivePrefix(h.trim()).replace(/["“”]/g, '') : ''
+    const words = t.split(/\s+/).filter(Boolean).length
+    return words >= 2 && words <= 10 && !isPostGoalObjective(t) ? t : ''
+  }
 
-  const audienceLine = audience ? ` Audience: ${audience}.` : ''
-  const includeLine = mustInclude ? ` Must reflect: ${mustInclude}.` : ''
-  const offerLine = offer
-    ? ` Offer context (for headline angle only, not a button): ${offer.slice(0, 60)}.`
+  const rawGoal = ctx?.postGoal?.trim() || ''
+  const goalIsObjective = objectiveAngle(rawGoal) !== null
+  const headline =
+    usable(preservedHeadline)
+    || usable(ctx?.headlineAngles?.find(a => usable(a)))
+    || (!goalIsObjective ? usable(rawGoal.split(/\s+/).slice(0, 8).join(' ')) : '')
+
+  const subject = ctx?.topic?.trim()
+    ? ` The post is about: ${ctx.topic.trim().slice(0, 160)}.`
     : ''
-  const headlineWords = goal.split(/\s+/).slice(0, 8).join(' ')
-  const quotedHeadline = `"${headlineWords.charAt(0).toUpperCase()}${headlineWords.slice(1)}"`
+  const audience = ctx?.audience?.trim() ? ` Written for ${ctx.audience.trim()}.` : ''
 
-  return `Instagram/LinkedIn post graphic for ${companyName}: headline on image ${quotedHeadline} — bold sans, under 8 words, tied to ${goal}.${audienceLine}${includeLine}${offerLine} ${NO_ON_IMAGE_CTA_RULE} Full-bleed layout with headline only — optional one short subhead max, no button chrome. NOT a logo tile, invented wordmark, monogram, abstract brand-mark grid, or geometric identity symbol. Do NOT draw or invent any logo icon anywhere — no logos on laptop lids, device backs, neon wall signs, or background decor; user did not request a logo on this post. ${LAPTOP_SCREEN_SAFE_LINE} Do NOT make "${companyName}" the hero text. Company name may appear small in a corner at most. Neutral/cool photo grade with electric blue accents — no sepia, brown, or terracotta color wash. Prefer bright modern workspace or product-adjacent scenes — no random coffee-shop or lifestyle stock unless the post ask requests them. Stay on the B2B marketing SaaS product described in Foundation.`
+  const typeLine = headline
+    ? `The headline "${headline}" is set large in a bold condensed sans, left-aligned, filling the upper two thirds. This headline is the only text in the image.`
+    : `A short, specific headline of four to eight words that ${objectiveAngle(rawGoal) ?? 'names the customer pain this company solves'}, set large in a bold condensed sans, left-aligned, filling the upper two thirds. That headline is the only text in the image.`
+
+  return `Social post graphic for ${companyName}, poster-like and confident.${subject}${audience} Background: a flat deep charcoal field with subtle paper grain. ${typeLine} One graphic element: a thick electric blue bar underlining the most important word. Generous margins, crisp edges, high contrast, editorial poster design.`
 }

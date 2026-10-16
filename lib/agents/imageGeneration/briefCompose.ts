@@ -2,10 +2,9 @@ import { openRouterComplete } from '@/lib/agents/openrouter'
 import { calculateCost } from '@/lib/agents/cost'
 import { resolveImageGenerationModel, type ImageGenerationModelId } from './imageModelCatalog'
 import { prepareBriefForImageModel } from './briefValidation'
-import { GLOBAL_IMAGE_BRIEF_RULES, modelBriefRulesBlock } from './modelBriefRules'
-import { LAPTOP_SCREEN_SAFE_LINE } from './fakeScreenUiDetection'
-import { NO_ON_IMAGE_CTA_RULE } from './onImageCtaDetection'
 import type { PostGroundingContext } from './postGrounding'
+
+export type ImageConcept = { message: string; headline: string; visual_idea: string; prompt: string }
 
 const DEFAULT_BRIEF_MODEL = 'anthropic/claude-sonnet-5.5'
 
@@ -22,15 +21,36 @@ export function defaultImageModel(): string {
   return resolveImageGenerationModel(null).openRouterModel
 }
 
-function optionDiversityLine(count: number, modelId?: ImageGenerationModelId): string {
-  switch (modelId) {
-    case 'photoreal':
-      return `Make the ${count} options visually distinct but cohesive: editorial photograph, symbolic object close-up, environmental wide shot, or abstract texture — NEVER bar charts, infographics, pillar diagrams, stat dashboards, or UI mockups.`
-    case 'sharp-text':
-      return `Make the ${count} options visually distinct: bold headline card, stat callout with one number, quote card — readable typography is the point; NEVER logo lockups, wordmarks, monograms, or abstract brand-mark tiles.`
-    default:
-      return `Make the ${count} options visually distinct headline-forward social post graphics — EACH must quote a different specific headline in the brief. Vary layout (bold type over photo, split panel, type on solid) — NEVER textless editorial stock photos or hands-only b-roll without headline text.`
-  }
+/**
+ * Craft rules for the brief writer (an LLM — it can handle "avoid X").
+ * The image prompts it writes must be positive-only: image models treat any
+ * object named in a prompt as something to draw, so "no laptop logo" yields laptops.
+ */
+function writerRules(count: number, modelId: ImageGenerationModelId | undefined): string {
+  const textless = modelId === 'photoreal'
+  return [
+    '## How to work',
+    `1. Find ${count} DIFFERENT ideas for this post — different messages or different visual metaphors, not ${count} layouts of one idea.`,
+    '2. For each idea write: the message (one sentence a viewer should take away), the headline, a visual idea, then the image prompt.',
+    textless
+      ? '3. This image model renders no text: the picture alone carries the message; the headline goes in the caption.'
+      : '3. Headline: at most 8 words, in the brand voice, saying the message. Adapt a headline angle when it fits. The post goal (Awareness, Leads…) is strategy and never appears in the headline.',
+    '4. Visual idea: one concrete picture a viewer gets in one second that says the same thing as the headline. Pick one:',
+    '   - a real person from this company\'s customers, in their own real place, in one specific moment (use the casting notes);',
+    '   - one physical object that stands for the pain or the payoff, shot like a product photo;',
+    textless ? '   - an abstract or textural image with a clear focal point.' : '   - type only: the headline as the hero on a color field with one graphic element.',
+    '   Use at least two different kinds across the options.',
+    '5. Generic business imagery is the failure: offices, meeting rooms, teams at tables, people smiling at laptops, handshakes, glowing networks. If the idea could illustrate any company, replace it.',
+    '',
+    '## The image prompt (this text goes straight to the image model)',
+    '- 60 to 120 words, plain description, in this order: format and framing; subject; the moment or action; setting; composition',
+    textless
+      ? '  (where the eye lands); lighting; color palette and grade; photographic style (e.g. "35mm documentary photo, natural skin texture, shallow depth of field").'
+      : '  (and where the headline sits); lighting; color palette and grade; style; then typography: the headline in double quotes exactly as written, its type style, and "This headline is the only text in the image."',
+    '- Describe only what IS in the frame. Never mention anything that should be absent — no "no", "not", "never", "avoid" or "without". Naming a thing makes the image model draw it.',
+    '- Colors as plain words ("deep charcoal", "electric blue accent"); type as plain words ("bold condensed sans"). No hex codes, token names or font names.',
+    '- Logo and company name appear only when the brand block says the logo is included.',
+  ].join('\n')
 }
 
 /** Compose N distinct grounded image briefs from Creative Direction + optional Brand Kit + post form. */
@@ -45,64 +65,39 @@ export async function composeImageBriefs(opts: {
   imageModelId?: ImageGenerationModelId
 }): Promise<{
   briefs: string[]
+  concepts: ImageConcept[]
   briefModel: string
   inputTokens: number
   outputTokens: number
   costUsd: number
 }> {
   const count = opts.count ?? imageOptionCount()
-  const directionBlock = opts.sceneDirection?.trim()
-    ? `\nOwner scene direction (honor if compatible with brand):\n${opts.sceneDirection.trim()}\n`
-    : ''
+  const modelId = opts.imageModelId ?? resolveImageGenerationModel(null).id
 
-  const brandBlock = opts.brandKitBlock?.trim()
-    ? `\n${opts.brandKitBlock.trim()}\n`
-    : `\nUse Agent7even platform palette when no Brand Kit colors are provided: electric blue accent on white/slate surfaces — NOT brown, terracotta, or amber CTAs.\n`
-
-  const postBlock = opts.postContextBlock?.trim()
-    ? `\n${opts.postContextBlock.trim()}\n`
-    : ''
-
-  const modelBlock = opts.imageModelId
-    ? `\n${modelBriefRulesBlock(opts.imageModelId)}\n`
-    : ''
-
-  const diversityLine = optionDiversityLine(count, opts.imageModelId)
-
-  const kindSpec = `${GLOBAL_IMAGE_BRIEF_RULES}${modelBlock}
-Write exactly ${count} distinct Instagram/LinkedIn POST IMAGE generation prompts for ${opts.companyName}.
-Every brief MUST quote one specific on-image headline in double quotes — these are text-on-image social graphics, NOT textless editorial photographs.
-Each prompt must be a self-contained paragraph (150-350 words) describing visual composition, mood, and what to avoid (generic AI slop, business-in-a-box templates).
-Brief text is sent directly to the image model — write plain creative direction only:
-- Do NOT paste hex codes, color token names, or font specs into the brief (they become visible labels on the image).
-- Describe palette as "electric blue accent", "deep slate", "clean white background" — not "warm amber" or brown CTAs unless the Creative Direction palette explicitly requests earthy tones.
-- Describe typography as "bold sans headline" — not "Inter weight 700".
-${opts.imageModelId === 'photoreal'
-    ? '- Photoreal: describe a photograph or abstract scene only — no headlines, charts, infographics, or on-image text in the brief.'
-    : '- If on-image text is appropriate for this model, quote the marketing headline only (e.g. headline: "Results Without Reports") — never font or color specs. No on-image CTA buttons — headline (+ optional subhead) only.'}
-${diversityLine}
-Ground every prompt in the Creative Direction block AND the post ask block — not generic stock SaaS or coffee-chat filler.
-${NO_ON_IMAGE_CTA_RULE}
-Prefer bright modern workspace, home-office desk, or product-adjacent scenes — NOT coffee shops, sepia grades, or cozy café stock unless the post ask requests them.
-Laptop lids and device backs must stay plain — never brief a stylized logo on hardware or neon brand signage on walls.
-${LAPTOP_SCREEN_SAFE_LINE}
-Honor weakSignals when present — lean on stronger fields instead of inventing generic copy.
-Do NOT mention "Foundation", "Creative Direction", or "Brand Kit" — write as if briefing a designer.${brandBlock}${postBlock}${directionBlock}`
+  const sections = [
+    `# Post images for ${opts.companyName}`,
+    `Create ${count} options for one social post image.`,
+    opts.postContextBlock?.trim() || '## This post\n(No post details given — choose the strongest message from the customer pain and headline angles below.)',
+    opts.sceneDirection?.trim() ? `## Owner's notes for this run\n${opts.sceneDirection.trim()}` : '',
+    `## The brand\n${opts.creativeDirectionBlock.trim()}`,
+    opts.brandKitBlock?.trim()
+      ? opts.brandKitBlock.trim()
+      : '## Palette\nNo brand kit: use deep charcoal, white and one electric blue accent.',
+    writerRules(count, modelId),
+    `## Output\nJSON only: { "options": [ { "message": string, "headline": string, "visual_idea": string, "prompt": string } ] } with exactly ${count} items.`,
+  ].filter(Boolean)
 
   const result = await openRouterComplete({
     model: briefComposeModel(),
-    temperature: 0.6,
-    max_tokens: 4000,
+    temperature: 0.8,
+    max_tokens: 3000,
     messages: [
       {
         role: 'system',
         content:
-          'You are Maya, Agent7even\'s brand strategist. Output ONLY valid JSON: { "briefs": string[] } with the requested count. No markdown fences. Never put hex codes, Brand Kit color names, or font weights in brief strings — image models render them as visible text.',
+          'You are a senior art director and copywriter at a small, sharp creative studio. You make social posts that look like a real designer and photographer made them for this specific business. Output ONLY valid JSON, no markdown fences.',
       },
-      {
-        role: 'user',
-        content: `${kindSpec}\n\n--- CREATIVE DIRECTION ---\n${opts.creativeDirectionBlock.trim()}`,
-      },
+      { role: 'user', content: sections.join('\n\n') },
     ],
   })
 
@@ -110,13 +105,20 @@ Do NOT mention "Foundation", "Creative Direction", or "Brand Kit" — write as i
   const jsonMatch = raw.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error(`Brief compose did not return JSON: ${raw.slice(0, 400)}`)
 
-  const parsed = JSON.parse(jsonMatch[0]) as { briefs?: string[] }
-  const briefs = (parsed.briefs ?? []).map(b => b.trim()).filter(Boolean)
-  if (briefs.length < count) {
-    throw new Error(`Expected ${count} image briefs, got ${briefs.length}`)
+  const parsed = JSON.parse(jsonMatch[0]) as { options?: Partial<ImageConcept>[]; briefs?: string[] }
+  const concepts: ImageConcept[] = (parsed.options ?? [])
+    .map(o => ({
+      message: String(o.message ?? '').trim(),
+      headline: String(o.headline ?? '').trim(),
+      visual_idea: String(o.visual_idea ?? '').trim(),
+      prompt: String(o.prompt ?? '').trim(),
+    }))
+    .filter(o => o.prompt)
+  const rawBriefs = concepts.length > 0 ? concepts.map(c => c.prompt) : (parsed.briefs ?? []).map(b => b.trim()).filter(Boolean)
+  if (rawBriefs.length < count) {
+    throw new Error(`Expected ${count} image briefs, got ${rawBriefs.length}`)
   }
-  const modelId = opts.imageModelId ?? resolveImageGenerationModel(null).id
-  const prepared = briefs
+  const prepared = rawBriefs
     .slice(0, count)
     .map(brief => prepareBriefForImageModel(brief, modelId, opts.companyName, opts.postContext))
 
@@ -125,6 +127,7 @@ Do NOT mention "Foundation", "Creative Direction", or "Brand Kit" — write as i
 
   return {
     briefs: prepared,
+    concepts: concepts.slice(0, count),
     briefModel,
     inputTokens: result.inputTokens,
     outputTokens: result.outputTokens,

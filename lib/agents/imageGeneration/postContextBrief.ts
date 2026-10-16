@@ -11,26 +11,16 @@ export function formatPostContextBriefBlock(
     if (v) lines.push(`- ${label}: ${v}`)
   }
 
+  add('What this post is about', 'topic')
   add('Platform', 'platform')
-  add('Post goal', 'postGoal')
+  add('Post goal (strategy only — never printed)', 'postGoal')
   add('Audience', 'audience')
-  add('Offer / CTA', 'offer')
+  add('Offer / CTA (shapes the angle; the CTA itself lives in the caption)', 'offer')
   add('Must include', 'mustInclude')
   add('Must avoid', 'mustAvoid')
 
   if (lines.length === 0) return null
 
-  const mediumLine = medium === 'video'
-    ? '- Honor in the video brief — scene, motion, and text overlay must support this specific post.'
-    : '- Honor in every image option — non-negotiable.'
-
-  return [
-    '## This post ask (non-negotiable)',
-    ...lines,
-    mediumLine,
-    '- Visuals must support this specific post — not generic brand awareness only.',
-    '- Quote a concrete headline (max 8 words) tied to Post goal and customer pain.',
-    '- Offer/CTA field informs headline angle and caption — do NOT bake CTA buttons into the visual.',
-    '- Do NOT use vague lifestyle scenes (coffee chat, generic "boost your brand") unless the post ask explicitly requests them.',
-  ].join('\n')
+  const heading = medium === 'video' ? '## This post (the video must serve it)' : '## This post (every option must serve it)'
+  return [heading, ...lines].join('\n')
 }

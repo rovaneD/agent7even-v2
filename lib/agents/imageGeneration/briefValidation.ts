@@ -10,6 +10,8 @@ import { detectFakeScreenUiBrief, stripFakeScreenUiFromBrief } from './fakeScree
 import { detectOnImageCtaBrief, stripOnImageCtaFromBrief } from './onImageCtaDetection'
 import { detectBriefMissingPostGrounding, type PostGroundingContext } from './postGrounding'
 import type { TextQaIssue } from './types'
+import { extractHeadlineFromBrief } from './headlineExtract'
+import { stripObjectivePrefix } from './postObjective'
 
 const PHOTOREAL_FORBIDDEN_BRIEF = [
   /\bdata visualization\b/i,
@@ -108,6 +110,23 @@ export function validateBriefForModel(
   return issues
 }
 
+const NEGATION = /\b(?:no|not|never|avoid|avoiding|without|don'?t|do not|nothing|none|free of)\b/i
+
+/**
+ * Image models draw what a prompt names, so "no laptop logos" produces laptop logos.
+ * Drop sentences that describe what should be absent. Sentences carrying the quoted
+ * headline are kept whole.
+ */
+export function dropNegativeSentences(brief: string): string {
+  // Shield quoted text so punctuation inside a headline doesn't split a sentence.
+  const quotes: string[] = []
+  const shielded = brief.replace(/["\u201c][^"\u201d]*["\u201d]/g, q => `\u0000${quotes.push(q) - 1}\u0000`)
+  const sentences = shielded.match(/[^.!?]+(?:[.!?]+|$)/g) ?? [shielded]
+  const kept = sentences.filter(s => s.includes('\u0000') || !NEGATION.test(s))
+  const out = kept.join(' ').replace(/\u0000(\d+)\u0000/g, (_m, i: string) => quotes[Number(i)]!).replace(/\s{2,}/g, ' ').trim()
+  return out.length >= 40 ? out : brief
+}
+
 /** Remove design-system tokens from brief text before sending to an image model. */
 export function stripDesignSpecsFromBrief(brief: string): string {
   let out = brief
@@ -124,17 +143,16 @@ export function stripDesignSpecsFromBrief(brief: string): string {
     /\b(?:warm amber|terracotta|burnt orange|earthy brown|brown cta|brown button|amber button|orange button)\b/gi,
     'electric blue accent',
   )
-  out = out.replace(
-    /\b(?:coffee shop|cozy caf[eé]|warm candid|sepia(?: tone)?|golden hour|earth(?:y)? tones?)\b/gi,
-    'bright modern workspace',
-  )
+  out = out.replace(/\bsepia(?: tone)?\b/gi, 'clean natural color')
   out = out.replace(
     /\b(?:logo|wordmark|brand mark|emblem|neon sign).{0,30}\b(?:on|atop|across) (?:the )?(?:laptop|wall|device|background)\b/gi,
-    'plain laptop lid with no decals',
+    'a plain surface',
   )
 
   out = stripFakeScreenUiFromBrief(out)
   out = stripOnImageCtaFromBrief(out)
+  out = dropNegativeSentences(out)
+  out = out.replace(/(["'])([^"']{3,})\1/g, (_m, q: string, inner: string) => `${q}${stripObjectivePrefix(inner)}${q}`)
 
   return out.replace(/\s{2,}/g, ' ').trim()
 }
@@ -167,7 +185,7 @@ export function prepareBriefForImageModel(
 
   if (hasPhotorealLayoutIssue) {
     const theme = extractThemeHint(brief)
-    return `Editorial photograph for ${companyName} social post: an authentic, cinematic scene that visually metaphorizes ${theme}. Natural lighting, shallow depth of field, real environment (workspace detail, hands at work, decisive moment — never a chart, diagram, infographic, or pillar layout). Apply the brand palette through scene color grading only — never as labels. Absolutely no text, typography, headlines, hex codes, color names, font specs, or graphic overlays anywhere in the frame.`
+    return `Editorial photograph for ${companyName} social post: one specific physical object that visually metaphorizes ${theme}, shot like a product photo on a plain seamless background. Soft studio lighting, shallow depth of field, generous negative space, the brand palette carried by the color grade. A clean, purely photographic frame.`
   }
 
   const needsGroundedRewrite = issues.some(
@@ -180,13 +198,18 @@ export function prepareBriefForImageModel(
       || i.code === 'brief_textless_stock',
   )
   if (needsGroundedRewrite) {
-    return buildSocialPostReplacementBrief(companyName, postContext ?? { postGoal: extractThemeHint(brief) })
+    return buildSocialPostReplacementBrief(
+      companyName,
+      postContext ?? { postGoal: extractThemeHint(brief) },
+      extractHeadlineFromBrief(brief),
+    )
   }
 
   const stripped = stripDesignSpecsFromBrief(brief)
-  return `${stripped}
-
-Apply brand colors and typography silently in the render only. Do NOT print hex codes, color token names, swatches, font family names, or weight numbers as visible text.`
+  const headline = extractHeadlineFromBrief(stripped)
+  return headline && modelId !== 'photoreal'
+    ? `${stripped} The headline "${headline}" is the only text in the image.`
+    : stripped
 }
 
 /** @deprecated Use prepareBriefForImageModel */
@@ -204,7 +227,7 @@ export function buildSafeFallbackBrief(
   postContext?: PostGroundingContext,
 ): string {
   if (modelId === 'photoreal') {
-    return `Professional editorial photograph for ${companyName}: natural lighting, shallow depth of field, authentic business metaphor (hands at work, thoughtful pause, movement in a real environment). Absolutely no text, typography, charts, labels, hex codes, or graphic overlays anywhere in the frame.`
+    return `Professional still-life photograph for ${companyName}: one specific object as a business metaphor on a plain seamless background, soft studio lighting, shallow depth of field. A clean, purely photographic frame.`
   }
 
   return buildSocialPostReplacementBrief(companyName, postContext)
@@ -239,15 +262,19 @@ export function appendQaFixToBrief(
       || i.code === 'brief_vague',
   )
   if (needsGroundedRewrite) {
+    // Typo / spelling retries keep the intended copy; content failures (vague, logo) rewrite it.
+    const keepCopy = issues.every(i => i.code === 'typo' || i.code === 'missing_headline' || i.code === 'invented_logo' || i.code === 'environmental_logo' || i.code === 'fake_screen_ui' || i.code === 'off_palette_grade' || i.code === 'unwanted_cta')
     return buildSocialPostReplacementBrief(
       companyName,
       postContext ?? { postGoal: extractThemeHint(brief) },
+      keepCopy ? extractHeadlineFromBrief(brief) : null,
     )
   }
 
-  const summary = issues.map(i => i.message).join(' ')
-  return `${stripDesignSpecsFromBrief(brief)}
-
-FIX PREVIOUS RENDER: ${summary}
-Do NOT repeat these mistakes. No hex codes or design token labels as visible text.`
+  // Restate what we want instead of listing the failure: naming the mistake re-primes it.
+  const stripped = stripDesignSpecsFromBrief(brief)
+  const headline = extractHeadlineFromBrief(stripped)
+  return headline
+    ? `${stripped} Typography: the headline "${headline}" spelled exactly as written, crisp and fully legible, and it is the only text in the image.`
+    : stripped
 }

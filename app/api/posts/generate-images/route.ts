@@ -123,6 +123,8 @@ export async function POST(req: Request) {
         inputTokens: inst.inputTokens,
         outputTokens: inst.outputTokens,
         briefModel: result.briefModel,
+        briefs: result.options.map(o => o.brief),
+        concepts: result.concepts,
       })
     }
 

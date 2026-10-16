@@ -80,7 +80,7 @@ export function formatCreativeDirectionBlock(dir: CreativeDirection, companyName
     '- Primary accent for on-screen typography: electric blue on white/slate — NOT brown, terracotta, amber, or orange unless palette above explicitly lists them.',
     '- Social post visuals: headline text overlay only (+ optional one short subhead) — NO on-image CTA buttons, pills, or link chrome.',
     '- "Warm" in aesthetic = human/candid photo tone, not brown UI chrome or sepia color grading.',
-    '- Scene lighting: neutral/cool or clean office daylight — avoid sepia, brown wash, or coffee-shop golden-hour defaults.',
+    '- Scene lighting: clean natural daylight; color grade natural or cool — avoid a sepia or brown wash.',
     '- No invented logo badges, circular wordmarks, floating brand icons, laptop-lid logos, neon wall signs, or graphic marks with the company name unless the post explicitly includes a logo.',
     '- Laptop/phone screens: off, angled away, or defocused — never readable fake dashboards or chart UI on screen.',
     '- Video: 9:16 vertical, 8 seconds — brief opening (0–2s), main action (2–6s), closing (2s); text overlay max 8 words tied to post goal.',

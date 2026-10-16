@@ -14,6 +14,8 @@ export type GenerateImageOptionsResult = {
   imageModelId?: string
   imageModelLabel?: string
   options: GeneratedImageOption[]
+  /** Writer's concept per option (message, headline, visual idea, prompt) — for debugging output quality. */
+  concepts?: { message: string; headline: string; visual_idea: string; prompt: string }[]
   costInstrumentation?: {
     actionType: string
     optionCount: number

@@ -74,7 +74,7 @@ export function stripOnImageCtaFromBrief(brief: string): string {
   let out = brief
   out = out.replace(
     /\b(?:include|add|visible).{0,30}\b(?:cta|call-to-action).{0,20}\bbutton\b[^.]*\.?/gi,
-    'headline text only — no on-image buttons.',
+    'the headline as the only text.',
   )
   out = out.replace(/\bcta button\b/gi, 'headline')
   out = out.replace(/\bpill with text like[^.]+/gi, 'headline copy')

@@ -35,6 +35,7 @@ export const CONTENT_POSTING_FLOW_CONFIG: Record<ContentPostingFlow, AgentGuided
   single: {
     intro: 'Attach or generate the image you plan to post. Maya reads it and writes one caption to match what is in the frame — then you approve and publish.',
     fields: [
+      { key: 'topic', label: "What's this post about?", placeholder: 'One line — e.g. Why agencies send reports instead of results', columns: 1 },
       { key: 'platform', label: 'Platform', type: 'select', options: ['Instagram', 'LinkedIn', 'Facebook', 'X'], columns: 3 },
       { key: 'postGoal', label: 'Post goal', type: 'select', options: ['Awareness', 'Engagement', 'Traffic', 'Leads', 'Sales', 'Community'], columns: 3 },
       { key: 'audience', label: 'Audience', placeholder: 'Who should this post speak to?', columns: 3 },

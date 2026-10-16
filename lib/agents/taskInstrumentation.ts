@@ -57,6 +57,9 @@ export async function insertImageOptionsCostTask(opts: {
   inputTokens: number
   outputTokens: number
   briefModel: string
+  /** Final prompt per option and the writer's concepts — kept so output quality can be audited. */
+  briefs?: string[]
+  concepts?: unknown[]
 }): Promise<string | null> {
   const supabase = createServiceClient()
   const { data, error } = await supabase
@@ -75,6 +78,8 @@ export async function insertImageOptionsCostTask(opts: {
         image_model_id: opts.imageModelId,
         options_count: opts.optionCount,
         brief_model: opts.briefModel,
+        ...(opts.briefs ? { briefs: opts.briefs } : {}),
+        ...(opts.concepts ? { concepts: opts.concepts } : {}),
       },
       input_tokens: opts.inputTokens,
       output_tokens: opts.outputTokens,
