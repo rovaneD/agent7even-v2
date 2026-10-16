@@ -255,10 +255,11 @@ const REWRITE_CODES = new Set([
 ])
 
 /**
- * Build the retry prompt after a QA failure.
- * - Not the final retry: keep the writer's scene and add positive fixes (spelling, unbranded
- *   surfaces, dark screens). Throwing the scene away over a typo wasted good concepts.
- * - Final retry, photoreal, or a content failure: type-led poster with the kept headline.
+ * Build the retry prompt after a QA failure. Every retry keeps a real picture:
+ * - normal: same scene + positive fixes (exact spelling, unbranded surfaces, dark screens)
+ * - weak headline: same scene, headline swapped for a Foundation angle
+ * - idea-level failure (logo lockup, textless, vague brief): fresh documentary scene
+ *   built from the company's casting, keeping the headline when it was fine
  */
 export function appendQaFixToBrief(
   brief: string,
@@ -266,27 +267,36 @@ export function appendQaFixToBrief(
   modelId: ImageGenerationModelId,
   companyName: string,
   postContext?: PostGroundingContext,
-  opts: { finalRetry?: boolean } = {},
 ): string {
   if (modelId === 'photoreal') {
     return buildSafeFallbackBrief(modelId, companyName, postContext)
   }
 
-  const contentFailure = issues.some(i => REWRITE_CODES.has(i.code))
   const headline = extractHeadlineFromBrief(brief)
+  const weakHeadline = issues.some(i => i.code === 'vague_headline')
+  const ideaFailure = issues.some(i => REWRITE_CODES.has(i.code) && i.code !== 'vague_headline')
 
-  if (opts.finalRetry || contentFailure) {
+  if (ideaFailure) {
     return buildSocialPostReplacementBrief(
       companyName,
       postContext ?? { postGoal: extractThemeHint(brief) },
-      issues.some(i => i.code === 'vague_headline') ? null : headline,
+      weakHeadline ? null : headline,
     )
   }
 
-  const stripped = stripDesignSpecsFromBrief(brief)
+  let stripped = stripDesignSpecsFromBrief(brief)
+  let finalHeadline = headline
+  if (weakHeadline) {
+    const angle = postContext?.headlineAngles?.find(a => a.split(/\s+/).length <= 10)
+    if (angle && headline) {
+      stripped = stripped.split(headline).join(angle)
+      finalHeadline = angle
+    }
+  }
+
   const fixes = [...new Set(issues.map(i => SCENE_FIX_BY_CODE[i.code]).filter(Boolean))]
-  const typography = headline
-    ? `Typography: the headline "${headline}" spelled exactly as written, large, crisp and fully legible, and it is the only text in the image.`
+  const typography = finalHeadline
+    ? `Typography: the headline "${finalHeadline}" spelled exactly as written, large, crisp and fully legible, and it is the only text in the image.`
     : ''
   return [stripped, ...fixes, typography].filter(Boolean).join(' ')
 }

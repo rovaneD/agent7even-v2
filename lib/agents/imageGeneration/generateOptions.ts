@@ -85,8 +85,8 @@ export async function generateImageOptions(opts: {
 
   const formContext = postGroundingFromForm(opts.postContext)
   const postContext: PostGroundingContext | undefined = formContext
-    ? { ...formContext, headlineAngles: creativeDirection.headlineAngles }
-    : { headlineAngles: creativeDirection.headlineAngles }
+    ? { ...formContext, headlineAngles: creativeDirection.headlineAngles, casting: creativeDirection.visualDirection.casting }
+    : { headlineAngles: creativeDirection.headlineAngles, casting: creativeDirection.visualDirection.casting }
   const aspectRatio: ImageAspectRatio = opts.aspectRatio ?? '4:5'
 
   const briefCompose = await composeImageBriefs({
@@ -241,7 +241,6 @@ async function ensureOptionPassesQa(opts: {
       opts.imageModelId,
       opts.companyName,
       opts.postContext,
-      { finalRetry: attempt + 1 >= GENERATION_OPTION_QA_MAX_RETRIES },
     )
     opts.retryCost?.()
     bytes = await generateImageFromBrief(opts.imageModel, brief, opts.aspectRatio)

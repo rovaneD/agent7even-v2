@@ -44,7 +44,7 @@ export type TextQaResult = {
 export const TEXT_QA_MAX_REGENERATE_RETRIES = 2
 
 /** Max auto-regenerations per option when QA fails during initial generation. */
-/** Retry 1 re-renders the writer's scene with a targeted fix; retry 2 falls back to a type-led poster. */
+/** QA retries re-render the writer's scene with targeted fixes — never a text-only fallback. */
 export const GENERATION_OPTION_QA_MAX_RETRIES = 2
 
 export type GeneratedImageOptionWithQa = GeneratedImageOption & {
