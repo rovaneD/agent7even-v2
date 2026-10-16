@@ -94,7 +94,7 @@ Monthly goal: ${answers.monthlyGoal}
 
   try {
     const result = await openRouterComplete({
-      model: 'anthropic/claude-haiku-4-5',
+      model: 'anthropic/claude-haiku-5.5',
       max_tokens: 1000,
       messages: [
         {

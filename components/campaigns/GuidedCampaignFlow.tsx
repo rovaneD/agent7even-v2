@@ -62,14 +62,14 @@ const BUDGETS = [
 const MODEL_OPTIONS = [
   {
     id:          'sonnet',
-    model:       'anthropic/claude-sonnet-4',
+    model:       'anthropic/claude-sonnet-5.5',
     label:       'Claude Sonnet',
     description: 'Fast and capable — great for most campaigns',
     credits:     8,
   },
   {
     id:          'opus',
-    model:       'anthropic/claude-opus-4',
+    model:       'anthropic/claude-opus-5.5',
     label:       'Claude Opus',
     description: 'Most powerful model — best for complex strategy',
     credits:     25,

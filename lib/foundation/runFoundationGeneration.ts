@@ -8,7 +8,7 @@ import { scheduleCreativeDirectionCacheRefresh } from '@/lib/agents/foundationCr
 import { ensureDefaultAgentSchedules } from '@/lib/agents/ensureDefaultSchedules'
 import { formatCompetitorsForAgent } from '@/lib/foundation/competitorsArray'
 
-const FOUNDATION_MODEL = 'anthropic/claude-sonnet-4'
+const FOUNDATION_MODEL = 'anthropic/claude-sonnet-5.5'
 
 const SECTION_DOCS: Record<string, string[]> = {
   business: ['brief', 'plan'],

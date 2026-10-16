@@ -16,13 +16,13 @@ const TRIGGER_PHRASE = "I have what I need to build this"
 const MODEL_OPTIONS = [
   {
     id:      'sonnet',
-    model:   'anthropic/claude-sonnet-4',
+    model:   'anthropic/claude-sonnet-5.5',
     label:   'Claude Sonnet',
     credits: 0,
   },
   {
     id:      'opus',
-    model:   'anthropic/claude-opus-4',
+    model:   'anthropic/claude-opus-5.5',
     label:   'Claude Opus',
     credits: 0,
   },

@@ -14,7 +14,7 @@ import {
   type InboxDraftThreadMessage,
 } from '@/lib/inbox/draftReply'
 
-const DRAFT_MODEL = 'anthropic/claude-haiku-4-5'
+const DRAFT_MODEL = 'anthropic/claude-haiku-5.5'
 const DRAFT_CREDITS = ACTION_CREDIT_COST.text_run
 
 function parseThreadMessages(value: unknown): InboxDraftThreadMessage[] {

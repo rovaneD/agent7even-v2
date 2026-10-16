@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       try {
         result = await openRouterCompleteWithFallback(
           {
-            model: 'anthropic/claude-haiku-4-5',
+            model: 'anthropic/claude-haiku-5.5',
             messages: [{
               role: 'user',
               content: `You are Maya, Agent7even's marketing strategist. Generate a self-serve Viral Hooks output inside the user's Services page.

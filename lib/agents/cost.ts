@@ -13,9 +13,9 @@ const CACHE_TTL_HOURS = 6
 
 // OpenRouter model IDs used in registry
 export const AGENT_MODELS = {
-  opus:         'anthropic/claude-opus-4',
-  sonnet:       'anthropic/claude-sonnet-4',
-  haiku:        'anthropic/claude-haiku-4-5',
+  opus:         'anthropic/claude-opus-5.5',
+  sonnet:       'anthropic/claude-sonnet-5.5',
+  haiku:        'anthropic/claude-haiku-5.5',
   gemini_flash: 'google/gemini-2.5-flash',
 } as const
 
@@ -104,12 +104,12 @@ export async function getModelPricing(): Promise<
 }
 
 // ── Fallback pricing (if OpenRouter unreachable) ──
-// Based on OpenRouter rates as of May 2026 — update if stale
+// Based on OpenRouter list prices read 2026-10-15 — update if stale
 
 const FALLBACK_PRICING: Record<string, { input_per_token: number; output_per_token: number }> = {
-  'anthropic/claude-opus-4':     { input_per_token: 0.000015,   output_per_token: 0.000075   },
-  'anthropic/claude-sonnet-4':   { input_per_token: 0.000003,   output_per_token: 0.000015   },
-  'anthropic/claude-haiku-4-5':  { input_per_token: 0.0000008,  output_per_token: 0.000004   },
+  'anthropic/claude-opus-5.5':   { input_per_token: 0.000004,   output_per_token: 0.00002    },
+  'anthropic/claude-sonnet-5.5': { input_per_token: 0.000002,   output_per_token: 0.00001    },
+  'anthropic/claude-haiku-5.5':  { input_per_token: 0.0000001,  output_per_token: 0.0000005  },
   'google/gemini-2.5-flash':     { input_per_token: 0.00000015, output_per_token: 0.0000006  },
 }
 
@@ -125,7 +125,7 @@ export async function calculateCost(
 
   if (!rates) {
     console.warn(`No pricing found for model: ${model} — using Sonnet rates as fallback`)
-    const fallback = FALLBACK_PRICING['anthropic/claude-sonnet-4']
+    const fallback = FALLBACK_PRICING['anthropic/claude-sonnet-5.5']
     return parseFloat(
       ((inputTokens * fallback.input_per_token) + (outputTokens * fallback.output_per_token)).toFixed(6)
     )
@@ -144,7 +144,7 @@ export function calculateCostSync(
   inputTokens: number,
   outputTokens: number
 ): number {
-  const rates = FALLBACK_PRICING[model] ?? FALLBACK_PRICING['anthropic/claude-sonnet-4']
+  const rates = FALLBACK_PRICING[model] ?? FALLBACK_PRICING['anthropic/claude-sonnet-5.5']
   return parseFloat(
     ((inputTokens * rates.input_per_token) + (outputTokens * rates.output_per_token)).toFixed(6)
   )

@@ -69,7 +69,7 @@ ${context}`
   let raw = ''
   try {
     const result = await openRouterComplete({
-      model: 'anthropic/claude-haiku-4-5',
+      model: 'anthropic/claude-haiku-5.5',
       max_tokens: 600,
       temperature: 0.7,
       messages: [{ role: 'user', content: prompt }],

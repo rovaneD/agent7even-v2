@@ -27,7 +27,7 @@ export const GUARDIAN_THRESHOLDS: GuardianThresholdConfig = {
   minSurfaceExtending: 4,
 }
 
-export const GUARDIAN_MODEL = 'anthropic/claude-sonnet-4'
+export const GUARDIAN_MODEL = 'anthropic/claude-sonnet-5.5'
 
 /** Deterministic verdict — overrides LLM verdict so contradicting never surfaces. */
 export function applyGuardianVerdict(

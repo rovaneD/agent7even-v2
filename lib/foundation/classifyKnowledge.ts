@@ -16,7 +16,7 @@ export {
   isCompetitorPurpose,
 } from '@/lib/foundation/knowledgePurpose'
 
-const CLASSIFY_MODEL = 'anthropic/claude-haiku-4-5'
+const CLASSIFY_MODEL = 'anthropic/claude-haiku-5.5'
 
 function hostFromUrl(raw: string | null | undefined): string | null {
   if (!raw?.trim()) return null

@@ -7,7 +7,7 @@ import { LAPTOP_SCREEN_SAFE_LINE } from './fakeScreenUiDetection'
 import { NO_ON_IMAGE_CTA_RULE } from './onImageCtaDetection'
 import type { PostGroundingContext } from './postGrounding'
 
-const DEFAULT_BRIEF_MODEL = 'anthropic/claude-sonnet-4'
+const DEFAULT_BRIEF_MODEL = 'anthropic/claude-sonnet-5.5'
 
 export function briefComposeModel(): string {
   return process.env.IMAGE_GENERATION_BRIEF_MODEL ?? DEFAULT_BRIEF_MODEL

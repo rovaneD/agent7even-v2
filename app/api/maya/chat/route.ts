@@ -37,7 +37,7 @@ import {
 } from '@/lib/foundation/knowledgeContext'
 
 const CHAT_CREDITS = ACTION_CREDIT_COST.maya_chat_turn
-const MAYA_MODEL   = 'anthropic/claude-sonnet-4'
+const MAYA_MODEL   = 'anthropic/claude-sonnet-5.5'
 
 export async function POST(req: Request) {
   const { userId } = await auth()

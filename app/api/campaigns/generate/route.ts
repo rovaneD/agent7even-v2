@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-  const model = body.model ?? 'anthropic/claude-sonnet-4'
+  const model = body.model ?? 'anthropic/claude-sonnet-5.5'
   const credits = ACTION_CREDIT_COST.text_run
 
   const fairUse = await assessTextFairUse(profile.id)

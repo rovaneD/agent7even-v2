@@ -10,17 +10,17 @@ export const openrouter = createOpenRouter({
 
 // Model registry — change a model platform-wide by changing one line here
 export const models = {
-  maya: openrouter('anthropic/claude-sonnet-4'),
-  campaignGenerator: openrouter('anthropic/claude-sonnet-4'),
+  maya: openrouter('anthropic/claude-sonnet-5.5'),
+  campaignGenerator: openrouter('anthropic/claude-sonnet-5.5'),
   competitorAnalyzer: openrouter('google/gemini-2.5-flash'),
-  contentWriter: openrouter('anthropic/claude-haiku-4-5'),
-  brandAnalyzer: openrouter('anthropic/claude-sonnet-4'),
+  contentWriter: openrouter('anthropic/claude-haiku-5.5'),
+  brandAnalyzer: openrouter('anthropic/claude-sonnet-5.5'),
 } as const
 
 /** Public marketing chat — OpenRouter model IDs (used with openRouterComplete, not AI SDK). */
 export const marketingChatModels = {
   primary: 'google/gemini-2.5-flash',
-  fallback: 'anthropic/claude-haiku-4-5',
+  fallback: 'anthropic/claude-haiku-5.5',
 } as const
 
 export type AgentName = keyof typeof models

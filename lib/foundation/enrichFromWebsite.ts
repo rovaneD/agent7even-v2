@@ -3,7 +3,7 @@ import { openrouter } from '@/lib/ai/client'
 import { fetchWebsiteContent } from '@/lib/foundation/fetchWebsiteContent'
 import { parseSiteSnapshot, type SiteSnapshot, SiteSnapshotSchema } from '@/lib/foundation/siteSnapshot'
 
-const ENRICHMENT_MODEL = 'anthropic/claude-sonnet-4'
+const ENRICHMENT_MODEL = 'anthropic/claude-sonnet-5.5'
 
 function stripJsonFence(raw: string): string {
   const trimmed = raw.trim()

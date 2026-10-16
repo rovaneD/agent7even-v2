@@ -29,7 +29,7 @@ export {
   type CreativeDirection,
 } from './types'
 
-const DEFAULT_MODEL = 'anthropic/claude-sonnet-4'
+const DEFAULT_MODEL = 'anthropic/claude-sonnet-5.5'
 
 export function creativeDirectionModel(): string {
   return process.env.CREATIVE_DIRECTION_MODEL ?? DEFAULT_MODEL

@@ -104,7 +104,7 @@ async function main() {
   const profile = await resolveProfile(sb)
   console.log(`Profile: ${profile.company_name ?? profile.id}`)
   console.log(`Foundation score: ${profile.foundation_score ?? '—'}%`)
-  console.log(`Model: ${process.env.CREATIVE_DIRECTION_MODEL ?? 'anthropic/claude-sonnet-4'}\n`)
+  console.log(`Model: ${process.env.CREATIVE_DIRECTION_MODEL ?? 'anthropic/claude-sonnet-5.5'}\n`)
 
   const fieldScores = await loadFieldScores(profile.id)
   const thin = listThinGatedSections(fieldScores)

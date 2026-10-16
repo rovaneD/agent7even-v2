@@ -193,7 +193,7 @@ Rules:
 - Return valid JSON only, no markdown`
 
   // Same Haiku slug as foundation/score, brand-kit, digest, runLightAgent — verified on OpenRouter.
-  const FIELD_MAPPING_MODEL = 'anthropic/claude-haiku-4-5'
+  const FIELD_MAPPING_MODEL = 'anthropic/claude-haiku-5.5'
 
   let content: string
   try {

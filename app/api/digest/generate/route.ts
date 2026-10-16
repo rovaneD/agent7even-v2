@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 
       try {
         const result = await openRouterComplete({
-          model: 'anthropic/claude-haiku-4-5',
+          model: 'anthropic/claude-haiku-5.5',
           messages: [{
             role: 'user',
             content: `Write a single sentence (max 20 words) in first person as Maya summarizing what this agent found or produced. Start with "I" or the agent action.

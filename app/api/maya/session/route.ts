@@ -125,7 +125,7 @@ export async function POST(req: Request) {
   } else if (firstUserText && !firstUserText.startsWith('__')) {
     try {
       const result = await openRouterComplete({
-        model: 'anthropic/claude-haiku-4-5',
+        model: 'anthropic/claude-haiku-5.5',
         messages: [{
           role: 'user',
           content: `Generate a short title (4 words max, no quotes, no punctuation) for a chat that started with: "${firstUserText.slice(0, 200)}"

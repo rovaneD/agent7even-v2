@@ -15,7 +15,7 @@ import {
 } from '@/lib/foundation/onboardingAnswerShape'
 import { normalizeBusinessType, type OnboardingBusinessTypeId } from '@/lib/foundation/onboardingBusinessTypes'
 
-const SYNTHESIS_MODEL = 'anthropic/claude-sonnet-4'
+const SYNTHESIS_MODEL = 'anthropic/claude-sonnet-5.5'
 
 export type SynthesizeOnboardingResult = {
   answers: OnboardingAnswers

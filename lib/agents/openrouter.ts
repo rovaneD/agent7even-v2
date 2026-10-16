@@ -148,7 +148,7 @@ export async function openRouterCompleteWithFallback(
 
 export const runLightAgent = (messages: OpenRouterMessage[], system?: string) =>
   openRouterComplete({
-    model: 'anthropic/claude-haiku-4-5',
+    model: 'anthropic/claude-haiku-5.5',
     messages: system
       ? [{ role: 'system', content: system }, ...messages]
       : messages,
@@ -158,7 +158,7 @@ export const runLightAgent = (messages: OpenRouterMessage[], system?: string) =>
 
 export const runStandardAgent = (messages: OpenRouterMessage[], system?: string) =>
   openRouterComplete({
-    model: 'anthropic/claude-sonnet-4',
+    model: 'anthropic/claude-sonnet-5.5',
     messages: system
       ? [{ role: 'system', content: system }, ...messages]
       : messages,
@@ -169,14 +169,14 @@ export const runStandardAgent = (messages: OpenRouterMessage[], system?: string)
 export const runDeepAgent = (messages: OpenRouterMessage[], system?: string) =>
   openRouterCompleteWithFallback(
     {
-      model: 'anthropic/claude-opus-4',
+      model: 'anthropic/claude-opus-5.5',
       messages: system
         ? [{ role: 'system', content: system }, ...messages]
         : messages,
       max_tokens: 4000,
       temperature: 0.7,
     },
-    ['anthropic/claude-sonnet-4'] // fallback if Opus quota hit
+    ['anthropic/claude-sonnet-5.5'] // fallback if Opus quota hit
   )
 
 export const runAutonomousAgent = (messages: OpenRouterMessage[], system?: string) =>
