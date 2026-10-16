@@ -52,6 +52,7 @@ Rules for passed=false:
 ${FAKE_SCREEN_UI_QA_RULE}
 {{LOGO_RULE}}
 {{POST_CONTEXT}}
+{{INTENDED}}
 
 Brand name policy (IMPORTANT):
 - Do NOT fail because the company/brand name is absent — most social posts use pain-point headlines, offers, or carousel slide copy WITHOUT naming the product
@@ -75,7 +76,12 @@ function buildQaInstruction(opts: {
   postContext?: PostGroundingContext
   includeLogo?: boolean
   expectedHeadline?: string | null
+  intendedText?: string[]
 }): string {
+  const intended = (opts.intendedText ?? []).filter(Boolean)
+  const intendedBlock = intended.length > 0
+    ? `\nIntended text (written into the brief on purpose by the art director — a masthead, a cover line, a caption, writing on an object): ${intended.map(t => `"${t}"`).join(', ')}\n- Never flag these as unintended_text, wrong_brand, invented_logo or vague_headline. Check only that each is spelled correctly.\n- A subject partly overlapping large lettering (e.g. a head in front of a magazine masthead) is a deliberate design choice — not garbled.\n`
+    : ''
   const logoRule = opts.includeLogo
     ? '- User opted IN to include a logo — a small logo placement zone is OK; still fail invented wrong logos that do not match uploaded assets.'
     : '- User did NOT request a logo on this post — fail if the image includes ANY invented logo icon, wordmark beside a symbol, geometric identity grid, abstract brand mark, the company name or a tagline anywhere in the image (even as plain text), company name paired with a graphic mark, logo on a laptop lid or device, neon/wall brand signage, or circular badge in the scene (flag code invented_logo or environmental_logo). Colors and typography only.'
@@ -98,6 +104,7 @@ function buildQaInstruction(opts: {
     .replace('{{LOGO_RULE}}', logoRule)
     .replace('{{POST_CONTEXT}}', postBlock)
     .replace('{{SPELLING_VERIFY}}', spellingBlock)
+    .replace('{{INTENDED}}', intendedBlock)
 }
 
 /** Vision model sometimes fails posts for missing brand name — that is valid marketing copy. */
@@ -188,12 +195,14 @@ export async function runTextQaGate(opts: {
   const spellingHeadline =
     expectedHeadline && !isBoilerplateCtaPhrase(expectedHeadline) ? expectedHeadline : null
   const brandTokens = await loadBrandTokensForQa(opts.profileId, opts.companyName)
+  const intendedText = extractIntendedText(opts.brief)
   const instruction = buildQaInstruction({
     brandTokens,
     companyName: opts.companyName,
     postContext: opts.postContext,
     includeLogo: opts.includeLogo,
     expectedHeadline: spellingHeadline,
+    intendedText,
   })
 
   let visionContent
@@ -221,6 +230,7 @@ export async function runTextQaGate(opts: {
 
   const parsed = parseQaJson(result.text.trim())
   let visionIssues = filterSpuriousBrandNameIssues(parsed.issues, opts.postContext)
+  visionIssues = filterIntendedTextIssues(visionIssues, intendedText)
   visionIssues = filterSpuriousHeadlineCompareIssues(visionIssues, spellingHeadline)
   const brandKit = await loadBrandKitGenerationSnapshot(opts.profileId)
   const fontFamilies = brandKit.fonts.map(f => f.family)
@@ -287,4 +297,33 @@ export async function runTextQaGate(opts: {
       : [{ code: 'qa_failed', message: 'Text QA flagged this image — review spelling and brand name in the visual.' }],
     qaMethod: 'vision_readback',
   }
+}
+
+/** Every phrase the brief quotes is text the art director put in the image on purpose. */
+export function extractIntendedText(brief: string | null | undefined): string[] {
+  if (!brief) return []
+  const quoted = [...brief.matchAll(/["\u201c]([^"\u201d]{2,120})["\u201d]/g)].map(m => m[1]!.trim())
+  const seen = new Map<string, string>()
+  for (const q of quoted) {
+    const key = q.toLowerCase().replace(/[.!?,;:]+$/, '')
+    if (!seen.has(key)) seen.set(key, q)
+  }
+  return [...seen.values()].slice(0, 12)
+}
+
+const INTENDED_SENSITIVE_CODES = new Set(['unintended_text', 'wrong_brand', 'invented_logo', 'vague_headline'])
+
+/**
+ * The vision gate tends to flag a magazine masthead or a caption as an "invented brand" even when the
+ * brief asked for it. Drop those flags when the issue is about text the brief quoted.
+ */
+export function filterIntendedTextIssues(issues: TextQaIssue[], intended: string[]): TextQaIssue[] {
+  if (intended.length === 0) return issues
+  const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+  const targets = intended.map(norm).filter(t => t.length >= 3)
+  return issues.filter(issue => {
+    if (!INTENDED_SENSITIVE_CODES.has(issue.code)) return true
+    const msg = norm(issue.message)
+    return !targets.some(t => msg.includes(t))
+  })
 }

@@ -271,9 +271,9 @@ export function buildSafeFallbackBrief(
 }
 
 const SCENE_FIX_BY_CODE: Record<string, string> = {
-  invented_logo: 'Every surface, sign, cup, screen and garment is plain and unbranded.',
-  environmental_logo: 'Every surface, sign, cup, screen and garment is plain and unbranded.',
-  logo_lockup: 'Every surface, sign, cup, screen and garment is plain and unbranded.',
+  invented_logo: 'Every surface, sign, cup and garment is plain and unbranded apart from the quoted words.',
+  environmental_logo: 'Every surface, sign, cup and garment is plain and unbranded apart from the quoted words.',
+  logo_lockup: 'Every surface, sign, cup and garment is plain and unbranded apart from the quoted words.',
   fake_screen_ui: 'Any screen in the frame is dark or softly out of focus.',
   off_palette_grade: 'Cool-neutral color grade with clean whites.',
   unwanted_cta: 'The headline is the only text in the image.',
@@ -344,8 +344,20 @@ function appendQaFixInner(
   }
 
   const fixes = [...new Set(issues.map(i => SCENE_FIX_BY_CODE[i.code]).filter(Boolean))]
-  const typography = finalHeadline
-    ? `Typography: the headline "${finalHeadline}" spelled exactly as written, large, crisp and fully legible, and it is the only text in the image.`
+  // Restate every intended word (mastheads, captions, writing on objects), not just the headline —
+  // "the headline is the only text" contradicted multi-text styles like magazine covers.
+  const keyOf = (w: string) => w.toLowerCase().replace(/[.!?,;:]+$/, '')
+  const words: string[] = []
+  for (const w of [...stripped.matchAll(/["\u201c]([^"\u201d]{2,120})["\u201d]/g)].map(m => m[1]!.trim()).concat(finalHeadline ? [finalHeadline] : [])) {
+    if (!words.some(x => keyOf(x) === keyOf(w))) words.push(w)
+  }
+  const typography = words.length > 0
+    ? `Typography: every word spelled exactly as written, crisp and fully legible: ${words.map(w => `"${w}"`).join(', ')}.`
     : ''
-  return [stripped, ...fixes, typography].filter(Boolean).join(' ')
+  // Remove only lines a previous retry appended (never the writer's own typography description).
+  const base = stripped
+    .replace(/\s*Typography: the headline ["\u201c][^"\u201d]*["\u201d] spelled exactly as written, [^.]*?only text in the image\./g, '')
+    .replace(/\s*Typography: every word spelled exactly as written, crisp and fully legible: (?:["\u201c][^"\u201d]*["\u201d](?:, )?)+\./g, '')
+    .replace(/\s*Every surface, sign, cup(?:, screen)? and garment is plain and unbranded(?: apart from the quoted words)?\./g, '')
+  return [base, ...fixes, typography].filter(Boolean).join(' ')
 }
