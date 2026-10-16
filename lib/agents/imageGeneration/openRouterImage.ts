@@ -32,10 +32,11 @@ async function requestImageGeneration(
   model: string,
   content: ImageContentPart[] | string,
   aspectRatio: ImageAspectRatio = '4:5',
+  modalitiesOverride?: string[],
 ): Promise<Buffer> {
-  const modalities = model.startsWith('recraft/') || model.includes('flux')
+  const modalities = modalitiesOverride ?? (model.startsWith('recraft/') || model.includes('flux')
     ? ['image']
-    : ['image', 'text']
+    : ['image', 'text'])
 
   const body: Record<string, unknown> = {
     model,
@@ -120,4 +121,25 @@ export async function generateImageEditFromSource(opts: {
     { type: 'image_url', image_url: { url: dataUrl } },
     { type: 'text', text: instruction },
   ])
+}
+
+/**
+ * Model comparison helper (internal bake-off): tries the usual modalities, then the other
+ * shape — image-only models reject ['image','text'] and vice versa.
+ */
+export async function generateImageForComparison(
+  model: string,
+  prompt: string,
+  aspectRatio: ImageAspectRatio = '4:5',
+): Promise<Buffer> {
+  try {
+    return await requestImageGeneration(model, prompt, aspectRatio)
+  } catch (first) {
+    const alt = model.startsWith('google/') ? ['image'] : ['image', 'text']
+    try {
+      return await requestImageGeneration(model, prompt, aspectRatio, alt)
+    } catch {
+      throw first
+    }
+  }
 }
