@@ -109,7 +109,8 @@ Now complete the following task:`
   }
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    // Sonnet 4 was retired 2026-06-15. Sonnet 4.6 keeps thinking off, so content[0] stays the text block.
+    model: 'claude-sonnet-4-6',
     max_tokens: 1000,
     system: systemPrompt,
     messages: [{ role: 'user', content: prompt }],
