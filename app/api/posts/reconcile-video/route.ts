@@ -6,6 +6,7 @@ import { pollVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
 import { logProviderError } from '@/lib/agents/sanitizeProviderError'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
+import { failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
 
 export const maxDuration = 60
 
@@ -42,10 +43,7 @@ export async function POST(): Promise<NextResponse> {
     const briefExcerpt = (input.brief_excerpt as string | undefined) ?? ''
 
     if (!jobId || !profileId) {
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'failed', completed_at: new Date().toISOString() })
-        .eq('id', task.id as string)
+      await failVideoTask(supabase, task.id as string, task.user_id as string)
       result.failed++
       continue
     }
@@ -54,10 +52,7 @@ export async function POST(): Promise<NextResponse> {
       const poll = await pollVideoJob(jobId)
 
       if (poll.status === 'failed') {
-        await supabase
-          .from('agent_tasks')
-          .update({ status: 'failed', completed_at: new Date().toISOString() })
-          .eq('id', task.id as string)
+        await failVideoTask(supabase, task.id as string, task.user_id as string)
         result.failed++
         continue
       }
@@ -69,10 +64,7 @@ export async function POST(): Promise<NextResponse> {
 
       const videoUrl = poll.unsigned_urls?.[0]
       if (!videoUrl) {
-        await supabase
-          .from('agent_tasks')
-          .update({ status: 'failed', completed_at: new Date().toISOString() })
-          .eq('id', task.id as string)
+        await failVideoTask(supabase, task.id as string, task.user_id as string)
         result.failed++
         continue
       }
@@ -80,10 +72,7 @@ export async function POST(): Promise<NextResponse> {
       // Download — 401 means the signed URL expired; mark failed so we stop retrying
       const dlRes = await fetch(videoUrl, { headers: openRouterHeaders() })
       if (dlRes.status === 401 || dlRes.status === 403) {
-        await supabase
-          .from('agent_tasks')
-          .update({ status: 'failed', completed_at: new Date().toISOString() })
-          .eq('id', task.id as string)
+        await failVideoTask(supabase, task.id as string, task.user_id as string)
         result.failed++
         continue
       }

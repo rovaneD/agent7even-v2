@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
 import { VIDEO_MODEL_OPTIONS, DEFAULT_VIDEO_MODEL_ID } from '@/lib/agents/videoGeneration/videoModelCatalog'
@@ -10,6 +10,7 @@ export type VideoGenerateState =
   | { phase: 'idle' }
   | { phase: 'composing' }
   | { phase: 'pending'; jobId: string; taskId: string; model: string }
+  | { phase: 'ready'; videoUrl: string | null; model: string }
   | { phase: 'error'; message: string }
 
 interface PostVideoGenerateProps {
@@ -35,6 +36,29 @@ export default function PostVideoGenerate({
   const [modelId, setModelId]   = useState<string>(DEFAULT_VIDEO_MODEL_ID)
   const [checking, setChecking] = useState(false)
   const [checkMsg, setCheckMsg] = useState<string | null>(null)
+
+  // Poll the job so the finished video shows here instead of an endless spinner.
+  const pendingTaskId = state.phase === 'pending' ? state.taskId : null
+  const pendingModel = state.phase === 'pending' ? state.model : ''
+  useEffect(() => {
+    if (!pendingTaskId) return
+    let stopped = false
+    const tick = async () => {
+      try {
+        const res = await fetch(`/api/posts/video-status?taskId=${encodeURIComponent(pendingTaskId)}`)
+        const data = await res.json().catch(() => ({})) as { status?: string; videoUrl?: string | null }
+        if (stopped) return
+        if (data.status === 'completed') {
+          setState({ phase: 'ready', videoUrl: data.videoUrl ?? null, model: pendingModel })
+        } else if (data.status === 'failed') {
+          setState({ phase: 'error', message: 'The video model could not finish this clip. You were not charged — try again.' })
+        }
+      } catch { /* keep polling */ }
+    }
+    void tick()
+    const id = setInterval(() => void tick(), 10_000)
+    return () => { stopped = true; clearInterval(id) }
+  }, [pendingTaskId, pendingModel])
 
   async function handleCheckReady() {
     if (checking) return
@@ -124,6 +148,34 @@ export default function PostVideoGenerate({
         {checkMsg && (
           <p className="mt-1.5 pl-4 text-xs font-medium text-blue-800">{checkMsg}</p>
         )}
+      </div>
+    )
+  }
+
+  if (state.phase === 'ready') {
+    return (
+      <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+        <p className="text-sm font-medium text-emerald-900">Your video is ready</p>
+        {state.videoUrl && (
+          <video
+            src={state.videoUrl}
+            controls
+            playsInline
+            className="mt-2 aspect-[9/16] w-full max-w-[260px] rounded-lg bg-black object-cover"
+          />
+        )}
+        <div className="mt-2 flex items-center gap-3">
+          <Link href="/dashboard/agents/approvals" className="text-xs font-medium text-emerald-700 underline underline-offset-2">
+            Review in Approvals →
+          </Link>
+          <button
+            type="button"
+            onClick={() => setState({ phase: 'idle' })}
+            className="text-xs text-emerald-700 hover:text-emerald-800"
+          >
+            Make another
+          </button>
+        </div>
       </div>
     )
   }

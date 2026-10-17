@@ -1,3 +1,4 @@
+import { failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { randomUUID } from 'crypto'
 import { after, NextResponse } from 'next/server'
@@ -157,19 +158,13 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
 
   if (!profileId) {
     console.error('[openrouter-video] Task missing profileId, task:', taskId)
-    await supabase
-      .from('agent_tasks')
-      .update({ status: 'failed', completed_at: new Date().toISOString() })
-      .eq('id', taskId)
+    await failVideoTask(supabase, taskId, userId)
     return
   }
 
   // Handle failed job
   if (status === 'failed') {
-    await supabase
-      .from('agent_tasks')
-      .update({ status: 'failed', completed_at: new Date().toISOString() })
-      .eq('id', taskId)
+    await failVideoTask(supabase, taskId, userId)
     console.log('[openrouter-video] Job failed, task marked failed:', taskId, errorMsg ?? '')
     return
   }
@@ -183,10 +178,7 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
   const videoUrl = unsignedUrls?.[0]
   if (!videoUrl) {
     console.error('[openrouter-video] No video URL in completed payload, task:', taskId)
-    await supabase
-      .from('agent_tasks')
-      .update({ status: 'failed', completed_at: new Date().toISOString() })
-      .eq('id', taskId)
+    await failVideoTask(supabase, taskId, userId)
     return
   }
 
@@ -198,10 +190,7 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
     videoBytes = Buffer.from(await dlRes.arrayBuffer())
   } catch (err) {
     logProviderError('openrouter-video download', err)
-    await supabase
-      .from('agent_tasks')
-      .update({ status: 'failed', completed_at: new Date().toISOString() })
-      .eq('id', taskId)
+    await failVideoTask(supabase, taskId, userId)
     return
   }
 
@@ -216,10 +205,7 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
 
   if (uploadError) {
     console.error('[openrouter-video] Storage upload failed:', uploadError.message, 'task:', taskId)
-    await supabase
-      .from('agent_tasks')
-      .update({ status: 'failed', completed_at: new Date().toISOString() })
-      .eq('id', taskId)
+    await failVideoTask(supabase, taskId, userId)
     return
   }
 
@@ -290,3 +276,4 @@ async function ensureBucketAllowsVideo(supabase: SupabaseClient): Promise<void> 
     console.error('[openrouter-video] Failed to update bucket MIME types:', error.message)
   }
 }
+
