@@ -6,7 +6,7 @@ import { pollVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
 import { logProviderError } from '@/lib/agents/sanitizeProviderError'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
-import { failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
+import { completeVideoTask, failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
 
 export const maxDuration = 60
 
@@ -97,8 +97,7 @@ export async function POST(): Promise<NextResponse> {
 
       if (uploadError) throw new Error(`Upload: ${uploadError.message}`)
 
-      // Insert agent_output
-      await supabase.from('agent_outputs').insert({
+      const { error: outputError } = await supabase.from('agent_outputs').insert({
         task_id:     task.id,
         user_id:     task.user_id,
         agent:       'video_generation',
@@ -119,10 +118,16 @@ export async function POST(): Promise<NextResponse> {
         lifecycle_stage: 'review',
       })
 
-      await supabase
-        .from('agent_tasks')
-        .update({ status: 'completed', completed_at: new Date().toISOString() })
-        .eq('id', task.id as string)
+      if (outputError) {
+        logProviderError(`reconcile-video output ${jobId}`, outputError)
+        await supabase
+          .from('agent_tasks')
+          .update({ status: 'completed', completed_at: new Date().toISOString() })
+          .eq('id', task.id as string)
+          .eq('status', 'running')
+      } else {
+        await completeVideoTask(supabase, task.id as string, task.user_id as string)
+      }
 
       result.processed++
     } catch (err) {
