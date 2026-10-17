@@ -3,7 +3,6 @@ import { getClerkSessionEmail, getClerkUserSafe } from '@/lib/clerk/sessionUser'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { createServiceClient } from '@/lib/supabase/server'
-import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 import { isAnalyticsConnected } from '@/lib/analytics/isAnalyticsConnected'
 import Link from 'next/link'
 import {
@@ -32,10 +31,9 @@ import { getContentLifecycleCounts } from '@/lib/content/lifecycleCounts'
 import { getPendingApprovalCount, listPendingApprovalDigestItems } from '@/lib/agents/pendingApprovals'
 import { listTasksAssignedToMember } from '@/lib/team/taskAssignments'
 import { getTeamPermissions, hasPermission } from '@/lib/teamPermissions'
-import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
 import { startTrialPath } from '@/lib/billing/subscriptionGate'
 import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
-import { mayaAccessAfterProfile } from '@/lib/auth/mayaAccessAfterProfile'
+import { loadMayaProductAccess } from '@/lib/auth/mayaAccessAfterProfile'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
@@ -43,18 +41,18 @@ export default async function DashboardPage() {
 
   const supabase = createServiceClient()
   const email = await getClerkSessionEmail()
-  let { profile, workspace } = await loadDashboardSession(supabase, userId, email)
-  if (!profile) {
+  let entry = await loadMayaProductAccess(supabase, userId, email)
+  if (!entry.profile) {
     const user = await getClerkUserSafe()
     await ensureProfileForClerkUser(supabase, userId, user)
-    ;({ profile, workspace } = await loadDashboardSession(supabase, userId, email))
+    entry = await loadMayaProductAccess(supabase, userId, email)
   }
-  const workspaceProfile = workspace?.workspaceProfile ?? profile
-  const isTeamMember = workspace?.isTeamMember ?? false
-  const billing = await getBillingProfileForClerkUser(supabase, userId, email)
-  if (mayaAccessAfterProfile({ profile, isTeamMember, billing }) === 'start-trial') {
+  if (entry.access === 'start-trial') {
     redirect(startTrialPath())
   }
+  const { profile, workspace } = entry
+  const workspaceProfile = workspace?.workspaceProfile ?? profile
+  const isTeamMember = workspace?.isTeamMember ?? false
 
   const dataUserId = workspace?.workspaceId ?? profile?.id
   const teamPerms = profile?.id ? await getTeamPermissions(profile.id) : null

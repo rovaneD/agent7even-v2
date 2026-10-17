@@ -1,5 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
+import { loadMayaProductAccess } from '@/lib/auth/mayaAccessAfterProfile'
 import { waitUntil } from '@vercel/functions'
 import { convertToModelMessages, streamText } from 'ai'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -100,6 +102,12 @@ You are completing a specific task, not building a new campaign. Never say "spin
   })
 
   const supabase = createServiceClient()
+  const email = await getClerkSessionEmail()
+  const productAccess = await loadMayaProductAccess(supabase, userId, email)
+  if (productAccess.access === 'start-trial') {
+    return NextResponse.json({ error: 'subscription_required' }, { status: 403 })
+  }
+
   const session = await getWorkspaceSessionFromRequest(supabase)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
