@@ -93,7 +93,7 @@ export async function composeVideoConcept(opts: {
   const usage: Usage = { inputTokens: writer.inputTokens, outputTokens: writer.outputTokens, costUsd: 0 }
   let chosen = candidates[0]!
   let critique: VideoCritique | null = null
-  try {
+  for (let attempt = 0; attempt < 2 && !critique; attempt++) try {
     const critic = await openRouterComplete({
       model,
       temperature: 0.2,
@@ -141,7 +141,7 @@ export async function composeVideoConcept(opts: {
       prompt: finalPrompt.length >= 60 ? finalPrompt : base.prompt,
     }
   } catch (err) {
-    console.warn('[video-concept] critic failed, using first candidate', err instanceof Error ? err.message : err)
+    console.warn(`[video-concept] critic attempt ${attempt + 1} failed`, err instanceof Error ? err.message : err)
   }
 
   usage.costUsd = await calculateCost(model, usage.inputTokens, usage.outputTokens)
@@ -164,7 +164,7 @@ function promptRules(secs: number): string {
     '- Three key objects at most. Every object is physically consistent from first frame to last: if something steams, say what hot drink fills it; state shapes and counts plainly and keep them stable.',
     '- Keep every object where it starts: nothing small is picked up, handed over or carried (phones, cups, cards). Video models lose small held objects.',
     '- Describe only what IS in frame. Write positively; leave out anything that should not appear.',
-    '- No words, letters, signs with copy, logos, brand names or screens in the scene. The headline is added later by us.',
+    '- No words, letters, signs with copy, logos, brand names or screens in the scene. Storefront sign boards, awnings and windows are plain painted surfaces in one color (models invent garbled lettering on any sign). The headline is added later by us.',
     '- Plain-English colors and light; no hex codes, font names or design-system terms.',
   ].join('\n')
 }
