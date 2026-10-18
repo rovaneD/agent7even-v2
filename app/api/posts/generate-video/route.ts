@@ -18,7 +18,7 @@ import { videoModelLabel } from '@/lib/agents/videoGeneration/videoModelCatalog'
 import { submitVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
 import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 
-export const maxDuration = 60
+export const maxDuration = 120  // writer + critic passes
 
 type Body = {
   postGoal?: string
@@ -137,6 +137,7 @@ export async function POST(req: Request) {
   // ── Step 1: idea → concept → one-shot prompt (no side effects — fail early) ─
   let concept: VideoConcept
   let ideas: string[] = []
+  let critique: unknown = null
   let briefCostUsd = 0
   let briefInputTokens = 0
   let briefOutputTokens = 0
@@ -153,6 +154,7 @@ export async function POST(req: Request) {
     })
     concept = r.concept
     ideas = r.ideas
+    critique = r.critique
     briefCostUsd = r.costUsd
     briefInputTokens = r.inputTokens
     briefOutputTokens = r.outputTokens
@@ -214,6 +216,7 @@ export async function POST(req: Request) {
     headline: concept.headline,
     concept: { look: concept.look, idea: concept.idea, headline: concept.headline },
     ideas,
+    critique,
     video_model: usedModel,
     video_model_id: null,
     video_job_id: jobResult.id,

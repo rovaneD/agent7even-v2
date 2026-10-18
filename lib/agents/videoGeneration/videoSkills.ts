@@ -31,7 +31,7 @@ export const BUILTIN_VIDEO_SKILLS: VideoSkill[] = [
       '- Surreal miniature: a tilt-shift model world (main street, shop counter, street corner) with figurine people and one real everyday object at giant scale; soft studio light, pastel two-color palette, slow crane or push-in.',
       '- Paper craft stop-motion: cut-paper or cardboard pieces that fold, pop up and slide into place at 12 fps on a real surface (marble, kraft, wood); visible paper grain and cut edges, tight palette, handmade charm.',
       '- Editorial portrait: a real owner type from this customer base in their own workplace against a saturated painted wall, hard on-camera flash pops, quick punch-in zooms that freeze on each pop, ends on a proud expression.',
-      '- Witty object: a locked-off close shot of the everyday objects of the owner\'s day (receipts, sticky notes, tools, ingredients) that move by themselves to tell a tiny story with a twist; real textures, natural workplace light.',
+      '- Witty object: a locked-off close shot of the real materials of the trade (flowers, ingredients, tools, fabric, parts) that move by themselves from mess into the finished product or result; real textures, natural workplace light.',
       'The motion itself is the punchline: something builds, transforms, clears, fills up or reveals. Real materials and textures, crisp detail, one tight palette.',
     ].join('\n'),
     model: 'kwaivgi/kling-v3.0-pro',
