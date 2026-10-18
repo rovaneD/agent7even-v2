@@ -6,6 +6,7 @@ import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
 import { pollVideoJob, submitVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
 import { composeVideoConcept, recipeLooks } from '@/lib/agents/videoGeneration/briefComposeConcept'
+import { composeVideoStory } from '@/lib/agents/videoGeneration/storyCompose'
 import { resolveVideoSkill } from '@/lib/agents/videoGeneration/videoSkills'
 import { formatCreativeDirectionBlock, getOrComputeCreativeDirection } from '@/lib/agents/foundationCreativeDirection'
 import { formatPostContextBriefBlock } from '@/lib/agents/imageGeneration/postContextBrief'
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     prompts?: string[]; models?: string[]; duration?: number
     /** Run the production concept writer N times for this workspace instead of fixed prompts. */
-    compose?: { count?: number; skillId?: string; post?: Record<string, string> }
+    compose?: { count?: number; skillId?: string; post?: Record<string, string>; story?: boolean; brandUrl?: string }
   }
   let concepts: unknown[] = []
   if (body.compose) {
@@ -45,6 +46,24 @@ export async function POST(req: Request) {
     const postBlock = formatPostContextBriefBlock(body.compose.post ?? {}, 'video')
     const n = Math.min(4, Math.max(1, body.compose.count ?? 2))
     const looks = recipeLooks(skill.recipe)
+    if (body.compose.story) {
+      // Story mode: compose N stories, submit every shot, return jobs tagged with story/shot index.
+      const stories = await Promise.all(Array.from({ length: n }, (_, i) =>
+        composeVideoStory({ skill, creativeDirectionBlock: cdBlock, companyName, brandUrl: body.compose!.brandUrl ?? null, postContextBlock: postBlock, look: looks[i % Math.max(1, looks.length)] })
+          .catch(e => ({ error: String(e) }))))
+      const model = body.models?.[0] ?? skill.model
+      const jobs = await Promise.all(stories.flatMap((st, si) => 'story' in st
+        ? st.story.shots.map(async (shot, ki) => {
+          try {
+            const r = await submitVideoJob({ model, prompt: shot.prompt, aspectRatio: '9:16', duration: shot.seconds })
+            return { story: si, shot: ki, model, jobId: r.id }
+          } catch (err) {
+            return { story: si, shot: ki, model, error: err instanceof Error ? err.message.slice(0, 300) : String(err) }
+          }
+        })
+        : []))
+      return NextResponse.json({ stories, jobs })
+    }
     const results = await Promise.all(Array.from({ length: n }, (_, i) =>
       composeVideoConcept({ skill, creativeDirectionBlock: cdBlock, companyName, postContextBlock: postBlock, look: looks[i % Math.max(1, looks.length)] })
         .catch(e => ({ error: String(e) }))))
