@@ -35,20 +35,25 @@ export async function composeVideoStory(opts: {
   postContextBlock?: string | null
   sceneDirection?: string
   look?: string
+  /** Story angle; default random from STORY_ANGLES so repeat runs say different things. */
+  angle?: string
 }): Promise<{ story: VideoStory; candidates: unknown[]; critique: unknown; ideas: string[]; costUsd: number; inputTokens: number; outputTokens: number; model: string }> {
   const looks = recipeLooks(opts.skill.recipe)
   const look = opts.look && looks.includes(opts.look)
     ? opts.look
     : looks.length ? looks[Math.floor(Math.random() * looks.length)]! : null
+  const angle = opts.angle && STORY_ANGLES.includes(opts.angle)
+    ? opts.angle
+    : STORY_ANGLES[Math.floor(Math.random() * STORY_ANGLES.length)]!
   const model = briefComposeModel()
 
   const storyRules = [
     '## A story the viewer keeps',
     '- HOOK (0–3s): a tension the viewer recognizes from their own work — a problem, a frustration, a surprising contrast. Line max 7 words. It must make a scrolling owner stop.',
-    '- TURN (3–6s): what changes or what they did not know. Line max 9 words.',
+    '- TURN (3–6s): a VISIBLE event in the picture — something happens on screen that changes the situation (a door opens, the light flips on, the line starts forming, the before becomes the after). The line names what the viewer did not know. Max 9 words.',
     '- PAYOFF (6–10s): the visible result. Line max 8 words.',
     '- TAKEAWAY: one sentence the viewer could repeat to a friend and act on even if they never buy anything — an insight, a habit, a truth about customers. The payoff line usually carries it.',
-    '- END CARD: the brand line, max 6 words, plus the website if given. The brand appears only here.',
+    '- END CARD: the brand line, max 6 words, plus the website if given. The brand and product name appear ONLY here — hook, turn and payoff lines never name the brand or describe what the product does; they tell the viewer\'s story.',
     '- Every beat\'s picture shows what its line says. A stranger watching with sound off and text on follows the whole story.',
     '- Show real results in the customer\'s world (chairs fill, a line forms, the finished work appears). Objects stand only for themselves — no paper, tags or rows standing in for posts or days.',
   ].join('\n')
@@ -83,7 +88,8 @@ export async function composeVideoStory(opts: {
           opts.sceneDirection?.trim() ? `Owner's scene direction (honor it):\n${opts.sceneDirection.trim()}` : '',
           `## Business and brand\n${opts.creativeDirectionBlock.trim()}`,
           `## Skill: ${opts.skill.name}\n${opts.skill.recipe}`,
-          look ? `## Look for this video\nUse the "${look}" look.` : '',
+          look ? `## Look for this video\nUse the "${look}" look, in its own medium (paper craft is cut paper and card, never figurines or plastic; miniature is a tilt-shift model world; editorial portrait is a real person; witty object is real materials of the trade).` : '',
+          `## Angle for this story\n${angle}`,
           storyRules,
           '## Method\n1. Write 8 one-line story seeds across at least 4 different kinds of this business\'s customers (vary trade, place, time of day — never default to a bakery or café). Cut literal ones (someone reading a phone), generic business imagery (offices, laptops, handshakes, dashboards) and any-company ideas.\n2. Develop the 3 strongest into full stories.',
           renderRules,
@@ -115,9 +121,9 @@ export async function composeVideoStory(opts: {
               opts.postContextBlock?.trim() ?? '',
               '## Stories',
               candidates.map((c, i) => `[${i}] ${JSON.stringify(c)}`).join('\n\n'),
-              '## Score each 1–5\n- hook: would an owner scrolling past stop on the first 3 seconds?\n- takeaway: does the viewer leave with something useful they could act on even without buying?\n- beats_match: does each beat\'s picture show what its line says, so the story is followable with sound off?\n- physics: every object, light and time-of-day detail consistent within and across shots? List each problem.\n- craft: portfolio-worthy?',
-              `## Then\nPick the best total (hook and takeaway count double). Return it fixed: correct every physics or continuity problem, make the render plan match the story (any time jump or place change = "multi"), tighten the lines.\n${storyRules}\n${renderRules}`,
-              `## Output\nJSON only: { "scores": [ { "index": number, "hook": number, "takeaway": number, "beats_match": number, "physics": number, "craft": number, "problems": string[] } ], "chosen": number, "final": ${outputShape} }`,
+              '## Score each 1–5\n- hook: would an owner scrolling past stop on the first 3 seconds?\n- takeaway: does the viewer leave with something useful they could act on even without buying?\n- beats_match: does each beat\'s picture show what its line says, so the story is followable with sound off?\n- physics: every object, light and time-of-day detail consistent within and across shots? List each problem.\n- craft: portfolio-worthy, and true to its look\'s medium?\n- turn: is the turn a visible event on screen (not just a line over an unchanged picture), and do hook/turn/payoff stay free of the brand name?',
+              `## Then\nPick the best total (hook, takeaway and turn count double). Return it fixed: correct every physics or continuity problem, make the render plan match the story (any time jump or place change = "multi"), tighten the lines.\n${storyRules}\n${renderRules}`,
+              `## Output\nJSON only: { "scores": [ { "index": number, "hook": number, "takeaway": number, "beats_match": number, "physics": number, "craft": number, "turn": number, "problems": string[] } ], "chosen": number, "final": ${outputShape} }`,
             ].filter(Boolean).join('\n\n'),
           },
         ],
@@ -179,6 +185,16 @@ function normalizeStory(raw: unknown): VideoStory | null {
 }
 
 /** Overlay timing over the joined video: three beats, the end card over the last ~1.6s. */
+/** Story angles — each run takes one so a feed of videos says different things. */
+export const STORY_ANGLES = [
+  'Myth vs truth: the viewer believes something common that is wrong; show the truth.',
+  'Costly mistake: a habit that quietly loses this customer money or customers; show the fix.',
+  'Surprising contrast: two near-identical businesses, one small difference, very different results.',
+  'Before / after: the same place or work before and after one change.',
+  'Quick tip: one specific thing to do this week that brings a visible result.',
+  'Customer\'s point of view: what the customer sees, decides and does — and why.',
+]
+
 export function buildTimeline(story: VideoStory): VideoStory['timeline'] {
   const total = story.shots.reduce((n, s) => n + s.seconds, 0)
   const endCardAt = Math.max(total - 1.6, total * 0.84)
