@@ -15,6 +15,8 @@ export type AssembleInput = {
   video: Buffer
   /** Script lines in spoken order — subtitles show these words, timed to the detected speech. */
   lines: string[]
+  /** Burn subtitles of the spoken lines (user choice; default on). Timing is still computed either way. */
+  subtitles?: boolean
   /** A real image (product, website screenshot, a post) shown over the video while line `line` is spoken. */
   insert?: { image: Buffer; line: number } | null
   endCard?: { text: string; logo?: Buffer | null; background?: string; seconds?: number } | null
@@ -176,7 +178,7 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       )
       last = '[v1]'
     }
-    for (let i = 0; i < chunks.length; i++) {
+    for (let i = 0; input.subtitles !== false && i < chunks.length; i++) {
       const c = chunks[i]!
       const tf = path.join(dir, `c${i}.txt`)
       await writeFile(tf, c.text)

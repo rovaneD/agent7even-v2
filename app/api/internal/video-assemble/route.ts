@@ -29,6 +29,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     bakeoffJobId?: string
     lines?: string[]
+    subtitles?: boolean
     insert?: { path?: string; url?: string; line: number }
     endCard?: { text: string; useBrandLogo?: boolean; background?: string }
   }
@@ -49,6 +50,7 @@ export async function POST(req: Request) {
     const out = await assembleVideo({
       video,
       lines: body.lines,
+      subtitles: body.subtitles !== false,
       insert: insertImage && body.insert ? { image: insertImage, line: body.insert.line } : null,
       endCard: body.endCard ? { text: body.endCard.text, logo, background: body.endCard.background } : null,
     })
