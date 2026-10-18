@@ -5,7 +5,7 @@ import { createPostAssetSignedUrl } from '@/lib/postAssets'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
 import { pollVideoJob, submitVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
-import { composeVideoConcept } from '@/lib/agents/videoGeneration/briefComposeConcept'
+import { composeVideoConcept, recipeLooks } from '@/lib/agents/videoGeneration/briefComposeConcept'
 import { resolveVideoSkill } from '@/lib/agents/videoGeneration/videoSkills'
 import { formatCreativeDirectionBlock, getOrComputeCreativeDirection } from '@/lib/agents/foundationCreativeDirection'
 import { formatPostContextBriefBlock } from '@/lib/agents/imageGeneration/postContextBrief'
@@ -44,8 +44,10 @@ export async function POST(req: Request) {
     const cdBlock = formatCreativeDirectionBlock(cd, companyName)
     const postBlock = formatPostContextBriefBlock(body.compose.post ?? {}, 'video')
     const n = Math.min(4, Math.max(1, body.compose.count ?? 2))
-    const results = await Promise.all(Array.from({ length: n }, () =>
-      composeVideoConcept({ skill, creativeDirectionBlock: cdBlock, companyName, postContextBlock: postBlock }).catch(e => ({ error: String(e) }))))
+    const looks = recipeLooks(skill.recipe)
+    const results = await Promise.all(Array.from({ length: n }, (_, i) =>
+      composeVideoConcept({ skill, creativeDirectionBlock: cdBlock, companyName, postContextBlock: postBlock, look: looks[i % Math.max(1, looks.length)] })
+        .catch(e => ({ error: String(e) }))))
     concepts = results
     body.prompts = results.flatMap(r => ('concept' in r ? [r.concept.prompt] : []))
     if (!body.models?.length) body.models = [skill.model]

@@ -22,17 +22,24 @@ export async function composeVideoConcept(opts: {
   companyName: string
   postContextBlock?: string | null
   sceneDirection?: string
+  /** Force one look from the skill recipe (by name). Default: a random look, so repeat runs differ. */
+  look?: string
 }): Promise<{ concept: VideoConcept; ideas: string[]; costUsd: number; inputTokens: number; outputTokens: number; model: string }> {
   const secs = opts.skill.duration_seconds
+  const looks = recipeLooks(opts.skill.recipe)
+  const look = opts.look && looks.includes(opts.look)
+    ? opts.look
+    : looks.length ? looks[Math.floor(Math.random() * looks.length)]! : null
   const sections = [
     `Make one ${secs}-second vertical 9:16 social video for ${opts.companyName}.`,
     opts.postContextBlock?.trim() ? opts.postContextBlock.trim() : '',
     opts.sceneDirection?.trim() ? `Owner's scene direction (honor it):\n${opts.sceneDirection.trim()}` : '',
     `## Business and brand\n${opts.creativeDirectionBlock.trim()}`,
     `## Skill: ${opts.skill.name}\n${opts.skill.recipe}`,
+    look ? `## Look for this video\nUse the "${look}" look.` : '',
     [
       '## Method',
-      '1. Write 8 one-line idea seeds. Each is a visual metaphor or tiny story about THIS business\'s customers and what changes for them. Cut every seed that: shows the message literally (someone reading a phone notification, someone smiling at a screen); uses generic business imagery (offices, meeting rooms, teams at laptops, handshakes, glowing networks, dashboards); or could advertise any company.',
+      '1. Write 8 one-line idea seeds, spread across at least 4 different kinds of this business\'s customers or settings (vary the trade, the place and the time of day — never default to a bakery or café). Each is a visual metaphor or tiny story about THIS business\'s customers and what changes for them. Cut every seed that: shows the message literally (someone reading a phone notification, someone smiling at a screen); uses generic business imagery (offices, meeting rooms, teams at laptops, handshakes, glowing networks, dashboards); or could advertise any company.',
       '2. Develop the strongest survivor into ONE continuous shot.',
       '3. Write a headline: the hook line we will place over the video, max 7 words, specific and a little witty, in the owner\'s voice. It is never part of the scene.',
     ].join('\n'),
@@ -83,6 +90,11 @@ export async function composeVideoConcept(opts: {
     outputTokens: result.outputTokens,
     model,
   }
+}
+
+/** Look names from recipe lines shaped "- Name: description". */
+export function recipeLooks(recipe: string): string[] {
+  return [...recipe.matchAll(/^\s*-\s*([^:\n]{3,40}):/gm)].map(m => m[1]!.trim())
 }
 
 /** Positive-only, no company name, no quoted copy (video models render quotes as garbled text). */
