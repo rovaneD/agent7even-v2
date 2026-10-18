@@ -33,6 +33,7 @@ export async function POST(req: Request) {
   if (!a) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   const body = (await req.json().catch(() => ({}))) as {
     prompts?: string[]; models?: string[]; duration?: number
+    references?: string[]; generateAudio?: boolean; resolution?: '480p' | '720p' | '1080p'
     /** Run the production concept writer N times for this workspace instead of fixed prompts. */
     compose?: { count?: number; skillId?: string; post?: Record<string, string>; story?: boolean; brandUrl?: string }
   }
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
   const jobs = await Promise.all(
     prompts.flatMap((prompt, pi) => models.map(async model => {
       try {
-        const r = await submitVideoJob({ model, prompt, aspectRatio: '9:16', duration: body.duration ?? 8 })
+        const r = await submitVideoJob({ model, prompt, aspectRatio: '9:16', duration: body.duration ?? 8, referenceUrls: (body.references ?? []).filter(u => /^https:\/\//.test(u)).slice(0, 4), generateAudio: body.generateAudio, resolution: body.resolution })
         return { prompt: pi + 1, model, jobId: r.id, submittedAt: Date.now() }
       } catch (err) {
         return { prompt: pi + 1, model, error: err instanceof Error ? err.message.slice(0, 300) : String(err) }

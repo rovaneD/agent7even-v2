@@ -22,13 +22,23 @@ export async function submitVideoJob(opts: {
   prompt: string
   aspectRatio?: string
   duration?: number
+  /** Image URLs for visual guidance (character / product / place). Must be publicly fetchable (signed). */
+  referenceUrls?: string[]
+  /** Ask the model to generate audio (dialogue, ambience) where supported (Seedance). */
+  generateAudio?: boolean
+  resolution?: '480p' | '720p' | '1080p'
 }): Promise<VideoJobSubmitResult> {
-  const body = {
+  const body: Record<string, unknown> = {
     model: opts.model,
     prompt: opts.prompt,
     aspect_ratio: opts.aspectRatio ?? '9:16',
     duration: opts.duration ?? 8,
   }
+  if (opts.referenceUrls?.length) {
+    body.input_references = opts.referenceUrls.map(url => ({ type: 'image_url', image_url: { url } }))
+  }
+  if (opts.generateAudio !== undefined) body.generate_audio = opts.generateAudio
+  if (opts.resolution) body.resolution = opts.resolution
 
   const res = await fetch(`${OPENROUTER_API_BASE}/videos`, {
     method: 'POST',
