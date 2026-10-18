@@ -105,13 +105,16 @@ export async function POST(): Promise<NextResponse> {
         output_type: 'social_post',
         title:       'Generated video',
         content: {
-          raw:                'Generated video ready for review.',
+          raw:                (input.headline as string | undefined)?.trim() || 'Generated video ready for review.',
           media_storage_path: storagePath,
           media_mime:         'video/mp4',
           generated: {
             model:         videoModel,
             job_id:        jobId,
             brief_excerpt: briefExcerpt,
+            headline:      (input.headline as string | undefined) ?? null,
+            video_skill:   (input.video_skill as string | undefined) ?? null,
+            concept:       input.concept ?? null,
             qa_passed:     true,
           },
         },

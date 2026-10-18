@@ -27,21 +27,21 @@ const VIDEO_MODEL_CATALOG: Record<VideoModelId, VideoModelEntry> = {
     id: 'kling-v3-std',
     label: 'Kling v3.0 Standard',
     openRouterModel: 'kwaivgi/kling-v3.0-std',
-    durationSeconds: 8,
+    durationSeconds: 5,
     aspectRatio: '9:16',
   },
   'kling-v3-pro': {
     id: 'kling-v3-pro',
     label: 'Kling v3.0 Pro',
     openRouterModel: 'kwaivgi/kling-v3.0-pro',
-    durationSeconds: 8,
+    durationSeconds: 5,
     aspectRatio: '9:16',
   },
   'kling-video-o1': {
     id: 'kling-video-o1',
     label: 'Kling Video O1',
     openRouterModel: 'kwaivgi/kling-video-o1',
-    durationSeconds: 8,
+    durationSeconds: 5,
     aspectRatio: '9:16',
   },
   'seedance-2-fast': {
@@ -97,7 +97,7 @@ const VIDEO_MODEL_CATALOG: Record<VideoModelId, VideoModelEntry> = {
     id: 'hailuo-2-3',
     label: 'MiniMax Hailuo 2.3',
     openRouterModel: 'minimax/hailuo-2.3',
-    durationSeconds: 8,
+    durationSeconds: 6,
     aspectRatio: '9:16',
   },
   'wan-2-7': {
@@ -133,6 +133,12 @@ export function resolveVideoModel(id: string | null | undefined): VideoModelEntr
   }
   if (id && id in VIDEO_MODEL_CATALOG) return VIDEO_MODEL_CATALOG[id as VideoModelId]!
   return VIDEO_MODEL_CATALOG[DEFAULT_VIDEO_MODEL_ID]!
+}
+
+/** Display label for an OpenRouter video model id (falls back to the id). */
+export function videoModelLabel(openRouterModel: string): string {
+  if (openRouterModel === 'bytedance/seedance-2.5') return 'Seedance 2.5'
+  return Object.values(VIDEO_MODEL_CATALOG).find(m => m.openRouterModel === openRouterModel)?.label ?? openRouterModel
 }
 
 export function defaultVideoModelEntry(): VideoModelEntry {

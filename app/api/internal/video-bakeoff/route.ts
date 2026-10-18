@@ -5,6 +5,10 @@ import { createPostAssetSignedUrl } from '@/lib/postAssets'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
 import { pollVideoJob, submitVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
+import { composeVideoConcept } from '@/lib/agents/videoGeneration/briefComposeConcept'
+import { resolveVideoSkill } from '@/lib/agents/videoGeneration/videoSkills'
+import { formatCreativeDirectionBlock, getOrComputeCreativeDirection } from '@/lib/agents/foundationCreativeDirection'
+import { formatPostContextBriefBlock } from '@/lib/agents/imageGeneration/postContextBrief'
 
 /**
  * Internal video-model bake-off (internal test accounts only, like image-bakeoff).
@@ -12,7 +16,7 @@ import { pollVideoJob, submitVideoJob } from '@/lib/agents/videoGeneration/openR
  * GET ?ids=a,b polls; finished clips are copied to post-assets and returned as signed URLs.
  * Jobs have no agent_task, so the production webhook ignores them.
  */
-export const maxDuration = 120
+export const maxDuration = 180
 
 const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.com', 'rovdurs@gmail.com'])
 
@@ -26,7 +30,27 @@ async function auth() {
 export async function POST(req: Request) {
   const a = await auth()
   if (!a) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-  const body = (await req.json().catch(() => ({}))) as { prompts?: string[]; models?: string[]; duration?: number }
+  const body = (await req.json().catch(() => ({}))) as {
+    prompts?: string[]; models?: string[]; duration?: number
+    /** Run the production concept writer N times for this workspace instead of fixed prompts. */
+    compose?: { count?: number; skillId?: string; post?: Record<string, string> }
+  }
+  let concepts: unknown[] = []
+  if (body.compose) {
+    const { data: prof } = await a.supabase.from('profiles').select('company_name').eq('id', a.profileId).maybeSingle()
+    const companyName = (prof?.company_name as string | null) ?? 'your business'
+    const skill = await resolveVideoSkill(a.supabase, body.compose.skillId)
+    const cd = await getOrComputeCreativeDirection({ profileId: a.profileId, companyName })
+    const cdBlock = formatCreativeDirectionBlock(cd, companyName)
+    const postBlock = formatPostContextBriefBlock(body.compose.post ?? {}, 'video')
+    const n = Math.min(4, Math.max(1, body.compose.count ?? 2))
+    const results = await Promise.all(Array.from({ length: n }, () =>
+      composeVideoConcept({ skill, creativeDirectionBlock: cdBlock, companyName, postContextBlock: postBlock }).catch(e => ({ error: String(e) }))))
+    concepts = results
+    body.prompts = results.flatMap(r => ('concept' in r ? [r.concept.prompt] : []))
+    if (!body.models?.length) body.models = [skill.model]
+    if (!body.duration) body.duration = skill.duration_seconds
+  }
   const prompts = (body.prompts ?? []).map(p => p.trim()).filter(Boolean).slice(0, 4)
   const models = (body.models ?? []).map(m => m.trim()).filter(Boolean).slice(0, 6)
   if (!prompts.length || !models.length) return NextResponse.json({ error: 'prompts_and_models_required' }, { status: 400 })
@@ -41,7 +65,7 @@ export async function POST(req: Request) {
     })),
   )
   console.info('[video-bakeoff] submitted', JSON.stringify(jobs.map(j => ({ p: j.prompt, m: j.model, ok: 'jobId' in j }))))
-  return NextResponse.json({ jobs })
+  return NextResponse.json({ jobs, concepts })
 }
 
 export async function GET(req: Request) {

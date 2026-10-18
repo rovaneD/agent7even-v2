@@ -3,14 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { sanitizeUserFacingError } from '@/lib/agents/sanitizeProviderError'
-import { VIDEO_MODEL_OPTIONS, DEFAULT_VIDEO_MODEL_ID } from '@/lib/agents/videoGeneration/videoModelCatalog'
-import { videoCreditCost } from '@/lib/credits/actionCosts'
 
 export type VideoGenerateState =
   | { phase: 'idle' }
   | { phase: 'composing' }
-  | { phase: 'pending'; jobId: string; taskId: string; model: string }
-  | { phase: 'ready'; videoUrl: string | null; model: string }
+  | { phase: 'pending'; jobId: string; taskId: string; model: string; headline?: string; idea?: string }
+  | { phase: 'ready'; videoUrl: string | null; model: string; headline?: string; idea?: string }
   | { phase: 'error'; message: string }
 
 interface PostVideoGenerateProps {
@@ -33,13 +31,29 @@ export default function PostVideoGenerate({
       ? { phase: 'pending', ...initialPending }
       : { phase: 'idle' },
   )
-  const [modelId, setModelId]   = useState<string>(DEFAULT_VIDEO_MODEL_ID)
+  const [skills, setSkills]     = useState<VideoSkillCard[]>([])
+  const [skillId, setSkillId]   = useState<string>('')
   const [checking, setChecking] = useState(false)
   const [checkMsg, setCheckMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    let off = false
+    fetch('/api/posts/video-skills')
+      .then(r => r.json())
+      .then((d: { skills?: VideoSkillCard[] }) => {
+        if (off || !d.skills?.length) return
+        setSkills(d.skills)
+        setSkillId(cur => cur || d.skills![0]!.id)
+      })
+      .catch(() => {})
+    return () => { off = true }
+  }, [])
 
   // Poll the job so the finished video shows here instead of an endless spinner.
   const pendingTaskId = state.phase === 'pending' ? state.taskId : null
   const pendingModel = state.phase === 'pending' ? state.model : ''
+  const pendingHeadline = state.phase === 'pending' ? state.headline : undefined
+  const pendingIdea = state.phase === 'pending' ? state.idea : undefined
   useEffect(() => {
     if (!pendingTaskId) return
     let stopped = false
@@ -49,7 +63,7 @@ export default function PostVideoGenerate({
         const data = await res.json().catch(() => ({})) as { status?: string; videoUrl?: string | null }
         if (stopped) return
         if (data.status === 'completed') {
-          setState({ phase: 'ready', videoUrl: data.videoUrl ?? null, model: pendingModel })
+          setState({ phase: 'ready', videoUrl: data.videoUrl ?? null, model: pendingModel, headline: pendingHeadline, idea: pendingIdea })
         } else if (data.status === 'failed') {
           setState({ phase: 'error', message: 'The video model could not finish this clip. You were not charged — try again.' })
         }
@@ -58,7 +72,7 @@ export default function PostVideoGenerate({
     void tick()
     const id = setInterval(() => void tick(), 10_000)
     return () => { stopped = true; clearInterval(id) }
-  }, [pendingTaskId, pendingModel])
+  }, [pendingTaskId, pendingModel, pendingHeadline, pendingIdea])
 
   async function handleCheckReady() {
     if (checking) return
@@ -90,6 +104,7 @@ export default function PostVideoGenerate({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          topic:          postContext?.topic ?? '',
           postGoal:       postContext?.postGoal ?? '',
           platform:       postContext?.platform ?? '',
           offer:          postContext?.offer ?? '',
@@ -97,12 +112,12 @@ export default function PostVideoGenerate({
           mustInclude:    postContext?.mustInclude ?? '',
           mustAvoid:      postContext?.mustAvoid ?? '',
           sceneDirection: sceneDirection ?? '',
-          videoModelId:   modelId,
+          skillId:        skillId || undefined,
         }),
       })
 
       const data = await res.json().catch(() => ({})) as {
-        jobId?: string; taskId?: string; model?: string
+        jobId?: string; taskId?: string; model?: string; headline?: string; idea?: string
         error?: string; message?: string
       }
 
@@ -112,7 +127,7 @@ export default function PostVideoGenerate({
       }
 
       const result = { jobId: data.jobId, taskId: data.taskId ?? '', model: data.model ?? '' }
-      setState({ phase: 'pending', ...result })
+      setState({ phase: 'pending', ...result, headline: data.headline, idea: data.idea })
       onJobStarted?.(result)
     } catch {
       setState({ phase: 'error', message: 'We couldn\'t start your video right now. Please try again in a few minutes.' })
@@ -129,6 +144,8 @@ export default function PostVideoGenerate({
         <p className="mt-1 pl-4 text-xs text-blue-700">
           Using {state.model}. Usually 2–5 minutes.
         </p>
+        {state.idea && <p className="mt-1.5 pl-4 text-xs text-blue-800">Idea: {state.idea}</p>}
+        {state.headline && <p className="mt-0.5 pl-4 text-xs font-medium text-blue-900">Headline: “{state.headline}”</p>}
         <div className="mt-2 pl-4 flex items-center gap-3">
           <button
             type="button"
@@ -156,6 +173,8 @@ export default function PostVideoGenerate({
     return (
       <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
         <p className="text-sm font-medium text-emerald-900">Your video is ready</p>
+        {state.headline && <p className="mt-1 text-xs font-medium text-emerald-900">Headline: “{state.headline}”</p>}
+        {state.idea && <p className="mt-0.5 text-xs text-emerald-800">{state.idea}</p>}
         {state.videoUrl && (
           <video
             src={state.videoUrl}
@@ -197,38 +216,39 @@ export default function PostVideoGenerate({
 
   const isLoading = state.phase === 'composing'
   const noGoal    = !postContext?.postGoal?.trim()
-  const creditCost = videoCreditCost(modelId, undefined)
-  const creditLabel =
-    creditCost === -1
-      ? 'ProAgent only'
-      : `${creditCost} credit${creditCost === 1 ? '' : 's'}`
+  const selected = skills.find(sk => sk.id === skillId)
+  const creditCost = selected?.credits ?? 10
+  const creditLabel = `${creditCost} credit${creditCost === 1 ? '' : 's'}`
 
   return (
     <div className="rounded-xl border border-border bg-surface px-4 py-3">
       <p className="mb-2 text-sm font-medium text-text-primary">Generate a short video</p>
       <p className="mb-3 text-xs text-text-sec">
-        Maya writes a 9:16 video brief from your Foundation Creative Direction and generates a Reels/TikTok-ready clip in the background.{' '}
-        {creditCost === -1
-          ? 'Premium models require ProAgent.'
-          : `${creditCost} credits are deducted when submitted.`}
+        Pick a style. Maya comes up with an idea for this post and makes a vertical clip for Reels and TikTok. {creditCost} credits are deducted when it starts; failed videos are refunded.
       </p>
 
-      {/* Model selector */}
-      <div className="mb-3">
-        <label htmlFor="video-model-select" className="mb-1 block text-xs font-medium text-text-sec">
-          Model
-        </label>
-        <select
-          id="video-model-select"
-          value={modelId}
-          onChange={e => setModelId(e.target.value)}
-          disabled={isLoading}
-          className="w-full rounded-lg border border-border bg-white px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
-        >
-          {VIDEO_MODEL_OPTIONS.map(opt => (
-            <option key={opt.id} value={opt.id}>{opt.label}</option>
-          ))}
-        </select>
+      <div className="mb-3 grid gap-2 sm:grid-cols-2">
+        {skills.map(sk => (
+          <button
+            key={sk.id}
+            type="button"
+            onClick={() => setSkillId(sk.id)}
+            disabled={isLoading}
+            aria-pressed={sk.id === skillId}
+            className={`rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-50 ${sk.id === skillId ? 'border-brand-primary bg-white ring-1 ring-brand-primary' : 'border-border bg-white hover:border-text-sec'}`}
+          >
+            {sk.examples.length > 0 && (
+              <div className="mb-2 flex gap-1">
+                {sk.examples.slice(0, 3).map(src => (
+                  <video key={src} src={src} muted playsInline loop autoPlay className="aspect-[9/16] w-1/3 rounded bg-black object-cover" />
+                ))}
+              </div>
+            )}
+            <span className="block text-xs font-semibold text-text-primary">{sk.name}</span>
+            <span className="mt-0.5 block text-[11px] leading-snug text-text-sec">{sk.tagline}</span>
+            <span className="mt-1 block text-[11px] text-text-sec">{sk.seconds}s · {sk.credits} credits</span>
+          </button>
+        ))}
       </div>
 
       {noGoal && (
@@ -244,7 +264,7 @@ export default function PostVideoGenerate({
         {isLoading ? (
           <>
             <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            Composing brief…
+            Coming up with the idea…
           </>
         ) : (
           `Generate video (${creditLabel})`
@@ -252,4 +272,14 @@ export default function PostVideoGenerate({
       </button>
     </div>
   )
+}
+
+type VideoSkillCard = {
+  id: string
+  name: string
+  tagline: string
+  credits: number
+  premium: boolean
+  seconds: number
+  examples: string[]
 }

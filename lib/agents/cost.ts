@@ -193,7 +193,10 @@ export function estimateImageCallCostUsd(model: string): number {
 
 /** Video job completion when provider payload omits cost (Phase 1 fallback). */
 export function estimateVideoJobCostUsd(openRouterModel: string): number {
-  if (openRouterModel.includes('kling')) return 1.0
+  // Measured (OpenRouter usage.cost, 2026-10-17): Kling 3.0 Pro $0.84/5s · Seedance 2.5 $1.17/5s · Veo 3.1 $3.20/8s
+  if (openRouterModel.includes('kling')) return 0.85
+  if (openRouterModel.includes('seedance-2.5')) return 1.17
+  if (openRouterModel === 'google/veo-3.1') return 3.2
   if (openRouterModel.includes('veo')) return 0.55
   return 0.5
 }
