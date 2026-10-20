@@ -17,8 +17,11 @@ export type AssembleInput = {
   lines: string[]
   /** Burn subtitles of the spoken lines (user choice; default on). Timing is still computed either way. */
   subtitles?: boolean
-  /** 'serif' = creator style (Cormorant, sentence case, soft shadow, 3-word groups); 'bold' = Inter with outline. */
-  captionStyle?: 'serif' | 'bold'
+  /**
+   * User's caption choice (with `subtitles`): 'serif' = Cormorant SemiBold, 'sans' = Inter Bold.
+   * Both: sentence case, soft shadow, no outline, 3-word groups at chest height. 'bold' = legacy outlined.
+   */
+  captionStyle?: 'serif' | 'sans' | 'bold'
   /** A real image (product, website screenshot, a post) shown over the video while line `line` is spoken. */
   insert?: { image: Buffer; line: number } | null
   endCard?: { text: string; logo?: Buffer | null; background?: string; seconds?: number } | null
@@ -49,8 +52,9 @@ export function ffmpegBinary(): string {
   }
 }
 
-export function fontPath(style: 'serif' | 'bold' = 'bold'): string {
-  return path.join(process.cwd(), style === 'serif' ? 'assets/fonts/Cormorant-SemiBold.ttf' : 'assets/fonts/Inter-ExtraBold.otf')
+export function fontPath(style: 'serif' | 'sans' | 'bold' = 'bold'): string {
+  const file = style === 'serif' ? 'Cormorant-SemiBold.ttf' : style === 'sans' ? 'Inter-Bold.otf' : 'Inter-ExtraBold.otf'
+  return path.join(process.cwd(), 'assets/fonts', file)
 }
 
 function run(args: string[], timeoutMs = 120_000): Promise<{ code: number; stderr: string }> {
@@ -192,11 +196,14 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
     const chunks = chunkLines(lineTimes)
 
     // ── Pass 1: subtitles (+ optional real-image cut-in) over the performance ──
-    const serif = input.captionStyle !== 'bold'
-    const font = fontPath(serif ? 'serif' : 'bold').replace(/:/g, '\\:')
+    const style = input.captionStyle ?? 'serif'
+    const creator = style !== 'bold' // serif and sans share the creator look
+    const serif = creator
+    const font = fontPath(style).replace(/:/g, '\\:')
     const endFont = fontPath('bold').replace(/:/g, '\\:')
     // Serif creator captions: 0.034H, chest height (0.73H), soft shadow, no outline (skill: ugc-saas-review-video).
-    const size = Math.round(H * (serif ? 0.036 : 0.05))
+    // Sans glyphs read larger than Cormorant at the same size, so scale it down a touch.
+    const size = Math.round(H * (style === 'serif' ? 0.036 : style === 'sans' ? 0.03 : 0.05))
     const border = Math.max(3, Math.round(H * 0.0045))
     const y = Math.round(H * (serif ? 0.73 : 0.66))
     const textStyle = serif

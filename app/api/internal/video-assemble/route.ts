@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     bakeoffJobId?: string
     lines?: string[]
     subtitles?: boolean
-    captionStyle?: 'serif' | 'bold'
+    captionStyle?: 'serif' | 'sans' | 'bold'
     insert?: { path?: string; url?: string; line: number }
     endCard?: { text: string; useBrandLogo?: boolean; background?: string }
   }
