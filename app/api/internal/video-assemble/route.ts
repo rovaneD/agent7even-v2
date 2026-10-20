@@ -30,6 +30,7 @@ export async function POST(req: Request) {
     bakeoffJobId?: string
     lines?: string[]
     subtitles?: boolean
+    captionStyle?: 'serif' | 'bold'
     insert?: { path?: string; url?: string; line: number }
     endCard?: { text: string; useBrandLogo?: boolean; background?: string }
   }
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
       video,
       lines: body.lines,
       subtitles: body.subtitles !== false,
+      captionStyle: body.captionStyle ?? 'serif',
       insert: insertImage && body.insert ? { image: insertImage, line: body.insert.line } : null,
       endCard: body.endCard ? { text: body.endCard.text, logo, background: body.endCard.background } : null,
     })
@@ -64,6 +66,7 @@ export async function POST(req: Request) {
       durationSec: out.durationSec,
       lineTimes: out.lineTimes,
       chunks: out.chunks,
+      exactTiming: out.exactTiming,
       logo: Boolean(logo),
       insert: Boolean(insertImage),
     })

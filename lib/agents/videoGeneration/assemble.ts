@@ -17,11 +17,26 @@ export type AssembleInput = {
   lines: string[]
   /** Burn subtitles of the spoken lines (user choice; default on). Timing is still computed either way. */
   subtitles?: boolean
+  /** 'serif' = creator style (Cormorant, sentence case, soft shadow, 3-word groups); 'bold' = Inter with outline. */
+  captionStyle?: 'serif' | 'bold'
   /** A real image (product, website screenshot, a post) shown over the video while line `line` is spoken. */
   insert?: { image: Buffer; line: number } | null
   endCard?: { text: string; logo?: Buffer | null; background?: string; seconds?: number } | null
 }
-export type AssembleResult = { video: Buffer; lineTimes: TimedText[]; chunks: TimedText[]; durationSec: number }
+export type AssembleResult = { video: Buffer; lineTimes: TimedText[]; chunks: TimedText[]; durationSec: number; exactTiming: boolean }
+
+/** Fit an image inside maxW x maxH and round its corners (~3.5% of width). Returns PNG + whether it is wide. */
+export async function roundedCard(image: Buffer, maxW: number, maxH: number): Promise<{ png: Buffer; wide: boolean }> {
+  const sharp = (await import('sharp')).default
+  const resized = await sharp(image).resize({ width: maxW, height: maxH, fit: 'inside' }).png().toBuffer()
+  const meta = await sharp(resized).metadata()
+  const w = meta.width ?? maxW
+  const h = meta.height ?? maxH
+  const r = Math.round(w * 0.035)
+  const mask = Buffer.from(`<svg width="${w}" height="${h}"><rect x="0" y="0" width="${w}" height="${h}" rx="${r}" ry="${r}"/></svg>`)
+  const png = await sharp(resized).composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer()
+  return { png, wide: w > h * 1.15 }
+}
 
 export function ffmpegBinary(): string {
   const local = path.join(process.cwd(), 'node_modules/@ffmpeg-installer/linux-x64/ffmpeg')
@@ -34,8 +49,8 @@ export function ffmpegBinary(): string {
   }
 }
 
-export function fontPath(): string {
-  return path.join(process.cwd(), 'assets/fonts/Inter-ExtraBold.otf')
+export function fontPath(style: 'serif' | 'bold' = 'bold'): string {
+  return path.join(process.cwd(), style === 'serif' ? 'assets/fonts/Cormorant-SemiBold.ttf' : 'assets/fonts/Inter-ExtraBold.otf')
 }
 
 function run(args: string[], timeoutMs = 120_000): Promise<{ code: number; stderr: string }> {
@@ -67,8 +82,10 @@ export async function probe(file: string): Promise<{ duration: number; width: nu
 }
 
 /** Speech segments = the gaps between detected silences. */
-export async function speechSegments(file: string, duration: number): Promise<Array<{ start: number; end: number }>> {
-  const { stderr } = await run(['-hide_banner', '-i', file, '-af', 'silencedetect=noise=-32dB:d=0.22', '-f', 'null', '-'])
+export async function speechSegments(file: string, duration: number, opts?: { noiseDb?: number; minSilence?: number }): Promise<Array<{ start: number; end: number }>> {
+  const nz = opts?.noiseDb ?? -32
+  const d = opts?.minSilence ?? 0.22
+  const { stderr } = await run(['-hide_banner', '-i', file, '-af', `silencedetect=noise=${nz}dB:d=${d}`, '-f', 'null', '-'])
   const silences: Array<{ start: number; end: number }> = []
   let open: number | null = null
   for (const m of stderr.matchAll(/silence_(start|end):\s*([\d.]+)/g)) {
@@ -85,6 +102,22 @@ export async function speechSegments(file: string, duration: number): Promise<Ar
   }
   if (duration - cursor > 0.15) segs.push({ start: cursor, end: duration })
   return segs.length ? segs : [{ start: 0, end: duration }]
+}
+
+/**
+ * Try several silence thresholds and keep the one whose speech segments match the number of script
+ * lines (exact line timing). Ambient room tone often hides pauses at one fixed threshold.
+ */
+export async function speechSegmentsForLines(file: string, duration: number, lineCount: number) {
+  let best: Array<{ start: number; end: number }> | null = null
+  for (const noiseDb of [-32, -28, -25, -22, -36, -40]) {
+    for (const minSilence of [0.22, 0.15, 0.3]) {
+      const segs = await speechSegments(file, duration, { noiseDb, minSilence })
+      if (segs.length === lineCount) return { segs, exact: true }
+      if (!best || Math.abs(segs.length - lineCount) < Math.abs(best.length - lineCount)) best = segs
+    }
+  }
+  return { segs: best ?? [{ start: 0, end: duration }], exact: false }
 }
 
 const words = (s: string) => s.trim().split(/\s+/).filter(Boolean)
@@ -127,7 +160,8 @@ export function chunkLines(lineTimes: TimedText[]): TimedText[] {
       const w = words(sentence)
       for (let i = 0; i < w.length;) {
         const left = w.length - i
-        const take = left === 4 ? 2 : Math.min(3, left)
+        let take = left === 4 ? 2 : Math.min(3, left)
+        while (take > 1 && w.slice(i, i + take).join(' ').length > 22) take--
         groups.push(w.slice(i, i + take))
         i += take
       }
@@ -152,15 +186,22 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
     const meta = await probe(src)
     const W = meta.width
     const H = meta.height
-    const segs = await speechSegments(src, meta.duration)
-    const lineTimes = alignLines(input.lines.filter(l => l.trim()), segs)
+    const lines = input.lines.filter(l => l.trim())
+    const { segs, exact } = await speechSegmentsForLines(src, meta.duration, lines.length)
+    const lineTimes = alignLines(lines, segs)
     const chunks = chunkLines(lineTimes)
 
     // ── Pass 1: subtitles (+ optional real-image cut-in) over the performance ──
-    const font = fontPath().replace(/:/g, '\\:')
-    const size = Math.round(H * 0.05)
+    const serif = input.captionStyle !== 'bold'
+    const font = fontPath(serif ? 'serif' : 'bold').replace(/:/g, '\\:')
+    const endFont = fontPath('bold').replace(/:/g, '\\:')
+    // Serif creator captions: 0.034H, chest height (0.73H), soft shadow, no outline (skill: ugc-saas-review-video).
+    const size = Math.round(H * (serif ? 0.036 : 0.05))
     const border = Math.max(3, Math.round(H * 0.0045))
-    const y = Math.round(H * 0.66)
+    const y = Math.round(H * (serif ? 0.73 : 0.66))
+    const textStyle = serif
+      ? `fontcolor=white:fontsize=${size}:shadowcolor=black@0.55:shadowx=0:shadowy=${Math.max(2, Math.round(H * 0.0015))}`
+      : `fontcolor=white:fontsize=${size}:borderw=${border}:bordercolor=black@0.95`
     const filters: string[] = []
     let last = '[0:v]'
     const args = ['-hide_banner', '-y', '-i', src]
@@ -168,13 +209,17 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       const img = path.join(dir, 'insert')
       await writeFile(img, input.insert.image)
       const lt = lineTimes[Math.min(Math.max(0, input.insert.line), lineTimes.length - 1)]!
-      const a = Math.max(0, lt.start - 0.1)
-      const b = Math.min(meta.duration, lt.end + 0.4)
+      // Card shows on the line that names it, 1.3–3s (skill rule); never during the closing words.
+      const a = Math.max(0, lt.start + 0.15)
+      const b = Math.min(meta.duration, a + Math.min(3, Math.max(1.3, lt.end - lt.start - 0.3)))
       args.push('-loop', '1', '-t', String(meta.duration), '-i', img)
-      const iw = Math.round(W * 0.78)
+      // Rounded corners (~3.5% of width) and size cap 0.74W x 0.55H; wide cards float above the head.
+      const card = await roundedCard(input.insert.image, Math.round(W * 0.74), Math.round(H * 0.55))
+      await writeFile(img, card.png)
+      const cy = card.wide ? Math.round(H * 0.18) : Math.round(H * 0.33)
       filters.push(
-        `[1:v]scale=${iw}:-2,format=rgba,pad=iw+12:ih+12:6:6:color=white@1,fade=t=in:st=${a.toFixed(2)}:d=0.25:alpha=1,fade=t=out:st=${(b - 0.25).toFixed(2)}:d=0.25:alpha=1[ins]`,
-        `${last}[ins]overlay=x=(W-w)/2:y=H*0.1:enable='between(t,${a.toFixed(2)},${b.toFixed(2)})'[v1]`,
+        `[1:v]format=rgba,fade=t=in:st=${a.toFixed(2)}:d=0.2:alpha=1,fade=t=out:st=${(b - 0.2).toFixed(2)}:d=0.2:alpha=1[ins]`,
+        `${last}[ins]overlay=x=(W-w)/2:y=${cy}-h/2:enable='between(t,${a.toFixed(2)},${b.toFixed(2)})'[v1]`,
       )
       last = '[v1]'
     }
@@ -184,7 +229,7 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       await writeFile(tf, c.text)
       const out = `[s${i}]`
       filters.push(
-        `${last}drawtext=fontfile='${font}':textfile='${tf}':fontcolor=white:fontsize=${size}:borderw=${border}:bordercolor=black@0.95:x=(w-text_w)/2:y=${y}:enable='between(t,${c.start.toFixed(2)},${c.end.toFixed(2)})'${out}`,
+        `${last}drawtext=fontfile='${font}':textfile='${tf}':${textStyle}:x=(w-text_w)/2:y=${y}-text_h/2:enable='between(t,${c.start.toFixed(2)},${c.end.toFixed(2)})'${out}`,
       )
       last = out
     }
@@ -217,7 +262,7 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
         cf.push(`[2:v]scale=${Math.round(W * 0.42)}:-2[lg]`, `${cl}[lg]overlay=x=(W-w)/2:y=(H-h)/2-H*0.04[c1]`)
         cl = '[c1]'
       }
-      cf.push(`${cl}drawtext=fontfile='${font}':textfile='${tf}':fontcolor=white:fontsize=${Math.round(H * 0.032)}:x=(w-text_w)/2:y=H*0.62,fade=t=in:st=0:d=0.3[cv]`)
+      cf.push(`${cl}drawtext=fontfile='${endFont}':textfile='${tf}':fontcolor=white:fontsize=${Math.round(H * 0.032)}:x=(w-text_w)/2:y=H*0.62,fade=t=in:st=0:d=0.3[cv]`)
       cardArgs.push('-filter_complex', cf.join(';'), '-map', '[cv]', '-map', '1:a', '-t', String(secs),
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', '30', '-c:a', 'aac', '-b:a', '160k', card)
       await must(cardArgs, 'end card')
@@ -228,7 +273,7 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       final = joined
       total += secs
     }
-    return { video: await readFile(final), lineTimes, chunks, durationSec: total }
+    return { video: await readFile(final), lineTimes, chunks, durationSec: total, exactTiming: exact }
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {})
   }
