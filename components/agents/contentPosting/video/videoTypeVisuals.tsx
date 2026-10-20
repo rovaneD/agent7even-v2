@@ -24,16 +24,43 @@ export function VideoTypePoster({
 }) {
   const Icon = VIDEO_TYPE_ICONS[type.id]
   if (type.exampleUrl) {
+    // Examples are 9:16. The player and thumbs are 9:16 too; the landscape gallery tile shows the
+    // whole clip centered over a blurred copy, so faces, captions and cards are never cropped.
+    if (size !== 'tile') {
+      return (
+        <video
+          src={type.exampleUrl}
+          className="absolute inset-0 h-full w-full object-cover"
+          muted
+          loop
+          playsInline
+          autoPlay={playing}
+          preload="metadata"
+        />
+      )
+    }
     return (
-      <video
-        src={type.exampleUrl}
-        className="absolute inset-0 h-full w-full object-cover"
-        muted
-        loop
-        playsInline
-        autoPlay={playing}
-        preload="metadata"
-      />
+      <div className="absolute inset-0 overflow-hidden bg-black">
+        <video
+          src={type.exampleUrl}
+          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
+          muted
+          loop
+          playsInline
+          autoPlay={playing}
+          preload="metadata"
+          aria-hidden
+        />
+        <video
+          src={type.exampleUrl}
+          className="absolute inset-y-0 left-1/2 h-full -translate-x-1/2 object-contain"
+          muted
+          loop
+          playsInline
+          autoPlay={playing}
+          preload="metadata"
+        />
+      </div>
     )
   }
   const iconSize = size === 'thumb' ? 16 : size === 'player' ? 34 : 26
