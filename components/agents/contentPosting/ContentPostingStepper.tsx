@@ -12,7 +12,7 @@ export default function ContentPostingStepper({ current }: { current: Step }) {
   const currentIndex = STEPS.findIndex(s => s.id === current)
 
   return (
-    <div className="mb-1 mt-6 flex items-center">
+    <div className="mb-1 mt-8 flex items-center">
       {STEPS.map((step, index) => {
         const done = index < currentIndex
         const now = index === currentIndex
@@ -23,14 +23,14 @@ export default function ContentPostingStepper({ current }: { current: Step }) {
                 className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-[1.5px] text-[12.5px] font-semibold ${
                   done || now
                     ? 'border-brand-primary bg-brand-primary text-white'
-                    : 'border-gray-200 bg-white text-text-soft'
-                } ${now ? 'shadow-[0_0_0_4px_rgba(59,130,246,0.12)]' : ''}`}
+                    : 'border-white/15 bg-transparent text-[#6B6E76]'
+                } ${now ? 'shadow-[0_0_0_4px_rgba(59,130,246,0.18)]' : ''}`}
               >
                 {done ? <Check size={13} strokeWidth={2.6} /> : step.number}
               </span>
               <span
                 className={`whitespace-nowrap text-[13.5px] ${
-                  now ? 'font-semibold text-text-primary' : done ? 'font-medium text-text-sec' : 'font-medium text-text-soft'
+                  now ? 'font-semibold text-white' : done ? 'font-medium text-[#C9CBD1]' : 'font-medium text-[#6B6E76]'
                 }`}
               >
                 {step.label}
@@ -38,7 +38,7 @@ export default function ContentPostingStepper({ current }: { current: Step }) {
             </div>
             {index < STEPS.length - 1 && (
               <div
-                className={`mx-3.5 h-[1.5px] min-w-6 flex-1 ${index < currentIndex ? 'bg-brand-primary' : 'bg-gray-200'}`}
+                className={`mx-3.5 h-[1.5px] min-w-6 flex-1 ${index < currentIndex ? 'bg-brand-primary' : 'bg-white/[0.12]'}`}
               />
             )}
           </div>

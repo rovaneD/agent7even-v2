@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 @plugin "tailwindcss-animate";
 
+/* Caption fonts: the same files the video edit step burns in (assets/fonts), for the create-panel preview. */
+@font-face { font-family: "A7 Caption Serif"; src: url("/fonts/Cormorant-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "A7 Caption Sans"; src: url("/fonts/Inter-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
 :root {
   --font-sans:           system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-geist:          system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

@@ -1,5 +1,6 @@
 import ContentPostingFlowClient from '@/components/agents/contentPosting/ContentPostingFlowClient'
 import ContentPostingShell from '@/components/agents/contentPosting/ContentPostingShell'
+import ContentPostingLightPanel from '@/components/agents/contentPosting/ContentPostingLightPanel'
 import { loadContentPostingPageData } from '@/lib/agents/contentPosting/loadPageData'
 
 export default async function ContentPostingWeeklyPage() {
@@ -7,6 +8,7 @@ export default async function ContentPostingWeeklyPage() {
 
   return (
     <ContentPostingShell mode="weekly">
+      <ContentPostingLightPanel>
       <ContentPostingFlowClient
         mode="weekly"
         profileId={data.profileId}
@@ -15,6 +17,7 @@ export default async function ContentPostingWeeklyPage() {
         hasUploadedLogo={data.hasUploadedLogo}
         activeTasks={data.activeTasks}
       />
+      </ContentPostingLightPanel>
     </ContentPostingShell>
   )
 }

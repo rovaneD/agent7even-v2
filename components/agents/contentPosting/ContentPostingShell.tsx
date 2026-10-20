@@ -99,51 +99,60 @@ function ShellInner({ mode, children }: ContentPostingShellProps) {
       : 'Generated output goes to the approval queue — nothing publishes without approval.',
   })
 
+  // Video setup is the gallery — it needs the wide layout like the hub and format steps.
+  const galleryStep = mode === 'video' && onSetupStep
+  const layoutWidth = wideLayout || galleryStep ? 'max-w-[1040px]' : 'max-w-[820px]'
+
   return (
-    <div className={`mx-auto px-4 py-8 sm:px-8 ${wideLayout ? 'max-w-[960px]' : 'max-w-[820px]'}`}>
-      <Link
-        href={backHref}
-        className="mb-5 inline-flex items-center gap-1.5 text-[13.5px] font-medium text-text-sec transition-colors hover:text-text-primary"
-      >
-        <ArrowLeft size={15} strokeWidth={2} />
-        {backLabel}
-      </Link>
+    <div className="min-h-screen bg-[#0E0F11] text-[#F2F3F5]">
+      <div className={`mx-auto px-4 pb-16 pt-8 sm:px-8 ${layoutWidth}`}>
+        <Link
+          href={backHref}
+          className="mb-5 inline-flex items-center gap-1.5 text-[13.5px] font-medium text-[#9A9DA5] transition-colors hover:text-white"
+        >
+          <ArrowLeft size={15} strokeWidth={2} />
+          {backLabel}
+        </Link>
 
-      {!onFormatStep && onSetupStep && <ContentPostingStepper current="setup" />}
+        <div>
+          <p className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-[#9A9DA5]">{kicker}</p>
+          <h1 className="mt-3 text-[30px] font-semibold leading-tight tracking-[-0.025em] text-white">
+            {headline}
+          </h1>
+          <p className="mt-2.5 max-w-[520px] text-[15px] leading-relaxed text-[#9A9DA5]">{description}</p>
+        </div>
 
-      <div className={onSetupStep ? 'mt-4' : ''}>
-        <p className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-[#F5349B]">{kicker}</p>
-        <h1 className="mt-3 text-[30px] font-semibold leading-tight tracking-[-0.025em] text-text-primary sm:text-[30px]">
-          {headline}
-        </h1>
-        <p className="mt-2.5 max-w-[520px] text-[15.5px] leading-relaxed text-text-sec">{description}</p>
+        {!onFormatStep && onSetupStep && <ContentPostingStepper current="setup" />}
+
+        {!isHub && onSetupStep && (
+          <nav className="mb-2 mt-9 flex flex-wrap justify-center gap-2.5" aria-label="Content posting modes">
+            {MODES.map(m => {
+              const href = MODE_HREFS[m]
+              const active = pathname === href || pathname.startsWith(`${href}?`)
+              const Icon = MODE_ICONS[m]
+              return (
+                <Link
+                  key={m}
+                  href={href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`inline-flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-5 text-[13.5px] font-medium transition-colors ${
+                    active
+                      ? 'border border-brand-primary bg-[#16181D] text-white'
+                      : 'border border-white/[0.08] bg-[#1A1B1F] text-[#C9CBD1] hover:border-white/20 hover:text-white'
+                  }`}
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.08]">
+                    <Icon size={14} />
+                  </span>
+                  {CONTENT_POSTING_MODE_LABELS[m]}
+                </Link>
+              )
+            })}
+          </nav>
+        )}
+
+        <div className={isHub || onFormatStep ? '' : 'mt-2'}>{children}</div>
       </div>
-
-      {!isHub && onSetupStep && (
-        <nav className="mb-2 mt-6 flex flex-wrap gap-2" aria-label="Content posting modes">
-          {MODES.map(m => {
-            const href = MODE_HREFS[m]
-            const active = pathname === href || pathname.startsWith(`${href}?`)
-            const Icon = MODE_ICONS[m]
-            return (
-              <Link
-                key={m}
-                href={href}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  active
-                    ? 'border border-brand-primary bg-brand-primary/10 text-brand-primary'
-                    : 'border border-border bg-surface-2 text-text-sec hover:border-gray-200 hover:text-text-primary'
-                }`}
-              >
-                <Icon size={15} />
-                {CONTENT_POSTING_MODE_LABELS[m]}
-              </Link>
-            )
-          })}
-        </nav>
-      )}
-
-      <div className={isHub || onFormatStep ? '' : 'mt-2'}>{children}</div>
     </div>
   )
 }
@@ -151,8 +160,8 @@ function ShellInner({ mode, children }: ContentPostingShellProps) {
 function ShellFallback({ mode, children }: ContentPostingShellProps) {
   const isHub = mode === null
   return (
-    <div className={`mx-auto px-4 py-8 sm:px-8 ${isHub ? 'max-w-[960px]' : 'max-w-[820px]'}`}>
-      {children}
+    <div className="min-h-screen bg-[#0E0F11] text-[#F2F3F5]">
+      <div className={`mx-auto px-4 py-8 sm:px-8 ${isHub ? 'max-w-[1040px]' : 'max-w-[820px]'}`}>{children}</div>
     </div>
   )
 }
