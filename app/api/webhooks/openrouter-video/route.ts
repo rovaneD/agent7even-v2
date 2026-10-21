@@ -1,4 +1,4 @@
-import { failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
+import { completeVideoTask, failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { randomUUID } from 'crypto'
 import { after, NextResponse } from 'next/server'
@@ -255,10 +255,16 @@ async function handleVideoWebhook(payload: VideoWebhookPayload): Promise<void> {
     model: videoModel,
   })
 
-  await supabase
-    .from('agent_tasks')
-    .update({ status: 'completed', completed_at: new Date().toISOString() })
-    .eq('id', taskId)
+  if (outputError) {
+    // Insert failed: do not revive a task a failure path already refunded.
+    await supabase
+      .from('agent_tasks')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('id', taskId)
+      .eq('status', 'running')
+  } else {
+    await completeVideoTask(supabase, taskId, userId)
+  }
 
   console.log('[openrouter-video] Video ready, task:', taskId, 'path:', storagePath)
 }
