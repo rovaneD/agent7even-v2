@@ -222,13 +222,21 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       const a = Math.max(0, lt.start + 0.15)
       const b = Math.min(meta.duration, a + Math.min(3, Math.max(1.3, lt.end - lt.start - 0.3)))
       args.push('-loop', '1', '-t', String(meta.duration), '-i', img)
-      // Rounded corners (~3.5% of width) and size cap 0.74W x 0.55H; wide cards float above the head.
-      const card = await roundedCard(input.insert.image, Math.round(W * 0.74), Math.round(H * 0.55))
-      await writeFile(img, card.png)
-      const cy = card.wide ? Math.round(H * 0.18) : Math.round(H * 0.33)
+      // Rounded corners (~3.5% of width). Example #1 review (2026-10-20): a 0.55H card centered at 0.33H
+      // covered the presenter's face for 3s. Cards now sit at chest height between the chin (~0.36H)
+      // and the captions (0.73H) so the face stays visible: wide up to 0.86W, tall up to 0.56W, both <= 0.31H (a clear gap above the captions).
+      const card = await roundedCard(
+        input.insert.image,
+        Math.round(W * 0.86),
+        Math.round(H * 0.31),
+      )
+      const tall = !card.wide
+      const sized = tall ? await roundedCard(input.insert.image, Math.round(W * 0.56), Math.round(H * 0.31)) : card
+      await writeFile(img, sized.png)
+      const top = Math.round(H * 0.36)
       filters.push(
         `[1:v]format=rgba,fade=t=in:st=${a.toFixed(2)}:d=0.2:alpha=1,fade=t=out:st=${(b - 0.2).toFixed(2)}:d=0.2:alpha=1[ins]`,
-        `${last}[ins]overlay=x=(W-w)/2:y=${cy}-h/2:enable='between(t,${a.toFixed(2)},${b.toFixed(2)})'[v1]`,
+        `${last}[ins]overlay=x=(W-w)/2:y=${top}:enable='between(t,${a.toFixed(2)},${b.toFixed(2)})'[v1]`,
       )
       last = '[v1]'
     }
