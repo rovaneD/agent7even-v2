@@ -32,6 +32,11 @@ export async function submitVideoJob(opts: {
    * voice when the prompt is a spoken script).
    */
   providerOptions?: Record<string, Record<string, unknown>>
+  /**
+   * Extra input_references entries sent as-is (e.g. an audio track for Avatar IV lip-sync). The
+   * audio reference shape is not documented by OpenRouter yet, so callers pass the exact object.
+   */
+  extraReferences?: Record<string, unknown>[]
 }): Promise<VideoJobSubmitResult> {
   const body: Record<string, unknown> = {
     model: opts.model,
@@ -43,9 +48,9 @@ export async function submitVideoJob(opts: {
   if (opts.providerOptions && Object.keys(opts.providerOptions).length) {
     body.provider = { options: opts.providerOptions }
   }
-  if (opts.referenceUrls?.length) {
-    body.input_references = opts.referenceUrls.map(url => ({ type: 'image_url', image_url: { url } }))
-  }
+  const refs: Record<string, unknown>[] = (opts.referenceUrls ?? []).map(url => ({ type: 'image_url', image_url: { url } }))
+  if (opts.extraReferences?.length) refs.push(...opts.extraReferences)
+  if (refs.length) body.input_references = refs
   if (opts.generateAudio !== undefined) body.generate_audio = opts.generateAudio
   if (opts.resolution) body.resolution = opts.resolution
 

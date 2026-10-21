@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     prompts?: string[]; models?: string[]; duration?: number
     references?: string[]; generateAudio?: boolean; resolution?: '480p' | '720p' | '1080p'
     providerOptions?: Record<string, Record<string, unknown>>
+    extraReferences?: Record<string, unknown>[]
     /** Run the production concept writer N times for this workspace instead of fixed prompts. */
     compose?: { count?: number; skillId?: string; post?: Record<string, string>; story?: boolean; brandUrl?: string }
   }
@@ -80,10 +81,10 @@ export async function POST(req: Request) {
   const jobs = await Promise.all(
     prompts.flatMap((prompt, pi) => models.map(async model => {
       try {
-        const r = await submitVideoJob({ model, prompt, aspectRatio: '9:16', duration: body.duration ?? 8, referenceUrls: (body.references ?? []).filter(u => /^https:\/\//.test(u)).slice(0, 4), generateAudio: body.generateAudio, resolution: body.resolution, providerOptions: body.providerOptions })
+        const r = await submitVideoJob({ model, prompt, aspectRatio: '9:16', duration: body.duration ?? 8, referenceUrls: (body.references ?? []).filter(u => /^https:\/\//.test(u)).slice(0, 4), generateAudio: body.generateAudio, resolution: body.resolution, providerOptions: body.providerOptions, extraReferences: body.extraReferences })
         return { prompt: pi + 1, model, jobId: r.id, submittedAt: Date.now() }
       } catch (err) {
-        return { prompt: pi + 1, model, error: err instanceof Error ? err.message.slice(0, 300) : String(err) }
+        return { prompt: pi + 1, model, error: err instanceof Error ? err.message.slice(0, 1500) : String(err) }
       }
     })),
   )
