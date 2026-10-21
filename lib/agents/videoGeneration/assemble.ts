@@ -201,13 +201,15 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
     const serif = creator
     const font = fontPath(style).replace(/:/g, '\\:')
     const endFont = fontPath('bold').replace(/:/g, '\\:')
-    // Serif creator captions: 0.034H, chest height (0.73H), soft shadow, no outline (skill: ugc-saas-review-video).
-    // Sans glyphs read larger than Cormorant at the same size, so scale it down a touch.
-    const size = Math.round(H * (style === 'serif' ? 0.036 : style === 'sans' ? 0.03 : 0.05))
+    // Creator captions at chest height (0.73H). Example #1 review (2026-10-20): 0.036H serif with a thin
+    // shadow was unreadable on a light shirt, so both styles are larger and get a soft dark halo
+    // (thin semi-transparent border + drop shadow) — still no hard outline.
+    // Sans glyphs read larger than Cormorant at the same size, so it stays a touch smaller.
+    const size = Math.round(H * (style === 'serif' ? 0.048 : style === 'sans' ? 0.037 : 0.05))
     const border = Math.max(3, Math.round(H * 0.0045))
     const y = Math.round(H * (serif ? 0.73 : 0.66))
     const textStyle = serif
-      ? `fontcolor=white:fontsize=${size}:shadowcolor=black@0.55:shadowx=0:shadowy=${Math.max(2, Math.round(H * 0.0015))}`
+      ? `fontcolor=white:fontsize=${size}:borderw=${Math.max(2, Math.round(H * 0.0022))}:bordercolor=black@0.38:shadowcolor=black@0.6:shadowx=0:shadowy=${Math.max(2, Math.round(H * 0.002))}`
       : `fontcolor=white:fontsize=${size}:borderw=${border}:bordercolor=black@0.95`
     const filters: string[] = []
     let last = '[0:v]'

@@ -201,8 +201,8 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                   fontFamily: CAPTION_FONTS[captions],
                   fontWeight: captions === 'serif' ? 600 : 700,
                   lineHeight: 1.15,
-                  fontSize: captions === 'serif' ? 'clamp(18px, 3.6vh, 30px)' : 'clamp(15px, 3vh, 25px)',
-                  textShadow: '0 2px 10px rgba(0,0,0,0.55)',
+                  fontSize: captions === 'serif' ? 'clamp(20px, 3.6vh, 34px)' : 'clamp(17px, 3vh, 28px)',
+                  textShadow: '0 0 3px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.6)',
                 }}
               >
                 {plan?.beats[0]?.text.split(/\s+/).slice(0, 3).join(' ') || 'Your captions here'}
