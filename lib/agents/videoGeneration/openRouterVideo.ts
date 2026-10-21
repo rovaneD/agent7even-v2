@@ -27,12 +27,21 @@ export async function submitVideoJob(opts: {
   /** Ask the model to generate audio (dialogue, ambience) where supported (Seedance). */
   generateAudio?: boolean
   resolution?: '480p' | '720p' | '1080p'
+  /**
+   * Provider passthrough, sent as provider.options (e.g. { heygen: { voice_id } } — Avatar IV needs a
+   * voice when the prompt is a spoken script).
+   */
+  providerOptions?: Record<string, Record<string, unknown>>
 }): Promise<VideoJobSubmitResult> {
   const body: Record<string, unknown> = {
     model: opts.model,
     prompt: opts.prompt,
     aspect_ratio: opts.aspectRatio ?? '9:16',
-    duration: opts.duration ?? 8,
+  }
+  // duration 0 = let the model decide (Avatar IV: the length of the spoken script).
+  if (opts.duration !== 0) body.duration = opts.duration ?? 8
+  if (opts.providerOptions && Object.keys(opts.providerOptions).length) {
+    body.provider = { options: opts.providerOptions }
   }
   if (opts.referenceUrls?.length) {
     body.input_references = opts.referenceUrls.map(url => ({ type: 'image_url', image_url: { url } }))
@@ -48,7 +57,7 @@ export async function submitVideoJob(opts: {
 
   const text = await res.text()
   if (!res.ok) {
-    throw new Error(`OpenRouter video submit ${res.status}: ${text.slice(0, 400)}`)
+    throw new Error(`OpenRouter video submit ${res.status}: ${text.slice(0, 1500)}`)
   }
 
   const data = JSON.parse(text) as VideoJobSubmitResult
