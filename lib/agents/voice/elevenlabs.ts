@@ -36,7 +36,13 @@ export async function listModels(): Promise<ElevenModel[]> {
 /** Speech model for creator lines: env override, else the newest expressive model the key offers. */
 export async function pickSpeechModel(): Promise<string> {
   if (process.env.ELEVENLABS_TTS_MODEL) return process.env.ELEVENLABS_TTS_MODEL
-  const ids = (await listModels()).filter(m => m.can_do_text_to_speech !== false).map(m => m.model_id)
+  let ids: string[]
+  try {
+    ids = (await listModels()).filter(m => m.can_do_text_to_speech !== false).map(m => m.model_id)
+  } catch {
+    // Restricted keys may lack models_read; v3 is the expressive model Voice Design previews use.
+    return 'eleven_v3'
+  }
   for (const pref of ['eleven_v4', 'eleven_v3', 'eleven_multilingual_v2']) {
     if (ids.includes(pref)) return pref
   }

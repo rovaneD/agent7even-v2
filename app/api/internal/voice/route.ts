@@ -42,8 +42,8 @@ export async function POST(req: Request) {
   try {
     switch (body.action) {
       case 'check': {
-        const models = await listModels()
-        return NextResponse.json({ ok: true, picked: await pickSpeechModel(), models: models.map(m => m.model_id) })
+        const models = await listModels().catch(() => null)
+        return NextResponse.json({ ok: true, picked: await pickSpeechModel(), models: models ? models.map(m => m.model_id) : 'models_read not allowed for this key' })
       }
       case 'design': {
         if (!body.description) return NextResponse.json({ error: 'description_required' }, { status: 400 })
