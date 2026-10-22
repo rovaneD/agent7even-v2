@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { Users } from 'lucide-react'
 import PlatformBrandIcon from '@/components/agents/contentPosting/PlatformBrandIcon'
 import { contentPostingModeHref, resolveVideoFormat } from '@/lib/agents/contentPosting/platformFormats'
 import { VIDEO_TYPES, type VideoTypeId } from '@/lib/agents/contentPosting/videoTypes'
 import VideoCreatePanel from './VideoCreatePanel'
+import CreatorsSheet from './CreatorsSheet'
 import { VIDEO_TYPE_ICONS, VideoTypePoster } from './videoTypeVisuals'
 
 type Props = {
@@ -17,6 +19,7 @@ type Props = {
 export default function VideoGallery({ formatId }: Props) {
   const format = resolveVideoFormat(formatId)
   const [openId, setOpenId] = useState<VideoTypeId | null>(null)
+  const [creatorsOpen, setCreatorsOpen] = useState(false)
 
   return (
     <div className="mt-8">
@@ -24,6 +27,17 @@ export default function VideoGallery({ formatId }: Props) {
         <p className="text-[13px] text-[#8A8D95]">
           <span className="font-medium text-[#E6E7EA]">{VIDEO_TYPES.length} video types</span> · pick one to see how it works
         </p>
+        <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setCreatorsOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[#17181B] py-1 pl-1 pr-3 text-[12.5px] text-[#C9CBD1] transition-colors hover:border-white/20 hover:text-white"
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.1]">
+            <Users size={13} />
+          </span>
+          Creators
+        </button>
         <Link
           href={contentPostingModeHref('video')}
           className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-[#17181B] py-1 pl-1 pr-3 text-[12.5px] text-[#C9CBD1] transition-colors hover:border-white/20 hover:text-white"
@@ -34,6 +48,7 @@ export default function VideoGallery({ formatId }: Props) {
           {format.label} · {format.aspectRatio}
           <span className="text-[#7FB0FF]">Change</span>
         </Link>
+        </div>
       </div>
 
       <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -89,6 +104,8 @@ export default function VideoGallery({ formatId }: Props) {
       <p className="mt-8 text-[12.5px] text-[#6B6E76]">
         Nothing is made or charged until you approve a plan with its price.
       </p>
+
+      <CreatorsSheet open={creatorsOpen} onClose={() => setCreatorsOpen(false)} />
 
       {openId && (
         <VideoCreatePanel

@@ -12,6 +12,8 @@ import {
   type VideoTypeId,
 } from '@/lib/agents/contentPosting/videoTypes'
 import { VIDEO_TYPE_ICONS, VideoTypePoster } from './videoTypeVisuals'
+import { Segmented, fieldClass } from './ui'
+import CreatorsSheet, { loadLibrary, type PickedCreator } from './CreatorsSheet'
 
 type Plan = {
   title: string
@@ -26,6 +28,8 @@ type Props = {
   onClose: () => void
   onSwitch: (id: VideoTypeId) => void
 }
+
+const CREATOR_KEY = 'a7.video.creator'
 
 const CAPTION_LABELS: Record<CaptionChoice, string> = { off: 'Off', serif: 'Serif', sans: 'Sans' }
 const CAPTION_FONTS: Record<Exclude<CaptionChoice, 'off'>, string> = {
@@ -43,43 +47,6 @@ function initialInputs(fields: VideoTypeField[]): Record<string, string | string
   return out
 }
 
-function Segmented<T extends string | number>({
-  value,
-  options,
-  onChange,
-  label,
-}: {
-  value: T
-  options: Array<{ value: T; label: string }>
-  onChange: (v: T) => void
-  label: string
-}) {
-  return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-[10px] bg-white/[0.05] p-[3px] ring-1 ring-white/[0.06]">
-      {options.map(o => {
-        const on = o.value === value
-        return (
-          <button
-            key={String(o.value)}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            onClick={() => onChange(o.value)}
-            className={`rounded-[8px] px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
-              on ? 'bg-white/[0.14] text-white' : 'text-[#9A9DA5] hover:text-white'
-            }`}
-          >
-            {o.label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-const fieldClass =
-  'w-full rounded-[10px] border border-white/[0.08] bg-[#0F1012] px-3 py-2.5 text-[14px] text-white placeholder:text-[#5C5F67] outline-none transition-colors focus:border-brand-primary'
-
 /** Video Post, step 4: example on the left, guided panel on the right. Plan is free; create is the only charge. */
 export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: Props) {
   const type = videoTypeById(typeId)!
@@ -90,6 +57,28 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   const [length, setLength] = useState(type.defaultLength)
   const [captions, setCaptions] = useState<CaptionChoice>(type.captionsDefault)
   const [plan, setPlan] = useState<Plan | null>(null)
+  const [creator, setCreator] = useState<PickedCreator | null>(() => {
+    try {
+      const raw = window.localStorage.getItem(CREATOR_KEY)
+      return raw ? (JSON.parse(raw) as PickedCreator) : null
+    } catch {
+      return null
+    }
+  })
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  // Signed photo URLs expire, so a remembered creator only stores its id; refresh the photo here.
+  useEffect(() => {
+    if (!creator || creator.photoUrl) return
+    loadLibrary()
+      .then(lib => {
+        const found =
+          creator.kind === 'cast' ? lib.cast.find(c => c.id === creator.id) : lib.mine.find(c => c.id === creator.id)
+        if (found) setCreator({ ...creator, name: found.name, photoUrl: found.photoUrl })
+        else setCreator(null)
+      })
+      .catch(() => {})
+  }, [creator])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -105,6 +94,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => {
+      if (sheetOpen) return
       if (e.key === 'Escape') onClose()
       const tag = (e.target as HTMLElement | null)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
@@ -116,7 +106,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
     }
-  }, [go, onClose])
+  }, [go, onClose, sheetOpen])
 
   const missing = useMemo(
     () =>
@@ -193,7 +183,12 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
           </button>
 
           <div className="relative aspect-[9/16] h-[56vh] max-h-[760px] overflow-hidden rounded-[20px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] ring-1 ring-white/10 lg:h-[76vh]">
-            <VideoTypePoster type={type} size="player" />
+            {type.presenter && creator?.photoUrl && !type.exampleUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={creator.photoUrl} alt={creator.name} className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <VideoTypePoster type={type} size="player" />
+            )}
             {captions !== 'off' && (
               <p
                 className="pointer-events-none absolute inset-x-0 top-[73%] text-center text-white"
@@ -253,16 +248,28 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
             <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5 lg:min-h-0">
               {type.presenter && (
                 <section>
-                  <p className="mb-2 text-[12px] font-medium text-[#9A9DA5]">Presenter</p>
-                  <div className="flex items-center gap-3 rounded-[12px] border border-dashed border-white/[0.14] p-3">
-                    <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[10px] bg-white/[0.06] text-[#8A8D95]">
-                      <UserRound size={20} />
+                  <p className="mb-2 text-[12px] font-medium text-[#9A9DA5]">Creator</p>
+                  <button
+                    type="button"
+                    onClick={() => setSheetOpen(true)}
+                    className="flex w-full items-center gap-3 rounded-[12px] bg-white/[0.03] p-2.5 text-left ring-1 ring-white/[0.08] transition-colors hover:ring-white/20"
+                  >
+                    {creator?.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={creator.photoUrl} alt="" className="h-[60px] w-10 flex-shrink-0 rounded-[8px] object-cover" />
+                    ) : (
+                      <span className="flex h-[60px] w-10 flex-shrink-0 items-center justify-center rounded-[8px] bg-white/[0.06] text-[#8A8D95]">
+                        <UserRound size={18} />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[14px] font-medium text-white">{creator ? creator.name : 'Choose a creator'}</span>
+                      <span className="block text-[12px] text-[#8A8D95]">
+                        {creator ? 'Same face in every video' : 'Pick one of ours or create your own'}
+                      </span>
                     </span>
-                    <p className="text-[12.5px] leading-snug text-[#9A9DA5]">
-                      Maya makes two presenter options, you pick one, and the same face is used in every video.
-                      <span className="mt-1 block text-[#6B6E76]">Presenter setup opens with the first example video.</span>
-                    </p>
-                  </div>
+                    <span className="text-[12.5px] text-[#7FB0FF]">{creator ? 'Change' : 'Choose'}</span>
+                  </button>
                 </section>
               )}
 
@@ -452,6 +459,17 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
           </div>
         </div>
       </div>
+      <CreatorsSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        selectedId={creator?.id ?? null}
+        onPick={c => {
+          setCreator(c)
+          try {
+            window.localStorage.setItem(CREATOR_KEY, JSON.stringify({ ...c, photoUrl: null }))
+          } catch {}
+        }}
+      />
     </div>
   )
 }
