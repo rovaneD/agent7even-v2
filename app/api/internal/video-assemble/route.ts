@@ -33,6 +33,8 @@ export async function POST(req: Request) {
     captionStyle?: 'serif' | 'sans' | 'bold'
     insert?: { path?: string; url?: string; line: number }
     endCard?: { text: string; useBrandLogo?: boolean; background?: string }
+    /** Exact line times from the presenter pipeline (skips speech detection). */
+    lineTimes?: Array<{ start: number; end: number; text: string }>
   }
   if (!body.bakeoffJobId || !body.lines?.length) return NextResponse.json({ error: 'bakeoffJobId_and_lines_required' }, { status: 400 })
 
@@ -55,6 +57,7 @@ export async function POST(req: Request) {
       captionStyle: body.captionStyle ?? 'serif',
       insert: insertImage && body.insert ? { image: insertImage, line: body.insert.line } : null,
       endCard: body.endCard ? { text: body.endCard.text, logo, background: body.endCard.background } : null,
+      lineTimes: body.lineTimes ?? null,
     })
     const path = `${profileId}/assembled-${body.bakeoffJobId.replace(/[^a-zA-Z0-9-]/g, '')}-${Date.now()}.mp4`
     const { error } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(path, out.video, { contentType: 'video/mp4', upsert: true })

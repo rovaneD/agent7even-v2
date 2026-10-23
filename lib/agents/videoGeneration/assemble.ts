@@ -25,6 +25,11 @@ export type AssembleInput = {
   /** A real image (product, website screenshot, a post) shown over the video while line `line` is spoken. */
   insert?: { image: Buffer; line: number } | null
   endCard?: { text: string; logo?: Buffer | null; background?: string; seconds?: number } | null
+  /**
+   * Exact line times when the voice track was built line by line (presenter pipeline). Skips speech
+   * detection; captions and cards land on the real words.
+   */
+  lineTimes?: TimedText[] | null
 }
 export type AssembleResult = { video: Buffer; lineTimes: TimedText[]; chunks: TimedText[]; durationSec: number; exactTiming: boolean }
 
@@ -57,7 +62,7 @@ export function fontPath(style: 'serif' | 'sans' | 'bold' = 'bold'): string {
   return path.join(process.cwd(), 'assets/fonts', file)
 }
 
-function run(args: string[], timeoutMs = 120_000): Promise<{ code: number; stderr: string }> {
+export function run(args: string[], timeoutMs = 120_000): Promise<{ code: number; stderr: string }> {
   return new Promise((resolve, reject) => {
     const p = spawn(ffmpegBinary(), args, { stdio: ['ignore', 'ignore', 'pipe'] })
     let stderr = ''
@@ -68,7 +73,7 @@ function run(args: string[], timeoutMs = 120_000): Promise<{ code: number; stder
   })
 }
 
-async function must(args: string[], label: string) {
+export async function must(args: string[], label: string) {
   const r = await run(args)
   if (r.code !== 0) throw new Error(`ffmpeg ${label} failed: ${r.stderr.slice(-800)}`)
   return r.stderr
@@ -191,8 +196,12 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
     const W = meta.width
     const H = meta.height
     const lines = input.lines.filter(l => l.trim())
-    const { segs, exact } = await speechSegmentsForLines(src, meta.duration, lines.length)
-    const lineTimes = alignLines(lines, segs)
+    const given = input.lineTimes?.length === lines.length ? input.lineTimes : null
+    const detected = given ? null : await speechSegmentsForLines(src, meta.duration, lines.length)
+    const exact = given ? true : detected!.exact
+    const lineTimes = given
+      ? given.map((t, i) => ({ start: t.start, end: Math.min(t.end, meta.duration), text: lines[i]! }))
+      : alignLines(lines, detected!.segs)
     const chunks = chunkLines(lineTimes)
 
     // ── Pass 1: subtitles (+ optional real-image cut-in) over the performance ──

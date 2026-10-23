@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
       './node_modules/@img/sharp-libvips-linux-x64/**/*',
     ],
     // Video edit step: static ffmpeg binary + subtitle font.
+    // Presenter pipeline: joins the creator's voice lines with ffmpeg.
+    '/api/internal/presenter-render': ['./node_modules/@ffmpeg-installer/linux-x64/**/*'],
     '/api/internal/video-assemble': [
       './node_modules/@ffmpeg-installer/linux-x64/**/*',
       './assets/fonts/**/*',
