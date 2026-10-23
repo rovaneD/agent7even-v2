@@ -14,23 +14,28 @@ export interface CastCreator {
   look: string
   /** post-assets storage path of the locked photo (2:3, 1024×1536). */
   photoPath: string
+  /**
+   * post-assets path of the creator's voice sample (an ElevenLabs Voice Design preview the owner picked
+   * by ear, 2026-10-23). Speech is made by copying this sample (Fish Audio Drama 3 via OpenRouter).
+   */
+  voiceSamplePath: string
 }
 
 const CAST_DIR = 'bfa73081-3906-4b5b-b24e-d9df3fb07384'
 
 export const CAST_CREATORS: CastCreator[] = [
-  { id: 'rory', name: 'Rory', gender: 'woman', age: 24, look: 'Copper curls, black tee, apartment', photoPath: `${CAST_DIR}/7134b380-0aef-4fc9-beb6-ad5fdac1c24a-bakeoff-1792645998415-p1-openai_gpt-image-2.5-flare.png` },
-  { id: 'june', name: 'June', gender: 'woman', age: 23, look: 'Black bob, yellow knit, bright bedroom', photoPath: `${CAST_DIR}/edc0c34b-cd65-4700-b955-25ad2365865c-bakeoff-1792645998415-p2-openai_gpt-image-2.5-flare.png` },
-  { id: 'kai', name: 'Kai', gender: 'man', age: 25, look: 'Long dark curls, striped shirt, minimal apartment', photoPath: `${CAST_DIR}/50d86416-9158-4aa7-b4e4-524255d5256d-bakeoff-1792645998415-p3-openai_gpt-image-2.5-flare.png` },
-  { id: 'leo', name: 'Leo', gender: 'man', age: 22, look: 'Tousled hair, taupe hoodie, studio apartment', photoPath: `${CAST_DIR}/d8b0a6e3-1a6a-461a-82bd-87a54bf93241-bakeoff-1792645998415-p4-openai_gpt-image-2.5-flare.png` },
-  { id: 'elena', name: 'Elena', gender: 'woman', age: 24, look: 'Long dark waves, grey sweatshirt, bedroom', photoPath: `${CAST_DIR}/a718fc27-9a4c-43b1-a3b5-687a72e8089f-bakeoff-1792646015748-p1-openai_gpt-image-2.5-flare.png` },
-  { id: 'amara', name: 'Amara', gender: 'woman', age: 26, look: 'Braids, rust tee, bright kitchen', photoPath: `${CAST_DIR}/c6109414-6ddc-462c-a2ff-5aa5cd321a77-bakeoff-1792646015748-p2-openai_gpt-image-2.5-flare.png` },
-  { id: 'cole', name: 'Cole', gender: 'man', age: 27, look: 'Sandy hair, green sweater, living room', photoPath: `${CAST_DIR}/9823209b-96e4-4317-802b-c50c127dc764-bakeoff-1792646015748-p3-openai_gpt-image-2.5-flare.png` },
-  { id: 'priya', name: 'Priya', gender: 'woman', age: 23, look: 'Lavender cardigan, café window', photoPath: `${CAST_DIR}/effe2620-b514-49d5-b868-54bd9a5f2297-bakeoff-1792646015748-p4-openai_gpt-image-2.5-flare.png` },
-  { id: 'theo', name: 'Theo', gender: 'man', age: 27, look: 'Charcoal tee, home studio', photoPath: `${CAST_DIR}/bae80588-d3ea-4aa3-a4e0-a056d5651492-bakeoff-1792620185626-p1-openai_gpt-image-2.5-flare.png` },
-  { id: 'nora', name: 'Nora', gender: 'woman', age: 26, look: 'Blonde bob, white shirt, balcony', photoPath: `${CAST_DIR}/95f05b78-831b-4e75-8cc3-a0062f065769-bakeoff-1792646591173-p1-openai_gpt-image-2.5-flare.png` },
-  { id: 'jalen', name: 'Jalen', gender: 'man', age: 25, look: 'Twists, denim overshirt, record shelf', photoPath: `${CAST_DIR}/5797bcda-284e-45a2-8a4e-656d3b3942eb-bakeoff-1792647708359-p1-openai_gpt-image-2.5-flare.png` },
-  { id: 'layla', name: 'Layla', gender: 'woman', age: 27, look: 'Long dark hair, beige knit, kitchen', photoPath: `${CAST_DIR}/10e8660a-fe69-429b-8c1c-d869641d8e2d-bakeoff-1792646591173-p3-openai_gpt-image-2.5-flare.png` },
+  { id: 'rory', name: 'Rory', gender: 'woman', age: 24, look: 'Copper curls, black tee, apartment', photoPath: `${CAST_DIR}/7134b380-0aef-4fc9-beb6-ad5fdac1c24a-bakeoff-1792645998415-p1-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792652997814-design-1.mp3` },
+  { id: 'june', name: 'June', gender: 'woman', age: 23, look: 'Black bob, yellow knit, bright bedroom', photoPath: `${CAST_DIR}/edc0c34b-cd65-4700-b955-25ad2365865c-bakeoff-1792645998415-p2-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653007118-design-1.mp3` },
+  { id: 'kai', name: 'Kai', gender: 'man', age: 25, look: 'Long dark curls, striped shirt, minimal apartment', photoPath: `${CAST_DIR}/50d86416-9158-4aa7-b4e4-524255d5256d-bakeoff-1792645998415-p3-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653015463-design-1.mp3` },
+  { id: 'leo', name: 'Leo', gender: 'man', age: 22, look: 'Tousled hair, taupe hoodie, studio apartment', photoPath: `${CAST_DIR}/d8b0a6e3-1a6a-461a-82bd-87a54bf93241-bakeoff-1792645998415-p4-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653024913-design-3.mp3` },
+  { id: 'elena', name: 'Elena', gender: 'woman', age: 24, look: 'Long dark waves, grey sweatshirt, bedroom', photoPath: `${CAST_DIR}/a718fc27-9a4c-43b1-a3b5-687a72e8089f-bakeoff-1792646015748-p1-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653034085-design-1.mp3` },
+  { id: 'amara', name: 'Amara', gender: 'woman', age: 26, look: 'Braids, rust tee, bright kitchen', photoPath: `${CAST_DIR}/c6109414-6ddc-462c-a2ff-5aa5cd321a77-bakeoff-1792646015748-p2-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653699068-design-3.mp3` },
+  { id: 'cole', name: 'Cole', gender: 'man', age: 27, look: 'Sandy hair, green sweater, living room', photoPath: `${CAST_DIR}/9823209b-96e4-4317-802b-c50c127dc764-bakeoff-1792646015748-p3-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653052094-design-3.mp3` },
+  { id: 'priya', name: 'Priya', gender: 'woman', age: 23, look: 'Lavender cardigan, café window', photoPath: `${CAST_DIR}/effe2620-b514-49d5-b868-54bd9a5f2297-bakeoff-1792646015748-p4-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653061323-design-1.mp3` },
+  { id: 'theo', name: 'Theo', gender: 'man', age: 27, look: 'Charcoal tee, home studio', photoPath: `${CAST_DIR}/bae80588-d3ea-4aa3-a4e0-a056d5651492-bakeoff-1792620185626-p1-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792649293374-design-1.mp3` },
+  { id: 'nora', name: 'Nora', gender: 'woman', age: 26, look: 'Blonde bob, white shirt, balcony', photoPath: `${CAST_DIR}/95f05b78-831b-4e75-8cc3-a0062f065769-bakeoff-1792646591173-p1-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653071502-design-1.mp3` },
+  { id: 'jalen', name: 'Jalen', gender: 'man', age: 25, look: 'Twists, denim overshirt, record shelf', photoPath: `${CAST_DIR}/5797bcda-284e-45a2-8a4e-656d3b3942eb-bakeoff-1792647708359-p1-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653708997-design-3.mp3` },
+  { id: 'layla', name: 'Layla', gender: 'woman', age: 27, look: 'Long dark hair, beige knit, kitchen', photoPath: `${CAST_DIR}/10e8660a-fe69-429b-8c1c-d869641d8e2d-bakeoff-1792646591173-p3-openai_gpt-image-2.5-flare.png`, voiceSamplePath: `${CAST_DIR}/voice-1792653090970-design-3.mp3` },
 ]
 
 export function castCreatorById(id: string | null | undefined): CastCreator | null {
