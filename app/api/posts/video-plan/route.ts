@@ -27,6 +27,16 @@ export type VideoPlan = { title: string; beats: VideoPlanBeat[]; endCard: string
 
 const WORDS_PER_SECOND = 2.6
 
+/** Writing rules from the ugc-saas-review-video skill (teach, don't pitch; talk like people talk). */
+const PRESENTER_SCRIPT_RULES = (words: number) =>
+  [
+    `About ${words} spoken words in total, 4–5 beats. Each beat = one spoken line.`,
+    'Teach, don\'t pitch. Line 1 is a hook that names the viewer\'s problem in second person ("If you…, try this.").',
+    'Then numbered steps the viewer can do today, said the way people talk: "So step one…", "Then…", "And the last thing…".',
+    'Talk like a real person on TikTok: contractions, run-ons joined with "and" / "so", one or two light fillers ("Like,", "Honestly,"). No CAPS, no em dashes, no slogans, no scripted emphasis.',
+    'End on a sincere takeaway, never a price or a hard sell. Claims only from the business\'s own facts; no invented results.',
+  ].join('\n')
+
 function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, seconds: number): string {
   const words = Math.round(seconds * WORDS_PER_SECOND)
   const v = (k: string) => {
@@ -36,17 +46,18 @@ function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, 
   switch (t.id) {
     case 'presenter_tip':
       return [
-        `A ${seconds}s vertical video. One presenter talks to camera as the business (owner or team), never as a customer.`,
+        `A ${seconds}s vertical video. One creator talks to camera as the business's presenter, never as a customer and never claiming to be the owner.`,
         `Tip topic: ${v('topic')}`,
-        `Teach, don't pitch: a hook line, 2–3 concrete steps a viewer can do today, one closing line. About ${words} spoken words in total.`,
-        'Each beat = one spoken line. visual = what is on screen for that line ("presenter" or a short cut-in card description).',
+        PRESENTER_SCRIPT_RULES(words),
+        'There are no cut-in cards for this video type: every beat\'s visual is "presenter".',
       ].join('\n')
     case 'product_showcase':
       return [
-        `A ${seconds}s vertical video. One presenter walks through the business's own product or page, speaking as the business, never as a customer.`,
+        `A ${seconds}s vertical video. One creator walks through the business's own product or page, speaking as the business's presenter, never as a customer.`,
         `Page: ${v('url')}`,
         `Takeaway: ${v('angle')}`,
-        `About ${words} spoken words. Each beat = one spoken line. visual = which real screen of that page shows as a card on that line (e.g. "screen: pricing section"), or "presenter".`,
+        PRESENTER_SCRIPT_RULES(words),
+        'visual = which real screen of that page shows as a card on that line (e.g. "screen: pricing section"), or "presenter". No card on the first or last line.',
       ].join('\n')
     case 'editorial_explainer':
       return [
