@@ -11,6 +11,7 @@ import {
   saveDesignedVoice,
   textToSpeech,
 } from '@/lib/agents/voice/elevenlabs'
+import { openRouterSpeech } from '@/lib/agents/voice/openRouterSpeech'
 
 export const maxDuration = 120
 
@@ -22,15 +23,18 @@ const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.c
  *  - design: { description, text? } → 3 voice previews stored as mp3 with signed URLs
  *  - save:   { name, description, generatedVoiceId } → voice_id
  *  - tts:    { voiceId, text, modelId? } → mp3 stored, signed URL (feeds Avatar IV audio_url)
+ *  - or_tts: { model, text, voice?, instructions?, inputReferences? } → OpenRouter speech, mp3 stored
  */
 export async function POST(req: Request) {
   const supabase = createServiceClient()
   const ctx = await getWorkspaceAuthContext(supabase)
   if (!ctx?.email || !INTERNAL_EMAILS.has(ctx.email.toLowerCase())) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   const profileId = workspaceDataUserId(ctx.session)
-  if (!elevenLabsConfigured()) return NextResponse.json({ error: 'elevenlabs_not_configured' }, { status: 503 })
-
-  const body = (await req.json().catch(() => ({}))) as Record<string, string | undefined>
+  const body = (await req.json().catch(() => ({}))) as Record<string, string | undefined> & {
+    inputReferences?: Record<string, unknown>[]
+    provider?: Record<string, unknown>
+  }
+  if (body.action !== 'or_tts' && !elevenLabsConfigured()) return NextResponse.json({ error: 'elevenlabs_not_configured' }, { status: 503 })
 
   async function store(bytes: Buffer, label: string) {
     const path = `${profileId}/voice-${Date.now()}-${label.replace(/[^a-z0-9-]/gi, '').slice(0, 40)}.mp3`
@@ -66,6 +70,19 @@ export async function POST(req: Request) {
         const model = body.modelId || (await pickSpeechModel())
         const bytes = await textToSpeech({ voiceId: body.voiceId, text: body.text, modelId: model })
         return NextResponse.json({ model, bytes: bytes.length, ...(await store(bytes, 'tts')) })
+      }
+      case 'or_tts': {
+        // OpenRouter speech: { model, text, voice?, instructions?, inputReferences?, provider? }
+        if (!body.model || !body.text) return NextResponse.json({ error: 'model_and_text_required' }, { status: 400 })
+        const bytes = await openRouterSpeech({
+          model: body.model,
+          input: body.text,
+          voice: body.voice,
+          instructions: body.instructions,
+          inputReferences: body.inputReferences,
+          provider: body.provider,
+        })
+        return NextResponse.json({ model: body.model, bytes: bytes.length, ...(await store(bytes, `or-${body.model.split('/')[1] ?? 'tts'}`)) })
       }
       default:
         return NextResponse.json({ error: 'unknown_action' }, { status: 400 })
