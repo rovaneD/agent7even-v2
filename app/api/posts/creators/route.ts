@@ -23,6 +23,7 @@ export async function GET() {
       age: c.age,
       look: c.look,
       photoUrl: await createPostAssetSignedUrl(c.photoPath, 60 * 60),
+      voiceUrl: await createPostAssetSignedUrl(c.voiceSamplePath, 60 * 60),
     })),
   )
 

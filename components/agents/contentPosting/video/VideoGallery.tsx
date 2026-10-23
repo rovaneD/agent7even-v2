@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Users } from 'lucide-react'
 import PlatformBrandIcon from '@/components/agents/contentPosting/PlatformBrandIcon'
 import { contentPostingModeHref, resolveVideoFormat } from '@/lib/agents/contentPosting/platformFormats'
 import { VIDEO_TYPES, type VideoTypeId } from '@/lib/agents/contentPosting/videoTypes'
 import VideoCreatePanel from './VideoCreatePanel'
-import CreatorsSheet from './CreatorsSheet'
+import CreatorsSheet, { readSavedCreator, saveCreator } from './CreatorsSheet'
 import { VIDEO_TYPE_ICONS, VideoTypePoster } from './videoTypeVisuals'
 
 type Props = {
@@ -20,6 +20,13 @@ export default function VideoGallery({ formatId }: Props) {
   const format = resolveVideoFormat(formatId)
   const [openId, setOpenId] = useState<VideoTypeId | null>(null)
   const [creatorsOpen, setCreatorsOpen] = useState(false)
+  const [creatorName, setCreatorName] = useState<string | null>(null)
+  const [creatorId, setCreatorId] = useState<string | null>(null)
+  useEffect(() => {
+    const c = readSavedCreator()
+    setCreatorName(c?.name ?? null)
+    setCreatorId(c?.id ?? null)
+  }, [creatorsOpen, openId])
 
   return (
     <div className="mt-8">
@@ -36,7 +43,7 @@ export default function VideoGallery({ formatId }: Props) {
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/[0.1]">
             <Users size={13} />
           </span>
-          Creators
+          {creatorName ? `Creator: ${creatorName}` : 'Creators'}
         </button>
         <Link
           href={contentPostingModeHref('video')}
@@ -105,7 +112,16 @@ export default function VideoGallery({ formatId }: Props) {
         Nothing is made or charged until you approve a plan with its price.
       </p>
 
-      <CreatorsSheet open={creatorsOpen} onClose={() => setCreatorsOpen(false)} />
+      <CreatorsSheet
+        open={creatorsOpen}
+        onClose={() => setCreatorsOpen(false)}
+        selectedId={creatorId}
+        onPick={c => {
+          saveCreator(c)
+          setCreatorName(c.name)
+          setCreatorId(c.id)
+        }}
+      />
 
       {openId && (
         <VideoCreatePanel

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, Loader2, Plus, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, Check, Loader2, Pause, Play, Plus, X } from 'lucide-react'
 import {
   CREATOR_TRAITS,
   DEFAULT_CREATOR_TRAITS,
@@ -11,7 +11,26 @@ import { fieldClass } from './ui'
 
 export type PickedCreator = { id: string; kind: 'cast' | 'mine'; name: string; photoUrl: string | null }
 
-type CastItem = { id: string; name: string; gender: string; age: number; look: string; photoUrl: string | null }
+/** The creator used for presenter videos (per browser). Shared by the gallery and the create panel. */
+export const CREATOR_KEY = 'a7.video.creator'
+
+export function readSavedCreator(): PickedCreator | null {
+  try {
+    const raw = window.localStorage.getItem(CREATOR_KEY)
+    return raw ? (JSON.parse(raw) as PickedCreator) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveCreator(c: PickedCreator) {
+  try {
+    // Signed photo URLs expire; keep only the identity.
+    window.localStorage.setItem(CREATOR_KEY, JSON.stringify({ ...c, photoUrl: null }))
+  } catch {}
+}
+
+type CastItem = { id: string; name: string; gender: string; age: number; look: string; photoUrl: string | null; voiceUrl?: string | null }
 type MineItem = { id: string; name: string; photoUrl: string | null; createdAt: string }
 type Library = { cast: CastItem[]; mine: MineItem[]; saveCredits: number }
 
@@ -41,19 +60,27 @@ function CreatorCard({
   sub,
   selected,
   onClick,
+  voiceUrl,
+  playing,
+  onPlay,
 }: {
   name: string
   photoUrl: string | null
   sub?: string
   selected?: boolean
   onClick?: () => void
+  voiceUrl?: string | null
+  playing?: boolean
+  onPlay?: () => void
 }) {
   return (
+    <div className="relative">
     <button
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`group relative aspect-[2/3] w-full overflow-hidden rounded-[12px] bg-[#1C1D21] text-left transition-all ${
+      aria-label={`Use ${name}`}
+      className={`group relative block aspect-[2/3] w-full overflow-hidden rounded-[12px] bg-[#1C1D21] text-left transition-all ${
         selected ? 'ring-2 ring-brand-primary' : 'ring-1 ring-white/[0.06] hover:ring-white/25'
       }`}
     >
@@ -71,6 +98,17 @@ function CreatorCard({
         </span>
       )}
     </button>
+    {voiceUrl && onPlay && (
+      <button
+        type="button"
+        onClick={onPlay}
+        aria-label={playing ? `Stop ${name}'s voice` : `Hear ${name}'s voice`}
+        className="absolute left-2 top-2 flex h-7 items-center gap-1 rounded-full bg-black/55 px-2 text-[11px] font-medium text-white backdrop-blur hover:bg-black/75"
+      >
+        {playing ? <Pause size={12} /> : <Play size={12} />} Voice
+      </button>
+    )}
+    </div>
   )
 }
 
@@ -93,6 +131,29 @@ export default function CreatorsSheet({
   const [loadError, setLoadError] = useState<string | null>(null)
   const [tab, setTab] = useState<'cast' | 'mine'>('cast')
   const [creating, setCreating] = useState(false)
+  const [playingId, setPlayingId] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  function toggleVoice(id: string, url: string | null | undefined) {
+    if (!url) return
+    if (audioRef.current) audioRef.current.pause()
+    if (playingId === id) {
+      setPlayingId(null)
+      return
+    }
+    const a = new Audio(url)
+    audioRef.current = a
+    a.onended = () => setPlayingId(null)
+    void a.play()
+    setPlayingId(id)
+  }
+
+  useEffect(() => {
+    if (!open && audioRef.current) {
+      audioRef.current.pause()
+      setPlayingId(null)
+    }
+  }, [open])
 
   const [traits, setTraits] = useState<CreatorTraits>(DEFAULT_CREATOR_TRAITS)
   const [options, setOptions] = useState<Array<{ photoPath: string; photoUrl: string | null }>>([])
@@ -199,7 +260,7 @@ export default function CreatorsSheet({
             <p className="mt-0.5 text-[13px] text-[#9A9DA5]">
               {creating
                 ? 'Pick the look. Maya makes two photos; keep the one you like and it is saved to your account.'
-                : 'Every video with a creator uses the same face. Pick one of ours, or create your own.'}
+                : 'Click a creator to use them in your presenter videos. Same face and voice every time. Tap Voice to hear them.'}
             </p>
           </div>
           <button
@@ -258,6 +319,9 @@ export default function CreatorsSheet({
                       name={c.name}
                       photoUrl={c.photoUrl}
                       sub={c.look}
+                      voiceUrl={c.voiceUrl}
+                      playing={playingId === c.id}
+                      onPlay={() => toggleVoice(c.id, c.voiceUrl)}
                       selected={selectedId === c.id}
                       onClick={onPick ? () => pick({ id: c.id, kind: 'cast', name: c.name, photoUrl: c.photoUrl }) : undefined}
                     />

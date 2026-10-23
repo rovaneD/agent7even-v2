@@ -13,7 +13,7 @@ import {
 } from '@/lib/agents/contentPosting/videoTypes'
 import { VIDEO_TYPE_ICONS, VideoTypePoster } from './videoTypeVisuals'
 import { Segmented, fieldClass } from './ui'
-import CreatorsSheet, { loadLibrary, type PickedCreator } from './CreatorsSheet'
+import CreatorsSheet, { loadLibrary, readSavedCreator, saveCreator, type PickedCreator } from './CreatorsSheet'
 
 type Plan = {
   title: string
@@ -28,8 +28,6 @@ type Props = {
   onClose: () => void
   onSwitch: (id: VideoTypeId) => void
 }
-
-const CREATOR_KEY = 'a7.video.creator'
 
 const CAPTION_LABELS: Record<CaptionChoice, string> = { off: 'Off', serif: 'Serif', sans: 'Sans' }
 const CAPTION_FONTS: Record<Exclude<CaptionChoice, 'off'>, string> = {
@@ -57,14 +55,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   const [length, setLength] = useState(type.defaultLength)
   const [captions, setCaptions] = useState<CaptionChoice>(type.captionsDefault)
   const [plan, setPlan] = useState<Plan | null>(null)
-  const [creator, setCreator] = useState<PickedCreator | null>(() => {
-    try {
-      const raw = window.localStorage.getItem(CREATOR_KEY)
-      return raw ? (JSON.parse(raw) as PickedCreator) : null
-    } catch {
-      return null
-    }
-  })
+  const [creator, setCreator] = useState<PickedCreator | null>(() => readSavedCreator())
   const [sheetOpen, setSheetOpen] = useState(false)
 
   // Signed photo URLs expire, so a remembered creator only stores its id; refresh the photo here.
@@ -465,9 +456,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
         selectedId={creator?.id ?? null}
         onPick={c => {
           setCreator(c)
-          try {
-            window.localStorage.setItem(CREATOR_KEY, JSON.stringify({ ...c, photoUrl: null }))
-          } catch {}
+          saveCreator(c)
         }}
       />
     </div>
