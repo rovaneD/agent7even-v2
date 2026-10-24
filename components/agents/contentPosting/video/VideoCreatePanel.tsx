@@ -112,7 +112,6 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
           lines: plan.beats.map(b => b.text),
           length,
           captions,
-          endCardText: plan.endCard,
           formatId: format.id,
           title: plan.title,
         }),
@@ -453,7 +452,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                       </p>
                     )
                   })()}
-                  {plan.endCard && (
+                  {plan.endCard && !type.presenter && (
                     <p className="mt-2 text-[12px] text-[#9A9DA5]">
                       End card: <span className="text-[#E6E7EA]">{plan.endCard}</span> with your logo
                     </p>

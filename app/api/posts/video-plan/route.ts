@@ -49,7 +49,7 @@ function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, 
         `A ${seconds}s vertical video. One creator talks to camera as the business's presenter, never as a customer and never claiming to be the owner.`,
         `Tip topic: ${v('topic')}`,
         PRESENTER_SCRIPT_RULES(words),
-        'There are no cut-in cards for this video type: every beat\'s visual is "presenter".',
+        'There are no cut-in cards for this video type: every beat\'s visual is "presenter". No end card: endCard = "". The last line is the ending.',
       ].join('\n')
     case 'product_showcase':
       return [
@@ -57,7 +57,7 @@ function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, 
         `Page: ${v('url')}`,
         `Takeaway: ${v('angle')}`,
         PRESENTER_SCRIPT_RULES(words),
-        'visual = which real screen of that page shows as a card on that line (e.g. "screen: pricing section"), or "presenter". No card on the first or last line.',
+        'visual = which real screen of that page shows as a card on that line (e.g. "screen: pricing section"), or "presenter". No card on the first or last line. No end card: endCard = "". The last line is the ending.',
       ].join('\n')
     case 'editorial_explainer':
       return [

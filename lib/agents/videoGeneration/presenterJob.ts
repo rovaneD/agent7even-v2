@@ -3,7 +3,6 @@ import type { createServiceClient } from '@/lib/supabase/server'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { createPostAssetSignedUrl } from '@/lib/postAssets'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
-import { loadBrandLogoReference } from '@/lib/agents/imageGeneration/postStyles'
 import { recordAgentTaskCost } from '@/lib/agents/taskInstrumentation'
 import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 import { assembleVideo, type TimedText } from './assemble'
@@ -88,15 +87,14 @@ export async function advancePresenterTask(
     const raw = src ? await fetchBytes(src, openRouterHeaders()) : null
     if (!raw) throw new Error('could not download the lip-sync video')
 
-    const logoUrl = await loadBrandLogoReference(input.profileId)
-    const logo = logoUrl ? await fetchBytes(logoUrl) : null
     const out = await assembleVideo({
       video: raw,
       lines: input.lines,
       subtitles: input.captions !== 'off',
       captionStyle: input.captions === 'sans' ? 'sans' : 'serif',
       lineTimes: input.lineTimes ?? null,
-      endCard: input.endCardText ? { text: input.endCardText, logo } : null,
+      // Owner decision 2026-10-24: presenter videos end on the creator's last line — no logo, no end card.
+      endCard: null,
     })
 
     const storagePath = `${input.profileId}/${randomUUID()}.mp4`
