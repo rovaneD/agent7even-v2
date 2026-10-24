@@ -27,14 +27,20 @@ export type VideoPlan = { title: string; beats: VideoPlanBeat[]; endCard: string
 
 const WORDS_PER_SECOND = 2.6
 
-/** Writing rules from the ugc-saas-review-video skill (teach, don't pitch; talk like people talk). */
+/**
+ * Writing rules from the ugc-saas-review-video skill (teach, don't pitch; talk like people talk).
+ * Owner review 2026-10-24: scripts still read rigid and AI-written ("If you…, try this." + "step one,
+ * step two" every time). Now: sounds like one real person thinking out loud, not a template.
+ */
 const PRESENTER_SCRIPT_RULES = (words: number) =>
   [
     `About ${words} spoken words in total, 4–5 beats. Each beat = one spoken line.`,
-    'Teach, don\'t pitch. Line 1 is a hook that names the viewer\'s problem in second person ("If you…, try this.").',
-    'Then numbered steps the viewer can do today, said the way people talk: "So step one…", "Then…", "And the last thing…".',
-    'Talk like a real person on TikTok: contractions, run-ons joined with "and" / "so", one or two light fillers ("Like,", "Honestly,"). No CAPS, no em dashes, no slogans, no scripted emphasis.',
-    'End on a sincere takeaway, never a price or a hard sell. Claims only from the business\'s own facts; no invented results.',
+    'Write it the way one real person actually talks to a friend on camera, not the way an ad or a blog post reads.',
+    'Open in the middle of a thought: a small admission, a reaction or something that just happened ("Okay so I used to…", "Someone asked me this yesterday…", "Honestly I didn\'t get this until…"). Don\'t always open with "If you…".',
+    'Give the useful part as what you actually do, with one or two concrete everyday details (a day, a time, an object, a real customer question), not a numbered list. Avoid "step one / step two" unless the topic truly is steps.',
+    'Mix long run-on lines joined with "and" / "so" with short fragments. Contractions always. At most one light filler ("like", "honestly", "okay so"). No CAPS, no em dashes, no slogans, no rhetorical questions to the viewer, no tidy rule-of-three in every line.',
+    'End on a plain, sincere line that sounds said, not written. Never a price or a hard sell. Claims only from the business\'s own facts; no invented results.',
+    'Before answering, reread every line out loud in your head: if a line sounds like marketing copy or like ChatGPT, rewrite it.',
   ].join('\n')
 
 function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, seconds: number): string {
