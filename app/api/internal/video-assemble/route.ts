@@ -35,6 +35,10 @@ export async function POST(req: Request) {
     endCard?: { text: string; useBrandLogo?: boolean; background?: string }
     /** Exact line times from the presenter pipeline (skips speech detection). */
     lineTimes?: Array<{ start: number; end: number; text: string }>
+    /** B-roll cutaways: bake-off job ids (already copied to storage) or storage paths, with times. */
+    broll?: Array<{ jobId?: string; path?: string; start: number; end: number }>
+    captionY?: number
+    cta?: string
   }
   if (!body.bakeoffJobId || !body.lines?.length) return NextResponse.json({ error: 'bakeoffJobId_and_lines_required' }, { status: 400 })
 
@@ -48,6 +52,14 @@ export async function POST(req: Request) {
   const logoUrl = body.endCard?.useBrandLogo ? await loadBrandLogoReference(profileId) : null
   const logo = logoUrl ? await fetchBytes(logoUrl) : null
 
+  const broll: Array<{ video: Buffer; start: number; end: number }> = []
+  for (const b of body.broll ?? []) {
+    const p = b.path ?? (b.jobId ? `${profileId}/bakeoff-video-${b.jobId.replace(/[^a-zA-Z0-9-]/g, '')}.mp4` : null)
+    const v = p ? await downloadPostAsset(p) : null
+    if (!v) return NextResponse.json({ error: 'broll_not_found', path: p }, { status: 404 })
+    broll.push({ video: v, start: b.start, end: b.end })
+  }
+
   const started = Date.now()
   try {
     const out = await assembleVideo({
@@ -58,6 +70,9 @@ export async function POST(req: Request) {
       insert: insertImage && body.insert ? { image: insertImage, line: body.insert.line } : null,
       endCard: body.endCard ? { text: body.endCard.text, logo, background: body.endCard.background } : null,
       lineTimes: body.lineTimes ?? null,
+      broll,
+      captionY: body.captionY,
+      cta: body.cta ?? null,
     })
     const path = `${profileId}/assembled-${body.bakeoffJobId.replace(/[^a-zA-Z0-9-]/g, '')}-${Date.now()}.mp4`
     const { error } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(path, out.video, { contentType: 'video/mp4', upsert: true })

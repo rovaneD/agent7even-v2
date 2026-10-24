@@ -30,6 +30,16 @@ export type AssembleInput = {
    * detection; captions and cards land on the real words.
    */
   lineTimes?: TimedText[] | null
+  /**
+   * Full-frame B-roll cutaways (cinematic B-roll format): each clip covers the main video from
+   * `start` to `end` while the main audio keeps playing. Clips shorter than the window are slowed
+   * slightly to fit; longer ones are trimmed.
+   */
+  broll?: Array<{ video: Buffer; start: number; end: number }> | null
+  /** Caption centre as a fraction of height (default 0.73 creator / 0.66 legacy). */
+  captionY?: number
+  /** Small line shown under the captions for the whole video (e.g. "Comment GUIDE for the checklist"). */
+  cta?: string | null
 }
 export type AssembleResult = { video: Buffer; lineTimes: TimedText[]; chunks: TimedText[]; durationSec: number; exactTiming: boolean }
 
@@ -232,13 +242,30 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
     // Sans glyphs read larger than Cormorant at the same size, so it stays a touch smaller.
     const size = Math.round(H * (style === 'serif' ? 0.048 : style === 'sans' ? 0.037 : 0.05))
     const border = Math.max(3, Math.round(H * 0.0045))
-    const y = Math.round(H * (serif ? 0.73 : 0.66))
+    const y = Math.round(H * (input.captionY ?? (serif ? 0.73 : 0.66)))
     const textStyle = serif
       ? `fontcolor=white:fontsize=${size}:borderw=${Math.max(2, Math.round(H * 0.0022))}:bordercolor=black@0.38:shadowcolor=black@0.6:shadowx=0:shadowy=${Math.max(2, Math.round(H * 0.002))}`
       : `fontcolor=white:fontsize=${size}:borderw=${border}:bordercolor=black@0.95`
     const filters: string[] = []
     let last = '[0:v]'
     const args = ['-hide_banner', '-y', '-i', src]
+    let nextInput = 1
+    for (const [bi, b] of (input.broll ?? []).entries()) {
+      const a = Math.max(0, b.start)
+      const e = Math.min(meta.duration, b.end)
+      if (e - a < 0.3) continue
+      const f = path.join(dir, `broll${bi}.mp4`)
+      await writeFile(f, b.video)
+      const clip = await probe(f)
+      const stretch = clip.duration > 0 && clip.duration < e - a ? (e - a) / clip.duration : 1
+      args.push('-i', f)
+      const idx = nextInput++
+      filters.push(
+        `[${idx}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,setpts=${stretch.toFixed(4)}*(PTS-STARTPTS),trim=duration=${(e - a).toFixed(2)},setpts=PTS-STARTPTS+${a.toFixed(2)}/TB[b${bi}]`,
+        `${last}[b${bi}]overlay=eof_action=pass:enable='between(t,${a.toFixed(2)},${e.toFixed(2)})'[vb${bi}]`,
+      )
+      last = `[vb${bi}]`
+    }
     if (input.insert?.image) {
       const img = path.join(dir, 'insert')
       await writeFile(img, input.insert.image)
@@ -247,6 +274,7 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       const a = Math.max(0, lt.start + 0.15)
       const b = Math.min(meta.duration, a + Math.min(3, Math.max(1.3, lt.end - lt.start - 0.3)))
       args.push('-loop', '1', '-t', String(meta.duration), '-i', img)
+      const insIdx = nextInput++
       // Rounded corners (~3.5% of width). Example #1 review (2026-10-20): a 0.55H card centered at 0.33H
       // covered the presenter's face for 3s. Cards now sit at chest height between the chin (~0.36H)
       // and the captions (0.73H) so the face stays visible: wide up to 0.86W, tall up to 0.56W, both <= 0.31H (a clear gap above the captions).
@@ -260,7 +288,7 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       await writeFile(img, sized.png)
       const top = Math.round(H * 0.36)
       filters.push(
-        `[1:v]format=rgba,fade=t=in:st=${a.toFixed(2)}:d=0.2:alpha=1,fade=t=out:st=${(b - 0.2).toFixed(2)}:d=0.2:alpha=1[ins]`,
+        `[${insIdx}:v]format=rgba,fade=t=in:st=${a.toFixed(2)}:d=0.2:alpha=1,fade=t=out:st=${(b - 0.2).toFixed(2)}:d=0.2:alpha=1[ins]`,
         `${last}[ins]overlay=x=(W-w)/2:y=${top}:enable='between(t,${a.toFixed(2)},${b.toFixed(2)})'[v1]`,
       )
       last = '[v1]'
@@ -274,6 +302,16 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
         `${last}drawtext=fontfile='${font}':textfile='${tf}':${textStyle}:x=(w-text_w)/2:y=${y}-text_h/2:enable='between(t,${c.start.toFixed(2)},${c.end.toFixed(2)})'${out}`,
       )
       last = out
+    }
+    if (input.cta?.trim()) {
+      const tf = path.join(dir, 'cta.txt')
+      await writeFile(tf, input.cta.trim())
+      const ctaFont = fontPath('sans').replace(/:/g, '\\:')
+      const cs = Math.round(H * 0.017)
+      filters.push(
+        `${last}drawtext=fontfile='${ctaFont}':textfile='${tf}':fontcolor=white@0.92:fontsize=${cs}:shadowcolor=black@0.7:shadowx=0:shadowy=2:x=(w-text_w)/2:y=${y + Math.round(size * 0.85)}[cta]`,
+      )
+      last = '[cta]'
     }
     const main = path.join(dir, 'main.mp4')
     args.push(
