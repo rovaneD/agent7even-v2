@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MonitorSmartphone, Newspaper, Palette, Scissors, Sparkles, UserRound, type LucideIcon } from 'lucide-react'
+import { MonitorSmartphone, Newspaper, Palette, Scissors, Sparkles, UserRound, type LucideIcon, Clapperboard } from 'lucide-react'
 import type { VideoTypeId, VideoTypeSpec } from '@/lib/agents/contentPosting/videoTypes'
 
 export const VIDEO_TYPE_ICONS: Record<VideoTypeId, LucideIcon> = {
   presenter_tip: UserRound,
+  cinematic_broll: Clapperboard,
   product_showcase: MonitorSmartphone,
   editorial_explainer: Newspaper,
   animated_post: Sparkles,

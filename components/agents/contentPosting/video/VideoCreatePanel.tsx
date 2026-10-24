@@ -21,7 +21,21 @@ type Plan = {
   endCard: string
   caption: string
   notes: string[]
+  onCamera?: string
+  scenes?: string[]
 }
+
+type Stills = {
+  taskId: string
+  onCamera: string | null
+  broll: Array<string | null>
+  scenes: string[]
+  onCameraSetting: string
+  redosLeft: number
+}
+
+const BROLL_STILLS_CREDITS = 5
+const brollVideoCredits = (length: number) => (length >= 30 ? 75 : 40)
 
 type Props = {
   typeId: VideoTypeId
@@ -78,14 +92,109 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   const [error, setError] = useState<string | null>(null)
   const [job, setJob] = useState<{ taskId: string; status: 'starting' | 'rendering' | 'editing' | 'completed' | 'failed'; videoUrl?: string | null } | null>(null)
   const creditsFor = length >= 30 ? 30 : 15
-  const canCreate = PRESENTER_CREATE_TYPES.has(type.id)
+  const isBroll = type.id === 'cinematic_broll'
+  const canCreate = PRESENTER_CREATE_TYPES.has(type.id) || isBroll
+  const [onCamMoments, setOnCamMoments] = useState<2 | 3>(3)
+  const [captionPos, setCaptionPos] = useState<'center' | 'lower'>('center')
+  const [ctaOn, setCtaOn] = useState(false)
+  const [ctaText, setCtaText] = useState('')
+  const [logoOn, setLogoOn] = useState(false)
+  const [stills, setStills] = useState<Stills | null>(null)
+  const [stillsBusy, setStillsBusy] = useState<null | 'all' | 'onCamera' | number>(null)
+  const statusUrl = isBroll ? '/api/posts/video-broll' : '/api/posts/video-create'
+  const wordCount = plan ? plan.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length : 0
+  const tooLong = wordCount > Math.floor(length * 3.2)
+
+  async function makeStills() {
+    if (!plan || !creator) return
+    if (creator.kind !== 'cast') {
+      setError('Voices for your own creators are coming soon. Pick one of our creators for now.')
+      return
+    }
+    setError(null)
+    setStillsBusy('all')
+    try {
+      const res = await fetch('/api/posts/video-broll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'stills',
+          creatorId: creator.id,
+          length,
+          lines: plan.beats.map(b => b.text),
+          onCameraMoments: onCamMoments,
+          onCameraSetting: plan.onCamera ?? '',
+          scenes: plan.scenes ?? [],
+          outfit: String(inputs.outfit ?? ''),
+          captions,
+          captionPos,
+          cta: ctaOn ? ctaText : '',
+          logo: logoOn,
+          formatId: format.id,
+          title: plan.title,
+          caption: plan.caption,
+        }),
+      })
+      const d = (await res.json().catch(() => ({}))) as Partial<Stills> & { stills?: { onCamera: string | null; broll: Array<string | null> }; message?: string }
+      if (!res.ok || !d.taskId || !d.stills) throw new Error(d.message ?? 'The stills could not be made.')
+      setStills({ taskId: d.taskId, onCamera: d.stills.onCamera, broll: d.stills.broll, scenes: d.scenes ?? [], onCameraSetting: d.onCameraSetting ?? '', redosLeft: d.redosLeft ?? 0 })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'The stills could not be made.')
+    } finally {
+      setStillsBusy(null)
+    }
+  }
+
+  async function redoStill(which: 'onCamera' | number) {
+    if (!stills || stills.redosLeft <= 0) return
+    setError(null)
+    setStillsBusy(which)
+    try {
+      const res = await fetch('/api/posts/video-broll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'redo',
+          taskId: stills.taskId,
+          which,
+          scene: which === 'onCamera' ? stills.onCameraSetting : stills.scenes[which],
+        }),
+      })
+      const d = (await res.json().catch(() => ({}))) as { stills?: { onCamera: string | null; broll: Array<string | null> }; scenes?: string[]; onCameraSetting?: string; redosLeft?: number; message?: string }
+      if (!res.ok || !d.stills) throw new Error(d.message ?? 'That still could not be remade.')
+      setStills(st => (st ? { ...st, onCamera: d.stills!.onCamera, broll: d.stills!.broll, scenes: d.scenes ?? st.scenes, onCameraSetting: d.onCameraSetting ?? st.onCameraSetting, redosLeft: d.redosLeft ?? 0 } : st))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'That still could not be remade.')
+    } finally {
+      setStillsBusy(null)
+    }
+  }
+
+  async function createBroll() {
+    if (!plan || !stills) return
+    setError(null)
+    setJob({ taskId: stills.taskId, status: 'starting' })
+    try {
+      const res = await fetch('/api/posts/video-broll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', taskId: stills.taskId, lines: plan.beats.map(b => b.text), caption: plan.caption }),
+      })
+      const d = (await res.json().catch(() => ({}))) as { taskId?: string; message?: string }
+      if (!res.ok || !d.taskId) throw new Error(d.message ?? 'The video could not be started.')
+      setJob({ taskId: d.taskId, status: 'rendering' })
+    } catch (e) {
+      setJob(null)
+      setError(e instanceof Error ? e.message : 'The video could not be started.')
+    }
+  }
 
   // Poll a running video every 12s until it is done or failed.
   useEffect(() => {
     if (!job || !['rendering', 'editing'].includes(job.status)) return
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(`/api/posts/video-create?taskId=${encodeURIComponent(job.taskId)}`)
+        const r = await fetch(`${statusUrl}?taskId=${encodeURIComponent(job.taskId)}`)
         const d = (await r.json()) as { status?: string; videoUrl?: string | null }
         if (d.status === 'completed' || d.status === 'failed' || d.status === 'rendering' || d.status === 'editing') {
           setJob(j => (j ? { ...j, status: d.status as 'completed', videoUrl: d.videoUrl ?? j.videoUrl } : j))
@@ -93,7 +202,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
       } catch {}
     }, 12_000)
     return () => clearTimeout(t)
-  }, [job])
+  }, [job, statusUrl])
 
   async function approveAndCreate() {
     if (!plan || !creator) return
@@ -174,11 +283,12 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
       const res = await fetch('/api/posts/video-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ typeId: type.id, inputs, length }),
+        body: JSON.stringify({ typeId: type.id, inputs: isBroll ? { ...inputs, oncam: String(onCamMoments) } : inputs, length }),
       })
       const data = (await res.json().catch(() => ({}))) as { plan?: Plan; message?: string }
       if (!res.ok || !data.plan) throw new Error(data.message ?? 'Maya could not write a plan. Try again.')
       setPlan(data.plan)
+      setStills(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Maya could not write a plan. Try again.')
     } finally {
@@ -189,6 +299,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   function setField(key: string, value: string | string[]) {
     setInputs(prev => ({ ...prev, [key]: value }))
     setPlan(null)
+    setStills(null)
   }
 
   return (
@@ -230,6 +341,9 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
           <div className="relative aspect-[9/16] h-[56vh] max-h-[760px] overflow-hidden rounded-[20px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] ring-1 ring-white/10 lg:h-[76vh]">
             {job?.status === 'completed' && job.videoUrl ? (
               <video src={job.videoUrl} className="absolute inset-0 h-full w-full object-cover" controls autoPlay playsInline />
+            ) : isBroll && stills?.onCamera ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={stills.onCamera} alt="On-camera still" className="absolute inset-0 h-full w-full object-cover" />
             ) : type.presenter && creator?.photoUrl && !type.exampleUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={creator.photoUrl} alt={creator.name} className="absolute inset-0 h-full w-full object-cover" />
@@ -238,7 +352,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
             )}
             {captions !== 'off' && job?.status !== 'completed' && (
               <p
-                className="pointer-events-none absolute inset-x-0 top-[73%] text-center text-white"
+                className={`pointer-events-none absolute inset-x-0 text-center text-white ${isBroll && captionPos === 'center' ? 'top-[50%]' : 'top-[73%]'}`}
                 style={{
                   fontFamily: CAPTION_FONTS[captions],
                   fontWeight: captions === 'serif' ? 600 : 700,
@@ -390,6 +504,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                     onChange={v => {
                       setLength(v)
                       setPlan(null)
+                      setStills(null)
                     }}
                   />
                 </div>
@@ -402,6 +517,75 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                     onChange={setCaptions}
                   />
                 </div>
+                {isBroll && (
+                  <>
+                    {length >= 30 && (
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-[12.5px] text-[#9A9DA5]">On camera</span>
+                        <Segmented
+                          label="On-camera moments"
+                          value={onCamMoments}
+                          options={[
+                            { value: 2 as const, label: 'Start + end' },
+                            { value: 3 as const, label: 'Start, middle, end' },
+                          ]}
+                          onChange={v => {
+                            setOnCamMoments(v)
+                            setPlan(null)
+                            setStills(null)
+                          }}
+                        />
+                      </div>
+                    )}
+                    {captions !== 'off' && (
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-[12.5px] text-[#9A9DA5]">Caption position</span>
+                        <Segmented
+                          label="Caption position"
+                          value={captionPos}
+                          options={[
+                            { value: 'center' as const, label: 'Middle' },
+                            { value: 'lower' as const, label: 'Lower' },
+                          ]}
+                          onChange={setCaptionPos}
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[12.5px] text-[#9A9DA5]">Call to action</span>
+                      <Segmented
+                        label="Call to action"
+                        value={ctaOn ? 'on' : 'off'}
+                        options={[
+                          { value: 'off', label: 'Off' },
+                          { value: 'on', label: 'On' },
+                        ]}
+                        onChange={v => setCtaOn(v === 'on')}
+                      />
+                    </div>
+                    {ctaOn && (
+                      <input
+                        aria-label="Call to action text"
+                        value={ctaText}
+                        onChange={e => setCtaText(e.target.value.slice(0, 70))}
+                        placeholder="e.g. Comment PLAN and I'll send the checklist"
+                        className={fieldClass}
+                      />
+                    )}
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[12.5px] text-[#9A9DA5]">Logo at the end</span>
+                      <Segmented
+                        label="Logo at the end"
+                        value={logoOn ? 'on' : 'off'}
+                        options={[
+                          { value: 'off', label: 'Off' },
+                          { value: 'on', label: 'On' },
+                        ]}
+                        onChange={v => setLogoOn(v === 'on')}
+                      />
+                    </div>
+                  </>
+                )}
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[12.5px] text-[#9A9DA5]">Posts to</span>
                   <span className="text-[12.5px] text-[#E6E7EA]">
@@ -458,6 +642,87 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                     <p className="mt-2 text-[12px] text-[#9A9DA5]">
                       End card: <span className="text-[#E6E7EA]">{plan.endCard}</span> with your logo
                     </p>
+                  )}
+                  {isBroll && !stills && plan.scenes && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[12px] font-medium text-[#9A9DA5]">Where it's filmed</p>
+                      <label className="block text-[11.5px] text-[#6B6E76]">
+                        On camera
+                        <input
+                          value={plan.onCamera ?? ''}
+                          onChange={e => setPlan(p => (p ? { ...p, onCamera: e.target.value } : p))}
+                          className={`${fieldClass} mt-1`}
+                        />
+                      </label>
+                      {plan.scenes.map((sc, i) => (
+                        <label key={i} className="block text-[11.5px] text-[#6B6E76]">
+                          B-roll shot {i + 1}
+                          <textarea
+                            value={sc}
+                            rows={2}
+                            onChange={e =>
+                              setPlan(p => (p && p.scenes ? { ...p, scenes: p.scenes.map((x, j) => (j === i ? e.target.value : x)) } : p))
+                            }
+                            className={`${fieldClass} mt-1 resize-none`}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  {isBroll && stills && (
+                    <div className="mt-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[12px] font-medium text-[#9A9DA5]">Stills · check each one before filming</p>
+                        <span className="text-[11.5px] text-[#6B6E76]">{stills.redosLeft} redo{stills.redosLeft === 1 ? '' : 's'} left</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[{ key: 'onCamera' as const, url: stills.onCamera, label: 'On camera', text: stills.onCameraSetting }, ...stills.broll.map((url, i) => ({ key: i, url, label: `B-roll ${i + 1}`, text: stills.scenes[i] ?? '' }))].map(item => (
+                          <div key={String(item.key)} className="space-y-1">
+                            <div className="relative aspect-[9/16] overflow-hidden rounded-[8px] bg-white/[0.04] ring-1 ring-white/[0.08]">
+                              {item.url && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={item.url} alt={item.label} className="h-full w-full object-cover" />
+                              )}
+                              {stillsBusy === item.key && (
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/50">
+                                  <Loader2 size={18} className="animate-spin text-white" />
+                                </span>
+                              )}
+                            </div>
+                            <p className="truncate text-[11px] text-[#9A9DA5]" title={item.text}>{item.label}</p>
+                            <button
+                              type="button"
+                              onClick={() => redoStill(item.key)}
+                              disabled={stills.redosLeft <= 0 || stillsBusy !== null || !!job}
+                              className="inline-flex items-center gap-1 text-[11.5px] text-[#7FB0FF] hover:text-white disabled:opacity-40"
+                            >
+                              <RotateCcw size={11} /> Redo
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-[11.5px] text-[#7FB0FF]">Change a shot before redoing it</summary>
+                        <div className="mt-2 space-y-2">
+                          <input
+                            aria-label="On-camera setting"
+                            value={stills.onCameraSetting}
+                            onChange={e => setStills(st => (st ? { ...st, onCameraSetting: e.target.value } : st))}
+                            className={fieldClass}
+                          />
+                          {stills.scenes.map((sc, i) => (
+                            <textarea
+                              key={i}
+                              aria-label={`B-roll shot ${i + 1}`}
+                              value={sc}
+                              rows={2}
+                              onChange={e => setStills(st => (st ? { ...st, scenes: st.scenes.map((x, j) => (j === i ? e.target.value : x)) } : st))}
+                              className={`${fieldClass} resize-none`}
+                            />
+                          ))}
+                        </div>
+                      </details>
+                    </div>
                   )}
                   {type.presenter && (
                     <div className="mt-3">
@@ -521,7 +786,9 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                         const now = order.indexOf(job.status)
                         const done = job.status !== 'failed' && i < now
                         const active = job.status === st && st !== 'completed'
-                        const label = ['Voice in ' + (creator?.name ?? 'the creator') + '\u2019s voice', 'Recording the video (about 8 min)', 'Captions and end card', 'In Approvals'][i]
+                        const label = isBroll
+                          ? ['Voice in ' + (creator?.name ?? 'the creator') + '\u2019s voice', 'Filming on camera and B-roll (about 8 min)', 'Cutting it together with captions', 'In Approvals'][i]
+                          : ['Voice in ' + (creator?.name ?? 'the creator') + '\u2019s voice', 'Recording the video (about 8 min)', 'Captions and end card', 'In Approvals'][i]
                         return (
                           <div key={st} className="flex items-center gap-2 py-1 text-[13px]">
                             {done || (st === 'completed' && job.status === 'completed') ? (
@@ -546,6 +813,39 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                         <p className="mt-2 text-[11.5px] text-[#6B6E76]">You can close this — the video keeps going and lands in Approvals.</p>
                       ) : null}
                     </div>
+                  ) : isBroll ? (
+                    !stills ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={makeStills}
+                          disabled={!creator || tooLong || stillsBusy !== null}
+                          className="flex w-full items-center justify-center gap-2 rounded-[12px] bg-brand-primary py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#1D62D6] disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-[#8A8D95]"
+                        >
+                          {stillsBusy === 'all' && <Loader2 size={16} className="animate-spin" />}
+                          {stillsBusy === 'all' ? 'Making the stills…' : `Make stills · ${BROLL_STILLS_CREDITS} credits`}
+                        </button>
+                        <p className="mt-2 text-center text-[11.5px] leading-snug text-[#6B6E76]">
+                          {creator
+                            ? `You check every shot before filming. Filming is ${brollVideoCredits(length)} credits more (${BROLL_STILLS_CREDITS + brollVideoCredits(length)} in total).`
+                            : 'Choose a creator first.'}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={createBroll}
+                          disabled={tooLong || stillsBusy !== null}
+                          className="w-full rounded-[12px] bg-brand-primary py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#1D62D6] disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-[#8A8D95]"
+                        >
+                          Film the video · {brollVideoCredits(length)} credits
+                        </button>
+                        <p className="mt-2 text-center text-[11.5px] leading-snug text-[#6B6E76]">
+                          Charged once. If the video fails, all its credits come back automatically.
+                        </p>
+                      </>
+                    )
                   ) : canCreate ? (
                     <>
                       <button

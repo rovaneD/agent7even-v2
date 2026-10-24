@@ -10,6 +10,11 @@ export const ACTION_CREDIT_COST = {
   // today's units (>= 2x provider cost on every plan; ~$0.78 / $1.55 per video). New units: 25 / 50.
   video_presenter_15: 15,
   video_presenter_30: 30,
+  // Cinematic B-roll (owner decision 2026-10-24: 45 / 80 credits in total). Charged in two parts: the
+  // stills the user reviews first, then the video. Provider cost ~$2.15 (15s) / ~$4.25 (30s).
+  video_broll_stills: 5,
+  video_broll_15: 40,
+  video_broll_30: 75,
   publish: 1,
   brandkit_gen: 1,
   foundation_gen: 0,

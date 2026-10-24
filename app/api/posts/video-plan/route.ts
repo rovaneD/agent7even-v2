@@ -23,7 +23,16 @@ type Body = {
 }
 
 export type VideoPlanBeat = { text: string; visual: string }
-export type VideoPlan = { title: string; beats: VideoPlanBeat[]; endCard: string; caption: string; notes: string[] }
+export type VideoPlan = {
+  title: string
+  beats: VideoPlanBeat[]
+  endCard: string
+  caption: string
+  notes: string[]
+  /** Cinematic B-roll: where the on-camera lines are filmed, and each B-roll shot in order. */
+  onCamera?: string
+  scenes?: string[]
+}
 
 const WORDS_PER_SECOND = 2.6
 
@@ -57,6 +66,24 @@ function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, 
         PRESENTER_SCRIPT_RULES(words),
         'There are no cut-in cards for this video type: every beat\'s visual is "presenter". No end card: endCard = "". The last line is the ending.',
       ].join('\n')
+    case 'cinematic_broll': {
+      const lineCount = seconds >= 30 ? 5 : 4
+      const moments = seconds >= 30 && v('oncam') === '2' ? 2 : seconds >= 30 ? 3 : 2
+      const camIdx = moments === 3 ? [0, 2, 4] : [0, lineCount - 1]
+      const shots = seconds >= 30 ? 4 : 2
+      const pattern = Array.from({ length: lineCount }, (_, i) => (camIdx.includes(i) ? 'on camera' : 'B-roll')).join(', ')
+      return [
+        `A ${seconds}s vertical cinematic video. One creator talks to camera on some lines; on the others we hear their voice over B-roll of them in other places. They speak as the business's presenter, never as a customer and never claiming to be the owner.`,
+        `Topic: ${v('topic')}`,
+        PRESENTER_SCRIPT_RULES(words),
+        `Exactly ${lineCount} beats, in this order: ${pattern}. visual = "on camera" or "B-roll" to match.`,
+        'B-roll lines should be the ones that describe doing something, so the shots can show it.',
+        `Also return "onCamera": where the on-camera lines are filmed (one short place description, cinematic and real, e.g. "leaning on a high-rise balcony railing, city and hills behind").`,
+        `And "scenes": exactly ${shots} B-roll shots in the order they appear, each "place: one simple action" that fits the line it covers (e.g. "a café window seat: writing a short list in a notebook, a coffee beside it"). Simple actions only; nothing passed from hand to hand. Mix indoor and outdoor places that belong to the same day and the same person. The creator never looks at the camera in B-roll.`,
+        v('settings') ? `The owner wants it filmed here, use these places: ${v('settings')}` : 'Pick the places yourself: real, cinematic, and right for this business.',
+        'No end card: endCard = "".',
+      ].join('\n')
+    }
     case 'product_showcase':
       return [
         `A ${seconds}s vertical video. One creator walks through the business's own product or page, speaking as the business's presenter, never as a customer.`,
@@ -101,6 +128,8 @@ function parsePlan(raw: string): VideoPlan | null {
       beats,
       endCard: String(j.endCard ?? '').trim(),
       caption: String(j.caption ?? '').trim(),
+      ...(typeof (j as { onCamera?: unknown }).onCamera === 'string' ? { onCamera: String((j as { onCamera: string }).onCamera).trim() } : {}),
+      ...(Array.isArray((j as { scenes?: unknown }).scenes) ? { scenes: ((j as { scenes: unknown[] }).scenes).map(x => String(x).trim()).filter(Boolean).slice(0, 6) } : {}),
       notes: Array.isArray(j.notes) ? j.notes.map(String).slice(0, 4) : [],
     }
   } catch {
@@ -191,6 +220,13 @@ export async function POST(req: Request) {
     // (Approve & create refuses scripts over 3.2 words/second.)
     const budget = Math.round(seconds * WORDS_PER_SECOND)
     const spoken = type.presenter || type.id === 'editorial_explainer'
+    if (type.id === 'cinematic_broll') {
+      const shots = seconds >= 30 ? 4 : 2
+      if ((plan.scenes?.length ?? 0) < shots || !plan.onCamera) {
+        return NextResponse.json({ error: 'plan_failed', message: 'Maya could not plan the shots. Try again.' }, { status: 502 })
+      }
+      plan.scenes = plan.scenes!.slice(0, shots)
+    }
     const countWords = (p: VideoPlan) => p.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length
     if (spoken && countWords(plan) > budget * 1.15) {
       const tighter = await openRouterComplete({
@@ -208,7 +244,7 @@ export async function POST(req: Request) {
         temperature: 0.4,
       }).catch(() => null)
       const shorter = tighter ? parsePlan(tighter.content) : null
-      if (shorter && countWords(shorter) < countWords(plan)) plan = shorter
+      if (shorter && countWords(shorter) < countWords(plan)) plan = { ...shorter, onCamera: shorter.onCamera || plan.onCamera, scenes: shorter.scenes?.length === plan.scenes?.length ? shorter.scenes : plan.scenes }
     }
 
     return NextResponse.json({ plan, seconds, words: countWords(plan), wordBudget: budget })

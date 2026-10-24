@@ -70,7 +70,7 @@ export function approvalQueueKind(task: {
 
   if (agent === 'post_caption') return 'post'
   // Video posts (presenter pipeline and the older video flow) are posts to review.
-  if (agent === 'video_presenter' || agent === 'video_generation') return 'post'
+  if (agent === 'video_presenter' || agent === 'video_broll' || agent === 'video_generation') return 'post'
   if (agent === 'weekly_content') return 'plan'
   if (agent === 'content_posting') {
     return resolveContentPostingFlow(input) === 'weekly' ? 'plan' : 'post'
@@ -129,7 +129,7 @@ export function singlePostPublishBlockReason(opts: {
 
   if (opts.agentId === 'post_caption') return null
   // Approved video posts become a Posts draft (the owner schedules or publishes from Posts).
-  if ((opts.agentId === 'video_presenter' || opts.agentId === 'video_generation') && media.media_mime?.startsWith('video/')) return null
+  if ((opts.agentId === 'video_presenter' || opts.agentId === 'video_broll' || opts.agentId === 'video_generation') && media.media_mime?.startsWith('video/')) return null
   if (opts.agentId === 'content_posting' && resolveContentPostingFlow(opts.taskInput) === 'single') return null
   return 'This approval type does not publish to Posts.'
 }

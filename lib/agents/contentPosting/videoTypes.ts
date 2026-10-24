@@ -9,6 +9,7 @@
 
 export type VideoTypeId =
   | 'presenter_tip'
+  | 'cinematic_broll'
   | 'product_showcase'
   | 'editorial_explainer'
   | 'animated_post'
@@ -72,6 +73,43 @@ export const VIDEO_TYPES: VideoTypeSpec[] = [
     // Example #1 (2026-10-24): Theo, job-photo tip, made through Approve & create; owner: "looks fine".
     examplePath: 'bfa73081-3906-4b5b-b24e-d9df3fb07384/assembled-gen-vid-1792857572-pcvQuru6lQrfQ5Al1Ivv-1792861331016.mp4',
     planPreview: 'Script line by line and where each card appears.',
+  },
+  {
+    id: 'cinematic_broll',
+    name: 'Cinematic B-roll',
+    tagline: 'Your creator talks to camera, with cinematic shots of them in new places between the lines.',
+    tag: 'Presenter',
+    presenter: true,
+    fields: [
+      {
+        key: 'topic',
+        kind: 'text',
+        label: 'What should they talk about?',
+        placeholder: 'One line — e.g. How I plan a week of posts in one hour',
+        required: true,
+      },
+      {
+        key: 'settings',
+        kind: 'textarea',
+        label: 'Where should it be filmed? (optional)',
+        placeholder: 'e.g. a rooftop, a café window seat, a home office. Leave empty and Maya picks a mix.',
+      },
+      {
+        key: 'outfit',
+        kind: 'text',
+        label: 'Outfit (optional)',
+        placeholder: "Leave empty to keep the creator's own look",
+      },
+    ],
+    lengths: [15, 30],
+    defaultLength: 30,
+    captionsDefault: 'sans',
+    minutes: 12,
+    poster: ['#22303a', '#0b1116'],
+    exampleUrl: null,
+    // Test 2 (2026-10-24), June, owner: "way better".
+    examplePath: 'bfa73081-3906-4b5b-b24e-d9df3fb07384/assembled-gen-vid-1792883467-QG8Ee9aaTTDGEuqfuXFe-1792883715266.mp4',
+    planPreview: 'Script, which lines are on camera, and each B-roll shot.',
   },
   {
     id: 'product_showcase',

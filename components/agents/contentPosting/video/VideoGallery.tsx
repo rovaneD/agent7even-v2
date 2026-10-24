@@ -31,6 +31,7 @@ export default function VideoGallery({ formatId }: Props) {
   // Finish any presenter video that was still recording when its page was closed.
   useEffect(() => {
     fetch('/api/posts/video-create?pending=1').catch(() => {})
+    fetch('/api/posts/video-broll?pending=1').catch(() => {})
   }, [])
 
   return (
