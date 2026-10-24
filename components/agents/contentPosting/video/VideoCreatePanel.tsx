@@ -443,6 +443,16 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                       </li>
                     ))}
                   </ol>
+                  {(() => {
+                    const words = plan.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length
+                    const max = Math.floor(length * 3.2)
+                    const over = canCreate && words > max
+                    return (
+                      <p className={`mt-2 text-[12px] ${over ? 'text-[#FF8A8A]' : 'text-[#6B6E76]'}`}>
+                        {words} words · {over ? `too long for ${length}s — shorten a line (max ${max})` : `fits ${length}s`}
+                      </p>
+                    )
+                  })()}
                   {plan.endCard && (
                     <p className="mt-2 text-[12px] text-[#9A9DA5]">
                       End card: <span className="text-[#E6E7EA]">{plan.endCard}</span> with your logo
@@ -526,7 +536,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                       <button
                         type="button"
                         onClick={approveAndCreate}
-                        disabled={!creator}
+                        disabled={!creator || plan.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length > Math.floor(length * 3.2)}
                         className="w-full rounded-[12px] bg-brand-primary py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#1D62D6] disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-[#8A8D95]"
                       >
                         Approve &amp; create · {creditsFor} credits

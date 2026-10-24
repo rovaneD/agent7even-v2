@@ -175,10 +175,34 @@ export async function POST(req: Request) {
       max_tokens: 1200,
       temperature: 0.6,
     })
-    const plan = parsePlan(out.content)
+    let plan = parsePlan(out.content)
     if (!plan) return NextResponse.json({ error: 'plan_failed', message: 'Maya could not write a plan. Try again.' }, { status: 502 })
-    // Credit units for video are not decided yet (pricing D4) — the price is shown once they are.
-    return NextResponse.json({ plan, seconds, priceCredits: null })
+
+    // Spoken types must fit the length: models overshoot word counts, so tighten once if needed.
+    // (Approve & create refuses scripts over 3.2 words/second.)
+    const budget = Math.round(seconds * WORDS_PER_SECOND)
+    const spoken = type.presenter || type.id === 'editorial_explainer'
+    const countWords = (p: VideoPlan) => p.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length
+    if (spoken && countWords(plan) > budget * 1.15) {
+      const tighter = await openRouterComplete({
+        model: briefComposeModel(),
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+          { role: 'assistant', content: JSON.stringify(plan) },
+          {
+            role: 'user',
+            content: `That is ${countWords(plan)} spoken words; the limit is ${budget} for ${seconds} seconds. Rewrite the beats to ${budget} words or fewer in total. Keep the hook, the steps and the natural spoken style; cut words, not meaning. Same JSON shape.`,
+          },
+        ],
+        max_tokens: 1200,
+        temperature: 0.4,
+      }).catch(() => null)
+      const shorter = tighter ? parsePlan(tighter.content) : null
+      if (shorter && countWords(shorter) < countWords(plan)) plan = shorter
+    }
+
+    return NextResponse.json({ plan, seconds, words: countWords(plan), wordBudget: budget })
   } catch (err) {
     console.error('[video-plan]', err)
     return NextResponse.json({ error: 'plan_failed', message: 'Maya could not write a plan. Try again.' }, { status: 502 })
