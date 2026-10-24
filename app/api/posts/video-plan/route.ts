@@ -9,7 +9,7 @@ import {
 } from '@/lib/agents/foundationCreativeDirection'
 import { videoTypeById, type VideoTypeSpec } from '@/lib/agents/contentPosting/videoTypes'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 /**
  * Plan step for the Video Post create panel. Free: one text call, no render, no credits.
@@ -37,19 +37,36 @@ export type VideoPlan = {
 const WORDS_PER_SECOND = 2.6
 
 /**
- * Writing rules from the ugc-saas-review-video skill (teach, don't pitch; talk like people talk).
- * Owner review 2026-10-24: scripts still read rigid and AI-written ("If you…, try this." + "step one,
- * step two" every time). Now: sounds like one real person thinking out loud, not a template.
+ * Script rules for presenter videos (owner reviews 2026-10-24: first "rigid and AI-written", then on a
+ * real run "the script sucks": vague reflections, a fortune-cookie line, an opener copied from our own
+ * example, and the presenter talking like the owner). Modeled on the owner's reference reel: a hook the
+ * viewer recognizes, one specific thing to copy, shown exactly, then the payoff.
  */
 const PRESENTER_SCRIPT_RULES = (words: number) =>
   [
-    `About ${words} spoken words in total, 4–5 beats. Each beat = one spoken line.`,
-    'Write it the way one real person actually talks to a friend on camera, not the way an ad or a blog post reads.',
-    'Open in the middle of a thought: a small admission, a reaction or something that just happened ("Okay so I used to…", "Someone asked me this yesterday…", "Honestly I didn\'t get this until…"). Don\'t always open with "If you…".',
-    'Give the useful part as what you actually do, with one or two concrete everyday details (a day, a time, an object, a real customer question), not a numbered list. Avoid "step one / step two" unless the topic truly is steps.',
-    'Mix long run-on lines joined with "and" / "so" with short fragments. Contractions always. At most one light filler ("like", "honestly", "okay so"). No CAPS, no em dashes, no slogans, no rhetorical questions to the viewer, no tidy rule-of-three in every line.',
-    'End on a plain, sincere line that sounds said, not written. Never a price or a hard sell. Claims only from the business\'s own facts; no invented results.',
-    'Before answering, reread every line out loud in your head: if a line sounds like marketing copy or like ChatGPT, rewrite it.',
+    `About ${words} spoken words in total. Each beat = one spoken line.`,
+    'Shape that works:',
+    '1. Hook (line 1): name the viewer\'s exact situation or mistake in plain words, casually, as if reacting to it. The right viewer should think "that\'s me". Do not open with "Okay so", "So I just", "Hey guys" or "If you".',
+    '2. Give ONE specific thing they can copy today: a simple method, the exact words to say, a number, a time of day. After watching they can do it without guessing.',
+    '3. Show it concretely in the middle lines: the actual words, the actual order, one real-feeling example from this kind of business.',
+    '4. Last line: the payoff, what changes for them when they do it, said plainly. Not a moral, not a slogan.',
+    'Voice: a real person explaining something to a friend. Contractions, mostly short sentences with at most one longer run-on, at most one filler word. No CAPS, no em dashes.',
+    'Never write: quotable aphorisms or fortune-cookie lines ("X isn\'t for Y, it\'s for Z", "showing up beats perfect", "it\'s not just X, it\'s Y"), vague reflections, "here\'s the thing", "game-changer", rhetorical questions like "Ever wondered", lists of three adjectives, LinkedIn-style lines.',
+    'Who is talking: the business\'s presenter. Say "we" for what the business does ("we answer every review the same day"). Use "I" only for the presenter\'s own opinion or what they\'d say ("here\'s what I\'d write"). Never "my shop", "my customers", "my team".',
+    'Claims only from the business\'s own facts; no invented results, numbers, reviews or customer quotes. Never a price or a hard sell.',
+  ].join('\n')
+
+/** Second pass: a script editor checks the draft against the rules and rewrites weak lines. */
+const SCRIPT_EDITOR = (words: number) =>
+  [
+    'You are a sharp short-form video script editor. You get a draft script as JSON beats. Check every line and fix what fails:',
+    '- Line 1: would the target viewer instantly recognize their own situation? If not, rewrite it.',
+    '- Is there one specific, copyable thing (exact words, a method, a number)? If it is vague, make it concrete using only facts from the brief.',
+    '- Any line that sounds like a quote, a slogan, a caption or a LinkedIn post: rewrite it the way a person would actually say it out loud.',
+    '- Presenter voice: "we" for the business, "I" only for their own opinion. Never "my shop/my customers".',
+    '- Does it open with "Okay so", "So I just", "Hey guys" or "If you"? Change it.',
+    `- About ${words} words in total; keep the same number of beats in the same order, and keep B-roll lines about doing something.`,
+    'Return JSON only: {"beats": [{"text": string}]} with the improved lines.',
   ].join('\n')
 
 function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, seconds: number): string {
@@ -236,6 +253,27 @@ export async function POST(req: Request) {
       plan.scenes = plan.scenes!.slice(0, shots)
     }
     const countWords = (p: VideoPlan) => p.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length
+    if (type.presenter) {
+      const edited = await openRouterComplete({
+        model: briefComposeModel(),
+        messages: [
+          { role: 'system', content: SCRIPT_EDITOR(budget) },
+          { role: 'user', content: `## Brief\n${user}\n\n## Draft\n${JSON.stringify({ beats: plan.beats.map(b => ({ text: b.text })) })}` },
+        ],
+        max_tokens: 2000,
+        temperature: 0.5,
+      }).catch(() => null)
+      const m = edited?.content?.match(/\{[\s\S]*\}/)
+      try {
+        const j = m ? (JSON.parse(m[0]) as { beats?: Array<{ text?: unknown }> }) : null
+        const texts = (j?.beats ?? []).map(b => String(b.text ?? '').trim())
+        if (texts.length === plan.beats.length && texts.every(Boolean)) {
+          plan = { ...plan, beats: plan.beats.map((b, i) => ({ ...b, text: texts[i]! })) }
+        }
+      } catch {
+        // keep the draft
+      }
+    }
     if (spoken && countWords(plan) > budget * 1.15) {
       const tighter = await openRouterComplete({
         model: briefComposeModel(),
