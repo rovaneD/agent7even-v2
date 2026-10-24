@@ -160,6 +160,22 @@ export function alignLines(lines: string[], segs: Array<{ start: number; end: nu
 }
 
 /** 2–3 word subtitle chunks, timed by character share within each line. */
+/** Greedy word wrap to lines of at most `max` characters (a single long word stays whole). */
+export function wrapWords(text: string, max: number): string[] {
+  const out: string[] = []
+  let line = ''
+  for (const w of text.trim().split(/\s+/).filter(Boolean)) {
+    if (!line) line = w
+    else if ((line + ' ' + w).length <= max) line += ' ' + w
+    else {
+      out.push(line)
+      line = w
+    }
+  }
+  if (line) out.push(line)
+  return out
+}
+
 export function chunkLines(lineTimes: TimedText[]): TimedText[] {
   const out: TimedText[] = []
   for (const l of lineTimes) {
@@ -272,7 +288,7 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
     let final = main
     let total = meta.duration
     if (input.endCard) {
-      const secs = input.endCard.seconds ?? 1.8
+      const secs = input.endCard.seconds ?? (input.endCard.text.length > 22 ? 2.3 : 1.8)
       const bg = (input.endCard.background ?? '0x111111').replace('#', '0x')
       const tf = path.join(dir, 'end.txt')
       await writeFile(tf, input.endCard.text)
@@ -288,7 +304,19 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
         cf.push(`[2:v]scale=${Math.round(W * 0.42)}:-2[lg]`, `${cl}[lg]overlay=x=(W-w)/2:y=(H-h)/2-H*0.04[c1]`)
         cl = '[c1]'
       }
-      cf.push(`${cl}drawtext=fontfile='${endFont}':textfile='${tf}':fontcolor=white:fontsize=${Math.round(H * 0.032)}:x=(w-text_w)/2:y=H*0.62,fade=t=in:st=0:d=0.3[cv]`)
+      // Wrap the end line (drawtext doesn't): ~22 chars per line keeps it inside a 9:16 frame.
+      // Example #1 (2026-10-24): a 50-character line ran off both edges.
+      const endLines = wrapWords(input.endCard.text, 22).slice(0, 3)
+      const endSize = Math.round(H * (endLines.length > 1 ? 0.029 : 0.032))
+      for (let i = 0; i < endLines.length; i++) {
+        const lf = path.join(dir, `end${i}.txt`)
+        await writeFile(lf, endLines[i]!)
+        const next = i === endLines.length - 1 ? '[ct]' : `[e${i}]`
+        cf.push(`${cl}drawtext=fontfile='${endFont}':textfile='${lf}':fontcolor=white:fontsize=${endSize}:x=(w-text_w)/2:y=H*0.62+${Math.round(i * endSize * 1.3)}${next}`)
+        cl = next
+      }
+      if (!endLines.length) cf.push(`${cl}null[ct]`)
+      cf.push(`[ct]fade=t=in:st=0:d=0.3[cv]`)
       cardArgs.push('-filter_complex', cf.join(';'), '-map', '[cv]', '-map', '1:a', '-t', String(secs),
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', '30', '-c:a', 'aac', '-b:a', '160k', card)
       await must(cardArgs, 'end card')
