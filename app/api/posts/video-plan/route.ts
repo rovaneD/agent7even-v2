@@ -23,7 +23,7 @@ type Body = {
 }
 
 export type VideoPlanBeat = { text: string; visual: string }
-export type VideoPlan = { title: string; beats: VideoPlanBeat[]; endCard: string; notes: string[] }
+export type VideoPlan = { title: string; beats: VideoPlanBeat[]; endCard: string; caption: string; notes: string[] }
 
 const WORDS_PER_SECOND = 2.6
 
@@ -94,6 +94,7 @@ function parsePlan(raw: string): VideoPlan | null {
       title: String(j.title ?? '').trim(),
       beats,
       endCard: String(j.endCard ?? '').trim(),
+      caption: String(j.caption ?? '').trim(),
       notes: Array.isArray(j.notes) ? j.notes.map(String).slice(0, 4) : [],
     }
   } catch {
@@ -137,6 +138,7 @@ export async function POST(req: Request) {
         { text: 'Reframes each to vertical and adds captions.', visual: 'vertical cut' },
       ],
       endCard: '',
+      caption: '',
       notes: ['You see the picked moments before any short is cut.'],
     }
     return NextResponse.json({ plan, seconds, priceCredits: null })
@@ -159,7 +161,8 @@ export async function POST(req: Request) {
   const system = [
     'You plan short social videos for small businesses. Output JSON only.',
     'Rules: plain spoken English; no invented numbers, prices, awards, reviews or customer quotes; no "game-changer", "unlock", "elevate"; never speak as a customer or give a testimonial; never mention AI.',
-    'JSON shape: {"title": string, "beats": [{"text": string, "visual": string}], "endCard": string, "notes": string[]}',
+    'JSON shape: {"title": string, "beats": [{"text": string, "visual": string}], "endCard": string, "caption": string, "notes": string[]}',
+    'caption = the social post caption that goes with the video (not the spoken script): 1-3 short plain sentences that make someone want to watch or save it, in the business\'s voice, then a blank line and at most 3 relevant hashtags. Under 400 characters. No em dashes, no emojis unless the brand uses them, no CAPS.',
     'endCard = short closing line for the brand end card (logo shown with it). notes = at most 2 short things the owner should check (e.g. a claim to confirm).',
   ].join('\n')
 

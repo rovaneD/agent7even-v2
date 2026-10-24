@@ -791,6 +791,14 @@ export default function ApprovalsClient({
       })
     } else if (kind === 'plan') {
       setApproveNotice({ message: 'Weekly plan approved and saved to your output archive.' })
+    } else if (kind === 'post' && data.publish && data.publish.scheduled === false) {
+      const why: Record<string, string> = {
+        not_connected: 'connect a social account in Posts first.',
+        no_account_for_platform: 'no connected account for this platform.',
+        insufficient_credits: 'not enough credits for the Posts draft.',
+        zernio_not_configured: 'Posts is not set up yet.',
+      }
+      setApproveNotice({ message: `Approved and saved, but not sent to Posts: ${why[data.publish.detail] ?? 'the draft could not be created. Try again from Posts.'}` })
     } else if (kind === 'post' && typeof data.publishBlocked === 'string') {
       setApproveNotice({ message: `Approved and saved, but not sent to Posts: ${data.publishBlocked}` })
     } else if (kind === 'post') {
@@ -885,7 +893,7 @@ export default function ApprovalsClient({
           </button>
         </div>
         <p style={{ fontSize: 13.5, color: '#888', marginTop: 4 }}>
-          Review agent outputs before they go anywhere. Approve posts with images to save them as drafts on Posts — then schedule or publish.
+          Review agent outputs before they go anywhere. Approve image and video posts to save them as drafts on Posts — then schedule or publish.
         </p>
       </div>
 

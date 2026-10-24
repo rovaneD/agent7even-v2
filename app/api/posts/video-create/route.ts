@@ -48,6 +48,7 @@ export async function POST(req: Request) {
     endCardText?: string
     formatId?: string
     title?: string
+    caption?: string
   }
   const type = videoTypeById(body.typeId)
   if (!type || !PRESENTER_TYPES.has(type.id)) {
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
     endCardText: (body.endCardText ?? '').trim().slice(0, 80),
     formatId: body.formatId ?? null,
     title: (body.title ?? '').trim().slice(0, 80) || type.name,
+    caption: (body.caption ?? '').trim().slice(0, 2200),
     stage: 'voice',
   }
   const { data: task, error: taskErr } = await supabase

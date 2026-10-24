@@ -24,6 +24,8 @@ export type PresenterTaskInput = {
   endCardText: string
   formatId: string | null
   title: string
+  /** Social caption for the post (the spoken script is `lines`). */
+  caption?: string
   stage: 'voice' | 'rendering' | 'editing' | 'done'
   presenter_job_id?: string
   lineTimes?: TimedText[]
@@ -108,7 +110,8 @@ export async function advancePresenterTask(
       output_type: 'social_post',
       title: input.title || 'Presenter video',
       content: {
-        raw: input.lines.join(' '),
+        raw: input.caption?.trim() || input.lines.join(' '),
+        script: input.lines,
         media_storage_path: storagePath,
         media_mime: 'video/mp4',
         generated: {

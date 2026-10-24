@@ -19,7 +19,7 @@ function normalizePlatform(value: string): string {
   return v
 }
 
-/** After approval, schedule a single-image post through Zernio when media is attached. */
+/** After approval, create a Zernio draft (image or video post). Never publishes: the owner schedules or publishes from Posts. */
 export async function publishApprovedImageCaption(opts: {
   profileId: string
   outputId?: string
@@ -31,10 +31,6 @@ export async function publishApprovedImageCaption(opts: {
   const media = readPostMediaRef(opts.outputContent)
   if (!media.media_storage_path) {
     return { scheduled: false, detail: 'no_media' }
-  }
-
-  if (media.media_mime?.startsWith('video/')) {
-    return { scheduled: false, detail: 'video_not_supported' }
   }
 
   if (!process.env.ZERNIO_API_KEY) {
@@ -73,7 +69,8 @@ export async function publishApprovedImageCaption(opts: {
   }
 
   const mime = media.media_mime ?? 'image/jpeg'
-  const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg'
+  const isVideo = mime.startsWith('video/')
+  const ext = isVideo ? 'mp4' : mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg'
 
   return publisher.withZernioUsageContext(
     { userId: opts.profileId, zernioProfileId },
@@ -97,7 +94,7 @@ export async function publishApprovedImageCaption(opts: {
     await deductCredits(
       opts.profileId,
       PUBLISH_CREDIT_COST,
-      'Social publish — image caption post',
+      isVideo ? 'Posts draft — video post' : 'Social publish — image caption post',
       opts.taskId,
     )
   } catch (err) {
@@ -114,7 +111,7 @@ export async function publishApprovedImageCaption(opts: {
       content: opts.caption.trim(),
       platforms: [{ platform: account.platform, accountId: account.id }],
       isDraft: true,
-      mediaItems: [{ type: presign.mediaType, url: presign.publicUrl, title: 'post-image' }],
+      mediaItems: [{ type: presign.mediaType, url: presign.publicUrl, title: isVideo ? 'post-video' : 'post-image' }],
       requestId: `approve-${opts.taskId}`,
     })
 

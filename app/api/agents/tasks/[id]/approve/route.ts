@@ -13,6 +13,9 @@ import {
 } from '@/lib/profiles/workspaceSession'
 import { requireWorkspaceOwner } from '@/lib/team/requireWorkspaceOwner'
 
+// Video drafts download and re-upload the MP4 to Zernio.
+export const maxDuration = 120
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }

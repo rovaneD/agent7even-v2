@@ -128,6 +128,8 @@ export function singlePostPublishBlockReason(opts: {
   }
 
   if (opts.agentId === 'post_caption') return null
+  // Approved video posts become a Posts draft (the owner schedules or publishes from Posts).
+  if ((opts.agentId === 'video_presenter' || opts.agentId === 'video_generation') && media.media_mime?.startsWith('video/')) return null
   if (opts.agentId === 'content_posting' && resolveContentPostingFlow(opts.taskInput) === 'single') return null
   return 'This approval type does not publish to Posts.'
 }

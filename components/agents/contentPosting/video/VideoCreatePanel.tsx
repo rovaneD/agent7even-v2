@@ -19,6 +19,7 @@ type Plan = {
   title: string
   beats: Array<{ text: string; visual: string }>
   endCard: string
+  caption: string
   notes: string[]
 }
 
@@ -114,6 +115,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
           captions,
           formatId: format.id,
           title: plan.title,
+          caption: plan.caption,
         }),
       })
       const d = (await res.json().catch(() => ({}))) as { taskId?: string; message?: string }
@@ -456,6 +458,20 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                     <p className="mt-2 text-[12px] text-[#9A9DA5]">
                       End card: <span className="text-[#E6E7EA]">{plan.endCard}</span> with your logo
                     </p>
+                  )}
+                  {type.presenter && (
+                    <div className="mt-3">
+                      <p className="mb-1.5 text-[12px] font-medium text-[#9A9DA5]">Post caption</p>
+                      <textarea
+                        aria-label="Post caption"
+                        value={plan.caption ?? ''}
+                        onChange={e => setPlan(p => (p ? { ...p, caption: e.target.value } : p))}
+                        rows={4}
+                        placeholder="The caption that goes with the video when you post it."
+                        className="w-full resize-none rounded-[10px] bg-[#0F1012] p-2.5 text-[13px] leading-snug text-white outline-none ring-1 ring-white/[0.06] placeholder:text-[#55585F]"
+                      />
+                      <p className="mt-1 text-[11.5px] text-[#6B6E76]">You can still edit it in Approvals. Nothing posts until you choose to.</p>
+                    </div>
                   )}
                   {plan.notes.length > 0 && (
                     <ul className="mt-2 space-y-1">
