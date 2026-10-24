@@ -38,8 +38,13 @@ export type AssembleInput = {
   broll?: Array<{ video: Buffer; start: number; end: number }> | null
   /** Caption centre as a fraction of height (default 0.73 creator / 0.66 legacy). */
   captionY?: number
-  /** Small line shown under the captions for the whole video (e.g. "Comment GUIDE for the checklist"). */
+  /**
+   * Optional call-to-action line (e.g. "Comment GUIDE for the checklist"). Default: shown only over
+   * the last spoken line, low in the frame (owner review 2026-10-24: a line on screen the whole time
+   * was distracting). 'always' keeps it on for the whole video.
+   */
   cta?: string | null
+  ctaTiming?: 'end' | 'always'
 }
 export type AssembleResult = { video: Buffer; lineTimes: TimedText[]; chunks: TimedText[]; durationSec: number; exactTiming: boolean }
 
@@ -307,9 +312,14 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       const tf = path.join(dir, 'cta.txt')
       await writeFile(tf, input.cta.trim())
       const ctaFont = fontPath('sans').replace(/:/g, '\\:')
-      const cs = Math.round(H * 0.017)
+      const always = input.ctaTiming === 'always'
+      const cs = Math.round(H * (always ? 0.017 : 0.024))
+      const lastLine = lineTimes[lineTimes.length - 1]!
+      const from = Math.max(0, lastLine.start)
+      const cy = always ? y + Math.round(size * 0.85) : Math.round(H * 0.84)
+      const fade = always ? '' : `:alpha='min(1,(t-${from.toFixed(2)})/0.3)':enable='gte(t,${from.toFixed(2)})'`
       filters.push(
-        `${last}drawtext=fontfile='${ctaFont}':textfile='${tf}':fontcolor=white@0.92:fontsize=${cs}:shadowcolor=black@0.7:shadowx=0:shadowy=2:x=(w-text_w)/2:y=${y + Math.round(size * 0.85)}[cta]`,
+        `${last}drawtext=fontfile='${ctaFont}':textfile='${tf}':fontcolor=white:fontsize=${cs}:borderw=${Math.max(2, Math.round(H * 0.0018))}:bordercolor=black@0.35:shadowcolor=black@0.6:shadowx=0:shadowy=2:x=(w-text_w)/2:y=${cy}${fade}[cta]`,
       )
       last = '[cta]'
     }

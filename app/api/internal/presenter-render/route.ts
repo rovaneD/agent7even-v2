@@ -24,7 +24,12 @@ export async function POST(req: Request) {
   if (!ctx?.email || !INTERNAL_EMAILS.has(ctx.email.toLowerCase())) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   const profileId = workspaceDataUserId(ctx.session)
 
-  const body = (await req.json().catch(() => ({}))) as { creatorId?: string; lines?: string[] }
+  const body = (await req.json().catch(() => ({}))) as {
+    creatorId?: string
+    lines?: string[]
+    /** Lip-sync from this post-assets image instead of the creator's locked photo (e.g. a cinematic still). */
+    photoPath?: string
+  }
   const creator = castCreatorById(body.creatorId)
   const lines = (body.lines ?? []).map(l => String(l).trim()).filter(Boolean)
   if (!creator) return NextResponse.json({ error: 'unknown_creator' }, { status: 400 })
@@ -38,7 +43,7 @@ export async function POST(req: Request) {
     if (error) throw new Error(`storage: ${error.message}`)
     const [audioUrl, photoUrl] = await Promise.all([
       createPostAssetSignedUrl(audioPath, 60 * 60 * 6),
-      createPostAssetSignedUrl(creator.photoPath, 60 * 60 * 6),
+      createPostAssetSignedUrl(body.photoPath?.trim() || creator.photoPath, 60 * 60 * 6),
     ])
     if (!audioUrl || !photoUrl) throw new Error('could not sign the voice or photo')
 

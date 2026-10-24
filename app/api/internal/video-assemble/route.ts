@@ -39,6 +39,7 @@ export async function POST(req: Request) {
     broll?: Array<{ jobId?: string; path?: string; start: number; end: number }>
     captionY?: number
     cta?: string
+    ctaTiming?: 'end' | 'always'
   }
   if (!body.bakeoffJobId || !body.lines?.length) return NextResponse.json({ error: 'bakeoffJobId_and_lines_required' }, { status: 400 })
 
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
       broll,
       captionY: body.captionY,
       cta: body.cta ?? null,
+      ctaTiming: body.ctaTiming,
     })
     const path = `${profileId}/assembled-${body.bakeoffJobId.replace(/[^a-zA-Z0-9-]/g, '')}-${Date.now()}.mp4`
     const { error } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(path, out.video, { contentType: 'video/mp4', upsert: true })
