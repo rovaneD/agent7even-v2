@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { MonitorSmartphone, Newspaper, Palette, Scissors, Sparkles, UserRound, type LucideIcon } from 'lucide-react'
 import type { VideoTypeId, VideoTypeSpec } from '@/lib/agents/contentPosting/videoTypes'
 
@@ -10,6 +11,31 @@ export const VIDEO_TYPE_ICONS: Record<VideoTypeId, LucideIcon> = {
   animated_post: Sparkles,
   shorts_maker: Scissors,
   brandkit: Palette,
+}
+
+// Signed example clips, fetched once per page (GET /api/posts/video-types).
+let examplesCache: Record<string, string> | null = null
+let examplesPromise: Promise<Record<string, string>> | null = null
+function loadExamples(): Promise<Record<string, string>> {
+  if (examplesCache) return Promise.resolve(examplesCache)
+  examplesPromise ??= fetch('/api/posts/video-types')
+    .then(r => (r.ok ? r.json() : { examples: {} }))
+    .then((d: { examples?: Record<string, string> }) => (examplesCache = d.examples ?? {}))
+    .catch(() => (examplesCache = {}))
+  return examplesPromise
+}
+
+function useExampleUrl(type: VideoTypeSpec): string | null {
+  const [url, setUrl] = useState<string | null>(type.exampleUrl ?? examplesCache?.[type.id] ?? null)
+  useEffect(() => {
+    if (type.exampleUrl || !type.examplePath) return
+    let live = true
+    void loadExamples().then(m => live && setUrl(m[type.id] ?? null))
+    return () => {
+      live = false
+    }
+  }, [type])
+  return url
 }
 
 /** Example clip when we have one; otherwise an honest "example in production" poster. */
@@ -23,13 +49,14 @@ export function VideoTypePoster({
   playing?: boolean
 }) {
   const Icon = VIDEO_TYPE_ICONS[type.id]
-  if (type.exampleUrl) {
+  const exampleUrl = useExampleUrl(type)
+  if (exampleUrl) {
     // Examples are 9:16. The player and thumbs are 9:16 too; the landscape gallery tile shows the
     // whole clip centered over a blurred copy, so faces, captions and cards are never cropped.
     if (size !== 'tile') {
       return (
         <video
-          src={type.exampleUrl}
+          src={exampleUrl}
           className="absolute inset-0 h-full w-full object-cover"
           muted
           loop
@@ -42,7 +69,7 @@ export function VideoTypePoster({
     return (
       <div className="absolute inset-0 overflow-hidden bg-black">
         <video
-          src={type.exampleUrl}
+          src={exampleUrl}
           className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
           muted
           loop
@@ -52,7 +79,7 @@ export function VideoTypePoster({
           aria-hidden
         />
         <video
-          src={type.exampleUrl}
+          src={exampleUrl}
           className="absolute inset-y-0 left-1/2 h-full -translate-x-1/2 object-contain"
           muted
           loop

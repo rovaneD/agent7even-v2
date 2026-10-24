@@ -41,6 +41,8 @@ export interface VideoTypeSpec {
   /** Poster gradient for tiles without an example clip yet. */
   poster: [string, string]
   exampleUrl: string | null
+  /** post-assets path of our own example clip (signed by GET /api/posts/video-types). */
+  examplePath?: string
   /** What the plan step will show, so the user knows before pressing it. */
   planPreview: string
 }
@@ -67,6 +69,8 @@ export const VIDEO_TYPES: VideoTypeSpec[] = [
     minutes: 10,
     poster: ['#3a2a22', '#14100d'],
     exampleUrl: null,
+    // Example #1 (2026-10-24): Theo, job-photo tip, made through Approve & create; owner: "looks fine".
+    examplePath: 'bfa73081-3906-4b5b-b24e-d9df3fb07384/assembled-gen-vid-1792857572-pcvQuru6lQrfQ5Al1Ivv-1792861331016.mp4',
     planPreview: 'Script line by line and where each card appears.',
   },
   {

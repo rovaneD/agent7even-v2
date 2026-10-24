@@ -69,6 +69,8 @@ export function approvalQueueKind(task: {
   const agent = task.agent
 
   if (agent === 'post_caption') return 'post'
+  // Video posts (presenter pipeline and the older video flow) are posts to review.
+  if (agent === 'video_presenter' || agent === 'video_generation') return 'post'
   if (agent === 'weekly_content') return 'plan'
   if (agent === 'content_posting') {
     return resolveContentPostingFlow(input) === 'weekly' ? 'plan' : 'post'

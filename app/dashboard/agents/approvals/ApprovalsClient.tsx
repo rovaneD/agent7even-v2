@@ -106,6 +106,7 @@ function relativeTime(iso: string | null): string {
 }
 
 function agentDisplayName(agentId: string): string {
+  if (agentId === 'video_presenter' || agentId === 'video_generation') return 'Video post'
   if (isLegacyContentAgent(agentId)) return AGENTS.content_posting.name
   return AGENTS[agentId as AgentId]?.name ?? agentId
 }
