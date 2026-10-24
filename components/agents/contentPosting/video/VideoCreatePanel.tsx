@@ -29,6 +29,9 @@ type Props = {
   onSwitch: (id: VideoTypeId) => void
 }
 
+/** Video types whose Approve & create is live (presenter pipeline). */
+const PRESENTER_CREATE_TYPES = new Set(['presenter_tip', 'product_showcase'])
+
 const CAPTION_LABELS: Record<CaptionChoice, string> = { off: 'Off', serif: 'Serif', sans: 'Sans' }
 const CAPTION_FONTS: Record<Exclude<CaptionChoice, 'off'>, string> = {
   serif: '"A7 Caption Serif", Georgia, serif',
@@ -72,6 +75,56 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   }, [creator])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [job, setJob] = useState<{ taskId: string; status: 'starting' | 'rendering' | 'editing' | 'completed' | 'failed'; videoUrl?: string | null } | null>(null)
+  const creditsFor = length >= 30 ? 30 : 15
+  const canCreate = PRESENTER_CREATE_TYPES.has(type.id)
+
+  // Poll a running video every 12s until it is done or failed.
+  useEffect(() => {
+    if (!job || !['rendering', 'editing'].includes(job.status)) return
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/posts/video-create?taskId=${encodeURIComponent(job.taskId)}`)
+        const d = (await r.json()) as { status?: string; videoUrl?: string | null }
+        if (d.status === 'completed' || d.status === 'failed' || d.status === 'rendering' || d.status === 'editing') {
+          setJob(j => (j ? { ...j, status: d.status as 'completed', videoUrl: d.videoUrl ?? j.videoUrl } : j))
+        }
+      } catch {}
+    }, 12_000)
+    return () => clearTimeout(t)
+  }, [job])
+
+  async function approveAndCreate() {
+    if (!plan || !creator) return
+    if (creator.kind !== 'cast') {
+      setError('Voices for your own creators are coming soon. Pick one of our creators for now.')
+      return
+    }
+    setError(null)
+    setJob({ taskId: '', status: 'starting' })
+    try {
+      const res = await fetch('/api/posts/video-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          typeId: type.id,
+          creatorId: creator.id,
+          lines: plan.beats.map(b => b.text),
+          length,
+          captions,
+          endCardText: plan.endCard,
+          formatId: format.id,
+          title: plan.title,
+        }),
+      })
+      const d = (await res.json().catch(() => ({}))) as { taskId?: string; message?: string }
+      if (!res.ok || !d.taskId) throw new Error(d.message ?? 'The video could not be started.')
+      setJob({ taskId: d.taskId, status: 'rendering' })
+    } catch (e) {
+      setJob(null)
+      setError(e instanceof Error ? e.message : 'The video could not be started.')
+    }
+  }
 
   const go = useCallback(
     (delta: number) => {
@@ -174,13 +227,15 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
           </button>
 
           <div className="relative aspect-[9/16] h-[56vh] max-h-[760px] overflow-hidden rounded-[20px] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] ring-1 ring-white/10 lg:h-[76vh]">
-            {type.presenter && creator?.photoUrl && !type.exampleUrl ? (
+            {job?.status === 'completed' && job.videoUrl ? (
+              <video src={job.videoUrl} className="absolute inset-0 h-full w-full object-cover" controls autoPlay playsInline />
+            ) : type.presenter && creator?.photoUrl && !type.exampleUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={creator.photoUrl} alt={creator.name} className="absolute inset-0 h-full w-full object-cover" />
             ) : (
               <VideoTypePoster type={type} size="player" />
             )}
-            {captions !== 'off' && (
+            {captions !== 'off' && job?.status !== 'completed' && (
               <p
                 className="pointer-events-none absolute inset-x-0 top-[73%] text-center text-white"
                 style={{
@@ -434,16 +489,66 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                 </>
               ) : (
                 <>
-                  <button
-                    type="button"
-                    disabled
-                    className="w-full cursor-not-allowed rounded-[12px] bg-white/[0.08] py-3.5 text-[15px] font-semibold text-[#8A8D95]"
-                  >
-                    Approve &amp; create
-                  </button>
-                  <p className="mt-2 text-center text-[11.5px] leading-snug text-[#6B6E76]">
-                    Video making turns on once our example videos are approved. Plans are always free.
-                  </p>
+                  {job ? (
+                    <div className="rounded-[12px] bg-white/[0.04] p-3 ring-1 ring-white/[0.06]">
+                      {(['starting', 'rendering', 'editing', 'completed'] as const).map((st, i) => {
+                        const order = ['starting', 'rendering', 'editing', 'completed']
+                        const now = order.indexOf(job.status)
+                        const done = job.status !== 'failed' && i < now
+                        const active = job.status === st && st !== 'completed'
+                        const label = ['Voice in ' + (creator?.name ?? 'the creator') + '\u2019s voice', 'Recording the video (about 8 min)', 'Captions and end card', 'In Approvals'][i]
+                        return (
+                          <div key={st} className="flex items-center gap-2 py-1 text-[13px]">
+                            {done || (st === 'completed' && job.status === 'completed') ? (
+                              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#16A34A] text-[10px] text-white">✓</span>
+                            ) : active ? (
+                              <Loader2 size={15} className="animate-spin text-[#7FB0FF]" />
+                            ) : (
+                              <span className="h-4 w-4 rounded-full border border-white/20" />
+                            )}
+                            <span className={done || active || job.status === 'completed' ? 'text-white' : 'text-[#6B6E76]'}>{label}</span>
+                          </div>
+                        )
+                      })}
+                      {job.status === 'failed' && (
+                        <p className="mt-2 text-[12.5px] text-[#FF8A8A]">The video failed. Your credits were refunded automatically.</p>
+                      )}
+                      {job.status === 'completed' ? (
+                        <a href="/dashboard/agents/approvals" className="mt-3 block rounded-[10px] bg-brand-primary py-2.5 text-center text-[14px] font-semibold text-white hover:bg-[#1D62D6]">
+                          Open Approvals
+                        </a>
+                      ) : job.status !== 'failed' ? (
+                        <p className="mt-2 text-[11.5px] text-[#6B6E76]">You can close this — the video keeps going and lands in Approvals.</p>
+                      ) : null}
+                    </div>
+                  ) : canCreate ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={approveAndCreate}
+                        disabled={!creator}
+                        className="w-full rounded-[12px] bg-brand-primary py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#1D62D6] disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-[#8A8D95]"
+                      >
+                        Approve &amp; create · {creditsFor} credits
+                      </button>
+                      <p className="mt-2 text-center text-[11.5px] leading-snug text-[#6B6E76]">
+                        {creator ? 'Charged once. If the video fails, the credits come back automatically.' : 'Choose a creator first.'}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full cursor-not-allowed rounded-[12px] bg-white/[0.08] py-3.5 text-[15px] font-semibold text-[#8A8D95]"
+                      >
+                        Approve &amp; create
+                      </button>
+                      <p className="mt-2 text-center text-[11.5px] leading-snug text-[#6B6E76]">
+                        Making this video type is coming soon. Plans are always free.
+                      </p>
+                    </>
+                  )}
                 </>
               )}
             </div>

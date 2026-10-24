@@ -6,6 +6,10 @@ export const ACTION_CREDIT_COST = {
   image_premium: 15,
   video_standard: 10,
   video_premium: 40,
+  // Presenter videos (creator + voice + lip-sync + edit), owner decision 2026-10-24: 15 / 30 credits in
+  // today's units (>= 2x provider cost on every plan; ~$0.78 / $1.55 per video). New units: 25 / 50.
+  video_presenter_15: 15,
+  video_presenter_30: 30,
   publish: 1,
   brandkit_gen: 1,
   foundation_gen: 0,
