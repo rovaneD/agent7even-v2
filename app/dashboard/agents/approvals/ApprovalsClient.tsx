@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, CheckCircle2, RotateCcw, ArrowLeft, Filter, SortDesc, Image as ImageIcon, CalendarDays, FileText } from 'lucide-react'
 import { AGENTS, AgentId } from '@/lib/agents/registry'
 import AgentIcon from '@/components/agents/AgentIcon'
+import VideoThumbnailModal from '@/components/agents/VideoThumbnailModal'
 import ApprovalDiscussion from '@/components/dashboard/ApprovalDiscussion'
 import AdVariationsOutputView from '@/components/agents/AdVariationsOutputView'
 import CampaignOutputView from '@/components/agents/CampaignOutputView'
@@ -259,19 +260,7 @@ function ApprovalItem({
           {mediaPreviewUrl && (
             <div style={{ marginBottom: 10 }}>
               {output?.content?.media_mime === 'video/mp4' ? (
-                <video
-                  src={mediaPreviewUrl}
-                  controls
-                  muted
-                  style={{
-                    width: 68,
-                    height: 120,
-                    objectFit: 'cover',
-                    borderRadius: 12,
-                    border: '0.5px solid #f0f0f0',
-                    display: 'block',
-                  }}
-                />
+                <VideoThumbnailModal src={mediaPreviewUrl} width={68} height={120} />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -311,19 +300,7 @@ function ApprovalItem({
               {mediaPreviewUrl && (
                 <div style={{ marginBottom: 12 }}>
                   {output?.content?.media_mime === 'video/mp4' ? (
-                    <video
-                      src={mediaPreviewUrl}
-                      controls
-                      muted
-                      style={{
-                        maxWidth: 124,
-                        maxHeight: 220,
-                        objectFit: 'cover',
-                        borderRadius: 12,
-                        border: '0.5px solid #f0f0f0',
-                        display: 'block',
-                      }}
-                    />
+                    <VideoThumbnailModal src={mediaPreviewUrl} width={124} height={220} />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
