@@ -8,6 +8,7 @@ import { createPostAssetSignedUrl } from '@/lib/postAssets'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { castCreatorById } from '@/lib/agents/contentPosting/creators'
 import { videoTypeById } from '@/lib/agents/contentPosting/videoTypes'
+import { resolveVideoFormat } from '@/lib/agents/contentPosting/platformFormats'
 import { buildCreatorVoiceTrack } from '@/lib/agents/videoGeneration/presenterVoice'
 import { submitVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
 import { failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
     captions: body.captions === 'off' || body.captions === 'sans' ? body.captions : 'serif',
     endCardText: (body.endCardText ?? '').trim().slice(0, 80),
     formatId: body.formatId ?? null,
+    platform: resolveVideoFormat(body.formatId).platform,
     title: (body.title ?? '').trim().slice(0, 80) || type.name,
     caption: (body.caption ?? '').trim().slice(0, 2200),
     stage: 'voice',
@@ -166,7 +168,7 @@ export async function GET(req: Request) {
   if (params.get('pending')) {
     const { data: tasks } = await supabase
       .from('agent_tasks')
-      .select('id,user_id,status,input,action_type')
+      .select('id,user_id,status,input,action_type,started_at')
       .eq('user_id', ws.workspaceId)
       .eq('agent', PRESENTER_AGENT)
       .eq('status', 'running')
@@ -180,7 +182,7 @@ export async function GET(req: Request) {
   if (!taskId) return NextResponse.json({ error: 'taskId_required' }, { status: 400 })
   const { data: task } = await supabase
     .from('agent_tasks')
-    .select('id,user_id,status,input,action_type')
+    .select('id,user_id,status,input,action_type,started_at')
     .eq('id', taskId)
     .eq('user_id', ws.workspaceId)
     .eq('agent', PRESENTER_AGENT)

@@ -7,8 +7,9 @@ import { loadBrandLogoReference } from '@/lib/agents/imageGeneration/postStyles'
 import { recordAgentTaskCost } from '@/lib/agents/taskInstrumentation'
 import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 import { assembleVideo, type TimedText } from './assemble'
-import { failVideoTask } from './failVideoTask'
+import { claimFailedVideo } from './claimFailedVideo'
 import { pollVideoJob } from './openRouterVideo'
+import { voiceStartAbandoned } from './videoJobResume'
 
 /**
  * Cinematic B-roll video (owner-approved recipe, test 2 2026-10-24; project doc
@@ -91,11 +92,15 @@ export type BrollTaskInput = {
   cta: string
   logo: boolean
   formatId: string | null
+  /** Platform the owner picked (Instagram, TikTok, …) so approval drafts the right account. */
+  platform?: string
   title: string
   caption?: string
   stills: { onCamera: string; broll: string[] }
   redosLeft: number
   stage: 'stills' | 'review' | 'voice' | 'rendering' | 'editing' | 'done'
+  /** Set when filming is claimed, so a killed start can be refunded without using stills started_at. */
+  voiceStartedAt?: string
   lipsync_job_id?: string
   broll_job_ids?: string[]
   lineTimes?: TimedText[]
@@ -165,31 +170,40 @@ export async function advanceBrollTask(
   if (task.status === 'failed') return { status: 'failed' }
   const input = task.input as BrollTaskInput
   if (input.stage === 'stills' || input.stage === 'review') return { status: 'review' }
-  if (input.stage === 'voice') return { status: 'rendering' }
+  if (input.stage === 'voice') {
+    if (!input.lipsync_job_id && voiceStartAbandoned(input.voiceStartedAt)) {
+      await claimFailedVideo(supabase, task.id, task.user_id)
+      return { status: 'failed' }
+    }
+    return { status: 'rendering' }
+  }
   if (input.stage === 'editing') {
     const since = input.editingSince ? Date.parse(input.editingSince) : 0
     if (Date.now() - since < 6 * 60_000) return { status: 'editing' }
   }
   const ids = [input.lipsync_job_id, ...(input.broll_job_ids ?? [])]
   if (ids.some(id => !id)) {
-    await failVideoTask(supabase, task.id, task.user_id)
+    await claimFailedVideo(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
   const polls = await Promise.all(ids.map(id => pollVideoJob(id!)))
   if (polls.some(p => p.status === 'failed')) {
-    await failVideoTask(supabase, task.id, task.user_id)
+    await claimFailedVideo(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
   if (polls.some(p => p.status !== 'completed')) return { status: 'rendering' }
 
   const claimed = { ...input, stage: 'editing' as const, editingSince: new Date().toISOString() }
-  const { data: won } = await supabase
+  const claimQuery = supabase
     .from('agent_tasks')
     .update({ input: claimed })
     .eq('id', task.id)
     .eq('status', 'running')
     .eq('input->>stage', input.stage)
-    .select('id')
+  const { data: won } = await (input.stage === 'editing' && input.editingSince
+    ? claimQuery.eq('input->>editingSince', input.editingSince)
+    : claimQuery
+  ).select('id')
   if (!won?.length) return { status: 'editing' }
 
   try {
@@ -220,30 +234,40 @@ export async function advanceBrollTask(
     const { error: upErr } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(storagePath, out.video, { contentType: 'video/mp4', upsert: false })
     if (upErr) throw new Error(`storage: ${upErr.message}`)
 
-    await supabase.from('agent_outputs').insert({
-      task_id: task.id,
-      user_id: task.user_id,
-      agent: 'video_generation',
-      output_type: 'social_post',
-      title: input.title || 'Cinematic B-roll video',
-      content: {
-        raw: input.caption?.trim() || input.lines.join(' '),
-        script: input.lines,
-        media_storage_path: storagePath,
-        media_mime: 'video/mp4',
-        generated: {
-          model: `${LIPSYNC_MODEL} + ${BROLL_MODEL}`,
-          video_type: input.typeId,
-          creator: input.creatorId,
-          captions: input.captions,
-          duration_sec: out.durationSec,
-          stills: input.stills,
-          scenes: input.scenes,
+    const { data: existingOutput } = await supabase
+      .from('agent_outputs')
+      .select('id')
+      .eq('task_id', task.id)
+      .eq('user_id', task.user_id)
+      .eq('status', 'pending_approval')
+      .limit(1)
+    if (!existingOutput?.length) {
+      const { error: outputErr } = await supabase.from('agent_outputs').insert({
+        task_id: task.id,
+        user_id: task.user_id,
+        agent: 'video_generation',
+        output_type: 'social_post',
+        title: input.title || 'Cinematic B-roll video',
+        content: {
+          raw: input.caption?.trim() || input.lines.join(' '),
+          script: input.lines,
+          media_storage_path: storagePath,
+          media_mime: 'video/mp4',
+          generated: {
+            model: `${LIPSYNC_MODEL} + ${BROLL_MODEL}`,
+            video_type: input.typeId,
+            creator: input.creatorId,
+            captions: input.captions,
+            duration_sec: out.durationSec,
+            stills: input.stills,
+            scenes: input.scenes,
+          },
         },
-      },
-      status: 'pending_approval',
-      lifecycle_stage: 'review',
-    })
+        status: 'pending_approval',
+        lifecycle_stage: 'review',
+      })
+      if (outputErr) throw new Error(`output: ${outputErr.message}`)
+    }
 
     const stillsMade = 1 + input.scenes.length + (BROLL_REDOS - input.redosLeft)
     const cost = stillsMade * USD.still + clips.length * USD.kling5s + (input.durationSec ?? out.durationSec) * USD.lipsyncPerSec
@@ -260,7 +284,22 @@ export async function advanceBrollTask(
     return { status: 'completed' }
   } catch (err) {
     console.error('[broll] edit failed', task.id, err instanceof Error ? err.message : err)
-    await failVideoTask(supabase, task.id, task.user_id)
+    const { data: saved } = await supabase
+      .from('agent_outputs')
+      .select('id')
+      .eq('task_id', task.id)
+      .eq('user_id', task.user_id)
+      .eq('status', 'pending_approval')
+      .limit(1)
+    if (saved?.length) {
+      await supabase
+        .from('agent_tasks')
+        .update({ status: 'completed', completed_at: new Date().toISOString(), input: { ...claimed, stage: 'done' } })
+        .eq('id', task.id)
+        .eq('status', 'running')
+      return { status: 'completed' }
+    }
+    await claimFailedVideo(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
 }

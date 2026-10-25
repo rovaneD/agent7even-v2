@@ -28,12 +28,6 @@ export default function VideoGallery({ formatId }: Props) {
     setCreatorId(c?.id ?? null)
   }, [creatorsOpen, openId])
 
-  // Finish any presenter video that was still recording when its page was closed.
-  useEffect(() => {
-    fetch('/api/posts/video-create?pending=1').catch(() => {})
-    fetch('/api/posts/video-broll?pending=1').catch(() => {})
-  }, [])
-
   return (
     <div className="mt-8">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
