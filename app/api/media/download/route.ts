@@ -1,22 +1,11 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { fetchPublicBinary } from '@/lib/security/fetchPublicBinary'
+import { UnsafePublicHttpUrlError, validatePublicHttpsUrl } from '@/lib/security/publicHttpUrl'
 
 type Body = {
   url?: string
   filename?: string
-}
-
-function isPublicHttpsUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    if (parsed.protocol !== 'https:') return false
-    const host = parsed.hostname.toLowerCase()
-    if (host === 'localhost' || host.endsWith('.local')) return false
-    if (/^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return false
-    return true
-  } catch {
-    return false
-  }
 }
 
 function filenameFromUrl(url: string, fallback: string): string {
@@ -42,28 +31,35 @@ export async function POST(req: Request) {
   }
 
   const url = body.url?.trim()
-  if (!url || !isPublicHttpsUrl(url)) {
+  const validated = await validatePublicHttpsUrl(url)
+  if (!validated.ok) {
     return NextResponse.json({ error: 'invalid_url' }, { status: 400 })
   }
 
   try {
-    const res = await fetch(url)
-    if (!res.ok) {
+    const fetched = await fetchPublicBinary(validated.url)
+    if (fetched.status < 200 || fetched.status >= 300) {
       return NextResponse.json({ error: 'fetch_failed' }, { status: 502 })
     }
 
-    const bytes = Buffer.from(await res.arrayBuffer())
-    const contentType = res.headers.get('content-type')?.split(';')[0]?.trim() || 'application/octet-stream'
-    const filename = (body.filename?.trim() || filenameFromUrl(url, 'post-media')).replace(/[^a-zA-Z0-9._-]/g, '_')
+    const contentType =
+      fetched.contentType?.split(';')[0]?.trim() || 'application/octet-stream'
+    const filename = (body.filename?.trim() || filenameFromUrl(validated.url, 'post-media')).replace(
+      /[^a-zA-Z0-9._-]/g,
+      '_',
+    )
 
-    return new Response(new Uint8Array(bytes), {
+    return new Response(Buffer.from(fetched.bytes), {
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'private, no-store',
       },
     })
-  } catch {
+  } catch (err) {
+    if (err instanceof UnsafePublicHttpUrlError) {
+      return NextResponse.json({ error: 'invalid_url' }, { status: 400 })
+    }
     return NextResponse.json({ error: 'download_failed' }, { status: 502 })
   }
 }
