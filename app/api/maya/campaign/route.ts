@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     .join('\n')
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 4000,
     system: `You are a senior marketing strategist. Based on the discovery conversation below, generate a complete, specific 30-day marketing plan.
 
