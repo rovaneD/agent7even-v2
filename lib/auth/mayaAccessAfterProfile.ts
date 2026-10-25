@@ -1,4 +1,7 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { profileBypassesSubscriptionGate } from '@/lib/billing/subscriptionGate'
+import { getBillingProfileForClerkUser } from '@/lib/profiles/getBillingProfile'
+import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
 
 /** After an Atlas-first user deliberately opens Maya, send them through normal access — never a paid bypass. */
 export function mayaAccessAfterProfile(opts: {
@@ -18,4 +21,23 @@ export function mayaAccessAfterProfile(opts: {
     return 'start-trial'
   }
   return 'continue'
+}
+
+/**
+ * Same decision as the dashboard home gate, for every dashboard route and
+ * paid Maya/campaign calls. Team members, admins, and comp accounts continue.
+ */
+export async function loadMayaProductAccess(
+  supabase: SupabaseClient,
+  clerkUserId: string,
+  email?: string | null,
+) {
+  const { profile, workspace } = await loadDashboardSession(supabase, clerkUserId, email)
+  const billing = await getBillingProfileForClerkUser(supabase, clerkUserId, email)
+  const access = mayaAccessAfterProfile({
+    profile,
+    isTeamMember: workspace?.isTeamMember ?? false,
+    billing,
+  })
+  return { profile, workspace, billing, access }
 }

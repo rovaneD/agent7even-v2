@@ -1,6 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { generateText } from 'ai'
 import { NextResponse } from 'next/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
+import { loadMayaProductAccess } from '@/lib/auth/mayaAccessAfterProfile'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { models } from '@/lib/ai/client'
@@ -40,6 +42,13 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const supabase = createServiceClient()
+  const email = await getClerkSessionEmail()
+  const productAccess = await loadMayaProductAccess(supabase, userId, email)
+  if (productAccess.access === 'start-trial') {
+    return NextResponse.json({ error: 'subscription_required' }, { status: 403 })
+  }
+
   let body: Record<string, unknown>
   try {
     body = await req.json()
@@ -55,7 +64,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_input' }, { status: 400 })
   }
 
-  const supabase = createServiceClient()
   const profile = await resolveClerkProfile<{
     id: string
     company_name: string | null

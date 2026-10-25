@@ -1,5 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
+import { loadMayaProductAccess } from '@/lib/auth/mayaAccessAfterProfile'
 import { createServiceClient } from '@/lib/supabase/server'
 import { resolveClerkProfile } from '@/lib/profiles/resolveClerkProfile'
 import { openRouterComplete } from '@/lib/agents/openrouter'
@@ -13,6 +15,12 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = createServiceClient()
+  const email = await getClerkSessionEmail()
+  const productAccess = await loadMayaProductAccess(supabase, userId, email)
+  if (productAccess.access === 'start-trial') {
+    return NextResponse.json({ error: 'subscription_required' }, { status: 403 })
+  }
+
   const body = await req.json()
 
   const profile = await resolveClerkProfile<{

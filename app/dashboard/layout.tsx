@@ -1,8 +1,11 @@
 import { auth } from '@clerk/nextjs/server'
-import { getClerkSessionEmail } from '@/lib/clerk/sessionUser'
+import { redirect } from 'next/navigation'
+import { getClerkSessionEmail, getClerkUserSafe } from '@/lib/clerk/sessionUser'
 import { createServiceClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/activity'
-import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContext'
+import { loadMayaProductAccess } from '@/lib/auth/mayaAccessAfterProfile'
+import { startTrialPath } from '@/lib/billing/subscriptionGate'
+import { ensureProfileForClerkUser } from '@/lib/profiles/ensureProfile'
 import { getPendingApprovalCount } from '@/lib/agents/pendingApprovals'
 import { getTeamPermissions } from '@/lib/teamPermissions'
 import DashboardShell from './DashboardShell'
@@ -35,7 +38,18 @@ export default async function DashboardLayout({
 
   if (userId) {
     const email = await getClerkSessionEmail()
-    const { profile: p, workspace } = await loadDashboardSession(supabase, userId, email)
+    let entry = await loadMayaProductAccess(supabase, userId, email)
+    if (!entry.profile) {
+      const user = await getClerkUserSafe()
+      await ensureProfileForClerkUser(supabase, userId, user)
+      entry = await loadMayaProductAccess(supabase, userId, email)
+    }
+    if (entry.access === 'start-trial') {
+      redirect(startTrialPath())
+    }
+
+    const p = entry.profile
+    const workspace = entry.workspace
 
     if (p?.id) {
       profile = p
