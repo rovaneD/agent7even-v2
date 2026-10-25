@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { AGENTS, type AgentId } from './registry'
+import { AGENTS } from './registry'
 
 /**
  * Agents marked autonomous have always advertised "Runs automatically" from
@@ -38,7 +38,7 @@ export function computeNextRunAt(input: {
   return next.toISOString()
 }
 
-/** Next slot strictly after a completed (or skipped) run — always UTC. */
+/** Next slot strictly after a completed run — always UTC. */
 export function advanceAgentScheduleNextRun(
   schedule: { frequency: string; hour_of_day?: number | null; agent?: string },
   from: Date = new Date(),
@@ -65,31 +65,27 @@ export function advanceAgentScheduleNextRun(
   return next.toISOString()
 }
 
-/** Roll stuck next_run_at forward when the hourly cron has not advanced it (display + queue hygiene). */
+/**
+ * Cron must only advance next_run_at after a successful fire.
+ * Failed runs and billing-ineligible skips stay due so the next hourly tick retries
+ * (or runs once the account is active again).
+ */
+export function shouldAdvanceAgentScheduleAfterCronAttempt(
+  outcome: 'fired' | 'failed' | 'ineligible',
+): boolean {
+  return outcome === 'fired'
+}
+
+/**
+ * Previously advanced overdue next_run_at on Agents page load without firing the
+ * agent — that permanently skipped due autonomous runs when cron lagged.
+ * Overdue schedules must remain due until cron successfully fires them.
+ */
 export async function reconcileStaleAgentSchedules(
-  supabase: SupabaseClient,
-  userId: string,
+  _supabase: SupabaseClient,
+  _userId: string,
 ): Promise<void> {
-  const { data: rows } = await supabase
-    .from('agent_schedules')
-    .select('id, agent, frequency, hour_of_day, next_run_at, is_active')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-
-  const overdueCutoff = Date.now() - 6 * 60 * 60 * 1000
-
-  for (const row of rows ?? []) {
-    if (!row.next_run_at || new Date(row.next_run_at).getTime() > overdueCutoff) continue
-
-    const agentDef = AGENTS[row.agent as AgentId]
-    const next_run_at = computeNextRunAt({
-      frequency: row.frequency,
-      hourOfDay: row.hour_of_day,
-      dayOfWeek: agentDef?.defaultSchedule?.dayOfWeek,
-    })
-
-    await supabase.from('agent_schedules').update({ next_run_at }).eq('id', row.id)
-  }
+  // Intentional no-op: do not mutate next_run_at from page render.
 }
 
 function firstRunAt(schedule: NonNullable<(typeof SCHEDULED_AGENTS)[number]['defaultSchedule']>): string {
