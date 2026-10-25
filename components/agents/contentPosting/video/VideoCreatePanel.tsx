@@ -11,7 +11,7 @@ import {
   type VideoTypeField,
   type VideoTypeId,
 } from '@/lib/agents/contentPosting/videoTypes'
-import { VIDEO_TYPE_ICONS, VideoTypePoster } from './videoTypeVisuals'
+import { VIDEO_TYPE_ICONS, VideoTypePoster, useExampleUrl } from './videoTypeVisuals'
 import { Segmented, fieldClass } from './ui'
 import CreatorsSheet, { loadLibrary, readSavedCreator, saveCreator, type PickedCreator } from './CreatorsSheet'
 
@@ -68,6 +68,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   const type = videoTypeById(typeId)!
   const index = VIDEO_TYPES.findIndex(t => t.id === typeId)
   const Icon = VIDEO_TYPE_ICONS[type.id]
+  const exampleUrl = useExampleUrl(type)
 
   const [inputs, setInputs] = useState(() => initialInputs(type.fields))
   const [length, setLength] = useState(type.defaultLength)
@@ -344,13 +345,21 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
             ) : isBroll && stills?.onCamera ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={stills.onCamera} alt="On-camera still" className="absolute inset-0 h-full w-full object-cover" />
-            ) : type.presenter && creator?.photoUrl && !type.exampleUrl ? (
+            ) : !plan && exampleUrl ? (
+              // Before a plan: show this type's example, labelled, so its creator isn't mistaken for the user's pick.
+              <>
+                <video src={exampleUrl} className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline />
+                <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[11.5px] font-medium text-white backdrop-blur">
+                  Example{type.exampleCreator ? ` · made with ${type.exampleCreator}` : ''}
+                </span>
+              </>
+            ) : type.presenter && creator?.photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={creator.photoUrl} alt={creator.name} className="absolute inset-0 h-full w-full object-cover" />
             ) : (
               <VideoTypePoster type={type} size="player" />
             )}
-            {captions !== 'off' && job?.status !== 'completed' && (
+            {captions !== 'off' && job?.status !== 'completed' && (plan || !exampleUrl) && (
               <p
                 className={`pointer-events-none absolute inset-x-0 text-center text-white ${isBroll && captionPos === 'center' ? 'top-[50%]' : 'top-[73%]'}`}
                 style={{
@@ -366,6 +375,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
             )}
           </div>
 
+          <p className="-mb-2 text-[11px] text-[#6B6E76]">Examples of each video type</p>
           <div className="flex gap-2" role="tablist" aria-label="Video types">
             {VIDEO_TYPES.map(t => (
               <button

@@ -44,6 +44,8 @@ export interface VideoTypeSpec {
   exampleUrl: string | null
   /** post-assets path of our own example clip (signed by GET /api/posts/video-types). */
   examplePath?: string
+  /** Creator shown in the example clip (labelled so it isn't mistaken for the user's pick). */
+  exampleCreator?: string
   /** What the plan step will show, so the user knows before pressing it. */
   planPreview: string
 }
@@ -72,6 +74,7 @@ export const VIDEO_TYPES: VideoTypeSpec[] = [
     exampleUrl: null,
     // Example #1 (2026-10-24): Theo, job-photo tip, made through Approve & create; owner: "looks fine".
     examplePath: 'bfa73081-3906-4b5b-b24e-d9df3fb07384/assembled-gen-vid-1792857572-pcvQuru6lQrfQ5Al1Ivv-1792861331016.mp4',
+    exampleCreator: 'Theo',
     planPreview: 'Script line by line and where each card appears.',
   },
   {
@@ -109,6 +112,7 @@ export const VIDEO_TYPES: VideoTypeSpec[] = [
     exampleUrl: null,
     // Test 2 (2026-10-24), June, owner: "way better".
     examplePath: 'bfa73081-3906-4b5b-b24e-d9df3fb07384/assembled-gen-vid-1792883467-QG8Ee9aaTTDGEuqfuXFe-1792883715266.mp4',
+    exampleCreator: 'June',
     planPreview: 'Script, which lines are on camera, and each B-roll shot.',
   },
   {

@@ -26,7 +26,7 @@ function loadExamples(): Promise<Record<string, string>> {
   return examplesPromise
 }
 
-function useExampleUrl(type: VideoTypeSpec): string | null {
+export function useExampleUrl(type: VideoTypeSpec): string | null {
   const [url, setUrl] = useState<string | null>(type.exampleUrl ?? examplesCache?.[type.id] ?? null)
   useEffect(() => {
     if (type.exampleUrl || !type.examplePath) return
