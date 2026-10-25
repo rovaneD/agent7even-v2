@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Clock, Loader2, RotateCcw, UserRound, X } from 'lucide-react'
 import { contentPostingModeHref, type VideoFormatSpec } from '@/lib/agents/contentPosting/platformFormats'
@@ -90,6 +90,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
       .catch(() => {})
   }, [creator])
   const [loading, setLoading] = useState(false)
+  const submitLock = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [job, setJob] = useState<{ taskId: string; status: 'starting' | 'rendering' | 'editing' | 'completed' | 'failed'; videoUrl?: string | null } | null>(null)
   const creditsFor = length >= 30 ? 30 : 15
@@ -107,13 +108,14 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   const tooLong = wordCount > Math.floor(length * 3.2)
 
   async function makeStills() {
-    if (!plan || !creator) return
+    if (submitLock.current || !plan || !creator) return
     if (creator.kind !== 'cast') {
       setError('Voices for your own creators are coming soon. Pick one of our creators for now.')
       return
     }
     setError(null)
     setStillsBusy('all')
+    submitLock.current = true
     try {
       const res = await fetch('/api/posts/video-broll', {
         method: 'POST',
@@ -142,6 +144,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The stills could not be made.')
     } finally {
+      submitLock.current = false
       setStillsBusy(null)
     }
   }
@@ -172,8 +175,9 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   }
 
   async function createBroll() {
-    if (!plan || !stills) return
+    if (submitLock.current || !plan || !stills) return
     setError(null)
+    submitLock.current = true
     setJob({ taskId: stills.taskId, status: 'starting' })
     try {
       const res = await fetch('/api/posts/video-broll', {
@@ -185,6 +189,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
       if (!res.ok || !d.taskId) throw new Error(d.message ?? 'The video could not be started.')
       setJob({ taskId: d.taskId, status: 'rendering' })
     } catch (e) {
+      submitLock.current = false
       setJob(null)
       setError(e instanceof Error ? e.message : 'The video could not be started.')
     }
@@ -206,12 +211,13 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   }, [job, statusUrl])
 
   async function approveAndCreate() {
-    if (!plan || !creator) return
+    if (submitLock.current || !plan || !creator) return
     if (creator.kind !== 'cast') {
       setError('Voices for your own creators are coming soon. Pick one of our creators for now.')
       return
     }
     setError(null)
+    submitLock.current = true
     setJob({ taskId: '', status: 'starting' })
     try {
       const res = await fetch('/api/posts/video-create', {
@@ -232,6 +238,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
       if (!res.ok || !d.taskId) throw new Error(d.message ?? 'The video could not be started.')
       setJob({ taskId: d.taskId, status: 'rendering' })
     } catch (e) {
+      submitLock.current = false
       setJob(null)
       setError(e instanceof Error ? e.message : 'The video could not be started.')
     }

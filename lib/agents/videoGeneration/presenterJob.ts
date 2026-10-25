@@ -6,8 +6,9 @@ import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
 import { recordAgentTaskCost } from '@/lib/agents/taskInstrumentation'
 import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 import { assembleVideo, type TimedText } from './assemble'
-import { failVideoTask } from './failVideoTask'
+import { claimFailedVideo } from './claimFailedVideo'
 import { pollVideoJob } from './openRouterVideo'
+import { voiceStartAbandoned } from './videoJobResume'
 
 type Supabase = ReturnType<typeof createServiceClient>
 
@@ -23,6 +24,8 @@ export type PresenterTaskInput = {
   captions: 'off' | 'serif' | 'sans'
   endCardText: string
   formatId: string | null
+  /** Platform the owner picked (Instagram, TikTok, …) so approval drafts the right account. */
+  platform?: string
   title: string
   /** Social caption for the post (the spoken script is `lines`). */
   caption?: string
@@ -50,38 +53,51 @@ async function fetchBytes(url: string, headers?: Record<string, string>): Promis
  */
 export async function advancePresenterTask(
   supabase: Supabase,
-  task: { id: string; user_id: string; status: string; input: unknown; action_type?: string | null },
+  task: { id: string; user_id: string; status: string; input: unknown; action_type?: string | null; started_at?: string | null },
 ): Promise<{ status: 'rendering' | 'editing' | 'completed' | 'failed' }> {
   if (task.status === 'completed') return { status: 'completed' }
   if (task.status === 'failed') return { status: 'failed' }
   const input = task.input as PresenterTaskInput
-  if (input.stage === 'voice') return { status: 'rendering' }
+  if (input.stage === 'voice') {
+    // The start route sets stage to voice before it has a provider job. Once that request is
+    // dead, keep polling only if it already stored the job — otherwise the charge is stuck.
+    if (!input.presenter_job_id && voiceStartAbandoned(task.started_at)) {
+      await claimFailedVideo(supabase, task.id, task.user_id)
+      return { status: 'failed' }
+    }
+    return { status: 'rendering' }
+  }
   if (input.stage === 'editing') {
     // A crashed edit (function timeout) is retried after 6 minutes.
     const since = input.editingSince ? Date.parse(input.editingSince) : 0
     if (Date.now() - since < 6 * 60_000) return { status: 'editing' }
   }
   if (!input.presenter_job_id) {
-    await failVideoTask(supabase, task.id, task.user_id)
+    await claimFailedVideo(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
 
   const poll = await pollVideoJob(input.presenter_job_id)
   if (poll.status === 'failed') {
-    await failVideoTask(supabase, task.id, task.user_id)
+    await claimFailedVideo(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
   if (poll.status !== 'completed') return { status: 'rendering' }
 
   // Claim the edit: only the caller whose update matches the previous stage proceeds.
   const claimed = { ...input, stage: 'editing' as const, editingSince: new Date().toISOString() }
-  const { data: won } = await supabase
+  // A retry stays on stage 'editing', so the stage filter alone lets two pollers both edit.
+  // Match the editingSince each caller observed; the first write changes it and the other loses.
+  const claimQuery = supabase
     .from('agent_tasks')
     .update({ input: claimed })
     .eq('id', task.id)
     .eq('status', 'running')
     .eq('input->>stage', input.stage)
-    .select('id')
+  const { data: won } = await (input.stage === 'editing' && input.editingSince
+    ? claimQuery.eq('input->>editingSince', input.editingSince)
+    : claimQuery
+  ).select('id')
   if (!won?.length) return { status: 'editing' }
 
   try {
@@ -103,30 +119,40 @@ export async function advancePresenterTask(
     const { error: upErr } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(storagePath, out.video, { contentType: 'video/mp4', upsert: false })
     if (upErr) throw new Error(`storage: ${upErr.message}`)
 
-    await supabase.from('agent_outputs').insert({
-      task_id: task.id,
-      user_id: task.user_id,
-      agent: 'video_generation',
-      output_type: 'social_post',
-      title: input.title || 'Presenter video',
-      content: {
-        raw: input.caption?.trim() || input.lines.join(' '),
-        script: input.lines,
-        media_storage_path: storagePath,
-        media_mime: 'video/mp4',
-        generated: {
-          model: PRESENTER_MODEL,
-          video_type: input.typeId,
-          creator: input.creatorId,
-          job_id: input.presenter_job_id,
-          captions: input.captions,
-          exact_timing: out.exactTiming,
-          duration_sec: out.durationSec,
+    const { data: existingOutput } = await supabase
+      .from('agent_outputs')
+      .select('id')
+      .eq('task_id', task.id)
+      .eq('user_id', task.user_id)
+      .eq('status', 'pending_approval')
+      .limit(1)
+    if (!existingOutput?.length) {
+      const { error: outputErr } = await supabase.from('agent_outputs').insert({
+        task_id: task.id,
+        user_id: task.user_id,
+        agent: 'video_generation',
+        output_type: 'social_post',
+        title: input.title || 'Presenter video',
+        content: {
+          raw: input.caption?.trim() || input.lines.join(' '),
+          script: input.lines,
+          media_storage_path: storagePath,
+          media_mime: 'video/mp4',
+          generated: {
+            model: PRESENTER_MODEL,
+            video_type: input.typeId,
+            creator: input.creatorId,
+            job_id: input.presenter_job_id,
+            captions: input.captions,
+            exact_timing: out.exactTiming,
+            duration_sec: out.durationSec,
+          },
         },
-      },
-      status: 'pending_approval',
-      lifecycle_stage: 'review',
-    })
+        status: 'pending_approval',
+        lifecycle_stage: 'review',
+      })
+      if (outputErr) throw new Error(`output: ${outputErr.message}`)
+    }
 
     await recordAgentTaskCost(task.id, {
       action_type: (task.action_type as ActionCreditKey) ?? 'video_presenter_15',
@@ -141,7 +167,22 @@ export async function advancePresenterTask(
     return { status: 'completed' }
   } catch (err) {
     console.error('[presenter] edit failed', task.id, err instanceof Error ? err.message : err)
-    await failVideoTask(supabase, task.id, task.user_id)
+    const { data: saved } = await supabase
+      .from('agent_outputs')
+      .select('id')
+      .eq('task_id', task.id)
+      .eq('user_id', task.user_id)
+      .eq('status', 'pending_approval')
+      .limit(1)
+    if (saved?.length) {
+      await supabase
+        .from('agent_tasks')
+        .update({ status: 'completed', completed_at: new Date().toISOString(), input: { ...claimed, stage: 'done' } })
+        .eq('id', task.id)
+        .eq('status', 'running')
+      return { status: 'completed' }
+    }
+    await claimFailedVideo(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
 }

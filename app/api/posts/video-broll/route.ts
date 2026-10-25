@@ -7,6 +7,7 @@ import { ACTION_CREDIT_COST } from '@/lib/credits/actionCosts'
 import { createPostAssetSignedUrl } from '@/lib/postAssets'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { castCreatorById } from '@/lib/agents/contentPosting/creators'
+import { resolveVideoFormat } from '@/lib/agents/contentPosting/platformFormats'
 import { buildCreatorVoiceTrack } from '@/lib/agents/videoGeneration/presenterVoice'
 import { submitVideoJob } from '@/lib/agents/videoGeneration/openRouterVideo'
 import { failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
@@ -112,36 +113,62 @@ export async function POST(req: Request) {
       }
     }
 
-    // create
-    const lines = (body.lines?.length ? body.lines : input.lines).map(l => clean(l, 400)).filter(Boolean)
-    if (lines.length !== input.lines.length) return NextResponse.json({ error: 'lines_changed', message: 'Keep the same number of lines as the plan.' }, { status: 422 })
+    // create — claim review → voice before charging so a double-click cannot debit this task twice.
+    const { data: fresh } = await supabase
+      .from('agent_tasks')
+      .select('input')
+      .eq('id', task.id)
+      .eq('user_id', workspaceId)
+      .eq('status', 'running')
+      .eq('input->>stage', 'review')
+      .maybeSingle()
+    if (!fresh) return NextResponse.json({ error: 'wrong_stage', message: 'This video is already being made.' }, { status: 409 })
+    const freshInput = fresh.input as BrollTaskInput
+    const lines = (body.lines?.length ? body.lines : freshInput.lines).map(l => clean(l, 400)).filter(Boolean)
+    if (lines.length !== freshInput.lines.length) return NextResponse.json({ error: 'lines_changed', message: 'Keep the same number of lines as the plan.' }, { status: 422 })
     const words = lines.join(' ').split(/\s+/).length
-    if (words > input.length * MAX_WORDS_PER_SECOND) {
-      return NextResponse.json({ error: 'script_too_long', message: `The script is ${words} words, too long for ${input.length}s. Shorten a line.` }, { status: 422 })
+    if (words > freshInput.length * MAX_WORDS_PER_SECOND) {
+      return NextResponse.json({ error: 'script_too_long', message: `The script is ${words} words, too long for ${freshInput.length}s. Shorten a line.` }, { status: 422 })
     }
-    const actionType = input.length >= 30 ? 'video_broll_30' : 'video_broll_15'
+    const actionType = freshInput.length >= 30 ? 'video_broll_30' : 'video_broll_15'
     const cost = ACTION_CREDIT_COST[actionType]
+    const caption = body.caption !== undefined ? clean(body.caption, 2200) : freshInput.caption
+    const voiceStartedAt = new Date().toISOString()
+    const claimedInput: BrollTaskInput = { ...freshInput, lines, caption, stage: 'voice', voiceStartedAt }
+    const { data: won } = await supabase
+      .from('agent_tasks')
+      .update({ action_type: actionType, input: claimedInput })
+      .eq('id', task.id)
+      .eq('user_id', workspaceId)
+      .eq('status', 'running')
+      .eq('input->>stage', 'review')
+      .select('id')
+    if (!won?.length) return NextResponse.json({ error: 'wrong_stage', message: 'This video is already being made.' }, { status: 409 })
     try {
-      await deductCredits(workspaceId, cost, `Video — Cinematic B-roll (${input.length}s)`, task.id)
+      await deductCredits(workspaceId, cost, `Video — Cinematic B-roll (${freshInput.length}s)`, task.id)
     } catch (err) {
+      await supabase
+        .from('agent_tasks')
+        .update({ action_type: 'video_broll_stills', input: freshInput })
+        .eq('id', task.id)
+        .eq('input->>stage', 'voice')
+        .eq('input->>voiceStartedAt', voiceStartedAt)
       const insufficient = err instanceof Error && err.message === 'INSUFFICIENT_CREDITS'
       return NextResponse.json(
         { error: insufficient ? 'insufficient_credits' : 'charge_failed', message: insufficient ? `Making the video uses ${cost} credits.` : 'Could not start the video. Nothing was charged.' },
         { status: insufficient ? 402 : 500 },
       )
     }
-    const caption = body.caption !== undefined ? clean(body.caption, 2200) : input.caption
-    await supabase.from('agent_tasks').update({ action_type: actionType, input: { ...input, lines, caption, stage: 'voice' } }).eq('id', task.id)
     try {
       const track = await buildCreatorVoiceTrack({ voiceSamplePath: creator.voiceSamplePath, lines })
       const audioPath = `${workspaceId}/broll-voice-${task.id}.mp3`
       const { error: upErr } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(audioPath, track.audio, { contentType: 'audio/mpeg', upsert: true })
       if (upErr) throw new Error(`storage: ${upErr.message}`)
       const [audioUrl, camUrl, ...brollUrls] = await Promise.all(
-        [audioPath, input.stills.onCamera, ...input.stills.broll].map(p => createPostAssetSignedUrl(p, 60 * 60 * 6)),
+        [audioPath, claimedInput.stills.onCamera, ...claimedInput.stills.broll].map(p => createPostAssetSignedUrl(p, 60 * 60 * 6)),
       )
       if (!audioUrl || !camUrl || brollUrls.some(u => !u)) throw new Error('could not sign the voice or stills')
-      const [lipsync, ...broll] = await Promise.all([
+      const [lipsync, ...brollJobs] = await Promise.all([
         submitVideoJob({
           model: LIPSYNC_MODEL,
           prompt: lines.join(' '),
@@ -151,16 +178,19 @@ export async function POST(req: Request) {
           referenceUrls: [camUrl],
           extraReferences: [{ type: 'audio_url', audio_url: { url: audioUrl } }],
         }),
-        ...input.scenes.map((scene, i) =>
+        ...claimedInput.scenes.map((scene, i) =>
           submitVideoJob({ model: BROLL_MODEL, prompt: brollMotionPrompt(scene), aspectRatio: '9:16', duration: 5, resolution: '1080p', referenceUrls: [brollUrls[i]!], generateAudio: false }),
         ),
       ])
-      await supabase
+      const { data: saved } = await supabase
         .from('agent_tasks')
         .update({
-          input: { ...input, lines, caption, stage: 'rendering', lipsync_job_id: lipsync.id, broll_job_ids: broll.map(b => b.id), lineTimes: track.lineTimes, durationSec: track.durationSec },
+          input: { ...claimedInput, stage: 'rendering', lipsync_job_id: lipsync.id, broll_job_ids: brollJobs.map(b => b.id), lineTimes: track.lineTimes, durationSec: track.durationSec },
         })
         .eq('id', task.id)
+        .eq('input->>voiceStartedAt', voiceStartedAt)
+        .select('id')
+      if (!saved?.length) throw new Error('task moved on before the jobs were saved')
       return NextResponse.json({ taskId: task.id, status: 'rendering', credits: cost })
     } catch (err) {
       console.error('[video-broll] create failed', task.id, err instanceof Error ? err.message : err)
@@ -205,6 +235,7 @@ export async function POST(req: Request) {
     cta: clean(body.cta, 70),
     logo: body.logo === true,
     formatId: body.formatId ?? null,
+    platform: resolveVideoFormat(body.formatId).platform,
     title: clean(body.title, 80) || 'Cinematic B-roll',
     caption: clean(body.caption, 2200),
     stills: { onCamera: '', broll: [] },
@@ -266,7 +297,7 @@ export async function GET(req: Request) {
       .eq('user_id', ws.workspaceId)
       .eq('agent', BROLL_AGENT)
       .eq('status', 'running')
-      .in('input->>stage', ['rendering', 'editing'])
+      .in('input->>stage', ['voice', 'rendering', 'editing'])
       .limit(5)
     const results = []
     for (const t of tasks ?? []) results.push({ taskId: t.id, ...(await advanceBrollTask(supabase, t as never)) })
