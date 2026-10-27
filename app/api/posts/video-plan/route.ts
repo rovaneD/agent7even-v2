@@ -247,14 +247,14 @@ export async function POST(req: Request) {
           { role: 'system', content: system },
           { role: 'user', content: user },
         ],
-        max_tokens: 3000,
+        max_tokens: 8000,
         temperature: 0.6,
       })
     const out = await ask()
     let plan = parsePlan(out.content)
     // One retry: an empty or non-JSON reply happens now and then (2026-10-24: null content crashed the route).
     if (!plan) {
-      console.warn('[video-plan] unparseable reply, retrying', type.id, String(out.content ?? '').slice(0, 200))
+      console.warn('[video-plan] unparseable reply, retrying', type.id, { finish: out.finishReason, outTokens: out.outputTokens, chars: String(out.content ?? '').length }, String(out.content ?? '').slice(0, 200))
       // Usually unescaped double quotes around quoted speech inside a line: ask again, stricter.
       const again = await openRouterComplete({
         model: briefComposeModel(),
@@ -264,7 +264,7 @@ export async function POST(req: Request) {
           { role: 'assistant', content: String(out.content ?? '') },
           { role: 'user', content: 'That was not valid JSON. Send the same plan again as valid JSON only. Inside strings use single quotes for quoted speech, never double quotes.' },
         ],
-        max_tokens: 3000,
+        max_tokens: 8000,
         temperature: 0.3,
       }).catch(() => null)
       plan = parsePlan(again?.content)
@@ -316,7 +316,7 @@ export async function POST(req: Request) {
             content: `That is ${countWords(plan)} spoken words; the limit is ${budget} for ${seconds} seconds. Rewrite the beats to ${budget} words or fewer in total. Keep the hook, the steps and the natural spoken style; cut words, not meaning. Same JSON shape.`,
           },
         ],
-        max_tokens: 3000,
+        max_tokens: 8000,
         temperature: 0.4,
       }).catch(() => null)
       const shorter = tighter ? parsePlan(tighter.content) : null

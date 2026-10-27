@@ -39,7 +39,7 @@ export interface OpenRouterResponse {
 
 export async function openRouterComplete(
   req: OpenRouterRequest
-): Promise<{ content: string; inputTokens: number; outputTokens: number; modelUsed: string }> {
+): Promise<{ content: string; inputTokens: number; outputTokens: number; modelUsed: string; finishReason?: string }> {
   const res = await fetch(`${OPENROUTER_API_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -72,6 +72,7 @@ export async function openRouterComplete(
     inputTokens:  data.usage.prompt_tokens,
     outputTokens: data.usage.completion_tokens,
     modelUsed:    data.model, // log actual model — OR may route to fallback
+    finishReason: choice.finish_reason,
   }
 }
 
