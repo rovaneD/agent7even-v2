@@ -29,7 +29,7 @@ import {
 export const maxDuration = 300
 
 const TYPE_ID = 'cinematic_broll'
-const MAX_WORDS_PER_SECOND = 3.2
+const MAX_WORDS_PER_SECOND = 3.5
 
 type Body = {
   action?: 'stills' | 'redo' | 'create'

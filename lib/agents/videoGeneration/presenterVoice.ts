@@ -12,7 +12,12 @@ import { speakAsCreator } from '@/lib/agents/voice/creatorVoice'
  */
 
 const LEAD_IN = 0.25 // seconds of room before the first word
-const GAP = 0.22 // between lines — a breath, not a pause
+const GAP = 0.15 // between lines — a breath, not a pause (owner 2026-10-26: delivery was too slow)
+/**
+ * Speaking pace. The cloned voices read at ~2.5 words/s, which the owner heard as "too slow"
+ * (2026-10-26); real creators talk ~3 w/s. atempo speeds the speech up without changing the pitch.
+ */
+const TEMPO = Math.min(1.3, Math.max(1, Number(process.env.CREATOR_VOICE_TEMPO ?? 1.15) || 1.15))
 const TAIL = 0.35
 
 async function durationOf(file: string): Promise<number> {
@@ -48,7 +53,7 @@ export async function joinVoiceClips(
       await must(
         [
           '-hide_banner', '-y', '-i', raw,
-          '-af', 'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.04,areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.06,areverse',
+          '-af', 'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.04,areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.06,areverse' + (TEMPO > 1 ? `,atempo=${TEMPO.toFixed(3)}` : ''),
           '-ac', '1', '-ar', '44100', out,
         ],
         `trim line ${i + 1}`,

@@ -104,7 +104,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   const [stillsBusy, setStillsBusy] = useState<null | 'all' | 'onCamera' | number>(null)
   const statusUrl = isBroll ? '/api/posts/video-broll' : '/api/posts/video-create'
   const wordCount = plan ? plan.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length : 0
-  const tooLong = wordCount > Math.floor(length * 3.2)
+  const tooLong = wordCount > Math.floor(length * 3.5)
 
   async function makeStills() {
     if (!plan || !creator) return
@@ -640,7 +640,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                   </ol>
                   {(() => {
                     const words = plan.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length
-                    const max = Math.floor(length * 3.2)
+                    const max = Math.floor(length * 3.5)
                     const over = canCreate && words > max
                     return (
                       <p className={`mt-2 text-[12px] ${over ? 'text-[#FF8A8A]' : 'text-[#6B6E76]'}`}>
@@ -861,7 +861,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
                       <button
                         type="button"
                         onClick={approveAndCreate}
-                        disabled={!creator || plan.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length > Math.floor(length * 3.2)}
+                        disabled={!creator || plan.beats.map(b => b.text).join(' ').split(/\s+/).filter(Boolean).length > Math.floor(length * 3.5)}
                         className="w-full rounded-[12px] bg-brand-primary py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#1D62D6] disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-[#8A8D95]"
                       >
                         Approve &amp; create · {creditsFor} credits

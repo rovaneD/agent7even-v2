@@ -34,7 +34,8 @@ export type VideoPlan = {
   scenes?: string[]
 }
 
-const WORDS_PER_SECOND = 2.6
+// Voice runs ~1.15x (presenterVoice TEMPO), so a little more script fits each second.
+const WORDS_PER_SECOND = 2.9
 
 /**
  * Script rules for presenter videos (owner reviews 2026-10-24: first "rigid and AI-written", then on a
@@ -242,7 +243,7 @@ export async function POST(req: Request) {
     if (!plan) return NextResponse.json({ error: 'plan_failed', message: 'Maya could not write a plan. Try again.' }, { status: 502 })
 
     // Spoken types must fit the length: models overshoot word counts, so tighten once if needed.
-    // (Approve & create refuses scripts over 3.2 words/second.)
+    // (Approve & create refuses scripts over 3.5 words/second.)
     const budget = Math.round(seconds * WORDS_PER_SECOND)
     const spoken = type.presenter || type.id === 'editorial_explainer'
     if (type.id === 'cinematic_broll') {

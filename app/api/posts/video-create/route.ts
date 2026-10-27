@@ -22,7 +22,7 @@ import {
 export const maxDuration = 300
 
 const PRESENTER_TYPES = new Set(['presenter_tip', 'product_showcase'])
-const MAX_WORDS_PER_SECOND = 3.2
+const MAX_WORDS_PER_SECOND = 3.5
 
 /**
  * "Approve & create" for presenter videos. POST charges once (refunded automatically if anything
