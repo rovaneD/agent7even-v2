@@ -82,7 +82,7 @@ const SCRIPT_EDITOR = (words: number) =>
     '- Keep the facts. Presenter voice: "we" for the business, "I" only for their own words or thoughts.',
     `- About ${words} words in total; keep the same number of beats in the same order, and keep B-roll lines about doing something.`,
     TONE_EXAMPLE,
-    'Return JSON only: {"beats": [{"text": string}]} with the improved lines.',
+    'Return valid JSON only: {"beats": [{"text": string}]} with the improved lines. Quote speech inside a line with single quotes, never double quotes.',
   ].join('\n')
 
 function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, seconds: number): string {
@@ -231,6 +231,7 @@ export async function POST(req: Request) {
     'You plan short social videos for small businesses. Output JSON only.',
     'Rules: plain spoken English; no invented numbers, prices, awards, reviews or customer quotes; no "game-changer", "unlock", "elevate"; never speak as a customer or give a testimonial; never mention AI.',
     'JSON shape: {"title": string, "beats": [{"text": string, "visual": string}], "endCard": string, "caption": string, "notes": string[]}',
+    'Valid JSON only: inside any string, quote speech with single quotes (\'like this\'), never double quotes.',
     'caption = the social post caption that goes with the video (not the spoken script): 1-3 short plain sentences that make someone want to watch or save it, in the business\'s voice, then a blank line and at most 3 relevant hashtags. Under 400 characters. No em dashes, no emojis unless the brand uses them, no CAPS.',
     'endCard = short closing line for the brand end card (logo shown with it). notes = at most 2 short things the owner should check (e.g. a claim to confirm).',
   ].join('\n')
@@ -253,7 +254,19 @@ export async function POST(req: Request) {
     // One retry: an empty or non-JSON reply happens now and then (2026-10-24: null content crashed the route).
     if (!plan) {
       console.warn('[video-plan] unparseable reply, retrying', type.id, String(out.content ?? '').slice(0, 200))
-      plan = parsePlan((await ask().catch(() => null))?.content)
+      // Usually unescaped double quotes around quoted speech inside a line: ask again, stricter.
+      const again = await openRouterComplete({
+        model: briefComposeModel(),
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+          { role: 'assistant', content: String(out.content ?? '') },
+          { role: 'user', content: 'That was not valid JSON. Send the same plan again as valid JSON only. Inside strings use single quotes for quoted speech, never double quotes.' },
+        ],
+        max_tokens: 3000,
+        temperature: 0.3,
+      }).catch(() => null)
+      plan = parsePlan(again?.content)
     }
     if (!plan) return NextResponse.json({ error: 'plan_failed', message: 'Maya could not write a plan. Try again.' }, { status: 502 })
 
@@ -290,7 +303,7 @@ export async function POST(req: Request) {
         // keep the draft
       }
     }
-    if (spoken && countWords(plan) > budget * 1.15) {
+    if (spoken && countWords(plan) > budget * 1.05) {
       const tighter = await openRouterComplete({
         model: briefComposeModel(),
         messages: [
