@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { castCreatorById } from '@/lib/agents/contentPosting/creators'
+import { buildCreatorVoiceTrack } from '@/lib/agents/videoGeneration/presenterVoice'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getWorkspaceAuthContext, workspaceDataUserId } from '@/lib/profiles/workspaceSession'
 import { createPostAssetSignedUrl } from '@/lib/postAssets'
@@ -23,6 +25,7 @@ const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.c
  *  - design: { description, text? } → 3 voice previews stored as mp3 with signed URLs
  *  - save:   { name, description, generatedVoiceId } → voice_id
  *  - tts:    { voiceId, text, modelId? } → mp3 stored, signed URL (feeds Avatar IV audio_url)
+ *  - track:  { creatorId, lines[] } → production creator voice track (no video), for listening tests
  *  - or_tts: { model, text, voice?, instructions?, inputReferences? } → OpenRouter speech, mp3 stored
  */
 export async function POST(req: Request) {
@@ -34,7 +37,7 @@ export async function POST(req: Request) {
     inputReferences?: Record<string, unknown>[]
     provider?: Record<string, unknown>
   }
-  if (body.action !== 'or_tts' && !elevenLabsConfigured()) return NextResponse.json({ error: 'elevenlabs_not_configured' }, { status: 503 })
+  if (body.action !== 'or_tts' && body.action !== 'track' && !elevenLabsConfigured()) return NextResponse.json({ error: 'elevenlabs_not_configured' }, { status: 503 })
 
   async function store(bytes: Buffer, label: string) {
     const path = `${profileId}/voice-${Date.now()}-${label.replace(/[^a-z0-9-]/gi, '').slice(0, 40)}.mp3`
@@ -83,6 +86,14 @@ export async function POST(req: Request) {
           provider: body.provider,
         })
         return NextResponse.json({ model: body.model, bytes: bytes.length, ...(await store(bytes, `or-${body.model.split('/')[1] ?? 'tts'}`)) })
+      }
+      case 'track': {
+        // The production voice track (line by line, trimmed, sped up, joined) without any video job.
+        const creator = castCreatorById(body.creatorId)
+        const lines = (body as { lines?: string[] }).lines ?? []
+        if (!creator || !lines.length) return NextResponse.json({ error: 'creatorId_and_lines_required' }, { status: 400 })
+        const t = await buildCreatorVoiceTrack({ voiceSamplePath: creator.voiceSamplePath, lines })
+        return NextResponse.json({ durationSec: t.durationSec, lineTimes: t.lineTimes, ...(await store(t.audio, `track-${creator.id}`)) })
       }
       default:
         return NextResponse.json({ error: 'unknown_action' }, { status: 400 })

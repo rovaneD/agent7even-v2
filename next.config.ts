@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     // Video edit step: static ffmpeg binary + subtitle font.
     // Presenter pipeline: joins the creator's voice lines with ffmpeg.
     '/api/internal/presenter-render': ['./node_modules/@ffmpeg-installer/linux-x64/**/*'],
+    '/api/internal/voice': ['./node_modules/@ffmpeg-installer/linux-x64/**/*'],
     // Approve & create: voice join + final edit (captions need the fonts).
     '/api/posts/video-create': ['./node_modules/@ffmpeg-installer/linux-x64/**/*', './assets/fonts/**/*'],
     // Cinematic B-roll: voice join + final edit with B-roll cutaways.
