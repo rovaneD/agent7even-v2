@@ -92,7 +92,7 @@ export async function POST(req: Request) {
         const creator = castCreatorById(body.creatorId)
         const lines = (body as { lines?: string[] }).lines ?? []
         if (!creator || !lines.length) return NextResponse.json({ error: 'creatorId_and_lines_required' }, { status: 400 })
-        const t = await buildCreatorVoiceTrack({ voiceSamplePath: creator.voiceSamplePath, lines })
+        const t = await buildCreatorVoiceTrack({ voiceSamplePath: creator.voiceSamplePath, lines, tempo: Number(body.tempo) || undefined })
         return NextResponse.json({ durationSec: t.durationSec, lineTimes: t.lineTimes, ...(await store(t.audio, `track-${creator.id}`)) })
       }
       default:

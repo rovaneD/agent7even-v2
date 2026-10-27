@@ -29,18 +29,22 @@ async function durationOf(file: string): Promise<number> {
 export async function buildCreatorVoiceTrack(opts: {
   voiceSamplePath: string
   lines: string[]
+  /** Override the speaking pace (internal listening tests). */
+  tempo?: number
 }): Promise<{ audio: Buffer; lineTimes: TimedText[]; durationSec: number }> {
   const lines = opts.lines.map(l => l.trim()).filter(Boolean)
   if (!lines.length) throw new Error('no_lines')
   const clips = await Promise.all(lines.map(text => speakAsCreator({ voiceSamplePath: opts.voiceSamplePath, text })))
-  return joinVoiceClips(clips, lines)
+  return joinVoiceClips(clips, lines, opts.tempo)
 }
 
 /** Trim each spoken line and join them with short gaps; returns the track and exact line times. */
 export async function joinVoiceClips(
   clips: Buffer[],
   lines: string[],
+  tempoOverride?: number,
 ): Promise<{ audio: Buffer; lineTimes: TimedText[]; durationSec: number }> {
+  const tempo = tempoOverride ? Math.min(1.4, Math.max(1, tempoOverride)) : TEMPO
   const dir = await mkdtemp(path.join(tmpdir(), 'voice-'))
   try {
     const trimmed: string[] = []
@@ -53,7 +57,7 @@ export async function joinVoiceClips(
       await must(
         [
           '-hide_banner', '-y', '-i', raw,
-          '-af', 'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.04,areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.06,areverse' + (TEMPO > 1 ? `,atempo=${TEMPO.toFixed(3)}` : ''),
+          '-af', 'silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.04,areverse,silenceremove=start_periods=1:start_threshold=-45dB:start_silence=0.06,areverse' + (tempo > 1 ? `,atempo=${tempo.toFixed(3)}` : ''),
           '-ac', '1', '-ar', '44100', out,
         ],
         `trim line ${i + 1}`,
