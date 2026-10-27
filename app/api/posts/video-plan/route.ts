@@ -38,35 +38,50 @@ export type VideoPlan = {
 const WORDS_PER_SECOND = 2.9
 
 /**
- * Script rules for presenter videos (owner reviews 2026-10-24: first "rigid and AI-written", then on a
- * real run "the script sucks": vague reflections, a fortune-cookie line, an opener copied from our own
- * example, and the presenter talking like the owner). Modeled on the owner's reference reel: a hook the
- * viewer recognizes, one specific thing to copy, shown exactly, then the payoff.
+ * Script rules for presenter videos. History (owner, 2026-10-24/26): "rigid and AI-written", then
+ * "the script sucks", then "still sounds like AI slop, non human". The fix that worked was the
+ * owner's own rewrite of a script: same advice, but said the way a person talks. The before/after
+ * pair below is the reference for tone, and the rules are what changed between them.
  */
+const TONE_EXAMPLE = [
+  'TONE REFERENCE (owner-approved). Use it only to hear the difference; never reuse its words, topic or structure.',
+  'Sounds like AI (bad):',
+  '"That one-star review is sitting there, and you\'re ignoring it or typing something angry." / "We reply to every review. Thank them by name, apologize for the one thing that went wrong, offer a fix." / "Say the order came late. I\'d write: Thanks, Dana. Sorry about the wait. Email us and we\'ll fix it." / "Read it out loud once, cut any excuse, then post it." / "Anyone reading later sees a calm answer under the bad review, and that\'s what sticks."',
+  'Sounds like a person (good):',
+  '"You get a one-star review, and you want to explain everything they left out. Give yourself a minute before you reply." / "We answer every review, but we keep it pretty short. Thank them, say sorry for what went wrong, and tell them how we can help." / "If their order was late, I\'d say, \'Thanks for letting us know, Dana. Sorry your order took so long. Email us your order number so we can sort it out.\'" / "Then read it back. If you\'re still arguing with them in the reply, take that part out." / "Other customers are going to read that too. You want them to see that you\'ll help when something goes wrong."',
+].join('\n')
+
 const PRESENTER_SCRIPT_RULES = (words: number) =>
   [
     `About ${words} spoken words in total. Each beat = one spoken line.`,
-    'Shape that works:',
-    '1. Hook (line 1): name the viewer\'s exact situation or mistake in plain words, casually, as if reacting to it. The right viewer should think "that\'s me". Do not open with "Okay so", "So I just", "Hey guys" or "If you".',
-    '2. Give ONE specific thing they can copy today: a simple method, the exact words to say, a number, a time of day. After watching they can do it without guessing.',
-    '3. Show it concretely in the middle lines: the actual words, the actual order, one real-feeling example from this kind of business.',
-    '4. Last line: the payoff, what changes for them when they do it, said plainly. Not a moral, not a slogan.',
-    'Voice: a real person explaining something to a friend. Contractions, mostly short sentences with at most one longer run-on, at most one filler word. No CAPS, no em dashes.',
-    'Never write: quotable aphorisms or fortune-cookie lines ("X isn\'t for Y, it\'s for Z", "showing up beats perfect", "it\'s not just X, it\'s Y"), vague reflections, "here\'s the thing", "game-changer", rhetorical questions like "Ever wondered", lists of three adjectives, LinkedIn-style lines.',
-    'Who is talking: the business\'s presenter. Say "we" for what the business does ("we answer every review the same day"). Use "I" only for the presenter\'s own opinion or what they\'d say ("here\'s what I\'d write"). Never "my shop", "my customers", "my team".',
+    'Shape: (1) name a feeling or urge the viewer has in that moment, then the first bit of advice; (2) one specific thing they can copy, shown with a real example; (3) the plain reason it matters.',
+    'How a person actually says it (this matters more than anything else):',
+    '- Full, easy sentences joined the way people join them: "and", "but", "so", "then", "if… then…", "so we can". Never strings of clipped commands like "Read it, cut it, post it."',
+    '- Name the feeling or urge, not just the situation ("you want to explain everything they left out").',
+    '- Soft, ordinary words and small hedges people use: "pretty short", "a minute", "sort it out", "going to". Plain words over punchy ones.',
+    '- Advice as "if this, do that" from experience, not as orders.',
+    '- When the script quotes something the viewer could say or write, make it sound like polite speech in full sentences, introduced with "I\'d say," never "I\'d write:".',
+    '- End with the plain reason it matters, said simply. No moral, slogan or punchline.',
+    '- Contractions, no CAPS, no em dashes. Do not open with "Okay so", "So I just", "Hey guys" or "If you".',
+    'Never write: aphorisms or quote-card lines ("X isn\'t for Y, it\'s for Z", "and that\'s what sticks"), lists of three clipped verbs, ad or LinkedIn copy, rhetorical questions.',
+    'Who is talking: the business\'s presenter. "We" for what the business does, "I" only for what they\'d personally say or think. Never "my shop", "my customers".',
     'Claims only from the business\'s own facts; no invented results, numbers, reviews or customer quotes. Never a price or a hard sell.',
+    TONE_EXAMPLE,
   ].join('\n')
 
-/** Second pass: a script editor checks the draft against the rules and rewrites weak lines. */
+/** Second pass: a script editor reads every line out loud (in its head) and rewrites anything that sounds written. */
 const SCRIPT_EDITOR = (words: number) =>
   [
-    'You are a sharp short-form video script editor. You get a draft script as JSON beats. Check every line and fix what fails:',
-    '- Line 1: would the target viewer instantly recognize their own situation? If not, rewrite it.',
-    '- Is there one specific, copyable thing (exact words, a method, a number)? If it is vague, make it concrete using only facts from the brief.',
-    '- Any line that sounds like a quote, a slogan, a caption or a LinkedIn post: rewrite it the way a person would actually say it out loud.',
-    '- Presenter voice: "we" for the business, "I" only for their own opinion. Never "my shop/my customers".',
-    '- Does it open with "Okay so", "So I just", "Hey guys" or "If you"? Change it.',
+    'You are a script editor for short creator videos. Your only job: make every line sound like a real person talking, not AI or ad copy. Read each line out loud in your head.',
+    '- Clipped command lists ("Thank them, apologize, offer a fix.") → turn into a normal sentence with "and"/"so"/"then".',
+    '- Punchy, quotable or slogan-like lines → say it plainly, the way a friend would.',
+    '- Anything the viewer is told to say or write → polite full sentences, introduced with "I\'d say,".',
+    '- Advice → "if this happens, do that", from experience.',
+    '- Line 1 should name what the viewer feels or wants to do in that moment.',
+    '- Last line: the plain reason it matters. No moral.',
+    '- Keep the facts. Presenter voice: "we" for the business, "I" only for their own words or thoughts.',
     `- About ${words} words in total; keep the same number of beats in the same order, and keep B-roll lines about doing something.`,
+    TONE_EXAMPLE,
     'Return JSON only: {"beats": [{"text": string}]} with the improved lines.',
   ].join('\n')
 
