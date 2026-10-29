@@ -9,11 +9,14 @@ import { Play, X } from 'lucide-react'
  */
 export default function VideoThumbnailModal({
   src,
+  poster,
   width = 68,
   height = 120,
   label = 'Play video',
 }: {
   src: string
+  /** Still frame. Without one the tile stays dark: the video only downloads when someone opens it. */
+  poster?: string | null
   width?: number
   height?: number
   label?: string
@@ -43,8 +46,14 @@ export default function VideoThumbnailModal({
         className="group relative block overflow-hidden rounded-[12px] border border-[#f0f0f0] bg-black"
         style={{ width, height }}
       >
-        {/* #t= shows a real frame instead of a black first frame */}
-        <video src={`${src}#t=0.6`} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+        {poster ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={poster} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span className="flex h-full w-full items-end justify-center bg-gradient-to-b from-[#2a2d33] to-[#0E1116] pb-2 text-[10px] font-medium text-white/70">
+            Video
+          </span>
+        )}
         <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/35">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[#0E1116] shadow">
             <Play size={15} className="ml-0.5" fill="currentColor" />
@@ -63,6 +72,7 @@ export default function VideoThumbnailModal({
           <div className="relative" onClick={e => e.stopPropagation()}>
             <video
               src={src}
+              poster={poster ?? undefined}
               controls
               autoPlay
               playsInline

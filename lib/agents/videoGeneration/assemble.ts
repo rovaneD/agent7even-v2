@@ -328,7 +328,7 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       '-filter_complex', filters.length ? filters.join(';') : 'null',
       ...(filters.length ? ['-map', last] : ['-map', '0:v']),
       '-map', '0:a?', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p',
-      '-r', '30', '-c:a', 'aac', '-b:a', '160k', '-ar', '44100', '-ac', '2', '-shortest', main,
+      '-r', '30', '-c:a', 'aac', '-b:a', '160k', '-ar', '44100', '-ac', '2', '-shortest', '-movflags', '+faststart', main,
     )
     await must(args, 'subtitles')
 
@@ -376,6 +376,26 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
       total += secs
     }
     return { video: await readFile(final), lineTimes, chunks, durationSec: total, exactTiming: exact }
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {})
+  }
+}
+
+/**
+ * A still frame (JPEG, ~720px tall) for showing a video without downloading it: Approvals and the
+ * gallery show this, and the video itself only loads when someone presses play.
+ */
+export async function posterFrame(video: Buffer, atSec = 1): Promise<Buffer | null> {
+  const dir = await mkdtemp(path.join(tmpdir(), 'poster-'))
+  try {
+    const src = path.join(dir, 'v.mp4')
+    const out = path.join(dir, 'p.jpg')
+    await writeFile(src, video)
+    const { code } = await run(['-hide_banner', '-y', '-ss', String(atSec), '-i', src, '-frames:v', '1', '-vf', 'scale=-2:720', '-q:v', '4', out])
+    if (code !== 0) return null
+    return await readFile(out)
+  } catch {
+    return null
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {})
   }

@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
     // Presenter pipeline: joins the creator's voice lines with ffmpeg.
     '/api/internal/presenter-render': ['./node_modules/@ffmpeg-installer/linux-x64/**/*'],
     '/api/internal/voice': ['./node_modules/@ffmpeg-installer/linux-x64/**/*'],
+    // Example posters (one frame, made once).
+    '/api/posts/video-types': ['./node_modules/@ffmpeg-installer/linux-x64/**/*'],
     // Approve & create: voice join + final edit (captions need the fonts).
     '/api/posts/video-create': ['./node_modules/@ffmpeg-installer/linux-x64/**/*', './assets/fonts/**/*'],
     // Cinematic B-roll: voice join + final edit with B-roll cutaways.

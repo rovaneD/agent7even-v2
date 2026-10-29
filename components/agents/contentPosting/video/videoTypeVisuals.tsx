@@ -14,32 +14,48 @@ export const VIDEO_TYPE_ICONS: Record<VideoTypeId, LucideIcon> = {
   brandkit: Palette,
 }
 
-// Signed example clips, fetched once per page (GET /api/posts/video-types).
-let examplesCache: Record<string, string> | null = null
-let examplesPromise: Promise<Record<string, string>> | null = null
-function loadExamples(): Promise<Record<string, string>> {
+// Signed example clips + their poster frames, fetched once per page (GET /api/posts/video-types).
+type Examples = { examples: Record<string, string>; posters: Record<string, string> }
+let examplesCache: Examples | null = null
+let examplesPromise: Promise<Examples> | null = null
+function loadExamples(): Promise<Examples> {
   if (examplesCache) return Promise.resolve(examplesCache)
   examplesPromise ??= fetch('/api/posts/video-types')
-    .then(r => (r.ok ? r.json() : { examples: {} }))
-    .then((d: { examples?: Record<string, string> }) => (examplesCache = d.examples ?? {}))
-    .catch(() => (examplesCache = {}))
+    .then(r => (r.ok ? r.json() : {}))
+    .then((d: Partial<Examples>) => (examplesCache = { examples: d.examples ?? {}, posters: d.posters ?? {} }))
+    .catch(() => (examplesCache = { examples: {}, posters: {} }))
   return examplesPromise
 }
 
-export function useExampleUrl(type: VideoTypeSpec): string | null {
-  const [url, setUrl] = useState<string | null>(type.exampleUrl ?? examplesCache?.[type.id] ?? null)
+function useExample(type: VideoTypeSpec): { url: string | null; poster: string | null } {
+  const [v, setV] = useState<{ url: string | null; poster: string | null }>({
+    url: type.exampleUrl ?? examplesCache?.examples[type.id] ?? null,
+    poster: examplesCache?.posters[type.id] ?? null,
+  })
   useEffect(() => {
     if (type.exampleUrl || !type.examplePath) return
     let live = true
-    void loadExamples().then(m => live && setUrl(m[type.id] ?? null))
+    void loadExamples().then(m => live && setV({ url: m.examples[type.id] ?? null, poster: m.posters[type.id] ?? null }))
     return () => {
       live = false
     }
   }, [type])
-  return url
+  return v
 }
 
-/** Example clip when we have one; otherwise an honest "example in production" poster. */
+export function useExampleUrl(type: VideoTypeSpec): string | null {
+  return useExample(type).url
+}
+
+export function useExamplePoster(type: VideoTypeSpec): string | null {
+  return useExample(type).poster
+}
+
+/**
+ * Example clip when we have one; otherwise an honest "example in production" poster.
+ * Egress (2026-10-29): tiles and thumbs show the still frame and only load the clip while hovered;
+ * only the big player plays it.
+ */
 export function VideoTypePoster({
   type,
   size = 'tile',
@@ -50,14 +66,14 @@ export function VideoTypePoster({
   playing?: boolean
 }) {
   const Icon = VIDEO_TYPE_ICONS[type.id]
-  const exampleUrl = useExampleUrl(type)
+  const { url: exampleUrl, poster } = useExample(type)
+  const [hover, setHover] = useState(false)
   if (exampleUrl) {
-    // Examples are 9:16. The player and thumbs are 9:16 too; the landscape gallery tile shows the
-    // whole clip centered over a blurred copy, so faces, captions and cards are never cropped.
-    if (size !== 'tile') {
+    if (size === 'player') {
       return (
         <video
           src={exampleUrl}
+          poster={poster ?? undefined}
           className="absolute inset-0 h-full w-full object-cover"
           muted
           loop
@@ -67,31 +83,33 @@ export function VideoTypePoster({
         />
       )
     }
+    const still = poster ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={poster} alt="" className={size === 'tile' ? 'absolute inset-y-0 left-1/2 h-full -translate-x-1/2 object-contain' : 'absolute inset-0 h-full w-full object-cover'} />
+    ) : null
+    if (size === 'thumb') return <div className="absolute inset-0 bg-black">{still}</div>
     return (
-      <div className="absolute inset-0 overflow-hidden bg-black">
-        <video
-          src={exampleUrl}
-          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl"
-          muted
-          loop
-          playsInline
-          autoPlay={playing}
-          preload="metadata"
-          aria-hidden
-        />
-        <video
-          src={exampleUrl}
-          className="absolute inset-y-0 left-1/2 h-full -translate-x-1/2 object-contain"
-          muted
-          loop
-          playsInline
-          autoPlay={playing}
-          preload="metadata"
-        />
+      <div className="absolute inset-0 overflow-hidden bg-black" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+        {poster && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={poster} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
+        )}
+        {still}
+        {hover && playing && (
+          <video
+            src={exampleUrl}
+            className="absolute inset-y-0 left-1/2 h-full -translate-x-1/2 object-contain"
+            muted
+            loop
+            playsInline
+            autoPlay
+            preload="auto"
+          />
+        )}
       </div>
     )
   }
-  const iconSize = size === 'thumb' ? 16 : size === 'player' ? 34 : 26
+const iconSize = size === 'thumb' ? 16 : size === 'player' ? 34 : 26
   return (
     <div
       className="absolute inset-0 flex items-center justify-center"

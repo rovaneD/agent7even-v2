@@ -5,7 +5,7 @@ import { createPostAssetSignedUrl } from '@/lib/postAssets'
 import { openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
 import { recordAgentTaskCost } from '@/lib/agents/taskInstrumentation'
 import type { ActionCreditKey } from '@/lib/credits/actionCosts'
-import { assembleVideo, type TimedText } from './assemble'
+import { assembleVideo, posterFrame, type TimedText } from './assemble'
 import { failVideoTask } from './failVideoTask'
 import { pollVideoJob } from './openRouterVideo'
 
@@ -102,6 +102,11 @@ export async function advancePresenterTask(
     const storagePath = `${input.profileId}/${randomUUID()}.mp4`
     const { error: upErr } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(storagePath, out.video, { contentType: 'video/mp4', upsert: false })
     if (upErr) throw new Error(`storage: ${upErr.message}`)
+    const poster = await posterFrame(out.video)
+    const posterPath = poster ? `${storagePath}.jpg` : null
+    if (poster && posterPath) {
+      await supabase.storage.from(POST_ASSETS_BUCKET).upload(posterPath, poster, { contentType: 'image/jpeg', upsert: true })
+    }
 
     await supabase.from('agent_outputs').insert({
       task_id: task.id,
@@ -114,6 +119,7 @@ export async function advancePresenterTask(
         script: input.lines,
         media_storage_path: storagePath,
         media_mime: 'video/mp4',
+        media_poster_path: posterPath,
         generated: {
           model: PRESENTER_MODEL,
           video_type: input.typeId,

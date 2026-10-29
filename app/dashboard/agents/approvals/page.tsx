@@ -77,9 +77,11 @@ export default async function ApprovalsPage() {
       const content = (output.content ?? {}) as Record<string, unknown>
       const media = readPostMediaRef(content)
       const mediaPreviewUrl = media.media_storage_path
-        ? await createPostAssetSignedUrl(media.media_storage_path)
+        ? await createPostAssetSignedUrl(media.media_storage_path, 60 * 60 * 6)
         : null
-      return { ...output, mediaPreviewUrl }
+      const posterPath = typeof content.media_poster_path === 'string' ? content.media_poster_path : null
+      const mediaPosterUrl = posterPath ? await createPostAssetSignedUrl(posterPath, 60 * 60 * 6) : null
+      return { ...output, mediaPreviewUrl, mediaPosterUrl }
     }))
     return { ...task, agent_outputs: outputs }
   }))

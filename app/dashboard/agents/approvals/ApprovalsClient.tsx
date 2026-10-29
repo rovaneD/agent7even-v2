@@ -44,6 +44,7 @@ interface AgentOutput {
   status: string
   created_at: string
   mediaPreviewUrl?: string | null
+  mediaPosterUrl?: string | null
 }
 
 interface ApprovalTask {
@@ -159,6 +160,7 @@ function ApprovalItem({
   const adPreview = task.agent === 'ad_variations' ? adVariationsPreview(raw) : null
   const campaignPreviewText = task.agent === 'campaign_builder' ? campaignPreview(raw) : null
   const mediaPreviewUrl = output?.mediaPreviewUrl ?? null
+  const mediaPosterUrl = output?.mediaPosterUrl ?? null
   const queueKind = approvalQueueKind(task)
   const kindStyle = QUEUE_KIND_STYLES[queueKind]
 
@@ -260,7 +262,7 @@ function ApprovalItem({
           {mediaPreviewUrl && (
             <div style={{ marginBottom: 10 }}>
               {output?.content?.media_mime === 'video/mp4' ? (
-                <VideoThumbnailModal src={mediaPreviewUrl} width={68} height={120} />
+                <VideoThumbnailModal src={mediaPreviewUrl} poster={mediaPosterUrl} width={68} height={120} />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -300,7 +302,7 @@ function ApprovalItem({
               {mediaPreviewUrl && (
                 <div style={{ marginBottom: 12 }}>
                   {output?.content?.media_mime === 'video/mp4' ? (
-                    <VideoThumbnailModal src={mediaPreviewUrl} width={124} height={220} />
+                    <VideoThumbnailModal src={mediaPreviewUrl} poster={mediaPosterUrl} width={124} height={220} />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
