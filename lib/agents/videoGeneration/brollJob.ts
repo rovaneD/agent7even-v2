@@ -30,9 +30,14 @@ export const LIPSYNC_MODEL = 'heygen/avatar-iv'
 const USD = { still: 0.09, kling5s: 0.56, lipsyncPerSec: 0.05 }
 export const BROLL_REDOS = 3
 
-/** One shared grade so every shot looks like the same shoot (test 1 failed on mismatched looks). */
+/**
+ * One shared grade so every shot looks like the same shoot (test 1 failed on mismatched looks).
+ * Owner 2026-10-30: flat daylight in a plain white room "feels very boring"; the reference had moody,
+ * motivated light (warm lamps, a window, real shadows). The place text from the plan carries the
+ * specific light; this keeps every shot cinematic.
+ */
 const GRADE =
-  'Shot on a cinema camera with a 35mm lens, soft natural daylight, muted natural colors, gentle contrast, subtle film grain, real skin texture with visible pores, no beauty filter. Photoreal footage frame, not an illustration. No text, no logos, no watermark.'
+  'Shot on a cinema camera with a 35mm lens. Cinematic, motivated lighting with real contrast: light comes from the sources in the scene (a window, warm practical lamps, under-cabinet lights), with pools of light, soft falloff into deep shadows and a warm/cool balance. Rich but natural colors, subtle film grain, real skin texture with visible pores, no beauty filter. Photoreal footage frame, not an illustration. No text, no logos, no watermark.'
 
 function lookLine(outfit: string): string {
   const clothes = outfit.trim()

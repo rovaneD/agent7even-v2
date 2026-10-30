@@ -112,14 +112,14 @@ function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, 
         PRESENTER_SCRIPT_RULES(words),
         `Exactly ${lineCount} beats, in this order: ${pattern}. visual = "on camera" or "B-roll" to match.`,
         'B-roll lines should be the ones that describe doing something, so the shots can show it.',
-        `Also return "onCamera": where the on-camera lines are filmed (one short place description, cinematic and real, e.g. "leaning on a high-rise balcony railing, city and hills behind").`,
+        `Also return "onCamera": where the on-camera lines are filmed: a place with character AND its light, like a set a cinematographer would pick, e.g. "a dark kitchen in the evening, warm under-cabinet lights and a pendant lamp, plants on the counter, deep shadows behind" or "a cozy studio at golden hour, low sun raking through the blinds, warm desk lamp on". Never a plain white room in flat daylight.`,
         v('coverage').startsWith('New')
           ? `And "scenes": exactly ${shots} B-roll shots in the order they appear, each "place: one simple action" that fits the line it covers (e.g. "a café window seat: writing a short list in a notebook, a coffee beside it"). Simple actions only; nothing passed from hand to hand. Mix indoor and outdoor places that belong to the same day and the same person. The creator never looks at the camera in B-roll.`
           : [
               // Shot vocabulary from the owner's "one scene, six shots" reference (2026-10-29): cover ONE moment
               // from several angles so it reads as a real shoot and stays continuous.
               `And "scenes": exactly ${shots} B-roll shots of ONE place and ONE continuous activity, filmed from different angles like a real shoot. Each scene starts with its shot type, then the framing and the action, e.g. "Wide shot: the whole home office, the creator at the desk by the window, typing".`,
-              `Shot types to choose from (use ${shots} different ones, in an order that flows): Wide shot (sets the scene, whole room and person), Medium shot (waist up, shows the action), Close-up (hands or face on the action), Shoot-through (filmed through something in the foreground, like plant leaves or a doorway, soft blur in front), Low-angle shot (camera low looking up at the person), Extreme close-up (one small detail: pen tip on paper, coffee surface, keys).`,
+              `Shot types to choose from (use ${shots} different ones, in an order that flows): Wide shot (from the far side of the room: the whole space visible, the person small in the frame), Medium shot (waist up, shows the action), Close-up (hands or face on the action), Shoot-through (filmed through something in the foreground, like plant leaves or a doorway, soft blur in front), Low-angle shot (camera low looking up at the person), Extreme close-up (one small detail: pen tip on paper, coffee surface, keys).`,
               'The on-camera lines are filmed in the same place, so "onCamera" is that same place. Simple actions only; nothing passed from hand to hand. The creator never looks at the camera in B-roll.',
             ].join('\n'),
         v('settings') ? `The owner wants it filmed here, use this: ${v('settings')}` : 'Pick the place yourself: real, cinematic, and right for this business.',
