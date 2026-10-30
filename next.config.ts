@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
     // Example posters (one frame, made once).
     '/api/posts/video-types': ['./node_modules/@ffmpeg-installer/linux-x64/**/*'],
     '/api/internal/broll-reedit': ['./node_modules/@ffmpeg-installer/linux-x64/**/*', './assets/fonts/**/*'],
+    // Product ad: no-voice fast cut (+ optional text).
+    '/api/internal/product-cut': ['./node_modules/@ffmpeg-installer/linux-x64/**/*', './assets/fonts/**/*'],
     // Approve & create: voice join + final edit (captions need the fonts).
     '/api/posts/video-create': ['./node_modules/@ffmpeg-installer/linux-x64/**/*', './assets/fonts/**/*'],
     // Cinematic B-roll: voice join + final edit with B-roll cutaways.
