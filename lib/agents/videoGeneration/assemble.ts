@@ -255,18 +255,33 @@ export async function assembleVideo(input: AssembleInput): Promise<AssembleResul
     let last = '[0:v]'
     const args = ['-hide_banner', '-y', '-i', src]
     let nextInput = 1
-    for (const [bi, b] of (input.broll ?? []).entries()) {
-      const a = Math.max(0, b.start)
-      const e = Math.min(meta.duration, b.end)
-      if (e - a < 0.3) continue
+    // B-roll cutaways. Owner 2026-10-30: cuts "feel rough". Two fixes: (1) skip the first ~0.6s of each
+    // clip, where image-to-video starts from a frozen still and the motion ramps up, so every shot
+    // enters already moving; (2) a short crossfade (0.15s) into each shot and back to the presenter,
+    // instead of a hard jump. Back-to-back B-roll shots crossfade into each other.
+    const FADE = 0.15
+    const SKIP = 0.6
+    const wins = (input.broll ?? [])
+      .map(b => ({ ...b, start: Math.max(0, b.start), end: Math.min(meta.duration, b.end) }))
+      .filter(b => b.end - b.start >= 0.3)
+      .sort((x, y) => x.start - y.start)
+    for (const [bi, b] of wins.entries()) {
+      const next = wins[bi + 1]
+      const prev = wins[bi - 1]
+      const a = Math.max(0, b.start - (prev && Math.abs(prev.end - b.start) < 0.05 ? FADE : FADE / 2))
+      const joined = Boolean(next && Math.abs(next.start - b.end) < 0.05)
+      const e = Math.min(meta.duration, joined ? b.end : b.end + FADE / 2)
       const f = path.join(dir, `broll${bi}.mp4`)
       await writeFile(f, b.video)
       const clip = await probe(f)
-      const stretch = clip.duration > 0 && clip.duration < e - a ? (e - a) / clip.duration : 1
+      const skip = clip.duration > e - a + SKIP ? SKIP : Math.max(0, clip.duration - (e - a))
+      const usable = clip.duration - skip
+      const stretch = usable > 0 && usable < e - a ? (e - a) / usable : 1
       args.push('-i', f)
       const idx = nextInput++
+      const fadeOut = joined ? '' : `,fade=t=out:st=${(e - a - FADE).toFixed(2)}:d=${FADE}:alpha=1`
       filters.push(
-        `[${idx}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,setpts=${stretch.toFixed(4)}*(PTS-STARTPTS),trim=duration=${(e - a).toFixed(2)},setpts=PTS-STARTPTS+${a.toFixed(2)}/TB[b${bi}]`,
+        `[${idx}:v]trim=start=${skip.toFixed(2)},setpts=PTS-STARTPTS,scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,setpts=${stretch.toFixed(4)}*PTS,trim=duration=${(e - a).toFixed(2)},format=yuva420p,fade=t=in:st=0:d=${FADE}:alpha=1${fadeOut},setpts=PTS-STARTPTS+${a.toFixed(2)}/TB[b${bi}]`,
         `${last}[b${bi}]overlay=eof_action=pass:enable='between(t,${a.toFixed(2)},${e.toFixed(2)})'[vb${bi}]`,
       )
       last = `[vb${bi}]`

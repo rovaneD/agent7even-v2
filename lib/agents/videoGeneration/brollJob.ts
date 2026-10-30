@@ -208,6 +208,12 @@ export async function advanceBrollTask(
     }))
     if (videos.some(v => !v)) throw new Error('could not download a rendered clip')
     const [main, ...clips] = videos as Buffer[]
+    // Keep the raw renders so the edit can be redone later without paying for new renders.
+    await Promise.all(
+      (videos as Buffer[]).map((v, i) =>
+        supabase.storage.from(POST_ASSETS_BUCKET).upload(`${input.profileId}/broll-raw-${task.id}-${i}.mp4`, v, { contentType: 'video/mp4', upsert: true }),
+      ),
+    ).catch(() => {})
     const lineTimes = input.lineTimes ?? []
     const windows = brollWindows(lineTimes, input.onCamLines, clips.length)
     const logoUrl = input.logo ? await loadBrandLogoReference(input.profileId) : null

@@ -111,7 +111,7 @@ function typeBrief(t: VideoTypeSpec, inputs: Record<string, string | string[]>, 
         `Topic: ${v('topic')}`,
         PRESENTER_SCRIPT_RULES(words),
         `Exactly ${lineCount} beats, in this order: ${pattern}. visual = "on camera" or "B-roll" to match.`,
-        'B-roll lines should be the ones that describe doing something, so the shots can show it.',
+        'B-roll lines should be the ones that describe doing something, so the shots can show it. The line where the presenter says the exact words to use (\'I\'d say, ...\') must be an on-camera line, so we see them say it.',
         `Also return "onCamera": where the on-camera lines are filmed: a place with character AND its light, like a set a cinematographer would pick, e.g. "a dark kitchen in the evening, warm under-cabinet lights and a pendant lamp, plants on the counter, deep shadows behind" or "a cozy studio at golden hour, low sun raking through the blinds, warm desk lamp on". Never a plain white room in flat daylight.`,
         v('coverage').startsWith('New')
           ? `And "scenes": exactly ${shots} B-roll shots in the order they appear, each "place: one simple action" that fits the line it covers (e.g. "a café window seat: writing a short list in a notebook, a coffee beside it"). Simple actions only; nothing passed from hand to hand. Mix indoor and outdoor places that belong to the same day and the same person. The creator never looks at the camera in B-roll.`
