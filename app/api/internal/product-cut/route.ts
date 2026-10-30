@@ -8,7 +8,7 @@ import { assembleProductCut, type ProductShot } from '@/lib/agents/videoGenerati
 
 /**
  * Internal (test accounts only): cut a Product ad from bake-off clips. No credits, no model calls.
- * Body { shots: [{ jobId | path, from, to }], texts?: [{ text, start, end }], crossfade? }.
+ * Body { shots: [{ jobId | path, from, to, zoom?, zoomSec? }], texts?: [{ text, start, end }], crossfade? }.
  * Returns signed URLs for the video and its poster.
  */
 export const maxDuration = 180
@@ -17,7 +17,7 @@ export const runtime = 'nodejs'
 const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.com', 'rovdurs@gmail.com'])
 
 type Body = {
-  shots?: Array<{ jobId?: string; path?: string; from: number; to: number }>
+  shots?: Array<{ jobId?: string; path?: string; from: number; to: number; zoom?: number; zoomSec?: number }>
   texts?: Array<{ text: string; start: number; end: number }>
   crossfade?: number
 }
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       if (!v) return NextResponse.json({ error: 'shot_not_found', path: p }, { status: 404 })
       cache.set(p, v)
     }
-    shots.push({ video: v, from: Number(s.from), to: Number(s.to) })
+    shots.push({ video: v, from: Number(s.from), to: Number(s.to), zoom: s.zoom != null ? Number(s.zoom) : undefined, zoomSec: s.zoomSec != null ? Number(s.zoomSec) : undefined })
   }
 
   const started = Date.now()

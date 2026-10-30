@@ -11,7 +11,19 @@ import { fontPath, must, wrapWords } from './assemble'
  * Output is silent (a silent stereo track is kept for platform compatibility): owner 2026-10-30, users
  * download and add a sound in Instagram or TikTok.
  */
-export type ProductShot = { video: Buffer; from: number; to: number }
+export type ProductShot = {
+  video: Buffer
+  from: number
+  to: number
+  /**
+   * Optional zoom done in the edit (not by the video model). Owner 2026-10-30: the model's camera
+   * push-ins look shaky; wanted "a fast smooth zoom". So clips are filmed with a locked-off camera and
+   * the zoom is added here: scale up by `zoom` (0.15 = 15%) with an ease-out over `zoomSec` (default
+   * 0.8s), then hold. Frames are upscaled 2x first so the crop moves in half-pixel steps (no stepping).
+   */
+  zoom?: number
+  zoomSec?: number
+}
 export type ProductText = { text: string; start: number; end: number }
 export type ProductCutInput = {
   shots: ProductShot[]
@@ -40,8 +52,13 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
       const d = s.to - s.from
       durs.push(d)
       args.push('-ss', s.from.toFixed(3), '-t', d.toFixed(3), '-i', f)
+      const z = Math.max(0, Math.min(0.5, s.zoom ?? 0))
+      const frames = Math.max(1, Math.round((s.zoomSec ?? 0.8) * 30))
+      const zoom = z > 0
+        ? `,scale=${W * 2}:${H * 2}:flags=lanczos,zoompan=z='1+${z.toFixed(3)}*(1-pow(1-min(1\\,on/${frames})\\,3))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=30`
+        : ''
       filters.push(
-        `[${i}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=30,setsar=1,format=yuv420p,setpts=PTS-STARTPTS[v${i}]`,
+        `[${i}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=30,setsar=1${zoom},format=yuv420p,setpts=PTS-STARTPTS[v${i}]`,
       )
     }
     let last: string
