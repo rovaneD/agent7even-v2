@@ -42,6 +42,7 @@ type Body = {
   onCameraSetting?: string
   scenes?: string[]
   outfit?: string
+  coverage?: string
   captions?: 'off' | 'serif' | 'sans'
   captionPos?: 'center' | 'lower'
   cta?: string
@@ -101,7 +102,7 @@ export async function POST(req: Request) {
           if (!Number.isInteger(i) || i < 0 || i >= next.scenes.length) return NextResponse.json({ error: 'bad_index' }, { status: 400 })
           if (body.scene) next.scenes[i] = clean(body.scene, 300)
           const camUrl = await createPostAssetSignedUrl(next.stills.onCamera, 60 * 60)
-          next.stills.broll[i] = await makeStill(supabase, workspaceId, brollStillPrompt(next.scenes[i]!, next.outfit), [photoUrl, camUrl!])
+          next.stills.broll[i] = await makeStill(supabase, workspaceId, brollStillPrompt(next.scenes[i]!, next.outfit, next.coverage === 'angles'), [photoUrl, camUrl!])
         }
         next.redosLeft = input.redosLeft - 1
         await supabase.from('agent_tasks').update({ input: next }).eq('id', task.id)
@@ -200,6 +201,7 @@ export async function POST(req: Request) {
     onCameraSetting: clean(body.onCameraSetting, 300),
     scenes,
     outfit: clean(body.outfit, 200),
+    coverage: String(body.coverage ?? '').startsWith('New') ? 'places' : 'angles',
     captions: body.captions === 'off' || body.captions === 'serif' ? body.captions : 'sans',
     captionPos: body.captionPos === 'lower' ? 'lower' : 'center',
     cta: clean(body.cta, 70),
@@ -242,7 +244,7 @@ export async function POST(req: Request) {
     if (!photoUrl) throw new Error('could not sign the creator photo')
     const onCamera = await makeStill(supabase, workspaceId, onCameraStillPrompt(input.onCameraSetting, input.outfit), [photoUrl])
     const camUrl = await createPostAssetSignedUrl(onCamera, 60 * 60)
-    const broll = await Promise.all(scenes.map(s => makeStill(supabase, workspaceId, brollStillPrompt(s, input.outfit), [photoUrl, camUrl!])))
+    const broll = await Promise.all(scenes.map(s => makeStill(supabase, workspaceId, brollStillPrompt(s, input.outfit, input.coverage === 'angles'), [photoUrl, camUrl!])))
     const next = { ...input, stills: { onCamera, broll }, stage: 'review' as const }
     await supabase.from('agent_tasks').update({ input: next }).eq('id', taskId)
     return NextResponse.json({ taskId, stills: await signedStills(next.stills), scenes, onCameraSetting: input.onCameraSetting, redosLeft: BROLL_REDOS, credits: cost })

@@ -98,6 +98,13 @@ export const VIDEO_TYPES: VideoTypeSpec[] = [
         placeholder: 'e.g. a rooftop, a café window seat, a home office. Leave empty and Maya picks a mix.',
       },
       {
+        key: 'coverage',
+        kind: 'choice',
+        label: 'B-roll',
+        options: ['One place, many angles', 'New places'],
+        default: 'One place, many angles',
+      },
+      {
         key: 'outfit',
         kind: 'text',
         label: 'Outfit (optional)',

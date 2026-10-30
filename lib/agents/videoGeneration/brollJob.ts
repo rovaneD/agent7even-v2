@@ -51,11 +51,13 @@ export function onCameraStillPrompt(setting: string, outfit: string): string {
   ].join(' ')
 }
 
-export function brollStillPrompt(scene: string, outfit: string): string {
+export function brollStillPrompt(scene: string, outfit: string, sameRoom = false): string {
   return [
     'Vertical 9:16 cinematic frame.',
     lookLine(outfit).replace('the reference image', 'the reference images'),
-    'Same outfit and same light as the second reference image.',
+    sameRoom
+      ? 'Same room, same outfit and same light as the second reference image: this is another camera angle of the same moment. Follow the shot type exactly (wide, medium, close-up, shoot-through, low-angle or extreme close-up).'
+      : 'Same outfit and same light as the second reference image.',
     `Scene: ${scene.trim()}.`,
     'Candid moment: the person is busy with the action and never looks at the camera.',
     GRADE,
@@ -86,6 +88,8 @@ export type BrollTaskInput = {
   onCameraSetting: string
   scenes: string[]
   outfit: string
+  /** 'angles' = one place covered from several shot types; 'places' = a new place per shot. */
+  coverage?: 'angles' | 'places'
   captions: 'off' | 'serif' | 'sans'
   captionPos: 'center' | 'lower'
   cta: string

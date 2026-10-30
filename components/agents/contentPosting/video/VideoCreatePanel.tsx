@@ -127,6 +127,7 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
           onCameraSetting: plan.onCamera ?? '',
           scenes: plan.scenes ?? [],
           outfit: String(inputs.outfit ?? ''),
+          coverage: String(inputs.coverage ?? ''),
           captions,
           captionPos,
           cta: ctaOn ? ctaText : '',
