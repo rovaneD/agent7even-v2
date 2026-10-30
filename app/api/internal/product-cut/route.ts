@@ -8,7 +8,7 @@ import { assembleProductCut, type ProductShot } from '@/lib/agents/videoGenerati
 
 /**
  * Internal (test accounts only): cut a Product ad from bake-off clips. No credits, no model calls.
- * Body { shots: [{ jobId | path, from, to, zoom?, zoomSec? }], texts?: [{ text, start, end }], crossfade? }.
+ * Body { shots: [{ jobId | path | imagePath, from, to, zoom?, zoomSec? }], texts?: [{ text, start, end }], crossfade? }.
  * Returns signed URLs for the video and its poster.
  */
 export const maxDuration = 180
@@ -17,7 +17,7 @@ export const runtime = 'nodejs'
 const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.com', 'rovdurs@gmail.com'])
 
 type Body = {
-  shots?: Array<{ jobId?: string; path?: string; from: number; to: number; zoom?: number; zoomSec?: number }>
+  shots?: Array<{ jobId?: string; path?: string; imagePath?: string; from: number; to: number; zoom?: number; zoomSec?: number }>
   texts?: Array<{ text: string; start: number; end: number }>
   crossfade?: number
 }
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   const cache = new Map<string, Buffer>()
   const shots: ProductShot[] = []
   for (const s of list) {
-    const p = s.path ?? (s.jobId ? `${profileId}/bakeoff-video-${s.jobId.replace(/[^a-zA-Z0-9-]/g, '')}.mp4` : null)
+    const p = s.imagePath ?? s.path ?? (s.jobId ? `${profileId}/bakeoff-video-${s.jobId.replace(/[^a-zA-Z0-9-]/g, '')}.mp4` : null)
     if (!p || !p.startsWith(`${profileId}/`)) return NextResponse.json({ error: 'bad_shot', path: p }, { status: 400 })
     let v = cache.get(p) ?? null
     if (!v) {
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       if (!v) return NextResponse.json({ error: 'shot_not_found', path: p }, { status: 404 })
       cache.set(p, v)
     }
-    shots.push({ video: v, from: Number(s.from), to: Number(s.to), zoom: s.zoom != null ? Number(s.zoom) : undefined, zoomSec: s.zoomSec != null ? Number(s.zoomSec) : undefined })
+    shots.push({ ...(s.imagePath ? { image: v } : { video: v }), from: Number(s.from), to: Number(s.to), zoom: s.zoom != null ? Number(s.zoom) : undefined, zoomSec: s.zoomSec != null ? Number(s.zoomSec) : undefined })
   }
 
   const started = Date.now()

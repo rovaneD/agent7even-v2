@@ -12,7 +12,14 @@ import { fontPath, must, wrapWords } from './assemble'
  * download and add a sound in Instagram or TikTok.
  */
 export type ProductShot = {
-  video: Buffer
+  /** A clip, cut from `from` to `to` seconds. */
+  video?: Buffer
+  /**
+   * Or a still image held for (to - from) seconds, usually with `zoom`. Owner 2026-10-30: model motion
+   * on label shots kept going wrong (product rocking, mist spraying with the cap on, a stray shadow of a
+   * person), so label hero shots can be the approved still plus a smooth zoom: no motion model, no drift.
+   */
+  image?: Buffer
   from: number
   to: number
   /**
@@ -47,11 +54,19 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
     const filters: string[] = []
     const durs: number[] = []
     for (const [i, s] of shots.entries()) {
-      const f = path.join(dir, `s${i}.mp4`)
-      await writeFile(f, s.video)
       const d = s.to - s.from
       durs.push(d)
-      args.push('-ss', s.from.toFixed(3), '-t', d.toFixed(3), '-i', f)
+      if (s.image) {
+        const f = path.join(dir, `s${i}.img`)
+        await writeFile(f, s.image)
+        args.push('-loop', '1', '-framerate', '30', '-t', d.toFixed(3), '-i', f)
+      } else if (s.video) {
+        const f = path.join(dir, `s${i}.mp4`)
+        await writeFile(f, s.video)
+        args.push('-ss', s.from.toFixed(3), '-t', d.toFixed(3), '-i', f)
+      } else {
+        throw new Error(`shot ${i} has no video or image`)
+      }
       const z = Math.max(0, Math.min(0.5, s.zoom ?? 0))
       const frames = Math.max(1, Math.round((s.zoomSec ?? 0.8) * 30))
       const zoom = z > 0
