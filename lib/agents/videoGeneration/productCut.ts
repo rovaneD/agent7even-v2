@@ -119,22 +119,29 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
     const addInput = (...a: string[]) => { args.push(...a); return inputs++ }
     const fit = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1`
     const shotClicks: number[][] = []
+    let clock = 0
     for (const [i, s] of shots.entries()) {
       const d = s.to - s.from
       const hold = Math.max(0, Math.min(3, s.hold ?? 0))
-      durs.push(d + hold)
+      // Frame-exact lengths: each shot gets round(end*30) - round(start*30) frames on the running
+      // timeline, so 1-2 frame beats don't each round up and drift the cut (2026-10-31: the replica of
+      // the owner's 33-shot edit ran ~0.2s late by 1.3s and lost its ending).
+      const startF = Math.round(clock * 30)
+      clock += d + hold
+      const nFrames = Math.max(1, Math.round(clock * 30) - startF)
+      durs.push(nFrames / 30)
       const clicksHere: number[] = []
       let src: string
       if (s.layers) {
         const bg = path.join(dir, `s${i}bg.img`)
         await writeFile(bg, s.layers.background)
-        const bi = addInput('-loop', '1', '-framerate', '30', '-t', d.toFixed(3), '-i', bg)
+        const bi = addInput('-loop', '1', '-framerate', '30', '-t', (d + 0.1).toFixed(3), '-i', bg)
         filters.push(`[${bi}:v]${fit},format=rgba[L${i}]`)
         let cur = `[L${i}]`
         for (const [k, it] of s.layers.items.entries()) {
           const f = path.join(dir, `s${i}i${k}.png`)
           await writeFile(f, it.image)
-          const ii = addInput('-loop', '1', '-framerate', '30', '-t', d.toFixed(3), '-i', f)
+          const ii = addInput('-loop', '1', '-framerate', '30', '-t', (d + 0.1).toFixed(3), '-i', f)
           const w = Math.max(16, Math.round(it.w * W))
           const ang = ((it.angle ?? 0) * Math.PI) / 180
           const at = Math.max(0, it.at).toFixed(3)
@@ -151,11 +158,11 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
       } else if (s.image) {
         const f = path.join(dir, `s${i}.img`)
         await writeFile(f, s.image)
-        src = `[${addInput('-loop', '1', '-framerate', '30', '-t', d.toFixed(3), '-i', f)}:v]`
+        src = `[${addInput('-loop', '1', '-framerate', '30', '-t', (d + 0.1).toFixed(3), '-i', f)}:v]`
       } else if (s.video) {
         const f = path.join(dir, `s${i}.mp4`)
         await writeFile(f, s.video)
-        src = `[${addInput('-ss', s.from.toFixed(3), '-t', d.toFixed(3), '-i', f)}:v]`
+        src = `[${addInput('-ss', s.from.toFixed(3), '-t', (d + 0.1).toFixed(3), '-i', f)}:v]`
       } else {
         throw new Error(`shot ${i} has no video, image or layers`)
       }
@@ -167,7 +174,7 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
       const zoom = z > 0
         ? `,scale=${W * 2}:${H * 2}:flags=lanczos,zoompan=z='1+${z.toFixed(3)}*(1-pow(1-min(1\\,on/${frames})\\,3))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=30`
         : ''
-      const base = `${src}${fit},fps=30${step ? `,fps=${step},fps=30` : ''}${holdF},setpts=N/30/TB${zoom},format=yuv420p,setpts=N/30/TB,settb=AVTB`
+      const base = `${src}${fit},fps=30${step ? `,fps=${step},fps=30` : ''}${holdF},setpts=N/30/TB${zoom},format=yuv420p,trim=end_frame=${nFrames},setpts=N/30/TB,settb=AVTB`
       if (s.frostSec && s.frostSec > 0) {
         const fh = Math.max(0, s.frostHold ?? 0.3)
         filters.push(`${base},split[fa${i}][fz${i}]`)
