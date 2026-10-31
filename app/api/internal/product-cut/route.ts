@@ -25,6 +25,8 @@ type Body = {
     layers?: { background: string; items: LayerItem[] }
   }>
   clicks?: boolean
+  soundtrackPath?: string
+  soundtrackOffset?: number
   texts?: Array<{ text: string; start: number; end: number }>
   crossfade?: number
   loop?: boolean
@@ -77,9 +79,16 @@ export async function POST(req: Request) {
     shots.push({ ...common, ...(s.imagePath ? { image: r.buf! } : { video: r.buf! }) })
   }
 
+  let soundtrack: Buffer | undefined
+  if (body.soundtrackPath) {
+    const r = await load(body.soundtrackPath)
+    if (r.error) return r.error
+    soundtrack = r.buf
+  }
+
   const started = Date.now()
   try {
-    const out = await assembleProductCut({ shots, clicks: body.clicks, texts: body.texts, crossfade: body.crossfade, loop: body.loop, loopSec: body.loopSec, loopTransition: body.loopTransition })
+    const out = await assembleProductCut({ shots, clicks: body.clicks, soundtrack, soundtrackOffset: body.soundtrackOffset, texts: body.texts, crossfade: body.crossfade, loop: body.loop, loopSec: body.loopSec, loopTransition: body.loopTransition })
     const stamp = Date.now()
     const path = `${profileId}/product-cut-${stamp}.mp4`
     const { error } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(path, out.video, { contentType: 'video/mp4', upsert: true })

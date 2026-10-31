@@ -87,6 +87,13 @@ export type ProductCutInput = {
    * Generated in ffmpeg (no sample file, no licence). Off = silent track; users add music in the app.
    */
   clicks?: boolean
+  /**
+   * Soundtrack (any media file with audio), used from `soundtrackOffset` seconds for the length of the
+   * cut. Replaces clicks. Owner 2026-10-30: his manual Signature edit used the Cyklar reel's sound
+   * ("royalty green" in Instagram's library).
+   */
+  soundtrack?: Buffer
+  soundtrackOffset?: number
   width?: number
   height?: number
 }
@@ -155,7 +162,7 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
       const step = s.step && s.step > 0 && s.step < 30 ? Math.round(s.step) : 0
       if (step) for (let t = 0; t < d - 0.05; t += 1 / step) clicksHere.push(hold + t)
       const holdF = hold > 0 ? `,loop=loop=${Math.round(hold * 30)}:size=1:start=0` : ''
-      const z = Math.max(0, Math.min(0.5, s.zoom ?? 0))
+      const z = Math.max(0, Math.min(1, s.zoom ?? 0))
       const frames = Math.max(1, Math.round((s.zoomSec ?? 0.8) * 30))
       const zoom = z > 0
         ? `,scale=${W * 2}:${H * 2}:flags=lanczos,zoompan=z='1+${z.toFixed(3)}*(1-pow(1-min(1\\,on/${frames})\\,3))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=30`
@@ -273,7 +280,11 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
     const ticks = input.clicks
       ? [...new Set(clickTimes.filter(t => t >= 0 && t < total - 0.02).map(t => Number(t.toFixed(3))))].sort((x, y) => x - y).slice(0, 120)
       : []
-    if (ticks.length) {
+    if (input.soundtrack) {
+      const sf = path.join(dir, 'soundtrack')
+      await writeFile(sf, input.soundtrack)
+      args.push('-ss', Math.max(0, input.soundtrackOffset ?? 0).toFixed(3), '-t', total.toFixed(3), '-i', sf)
+    } else if (ticks.length) {
       // if(): exp() before the tick time overflows to Inf, and 0*Inf = NaN (aac refuses NaN).
       const term = (t: number) => `if(between(t,${t},${(t + 0.04).toFixed(3)}),exp(-(t-${t})*380)*(0.5*sin(2*PI*2600*(t-${t}))+0.35*(2*random(0)-1)),0)`
       const expr = `0.6*(${ticks.map(term).join('+')})`
