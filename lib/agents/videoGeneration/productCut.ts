@@ -103,23 +103,75 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
         `[${i}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=30,setsar=1${zoom},format=yuv420p,setpts=PTS-STARTPTS,settb=AVTB[v${i}]`,
       )
     }
-    // Join shots pairwise: hard cut = concat; anything else = xfade (overlaps the two shots).
-    let last = '[v0]'
-    let total = durs[0]!
-    for (let i = 1; i < shots.length; i++) {
-      const asked = shots[i]!.transition
-      const kind: ProductTransition = asked && TRANSITIONS.has(asked) ? asked : cf > 0 ? 'fade' : 'cut'
-      const out = `[j${i}]`
-      if (kind === 'cut') {
-        filters.push(`${last}[v${i}]concat=n=2:v=1:a=0${out}`)
-        total += durs[i]!
-      } else {
-        const d = Math.max(0.1, Math.min(shots[i]!.transitionSec ?? (kind === 'fade' && cf > 0 ? cf : 0.3), durs[i]! - 0.05, total - 0.05))
-        filters.push(`${last}[v${i}]xfade=transition=${kind}:duration=${d.toFixed(3)}:offset=${(total - d).toFixed(3)}${out}`)
-        total += durs[i]! - d
-      }
-      last = out
+    // Join shots. The server's ffmpeg (@ffmpeg-installer, 4.1) has no xfade (2026-10-30: "No such
+    // filter: 'xfade'"), so transitions are built from 4.1 filters: each transition becomes its own short
+    // segment (tail of the previous shot + head of the next, composited with overlay/fade), and every
+    // piece is joined with one concat. Total length = shots minus overlaps, same as a crossfade.
+    const n = shots.length
+    const kinds: ProductTransition[] = shots.map((sh, i) => {
+      if (i === 0) return 'cut'
+      const asked = sh.transition
+      return asked && TRANSITIONS.has(asked) ? asked : cf > 0 ? 'fade' : 'cut'
+    })
+    const tlen: number[] = shots.map((sh, i) => {
+      if (i === 0 || kinds[i] === 'cut') return 0
+      const want = sh.transitionSec ?? (kinds[i] === 'fade' && cf > 0 ? cf : 0.3)
+      return Math.max(0.1, Math.min(want, durs[i - 1]! * 0.45, durs[i]! * 0.45))
+    })
+    // How many times each shot is used: body, + tail if the next shot transitions in, + head if it transitions in.
+    for (let i = 0; i < n; i++) {
+      const outs = [`[b${i}]`]
+      if (tlen[i]! > 0) outs.push(`[h${i}]`)
+      if (i + 1 < n && tlen[i + 1]! > 0) outs.push(`[t${i}]`)
+      if (outs.length === 1) filters.push(`[v${i}]null[b${i}raw]`)
+      else filters.push(`[v${i}]split=${outs.length}${outs.map(o => o === `[b${i}]` ? `[b${i}raw]` : o.replace(']', 'raw]')).join('')}`)
+      const head = tlen[i]!
+      const tail = i + 1 < n ? tlen[i + 1]! : 0
+      const trim = (from: number, to: number) => `trim=start=${from.toFixed(3)}:end=${to.toFixed(3)},setpts=PTS-STARTPTS,settb=AVTB`
+      filters.push(`[b${i}raw]${trim(head, durs[i]! - tail)}[b${i}]`)
+      if (head > 0) filters.push(`[h${i}raw]${trim(0, head)}[h${i}]`)
+      if (tail > 0) filters.push(`[t${i}raw]${trim(durs[i]! - tail, durs[i]!)}[t${i}]`)
     }
+    const segs: string[] = []
+    let total = 0
+    for (let i = 0; i < n; i++) {
+      const T = tlen[i]!
+      if (T > 0) {
+        const A = `[t${i - 1}]`
+        const B = `[h${i}]`
+        const out = `[x${i}]`
+        const e = `(clip(t/${T.toFixed(3)},0,1)*clip(t/${T.toFixed(3)},0,1)*(3-2*clip(t/${T.toFixed(3)},0,1)))`
+        const k = kinds[i]!
+        const slide = /^(slide|smooth)(up|down|left|right)$/.exec(k)
+        if (slide) {
+          const dir = slide[2]!
+          const canvas = `[cv${i}]`
+          filters.push(`color=c=black:s=${W}x${H}:r=30:d=${T.toFixed(3)},format=yuv420p,settb=AVTB${canvas}`)
+          const ax = dir === 'left' ? `-W*${e}` : dir === 'right' ? `W*${e}` : '0'
+          const ay = dir === 'up' ? `-H*${e}` : dir === 'down' ? `H*${e}` : '0'
+          const bx = dir === 'left' ? `W*(1-${e})` : dir === 'right' ? `-W*(1-${e})` : '0'
+          const by = dir === 'up' ? `H*(1-${e})` : dir === 'down' ? `-H*(1-${e})` : '0'
+          filters.push(`${canvas}${A}overlay=x='${ax}':y='${ay}':eof_action=pass[ca${i}]`)
+          filters.push(`[ca${i}]${B}overlay=x='${bx}':y='${by}':eof_action=pass,format=yuv420p,settb=AVTB${out}`)
+        } else if (k === 'fadewhite') {
+          const half = (T / 2).toFixed(3)
+          filters.push(`${A}fade=t=out:st=0:d=${half}:color=white[fa${i}]`)
+          filters.push(`${B}fade=t=in:st=${half}:d=${half}:color=white[fb${i}]`)
+          filters.push(`[fa${i}][fb${i}]overlay=enable='gte(t,${half})':eof_action=pass,format=yuv420p,settb=AVTB${out}`)
+        } else {
+          // fade (and zoomin, which 4.1 can't do cleanly): crossfade B over A.
+          filters.push(`${B}format=yuva420p,fade=t=in:st=0:d=${T.toFixed(3)}:alpha=1[fb${i}]`)
+          filters.push(`${A}[fb${i}]overlay=eof_action=pass,format=yuv420p,settb=AVTB${out}`)
+        }
+        segs.push(out)
+        total += T
+      }
+      segs.push(`[b${i}]`)
+      const tail = i + 1 < n ? tlen[i + 1]! : 0
+      total += durs[i]! - tlen[i]! - tail
+    }
+    filters.push(`${segs.join('')}concat=n=${segs.length}:v=1:a=0[cat]`)
+    let last = '[cat]'
 
     // Optional text: sans, centred, soft halo (same family as the Cinematic B-roll captions).
     const font = fontPath('sans').replace(/:/g, '\\:')
