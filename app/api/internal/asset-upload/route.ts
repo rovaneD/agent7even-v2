@@ -5,7 +5,7 @@ import { createPostAssetSignedUrl } from '@/lib/postAssets'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 
 const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.com', 'rovdurs@gmail.com'])
-const ALLOWED = new Set(['audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-m4a', 'image/png', 'image/jpeg'])
+const ALLOWED = new Set(['audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-m4a', 'image/png', 'image/jpeg', 'video/mp4', 'video/quicktime'])
 
 /**
  * Internal only: store a small reference file (a voice recording, a photo) for bake-off tests and
