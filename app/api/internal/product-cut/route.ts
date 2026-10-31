@@ -8,7 +8,7 @@ import { assembleProductCut, type ProductShot, type ProductTransition } from '@/
 
 /**
  * Internal (test accounts only): cut a Product ad from bake-off clips. No credits, no model calls.
- * Body { shots: [{ jobId | path | imagePath, from, to, zoom?, zoomSec? }], texts?: [{ text, start, end }], crossfade?, loop?, loopSec?, loopTransition? }.
+ * Body { shots: [{ jobId | path | imagePath | layers{background, items[{path,x,y,w,angle,at}]}, from, to, zoom?, zoomSec?, step?, hold?, frostSec?, frostHold? }], clicks?, texts?: [{ text, start, end }], crossfade?, loop?, loopSec?, loopTransition? }.
  * Returns signed URLs for the video and its poster.
  */
 export const maxDuration = 180
@@ -16,8 +16,15 @@ export const runtime = 'nodejs'
 
 const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.com', 'rovdurs@gmail.com'])
 
+type LayerItem = { path: string; x: number; y: number; w: number; angle?: number; at: number }
 type Body = {
-  shots?: Array<{ jobId?: string; path?: string; imagePath?: string; from: number; to: number; zoom?: number; zoomSec?: number; transition?: ProductTransition; transitionSec?: number }>
+  shots?: Array<{
+    jobId?: string; path?: string; imagePath?: string; from: number; to: number; zoom?: number; zoomSec?: number
+    transition?: ProductTransition; transitionSec?: number
+    step?: number; hold?: number; frostSec?: number; frostHold?: number
+    layers?: { background: string; items: LayerItem[] }
+  }>
+  clicks?: boolean
   texts?: Array<{ text: string; start: number; end: number }>
   crossfade?: number
   loop?: boolean
@@ -36,21 +43,43 @@ export async function POST(req: Request) {
 
   const cache = new Map<string, Buffer>()
   const shots: ProductShot[] = []
-  for (const s of list) {
-    const p = s.imagePath ?? s.path ?? (s.jobId ? `${profileId}/bakeoff-video-${s.jobId.replace(/[^a-zA-Z0-9-]/g, '')}.mp4` : null)
-    if (!p || !p.startsWith(`${profileId}/`)) return NextResponse.json({ error: 'bad_shot', path: p }, { status: 400 })
+  const load = async (p: string | null) => {
+    if (!p || !p.startsWith(`${profileId}/`)) return { error: NextResponse.json({ error: 'bad_shot', path: p }, { status: 400 }) }
     let v = cache.get(p) ?? null
     if (!v) {
       v = await downloadPostAsset(p)
-      if (!v) return NextResponse.json({ error: 'shot_not_found', path: p }, { status: 404 })
+      if (!v) return { error: NextResponse.json({ error: 'shot_not_found', path: p }, { status: 404 }) }
       cache.set(p, v)
     }
-    shots.push({ ...(s.imagePath ? { image: v } : { video: v }), from: Number(s.from), to: Number(s.to), zoom: s.zoom != null ? Number(s.zoom) : undefined, zoomSec: s.zoomSec != null ? Number(s.zoomSec) : undefined, transition: s.transition, transitionSec: s.transitionSec != null ? Number(s.transitionSec) : undefined })
+    return { buf: v }
+  }
+  const num = (x: unknown) => (x != null ? Number(x) : undefined)
+  for (const s of list) {
+    const common = {
+      from: Number(s.from), to: Number(s.to), zoom: num(s.zoom), zoomSec: num(s.zoomSec),
+      transition: s.transition, transitionSec: num(s.transitionSec),
+      step: num(s.step), hold: num(s.hold), frostSec: num(s.frostSec), frostHold: num(s.frostHold),
+    }
+    if (s.layers) {
+      const bg = await load(s.layers.background)
+      if (bg.error) return bg.error
+      const items: NonNullable<ProductShot['layers']>['items'] = []
+      for (const it of (s.layers.items ?? []).slice(0, 16)) {
+        const r = await load(it.path)
+        if (r.error) return r.error
+        items.push({ image: r.buf!, x: Number(it.x), y: Number(it.y), w: Number(it.w), angle: num(it.angle), at: Number(it.at) })
+      }
+      shots.push({ ...common, layers: { background: bg.buf!, items } })
+      continue
+    }
+    const r = await load(s.imagePath ?? s.path ?? (s.jobId ? `${profileId}/bakeoff-video-${s.jobId.replace(/[^a-zA-Z0-9-]/g, '')}.mp4` : null))
+    if (r.error) return r.error
+    shots.push({ ...common, ...(s.imagePath ? { image: r.buf! } : { video: r.buf! }) })
   }
 
   const started = Date.now()
   try {
-    const out = await assembleProductCut({ shots, texts: body.texts, crossfade: body.crossfade, loop: body.loop, loopSec: body.loopSec, loopTransition: body.loopTransition })
+    const out = await assembleProductCut({ shots, clicks: body.clicks, texts: body.texts, crossfade: body.crossfade, loop: body.loop, loopSec: body.loopSec, loopTransition: body.loopTransition })
     const stamp = Date.now()
     const path = `${profileId}/product-cut-${stamp}.mp4`
     const { error } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(path, out.video, { contentType: 'video/mp4', upsert: true })
