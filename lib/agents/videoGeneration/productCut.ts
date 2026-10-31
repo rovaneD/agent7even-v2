@@ -75,7 +75,7 @@ export type ProductCutInput = {
   /**
    * Creative route: end by pushing back to the opening frame so the video loops seamlessly when the
    * platform replays it. Adds the first `loopSec` (default 0.6s) of shot 1 at the end, entering with
-   * `loopTransition` (default slideup).
+   * `loopTransition` (default: hard cut; owner 2026-10-30: no slide transitions).
    */
   loop?: boolean
   loopSec?: number
@@ -96,7 +96,7 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
     const first = shots[0]!
     const len = Math.max(0.4, input.loopSec ?? 0.6)
     // Same frames as the opening (zoom restarts from 1x, so the last frame matches the first).
-    shots.push({ ...first, to: first.from + len, zoom: 0, transition: input.loopTransition ?? 'slideup', transitionSec: 0.35 })
+    shots.push({ ...first, to: first.from + len, zoom: 0, transition: input.loopTransition ?? 'cut', transitionSec: 0.35 })
   }
   const W = input.width ?? 1080
   const H = input.height ?? 1920
