@@ -30,14 +30,35 @@ export type ProductShot = {
    */
   zoom?: number
   zoomSec?: number
+  /**
+   * How this shot enters from the previous one. Default: the cut-wide setting (hard cut, or the
+   * crossfade). Slides/pushes are for the creative route (owner reference 2026-10-30: Cyklar reel ends
+   * by pushing back to the opening shot). Any ffmpeg xfade transition name works.
+   */
+  transition?: ProductTransition
+  transitionSec?: number
 }
+
+export type ProductTransition =
+  | 'cut' | 'fade' | 'slideup' | 'slidedown' | 'slideleft' | 'slideright'
+  | 'smoothup' | 'smoothdown' | 'smoothleft' | 'smoothright' | 'zoomin' | 'fadewhite'
 export type ProductText = { text: string; start: number; end: number }
+const TRANSITIONS = new Set<ProductTransition>(['cut', 'fade', 'slideup', 'slidedown', 'slideleft', 'slideright', 'smoothup', 'smoothdown', 'smoothleft', 'smoothright', 'zoomin', 'fadewhite'])
+
 export type ProductCutInput = {
   shots: ProductShot[]
   /** Optional on-screen text, on the output timeline (seconds). Off unless the user turns it on. */
   texts?: ProductText[]
   /** 0 = hard cuts (default, like the reference). >0 = crossfade seconds between shots. */
   crossfade?: number
+  /**
+   * Creative route: end by pushing back to the opening frame so the video loops seamlessly when the
+   * platform replays it. Adds the first `loopSec` (default 0.6s) of shot 1 at the end, entering with
+   * `loopTransition` (default slideup).
+   */
+  loop?: boolean
+  loopSec?: number
+  loopTransition?: ProductTransition
   width?: number
   height?: number
 }
@@ -45,6 +66,12 @@ export type ProductCutInput = {
 export async function assembleProductCut(input: ProductCutInput): Promise<{ video: Buffer; durationSec: number }> {
   const shots = input.shots.filter(s => s.to - s.from >= 0.3)
   if (!shots.length) throw new Error('no shots')
+  if (input.loop) {
+    const first = shots[0]!
+    const len = Math.max(0.4, input.loopSec ?? 0.6)
+    // Same frames as the opening (zoom restarts from 1x, so the last frame matches the first).
+    shots.push({ ...first, to: first.from + len, zoom: 0, transition: input.loopTransition ?? 'slideup', transitionSec: 0.35 })
+  }
   const W = input.width ?? 1080
   const H = input.height ?? 1920
   const cf = Math.max(0, Math.min(0.4, input.crossfade ?? 0))
@@ -73,25 +100,25 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
         ? `,scale=${W * 2}:${H * 2}:flags=lanczos,zoompan=z='1+${z.toFixed(3)}*(1-pow(1-min(1\\,on/${frames})\\,3))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${W}x${H}:fps=30`
         : ''
       filters.push(
-        `[${i}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=30,setsar=1${zoom},format=yuv420p,setpts=PTS-STARTPTS[v${i}]`,
+        `[${i}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=30,setsar=1${zoom},format=yuv420p,setpts=PTS-STARTPTS,settb=AVTB[v${i}]`,
       )
     }
-    let last: string
-    let total: number
-    if (cf > 0 && shots.length > 1) {
-      last = '[v0]'
-      let t = durs[0]!
-      for (let i = 1; i < shots.length; i++) {
-        const out = `[x${i}]`
-        filters.push(`${last}[v${i}]xfade=transition=fade:duration=${cf.toFixed(2)}:offset=${(t - cf).toFixed(3)}${out}`)
-        t += durs[i]! - cf
-        last = out
+    // Join shots pairwise: hard cut = concat; anything else = xfade (overlaps the two shots).
+    let last = '[v0]'
+    let total = durs[0]!
+    for (let i = 1; i < shots.length; i++) {
+      const asked = shots[i]!.transition
+      const kind: ProductTransition = asked && TRANSITIONS.has(asked) ? asked : cf > 0 ? 'fade' : 'cut'
+      const out = `[j${i}]`
+      if (kind === 'cut') {
+        filters.push(`${last}[v${i}]concat=n=2:v=1:a=0${out}`)
+        total += durs[i]!
+      } else {
+        const d = Math.max(0.1, Math.min(shots[i]!.transitionSec ?? (kind === 'fade' && cf > 0 ? cf : 0.3), durs[i]! - 0.05, total - 0.05))
+        filters.push(`${last}[v${i}]xfade=transition=${kind}:duration=${d.toFixed(3)}:offset=${(total - d).toFixed(3)}${out}`)
+        total += durs[i]! - d
       }
-      total = t
-    } else {
-      filters.push(`${shots.map((_, i) => `[v${i}]`).join('')}concat=n=${shots.length}:v=1:a=0[cat]`)
-      last = '[cat]'
-      total = durs.reduce((a, b) => a + b, 0)
+      last = out
     }
 
     // Optional text: sans, centred, soft halo (same family as the Cinematic B-roll captions).

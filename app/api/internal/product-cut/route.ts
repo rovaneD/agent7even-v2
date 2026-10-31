@@ -4,11 +4,11 @@ import { getWorkspaceAuthContext, workspaceDataUserId } from '@/lib/profiles/wor
 import { createPostAssetSignedUrl, downloadPostAsset } from '@/lib/postAssets'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { posterFrame } from '@/lib/agents/videoGeneration/assemble'
-import { assembleProductCut, type ProductShot } from '@/lib/agents/videoGeneration/productCut'
+import { assembleProductCut, type ProductShot, type ProductTransition } from '@/lib/agents/videoGeneration/productCut'
 
 /**
  * Internal (test accounts only): cut a Product ad from bake-off clips. No credits, no model calls.
- * Body { shots: [{ jobId | path | imagePath, from, to, zoom?, zoomSec? }], texts?: [{ text, start, end }], crossfade? }.
+ * Body { shots: [{ jobId | path | imagePath, from, to, zoom?, zoomSec? }], texts?: [{ text, start, end }], crossfade?, loop?, loopSec?, loopTransition? }.
  * Returns signed URLs for the video and its poster.
  */
 export const maxDuration = 180
@@ -17,9 +17,12 @@ export const runtime = 'nodejs'
 const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.com', 'rovdurs@gmail.com'])
 
 type Body = {
-  shots?: Array<{ jobId?: string; path?: string; imagePath?: string; from: number; to: number; zoom?: number; zoomSec?: number }>
+  shots?: Array<{ jobId?: string; path?: string; imagePath?: string; from: number; to: number; zoom?: number; zoomSec?: number; transition?: ProductTransition; transitionSec?: number }>
   texts?: Array<{ text: string; start: number; end: number }>
   crossfade?: number
+  loop?: boolean
+  loopSec?: number
+  loopTransition?: ProductTransition
 }
 
 export async function POST(req: Request) {
@@ -42,12 +45,12 @@ export async function POST(req: Request) {
       if (!v) return NextResponse.json({ error: 'shot_not_found', path: p }, { status: 404 })
       cache.set(p, v)
     }
-    shots.push({ ...(s.imagePath ? { image: v } : { video: v }), from: Number(s.from), to: Number(s.to), zoom: s.zoom != null ? Number(s.zoom) : undefined, zoomSec: s.zoomSec != null ? Number(s.zoomSec) : undefined })
+    shots.push({ ...(s.imagePath ? { image: v } : { video: v }), from: Number(s.from), to: Number(s.to), zoom: s.zoom != null ? Number(s.zoom) : undefined, zoomSec: s.zoomSec != null ? Number(s.zoomSec) : undefined, transition: s.transition, transitionSec: s.transitionSec != null ? Number(s.transitionSec) : undefined })
   }
 
   const started = Date.now()
   try {
-    const out = await assembleProductCut({ shots, texts: body.texts, crossfade: body.crossfade })
+    const out = await assembleProductCut({ shots, texts: body.texts, crossfade: body.crossfade, loop: body.loop, loopSec: body.loopSec, loopTransition: body.loopTransition })
     const stamp = Date.now()
     const path = `${profileId}/product-cut-${stamp}.mp4`
     const { error } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(path, out.video, { contentType: 'video/mp4', upsert: true })
