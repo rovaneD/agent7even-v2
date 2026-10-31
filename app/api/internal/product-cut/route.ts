@@ -40,7 +40,7 @@ export async function POST(req: Request) {
   if (!ctx?.email || !INTERNAL_EMAILS.has(ctx.email.toLowerCase())) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   const profileId = workspaceDataUserId(ctx.session)
   const body = (await req.json().catch(() => ({}))) as Body
-  const list = (body.shots ?? []).slice(0, 24)
+  const list = (body.shots ?? []).slice(0, 80) // Signature edits run 30+ shots (owner edit: 33)
   if (!list.length) return NextResponse.json({ error: 'shots_required' }, { status: 400 })
 
   const cache = new Map<string, Buffer>()
