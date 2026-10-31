@@ -99,7 +99,7 @@ export type ProductCutInput = {
 }
 
 export async function assembleProductCut(input: ProductCutInput): Promise<{ video: Buffer; durationSec: number }> {
-  const shots = input.shots.filter(s => s.to - s.from >= 0.1)
+  const shots = input.shots.filter(s => s.to - s.from >= 0.04) // 1-frame (24fps) beats: owner edit uses 0.042s shots
   if (!shots.length) throw new Error('no shots')
   if (input.loop) {
     const first = shots[0]!
