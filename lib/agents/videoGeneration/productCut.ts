@@ -51,6 +51,8 @@ export type ProductShot = {
    */
   frostSec?: number
   frostHold?: number
+  /** Reverse frost: starts sharp, holds `frostHold`, then fogs over in `frostSec` (fog creeping in, Cyklar's way into a blur). */
+  frostOut?: boolean
   /**
    * Stop-motion build-up: a background with cut-out items (PNG with transparency, e.g. the user's own
    * product photos with the background removed, and props) that land one by one at `at` seconds into
@@ -90,7 +92,7 @@ export type ProductCutInput = {
 }
 
 export async function assembleProductCut(input: ProductCutInput): Promise<{ video: Buffer; durationSec: number }> {
-  const shots = input.shots.filter(s => s.to - s.from >= 0.2)
+  const shots = input.shots.filter(s => s.to - s.from >= 0.1)
   if (!shots.length) throw new Error('no shots')
   if (input.loop) {
     const first = shots[0]!
@@ -162,7 +164,7 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
       if (s.frostSec && s.frostSec > 0) {
         const fh = Math.max(0, s.frostHold ?? 0.3)
         filters.push(`${base},split[fa${i}][fz${i}]`)
-        filters.push(`[fz${i}]boxblur=26:3,lutyuv=y='val*0.5+118':u='(val-128)*0.5+128':v='(val-128)*0.5+128',format=yuva420p,fade=t=out:st=${fh.toFixed(3)}:d=${s.frostSec.toFixed(3)}:alpha=1[fc${i}]`)
+        filters.push(`[fz${i}]boxblur=26:3,lutyuv=y='val*0.5+118':u='(val-128)*0.5+128':v='(val-128)*0.5+128',format=yuva420p,fade=t=${s.frostOut ? 'in' : 'out'}:st=${fh.toFixed(3)}:d=${s.frostSec.toFixed(3)}:alpha=1[fc${i}]`)
         filters.push(`[fa${i}][fc${i}]overlay=eof_action=pass,format=yuv420p,setpts=N/30/TB,settb=AVTB[v${i}]`)
       } else {
         filters.push(`${base}[v${i}]`)

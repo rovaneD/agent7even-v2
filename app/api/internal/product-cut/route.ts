@@ -21,7 +21,7 @@ type Body = {
   shots?: Array<{
     jobId?: string; path?: string; imagePath?: string; from: number; to: number; zoom?: number; zoomSec?: number
     transition?: ProductTransition; transitionSec?: number
-    step?: number; hold?: number; frostSec?: number; frostHold?: number
+    step?: number; hold?: number; frostSec?: number; frostHold?: number; frostOut?: boolean
     layers?: { background: string; items: LayerItem[] }
   }>
   clicks?: boolean
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     const common = {
       from: Number(s.from), to: Number(s.to), zoom: num(s.zoom), zoomSec: num(s.zoomSec),
       transition: s.transition, transitionSec: num(s.transitionSec),
-      step: num(s.step), hold: num(s.hold), frostSec: num(s.frostSec), frostHold: num(s.frostHold),
+      step: num(s.step), hold: num(s.hold), frostSec: num(s.frostSec), frostHold: num(s.frostHold), frostOut: s.frostOut === true,
     }
     if (s.layers) {
       const bg = await load(s.layers.background)
