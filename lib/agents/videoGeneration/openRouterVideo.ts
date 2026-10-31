@@ -37,6 +37,13 @@ export async function submitVideoJob(opts: {
    * audio reference shape is not documented by OpenRouter yet, so callers pass the exact object.
    */
   extraReferences?: Record<string, unknown>[]
+  /**
+   * First/last frame control (OpenRouter `frame_images`; Kling 3.0 Pro supports both). With both set,
+   * the model only fills in the motion between two approved images, so it can't invent a label
+   * (2026-10-30: a reveal from a hidden label made one up). Sent instead of input_references.
+   */
+  firstFrameUrl?: string
+  lastFrameUrl?: string
 }): Promise<VideoJobSubmitResult> {
   const body: Record<string, unknown> = {
     model: opts.model,
@@ -50,7 +57,11 @@ export async function submitVideoJob(opts: {
   }
   const refs: Record<string, unknown>[] = (opts.referenceUrls ?? []).map(url => ({ type: 'image_url', image_url: { url } }))
   if (opts.extraReferences?.length) refs.push(...opts.extraReferences)
-  if (refs.length) body.input_references = refs
+  const frames: Record<string, unknown>[] = []
+  if (opts.firstFrameUrl) frames.push({ type: 'image_url', image_url: { url: opts.firstFrameUrl }, frame_type: 'first_frame' })
+  if (opts.lastFrameUrl) frames.push({ type: 'image_url', image_url: { url: opts.lastFrameUrl }, frame_type: 'last_frame' })
+  if (frames.length) body.frame_images = frames
+  if (refs.length && !frames.length) body.input_references = refs
   if (opts.generateAudio !== undefined) body.generate_audio = opts.generateAudio
   if (opts.resolution) body.resolution = opts.resolution
 
