@@ -137,3 +137,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err instanceof Error ? err.message.slice(-1200) : String(err) }, { status: 500 })
   }
 }
+
+/**
+ * GET ?path=<profileId>/product-cut-*.mp4 → fresh signed URL for an earlier cut. Long cuts (30+ shots
+ * with 1080p clips) can finish after the gateway gives up on the POST (~90s); the file is still saved.
+ */
+export async function GET(req: Request) {
+  const supabase = createServiceClient()
+  const ctx = await getWorkspaceAuthContext(supabase)
+  if (!ctx?.email || !INTERNAL_EMAILS.has(ctx.email.toLowerCase())) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  const profileId = workspaceDataUserId(ctx.session)
+  const p = new URL(req.url).searchParams.get('path') ?? ''
+  if (!p.startsWith(`${profileId}/product-cut-`) || p.includes('..')) return NextResponse.json({ error: 'bad_path' }, { status: 400 })
+  return NextResponse.json({ path: p, url: await createPostAssetSignedUrl(p, 60 * 60 * 24) })
+}
