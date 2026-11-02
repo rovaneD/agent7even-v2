@@ -65,6 +65,8 @@ export type ProductShot = {
    * item gets a soft drop shadow, and a click when clicks are on.
    */
   layers?: { background: Buffer; items: Array<{ image: Buffer; x: number; y: number; w: number; angle?: number; at: number }> }
+  /** false = no click on the cut into this shot (Signature: clicks only in the bursts). */
+  click?: boolean
 }
 
 export type ProductTransition =
@@ -225,7 +227,7 @@ export async function assembleProductCut(input: ProductCutInput): Promise<{ vide
     for (let i = 0; i < n; i++) {
       const T = tlen[i]!
       // Shot i is visible from `total` (start of its transition, or its cut).
-      if (i > 0) clickTimes.push(total + T * 0.5)
+      if (i > 0 && shots[i]!.click !== false) clickTimes.push(total + T * 0.5)
       for (const c of shotClicks[i]!) clickTimes.push(total + c)
       if (T > 0) {
         const A = `[t${i - 1}]`
