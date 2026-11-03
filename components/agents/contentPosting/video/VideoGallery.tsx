@@ -7,6 +7,7 @@ import PlatformBrandIcon from '@/components/agents/contentPosting/PlatformBrandI
 import { contentPostingModeHref, resolveVideoFormat } from '@/lib/agents/contentPosting/platformFormats'
 import { VIDEO_TYPES, type VideoTypeId } from '@/lib/agents/contentPosting/videoTypes'
 import VideoCreatePanel from './VideoCreatePanel'
+import ProductAdPanel from './ProductAdPanel'
 import CreatorsSheet, { readSavedCreator, saveCreator } from './CreatorsSheet'
 import { VIDEO_TYPE_ICONS, VideoTypePoster } from './videoTypeVisuals'
 
@@ -129,7 +130,10 @@ export default function VideoGallery({ formatId }: Props) {
         }}
       />
 
-      {openId && (
+      {openId === 'product_ad' && (
+        <ProductAdPanel key={openId} onClose={() => setOpenId(null)} onSwitch={setOpenId} />
+      )}
+      {openId && openId !== 'product_ad' && (
         <VideoCreatePanel
           key={openId}
           typeId={openId}

@@ -10,6 +10,7 @@
 export type VideoTypeId =
   | 'presenter_tip'
   | 'cinematic_broll'
+  | 'product_ad'
   | 'product_showcase'
   | 'editorial_explainer'
   | 'animated_post'
@@ -121,6 +122,26 @@ export const VIDEO_TYPES: VideoTypeSpec[] = [
     examplePath: 'bfa73081-3906-4b5b-b24e-d9df3fb07384/assembled-gen-vid-1792883467-QG8Ee9aaTTDGEuqfuXFe-1792883715266.mp4',
     exampleCreator: 'June',
     planPreview: 'Script, which lines are on camera, and each B-roll shot.',
+  },
+  {
+    // Product ad (no person), owner 2026-10-30..11-02: the user's own product photos -> stills to review
+    // -> label-free clips + wet glass -> the owner's Signature edit. Own panel (ProductAdPanel).
+    id: 'product_ad',
+    name: 'Product ad',
+    tagline: 'Your product photos turned into a fast, sensorial product reel. No person, no voice.',
+    tag: 'Product',
+    presenter: false,
+    fields: [],
+    lengths: [10],
+    defaultLength: 10,
+    captionsDefault: 'off',
+    minutes: 10,
+    poster: ['#3a2a1a', '#120c06'],
+    exampleUrl: null,
+    // Being Frens Signature (owner's own product shots, rights confirmed 2026-10-30), silent: the owner's
+    // Resolve cut rebuilt by the engine.
+    examplePath: 'bfa73081-3906-4b5b-b24e-d9df3fb07384/product-cut-1793685271232.mp4',
+    planPreview: 'The stills for each shot, to check before anything is filmed.',
   },
   {
     id: 'product_showcase',
