@@ -109,6 +109,8 @@ export type SignatureAsset<R> = {
    * owner's cut). Then the template adds no zoom/frost of its own.
    */
   baked?: boolean
+  /** A wet-glass clip (frost role): the reveal holds on it, then hard cuts to the sharp hero. */
+  wetGlass?: boolean
 }
 export type SignatureAssets<R> = Partial<Record<SignatureRole, SignatureAsset<R> | SignatureAsset<R>[]>>
 
@@ -134,7 +136,7 @@ export function planSignature<R>(assets: SignatureAssets<R>): SignaturePlanShot<
   const takesWanted = new Map<SignatureRole, number>()
   for (const s of SIGNATURE_SLOTS) takesWanted.set(s.role, Math.max(takesWanted.get(s.role) ?? 0, s.take + 1))
 
-  return SIGNATURE_SLOTS.map((slot): SignaturePlanShot<R> => {
+  const shots = SIGNATURE_SLOTS.map((slot): SignaturePlanShot<R> => {
     const len = slot.frames / 24
     const [role, list] = resolve(slot.role)
     // Moments: every explicit take of every asset, in order; assets without takes count once per wanted take.
@@ -168,4 +170,31 @@ export function planSignature<R>(assets: SignatureAssets<R>): SignaturePlanShot<
     }
     return shot
   })
+  return applyWetGlassReveal(shots, lists)
+}
+
+/**
+ * Owner 2026-11-02: when the product has a wet-glass clip (role `frost`: the product behind a pane of
+ * glass with water running down, made from the approved still with first+last frame locked), the
+ * reveal breath holds on it so the drips can be seen, then HARD CUTS to the sharp hero (he picked the
+ * hard cut over a 0.3s dissolve). 33 frames -> 22 frames wet glass + 11 frames sharp hero.
+ */
+function applyWetGlassReveal<R>(shots: SignaturePlanShot<R>[], lists: Map<SignatureRole, SignatureAsset<R>[]>): SignaturePlanShot<R>[] {
+  const wet = lists.get('frost')?.find(a => a.kind === 'video' && a.wetGlass)
+  const hero = lists.get('hero')?.[0] ?? lists.get('hero2')?.[0]
+  const i = SIGNATURE_SLOTS.findIndex(s => s.role === 'reveal')
+  if (!wet || !hero || i < 0) return shots
+  const total = SIGNATURE_SLOTS[i]!.frames
+  const wetF = Math.round(total * 2 / 3)
+  const dur = wet.duration ?? 3
+  const wetLen = wetF / 24
+  const from = Math.max(0, Math.min(0.9, dur - wetLen))
+  const heroLen = (total - wetF) / 24
+  const heroFrom = hero.kind === 'video' ? Math.min(MIN_IN, Math.max(0, (hero.duration ?? 5) - heroLen)) : 0
+  const out = shots.slice()
+  out.splice(i, 1,
+    { ref: wet.ref, kind: 'video', role: 'frost', click: false, from: Number(from.toFixed(4)), to: Number((from + wetLen).toFixed(4)) },
+    { ref: hero.ref, kind: hero.kind, role: 'hero', click: false, from: heroFrom, to: Number((heroFrom + heroLen).toFixed(4)) },
+  )
+  return out
 }

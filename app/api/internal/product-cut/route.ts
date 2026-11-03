@@ -20,7 +20,7 @@ export const runtime = 'nodejs'
 const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.com', 'rovdurs@gmail.com'])
 
 type LayerItem = { path: string; x: number; y: number; w: number; angle?: number; at: number }
-type AssetIn = { path: string; duration?: number; takes?: number[]; baked?: boolean }
+type AssetIn = { path: string; duration?: number; takes?: number[]; baked?: boolean; wetGlass?: boolean }
 type Body = {
   template?: 'signature'
   assets?: Partial<Record<SignatureRole, AssetIn | AssetIn[]>>
@@ -57,6 +57,7 @@ export async function POST(req: Request) {
         duration: a.duration != null ? Number(a.duration) : undefined,
         takes: Array.isArray(a.takes) ? a.takes.map(Number).filter(Number.isFinite) : undefined,
         baked: a.baked === true,
+        wetGlass: a.wetGlass === true,
       }))
     }
     try { plan = planSignature(assets) } catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : 'bad_assets' }, { status: 400 }) }
