@@ -35,6 +35,7 @@ type Body = {
   taskId?: string
   option?: ProductAdOption
   productName?: string
+  leadProduct?: string
   details?: string
   photos?: string[]
   title?: string
@@ -164,6 +165,7 @@ export async function POST(req: Request) {
     option,
     productName,
     details: clean(body.details, 400),
+    leadProduct: clean(body.leadProduct, 120) || undefined,
     photos,
     stills: {},
     redosLeft: PRODUCT_AD_REDOS,
@@ -198,7 +200,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: insufficient ? 'insufficient_credits' : 'charge_failed', message: 'Could not start. Nothing was charged.' }, { status: insufficient ? 402 : 500 })
   }
   try {
-    const keys = stillKeysFor(photos.length).filter(k => k !== 'wetGlass')
+    const keys = stillKeysFor(photos.length, !!input.leadProduct).filter(k => k !== 'wetGlass')
     const made = await Promise.all(keys.map(k => makeStillFor(supabase, input, k)))
     const next: ProductAdTaskInput = { ...input, stills: Object.fromEntries(keys.map((k, i) => [k, made[i]!])) }
     // The wet glass is made from the hero still so the product and framing match exactly.

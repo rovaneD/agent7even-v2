@@ -33,6 +33,7 @@ async function requestImageGeneration(
   content: ImageContentPart[] | string,
   aspectRatio: ImageAspectRatio = '4:5',
   modalitiesOverride?: string[],
+  imageSize: '1K' | '2K' | '4K' = '1K',
 ): Promise<Buffer> {
   const modalities = modalitiesOverride ?? (model.startsWith('recraft/') || model.includes('flux')
     ? ['image']
@@ -45,7 +46,7 @@ async function requestImageGeneration(
     stream: false,
     image_config: {
       aspect_ratio: aspectRatio,
-      image_size: '1K',
+      image_size: imageSize,
     },
   }
 
@@ -179,13 +180,15 @@ export async function generateImageForComparison(
   prompt: string,
   aspectRatio: ImageAspectRatio = '4:5',
   referenceUrls: string[] = [],
+  /** '2K' for product stills: small label print garbled at 1K (Allies of Skin test, 2026-11-03). */
+  imageSize: '1K' | '2K' = '1K',
 ): Promise<{ bytes: Buffer; costUsd: number | null; route: 'chat' | 'images' }> {
   const chatFirst = model.startsWith('google/')
   const content: ImageContentPart[] | string = referenceUrls.length > 0
     ? [...referenceUrls.map(url => ({ type: 'image_url' as const, image_url: { url } })), { type: 'text' as const, text: prompt }]
     : prompt
-  const viaChat = async () => ({ bytes: await requestImageGeneration(model, content, aspectRatio), costUsd: null, route: 'chat' as const })
-  const viaImages = async () => ({ ...(await requestImagesEndpoint(model, prompt, aspectRatio, referenceUrls)), route: 'images' as const })
+  const viaChat = async () => ({ bytes: await requestImageGeneration(model, content, aspectRatio, undefined, imageSize), costUsd: null, route: 'chat' as const })
+  const viaImages = async () => ({ ...(await requestImagesEndpoint(model, prompt, aspectRatio, referenceUrls, imageSize)), route: 'images' as const })
   try {
     return chatFirst ? await viaChat() : await viaImages()
   } catch (first) {

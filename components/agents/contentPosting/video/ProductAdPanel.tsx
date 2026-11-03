@@ -49,6 +49,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
   const [uploading, setUploading] = useState(false)
   const [name, setName] = useState('')
   const [details, setDetails] = useState('')
+  const [leadProduct, setLeadProduct] = useState('')
   const [stills, setStills] = useState<{ taskId: string; urls: Partial<Record<StillKey, string | null>>; redosLeft: number } | null>(null)
   const [busy, setBusy] = useState<null | 'all' | StillKey>(null)
   const [job, setJob] = useState<Job | null>(null)
@@ -96,7 +97,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
       const r = await fetch('/api/posts/video-product', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'stills', option, productName: name, details, photos: photos.map(p => p.path) }),
+        body: JSON.stringify({ action: 'stills', option, productName: name, details, leadProduct, photos: photos.map(p => p.path) }),
       })
       const d = (await r.json().catch(() => ({}))) as { taskId?: string; stills?: Partial<Record<StillKey, string | null>>; redosLeft?: number; message?: string }
       if (!r.ok || !d.taskId || !d.stills) throw new Error(d.message ?? 'The stills could not be made.')
@@ -269,6 +270,10 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                 <div>
                   <p className="mb-1.5 text-[12.5px] font-medium text-[#C9CBD1]">What is it?</p>
                   <input value={name} disabled={!!stills} onChange={e => setName(e.target.value)} placeholder="e.g. Milky body lotion" className={fieldClass} />
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[12.5px] font-medium text-[#C9CBD1]">Lead product (if there are several)</p>
+                  <input value={leadProduct} disabled={!!stills} onChange={e => setLeadProduct(e.target.value)} placeholder="e.g. the vitamin C serum. It gets the label shot and the wet-glass reveal." className={fieldClass} />
                 </div>
                 <div>
                   <p className="mb-1.5 text-[12.5px] font-medium text-[#C9CBD1]">Texture and ingredients (optional)</p>
