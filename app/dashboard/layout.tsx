@@ -6,6 +6,7 @@ import { loadDashboardSession } from '@/lib/profiles/getDashboardWorkspaceContex
 import { getPendingApprovalCount } from '@/lib/agents/pendingApprovals'
 import { getTeamPermissions } from '@/lib/teamPermissions'
 import DashboardShell from './DashboardShell'
+import ResumeProductAdJobs from '@/components/agents/contentPosting/video/ResumeProductAdJobs'
 
 export default async function DashboardLayout({
   children,
@@ -96,6 +97,7 @@ export default async function DashboardLayout({
         isAdmin={['admin', 'owner'].includes(profile?.role ?? '')}
         teamPermissions={teamPermissions}
       >
+        {profileId ? <ResumeProductAdJobs /> : null}
         {children}
       </DashboardShell>
     </>

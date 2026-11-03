@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Clock, Download, ImagePlus, Loader2, RotateCcw, X } from 'lucide-react'
 import { VIDEO_TYPES, videoTypeById, type VideoTypeId } from '@/lib/agents/contentPosting/videoTypes'
 import { VIDEO_TYPE_ICONS, VideoTypePoster, useExampleUrl } from './videoTypeVisuals'
@@ -54,6 +54,8 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
   const [job, setJob] = useState<Job | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<StillKey>('hero')
+  const stillsLock = useRef(false)
+  const createLock = useRef(false)
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -88,8 +90,10 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
   }
 
   async function makeStills() {
+    if (stillsLock.current) return
     if (!photos.length) return setError('Add at least one photo of your product.')
     if (!name.trim()) return setError('Say what the product is.')
+    stillsLock.current = true
     setError(null)
     setBusy('all')
     try {
@@ -105,6 +109,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The stills could not be made.')
     } finally {
+      stillsLock.current = false
       setBusy(null)
     }
   }
@@ -131,7 +136,8 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
   }
 
   async function create() {
-    if (!stills) return
+    if (!stills || createLock.current) return
+    createLock.current = true
     setError(null)
     setJob({ taskId: stills.taskId, status: 'starting' })
     try {
@@ -144,6 +150,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
       if (!r.ok || !d.taskId) throw new Error(d.message ?? 'The video could not be started.')
       setJob({ taskId: d.taskId, status: 'rendering' })
     } catch (e) {
+      createLock.current = false
       setJob(null)
       setError(e instanceof Error ? e.message : 'The video could not be started.')
     }
