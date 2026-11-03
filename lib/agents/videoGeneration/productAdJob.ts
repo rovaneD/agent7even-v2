@@ -47,11 +47,52 @@ export type ProductAdTaskInput = {
   photos: string[]
   stills: Partial<Record<ProductStillKey, string>>
   redosLeft: number
-  stage: 'stills' | 'review' | 'rendering' | 'editing' | 'done'
+  stage: 'stills' | 'review' | 'starting' | 'rendering' | 'editing' | 'done'
   jobs?: { wetGlass?: string; texture?: string; apply?: string }
   title: string
   caption?: string
+  /** Set when `review` is claimed for filming, before the provider jobs exist. */
+  startingSince?: string
   editingSince?: string
+}
+
+/**
+ * Filming is claimed inside the request that charges the customer (maxDuration 300s). A task still
+ * on `starting` with no provider job after this is a dead request: the process was killed and its
+ * catch block never refunded. Polling must fail it once, not spin.
+ */
+export const PRODUCT_AD_START_ABANDON_MS = 10 * 60 * 1000
+
+/** Stages a dashboard poll must keep moving. `review` waits for the user. */
+export const PRODUCT_AD_POLL_STAGES = ['starting', 'rendering', 'editing'] as const
+
+export function productAdStartAbandoned(
+  startingSince: string | null | undefined,
+  now = Date.now(),
+): boolean {
+  if (!startingSince) return false
+  const t = Date.parse(startingSince)
+  if (!Number.isFinite(t)) return false
+  return now - t >= PRODUCT_AD_START_ABANDON_MS
+}
+
+/**
+ * One poller refunds a running product ad. The panel and every dashboard page can observe the same
+ * failure. The status claim makes the second caller a no-op so the ledger is not refunded twice.
+ */
+export async function claimFailedProductAd(
+  supabase: Supabase,
+  taskId: string,
+  userId: string | null | undefined,
+): Promise<void> {
+  const { data } = await supabase
+    .from('agent_tasks')
+    .update({ status: 'failed', completed_at: new Date().toISOString() })
+    .eq('id', taskId)
+    .eq('status', 'running')
+    .select('id')
+  if (!data?.length) return
+  await failVideoTask(supabase, taskId, userId)
 }
 
 const KEEP_PRODUCT =
@@ -172,30 +213,40 @@ export async function advanceProductAdTask(
   if (task.status === 'failed') return { status: 'failed' }
   const input = task.input as ProductAdTaskInput
   if (input.stage === 'stills' || input.stage === 'review') return { status: 'review' }
+  if (input.stage === 'starting') {
+    if (!input.jobs?.wetGlass && productAdStartAbandoned(input.startingSince)) {
+      await claimFailedProductAd(supabase, task.id, task.user_id)
+      return { status: 'failed' }
+    }
+    return { status: 'rendering' }
+  }
   if (input.stage === 'editing') {
     const since = input.editingSince ? Date.parse(input.editingSince) : 0
     if (Date.now() - since < 6 * 60_000) return { status: 'editing' }
   }
   const ids = [input.jobs?.wetGlass, input.jobs?.texture, input.jobs?.apply]
   if (ids.some(id => !id)) {
-    await failVideoTask(supabase, task.id, task.user_id)
+    await claimFailedProductAd(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
   const polls = await Promise.all(ids.map(id => pollVideoJob(id!)))
   if (polls.some(p => p.status === 'failed')) {
-    await failVideoTask(supabase, task.id, task.user_id)
+    await claimFailedProductAd(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
   if (polls.some(p => p.status !== 'completed')) return { status: 'rendering' }
 
   const claimed = { ...input, stage: 'editing' as const, editingSince: new Date().toISOString() }
-  const { data: won } = await supabase
+  const claimQuery = supabase
     .from('agent_tasks')
     .update({ input: claimed })
     .eq('id', task.id)
     .eq('status', 'running')
     .eq('input->>stage', input.stage)
-    .select('id')
+  const { data: won } = await (input.stage === 'editing' && input.editingSince
+    ? claimQuery.eq('input->>editingSince', input.editingSince)
+    : claimQuery
+  ).select('id')
   if (!won?.length) return { status: 'editing' }
 
   try {
@@ -267,7 +318,7 @@ export async function advanceProductAdTask(
     return { status: 'completed' }
   } catch (err) {
     console.error('[product-ad] edit failed', task.id, err instanceof Error ? err.message : err)
-    await failVideoTask(supabase, task.id, task.user_id)
+    await claimFailedProductAd(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
 }

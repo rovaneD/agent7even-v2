@@ -12,10 +12,12 @@ import { failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
 import { presenterVideoUrl } from '@/lib/agents/videoGeneration/presenterJob'
 import {
   advanceProductAdTask,
+  claimFailedProductAd,
   CLIP_MODEL,
   makeStillFor,
   MOTION_PROMPTS,
   PRODUCT_AD_AGENT,
+  PRODUCT_AD_POLL_STAGES,
   PRODUCT_AD_READY_OPTIONS,
   PRODUCT_AD_REDOS,
   signedProductStills,
@@ -96,7 +98,19 @@ export async function POST(req: Request) {
         const next: ProductAdTaskInput = { ...input, stills: { ...input.stills } }
         next.stills[key] = await makeStillFor(supabase, next, key)
         next.redosLeft = input.redosLeft - 1
-        await supabase.from('agent_tasks').update({ input: next }).eq('id', task.id)
+        // Only while the user is still reviewing. A filming claim must not be overwritten with this
+        // stale review input (that drops the provider job ids after the credits are taken).
+        const { data: saved } = await supabase
+          .from('agent_tasks')
+          .update({ input: next })
+          .eq('id', task.id)
+          .eq('user_id', workspaceId)
+          .eq('status', 'running')
+          .eq('input->>stage', 'review')
+          .select('id')
+        if (!saved?.length) {
+          return NextResponse.json({ error: 'wrong_stage', message: 'This video is already being made.' }, { status: 409 })
+        }
         return NextResponse.json({ taskId: task.id, stills: await signedProductStills(next.stills), redosLeft: next.redosLeft })
       } catch (err) {
         console.error('[video-product] redo failed', err instanceof Error ? err.message : err)
@@ -104,23 +118,50 @@ export async function POST(req: Request) {
       }
     }
 
-    // create
-    const actionType = `product_ad_${input.option}` as const
+    // create — claim review → starting before charging so a double-click cannot debit this task twice.
+    const { data: fresh } = await supabase
+      .from('agent_tasks')
+      .select('input')
+      .eq('id', task.id)
+      .eq('user_id', workspaceId)
+      .eq('status', 'running')
+      .eq('input->>stage', 'review')
+      .maybeSingle()
+    if (!fresh) return NextResponse.json({ error: 'wrong_stage', message: 'This video is already being made.' }, { status: 409 })
+    const freshInput = fresh.input as ProductAdTaskInput
+    const actionType = `product_ad_${freshInput.option}` as const
     const cost = ACTION_CREDIT_COST[actionType as keyof typeof ACTION_CREDIT_COST]
     if (cost == null) return NextResponse.json({ error: 'option_not_ready' }, { status: 422 })
+    const caption = body.caption !== undefined ? clean(body.caption, 2200) : freshInput.caption
+    const startingSince = new Date().toISOString()
+    const claimedInput: ProductAdTaskInput = { ...freshInput, caption, stage: 'starting', startingSince }
+    const { data: won } = await supabase
+      .from('agent_tasks')
+      .update({ action_type: actionType, input: claimedInput })
+      .eq('id', task.id)
+      .eq('user_id', workspaceId)
+      .eq('status', 'running')
+      .eq('input->>stage', 'review')
+      .select('id')
+    if (!won?.length) return NextResponse.json({ error: 'wrong_stage', message: 'This video is already being made.' }, { status: 409 })
     try {
-      await deductCredits(workspaceId, cost, `Video — Product ad (${input.option})`, task.id)
+      await deductCredits(workspaceId, cost, `Video — Product ad (${freshInput.option})`, task.id)
     } catch (err) {
+      await supabase
+        .from('agent_tasks')
+        .update({ action_type: 'product_ad_stills', input: freshInput })
+        .eq('id', task.id)
+        .eq('input->>stage', 'starting')
+        .eq('input->>startingSince', startingSince)
       const insufficient = err instanceof Error && err.message === 'INSUFFICIENT_CREDITS'
       return NextResponse.json(
         { error: insufficient ? 'insufficient_credits' : 'charge_failed', message: insufficient ? `Making the video uses ${cost} credits.` : 'Could not start the video. Nothing was charged.' },
         { status: insufficient ? 402 : 500 },
       )
     }
-    const caption = body.caption !== undefined ? clean(body.caption, 2200) : input.caption
     try {
       const [wetUrl, textureUrl, applyUrl] = await Promise.all(
-        [input.stills.wetGlass, input.stills.texture, input.stills.apply].map(p => (p ? createPostAssetSignedUrl(p, 60 * 60 * 6) : Promise.resolve(null))),
+        [claimedInput.stills.wetGlass, claimedInput.stills.texture, claimedInput.stills.apply].map(p => (p ? createPostAssetSignedUrl(p, 60 * 60 * 6) : Promise.resolve(null))),
       )
       if (!wetUrl || !textureUrl || !applyUrl) throw new Error('could not sign the stills')
       const [wetGlass, texture, apply] = await Promise.all([
@@ -129,14 +170,22 @@ export async function POST(req: Request) {
         submitVideoJob({ model: CLIP_MODEL, prompt: MOTION_PROMPTS.texture, aspectRatio: '9:16', duration: 5, resolution: '1080p', referenceUrls: [textureUrl], generateAudio: false }),
         submitVideoJob({ model: CLIP_MODEL, prompt: MOTION_PROMPTS.apply, aspectRatio: '9:16', duration: 5, resolution: '1080p', referenceUrls: [applyUrl], generateAudio: false }),
       ])
-      await supabase
+      const { data: rendering } = await supabase
         .from('agent_tasks')
-        .update({ action_type: actionType, input: { ...input, caption, stage: 'rendering', jobs: { wetGlass: wetGlass.id, texture: texture.id, apply: apply.id } } })
+        .update({
+          action_type: actionType,
+          input: { ...claimedInput, stage: 'rendering', jobs: { wetGlass: wetGlass.id, texture: texture.id, apply: apply.id } },
+        })
         .eq('id', task.id)
+        .eq('status', 'running')
+        .eq('input->>stage', 'starting')
+        .eq('input->>startingSince', startingSince)
+        .select('id')
+      if (!rendering?.length) throw new Error('filming claim was lost before the jobs were saved')
       return NextResponse.json({ taskId: task.id, status: 'rendering', credits: cost })
     } catch (err) {
       console.error('[video-product] create failed', task.id, err instanceof Error ? err.message : err)
-      await failVideoTask(supabase, task.id, workspaceId)
+      await claimFailedProductAd(supabase, task.id, workspaceId)
       return NextResponse.json({ error: 'start_failed', message: 'The video could not be started. Your credits were refunded.' }, { status: 502 })
     }
   }
@@ -226,7 +275,7 @@ export async function GET(req: Request) {
       .eq('user_id', ws.workspaceId)
       .eq('agent', PRODUCT_AD_AGENT)
       .eq('status', 'running')
-      .in('input->>stage', ['rendering', 'editing'])
+      .in('input->>stage', [...PRODUCT_AD_POLL_STAGES])
       .limit(5)
     const results = []
     for (const t of tasks ?? []) results.push({ taskId: t.id, ...(await advanceProductAdTask(supabase, t as never)) })
