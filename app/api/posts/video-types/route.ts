@@ -6,7 +6,8 @@ import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { VIDEO_TYPES } from '@/lib/agents/contentPosting/videoTypes'
 import { posterFrame, previewClip } from '@/lib/agents/videoGeneration/assemble'
 
-export const maxDuration = 60
+// The first visit after a new example makes its poster and preview (download + encode); later visits are fast.
+export const maxDuration = 300
 
 /** Make the example's still frame once (stored next to the clip), so tiles don't download the video. */
 async function ensurePoster(supabase: ReturnType<typeof createServiceClient>, videoPath: string): Promise<string | null> {
