@@ -24,6 +24,8 @@ const nextConfig: NextConfig = {
     '/api/posts/video-create': ['./node_modules/@ffmpeg-installer/linux-x64/**/*', './assets/fonts/**/*'],
     // Cinematic B-roll: voice join + final edit with B-roll cutaways.
     '/api/posts/video-broll': ['./node_modules/@ffmpeg-installer/linux-x64/**/*', './assets/fonts/**/*'],
+    // Product ad edit (Signature template): ffmpeg + fonts.
+    '/api/posts/video-product': ['./node_modules/@ffmpeg-installer/linux-x64/**/*', './assets/fonts/**/*'],
     '/api/internal/video-assemble': [
       './node_modules/@ffmpeg-installer/linux-x64/**/*',
       './assets/fonts/**/*',

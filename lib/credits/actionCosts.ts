@@ -15,6 +15,11 @@ export const ACTION_CREDIT_COST = {
   video_broll_stills: 5,
   video_broll_15: 40,
   video_broll_30: 75,
+  // Product ad (no person). PLACEHOLDER prices pending the owner's decision (2026-11-02). Charged in
+  // two parts like B-roll: stills to review, then the video. Provider cost ~$3.70 for Signature (~7
+  // stills + wet-glass clip + 2 texture clips).
+  product_ad_stills: 5,
+  product_ad_signature: 70,
   publish: 1,
   brandkit_gen: 1,
   foundation_gen: 0,
