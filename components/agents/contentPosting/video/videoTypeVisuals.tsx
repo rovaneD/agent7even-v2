@@ -16,27 +16,29 @@ export const VIDEO_TYPE_ICONS: Record<VideoTypeId, LucideIcon> = {
 }
 
 // Signed example clips + their poster frames, fetched once per page (GET /api/posts/video-types).
-type Examples = { examples: Record<string, string>; posters: Record<string, string> }
+type Examples = { examples: Record<string, string>; posters: Record<string, string>; previews: Record<string, string> }
 let examplesCache: Examples | null = null
 let examplesPromise: Promise<Examples> | null = null
 function loadExamples(): Promise<Examples> {
   if (examplesCache) return Promise.resolve(examplesCache)
   examplesPromise ??= fetch('/api/posts/video-types')
     .then(r => (r.ok ? r.json() : {}))
-    .then((d: Partial<Examples>) => (examplesCache = { examples: d.examples ?? {}, posters: d.posters ?? {} }))
-    .catch(() => (examplesCache = { examples: {}, posters: {} }))
+    .then((d: Partial<Examples>) => (examplesCache = { examples: d.examples ?? {}, posters: d.posters ?? {}, previews: d.previews ?? {} }))
+    .catch(() => (examplesCache = { examples: {}, posters: {}, previews: {} }))
   return examplesPromise
 }
 
-function useExample(type: VideoTypeSpec): { url: string | null; poster: string | null } {
-  const [v, setV] = useState<{ url: string | null; poster: string | null }>({
+type Example = { url: string | null; poster: string | null; preview: string | null }
+function useExample(type: VideoTypeSpec): Example {
+  const [v, setV] = useState<Example>({
     url: type.exampleUrl ?? examplesCache?.examples[type.id] ?? null,
     poster: examplesCache?.posters[type.id] ?? null,
+    preview: examplesCache?.previews[type.id] ?? null,
   })
   useEffect(() => {
     if (type.exampleUrl || !type.examplePath) return
     let live = true
-    void loadExamples().then(m => live && setV({ url: m.examples[type.id] ?? null, poster: m.posters[type.id] ?? null }))
+    void loadExamples().then(m => live && setV({ url: m.examples[type.id] ?? null, poster: m.posters[type.id] ?? null, preview: m.previews[type.id] ?? null }))
     return () => {
       live = false
     }
@@ -54,8 +56,8 @@ export function useExamplePoster(type: VideoTypeSpec): string | null {
 
 /**
  * Example clip when we have one; otherwise an honest "example in production" poster.
- * Egress (2026-10-29): tiles and thumbs show the still frame and only load the clip while hovered;
- * only the big player plays it.
+ * Tiles loop a small preview (~250 KB, owner 2026-11-02); thumbs show the still frame; only the big
+ * player loads the full clip (Supabase egress, 2026-10-29).
  */
 export function VideoTypePoster({
   type,
@@ -67,7 +69,7 @@ export function VideoTypePoster({
   playing?: boolean
 }) {
   const Icon = VIDEO_TYPE_ICONS[type.id]
-  const { url: exampleUrl, poster } = useExample(type)
+  const { url: exampleUrl, poster, preview } = useExample(type)
   const [hover, setHover] = useState(false)
   if (exampleUrl) {
     if (size === 'player') {
@@ -95,8 +97,20 @@ export function VideoTypePoster({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={poster} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-60 blur-2xl" />
         )}
-        {still}
-        {hover && playing && (
+        {/* Owner 2026-11-02: tiles loop a small preview (~1 MB) instead of sitting on a still. */}
+        {preview && playing ? (
+          <video
+            src={preview}
+            poster={poster ?? undefined}
+            className="absolute inset-y-0 left-1/2 h-full -translate-x-1/2 object-contain"
+            muted
+            loop
+            playsInline
+            autoPlay
+            preload="auto"
+          />
+        ) : still}
+        {!preview && hover && playing && (
           <video
             src={exampleUrl}
             className="absolute inset-y-0 left-1/2 h-full -translate-x-1/2 object-contain"

@@ -415,3 +415,24 @@ export async function posterFrame(video: Buffer, atSec = 1): Promise<Buffer | nu
     await rm(dir, { recursive: true, force: true }).catch(() => {})
   }
 }
+
+/**
+ * A small looping preview (640px tall, no sound, ~1 MB for 10s) for gallery tiles. Owner 2026-11-02:
+ * tiles should play, not sit on a still; the full example only loads in the big player (Supabase
+ * egress, 2026-10-29).
+ */
+export async function previewClip(video: Buffer): Promise<Buffer | null> {
+  const dir = await mkdtemp(path.join(tmpdir(), 'preview-'))
+  try {
+    const src = path.join(dir, 'v.mp4')
+    const out = path.join(dir, 'p.mp4')
+    await writeFile(src, video)
+    const { code } = await run(['-hide_banner', '-y', '-i', src, '-an', '-vf', 'scale=-2:640,fps=24', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '30', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out])
+    if (code !== 0) return null
+    return await readFile(out)
+  } catch {
+    return null
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {})
+  }
+}
