@@ -5,7 +5,7 @@ import { createPostAssetSignedUrl, downloadPostAsset } from '@/lib/postAssets'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { posterFrame } from '@/lib/agents/videoGeneration/assemble'
 import { assembleProductCut, type ProductShot, type ProductTransition } from '@/lib/agents/videoGeneration/productCut'
-import { planSignature, type SignatureAsset, type SignatureAssets, type SignatureRole } from '@/lib/agents/videoGeneration/signatureTemplate'
+import { planProductTemplate, type SignatureAsset, type SignatureAssets, type SignatureRole } from '@/lib/agents/videoGeneration/signatureTemplate'
 
 /**
  * Internal (test accounts only): cut a Product ad from bake-off clips. No credits, no model calls.
@@ -22,7 +22,7 @@ const INTERNAL_EMAILS = new Set(['rovane@dursodesign.com', 'melissa@agent7even.c
 type LayerItem = { path: string; x: number; y: number; w: number; angle?: number; at: number }
 type AssetIn = { path: string; duration?: number; takes?: number[]; baked?: boolean; wetGlass?: boolean }
 type Body = {
-  template?: 'signature'
+  template?: 'signature' | 'clean' | 'creative'
   assets?: Partial<Record<SignatureRole, AssetIn | AssetIn[]>>
   shots?: Array<{
     jobId?: string; path?: string; imagePath?: string; from: number; to: number; zoom?: number; zoomSec?: number
@@ -47,8 +47,8 @@ export async function POST(req: Request) {
   if (!ctx?.email || !INTERNAL_EMAILS.has(ctx.email.toLowerCase())) return NextResponse.json({ error: 'not_found' }, { status: 404 })
   const profileId = workspaceDataUserId(ctx.session)
   const body = (await req.json().catch(() => ({}))) as Body
-  let plan: ReturnType<typeof planSignature<string>> | null = null
-  if (body.template === 'signature') {
+  let plan: ReturnType<typeof planProductTemplate<string>> | null = null
+  if (body.template === 'signature' || body.template === 'clean' || body.template === 'creative') {
     const assets: SignatureAssets<string> = {}
     for (const [role, v] of Object.entries(body.assets ?? {}) as Array<[SignatureRole, AssetIn | AssetIn[]]>) {
       const arr = (Array.isArray(v) ? v : [v]).filter(a => a && typeof a.path === 'string').slice(0, 12)
@@ -60,10 +60,10 @@ export async function POST(req: Request) {
         wetGlass: a.wetGlass === true,
       }))
     }
-    try { plan = planSignature(assets) } catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : 'bad_assets' }, { status: 400 }) }
+    try { plan = planProductTemplate(body.template, assets) } catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : 'bad_assets' }, { status: 400 }) }
     body.shots = plan.map(p => ({
       ...(p.kind === 'image' ? { imagePath: p.ref } : { path: p.ref }),
-      from: p.from, to: p.to, zoom: p.zoom, zoomSec: p.zoomSec, frostSec: p.frostSec, frostHold: p.frostHold, frostFog: p.frostFog, click: p.click,
+      from: p.from, to: p.to, zoom: p.zoom, zoomSec: p.zoomSec, frostSec: p.frostSec, frostHold: p.frostHold, frostFog: p.frostFog, click: p.click, transition: p.transition, transitionSec: p.transitionSec,
     }))
   }
   const list = (body.shots ?? []).slice(0, 80) // Signature edits run 30+ shots (owner edit: 33)
