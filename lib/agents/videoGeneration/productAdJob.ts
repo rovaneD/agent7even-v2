@@ -93,6 +93,20 @@ const ONE_FRAME = 'One single photograph: never a grid, collage, split screen or
 const STUDIO =
   'Premium beauty/product photography, soft diffused studio light with gentle shadows, warm neutral palette, minimal set, shallow depth of field, vertical 9:16, photoreal.'
 
+/**
+ * Allies of Skin test (2026-11-03): with four products and no description, the texture shot showed four
+ * swatches, one an invented brown, and a hand came into the spreading clip. Now: one texture (the lead
+ * product's), its look from the user's words, and no people.
+ */
+const NO_PEOPLE = 'No hands, no fingers, no person, no packaging, no label, no text in frame.'
+function textureLine(input: About): string {
+  const whose = input.leadProduct?.trim() ? `the texture of ${input.leadProduct.trim()}` : 'the main product\'s own texture'
+  const how = input.details.trim()
+    ? `Show ${whose} exactly as the customer describes it (${input.details.trim()}); do not invent another color or texture.`
+    : `Show ${whose} as it really looks for this kind of product, in a natural neutral color; do not invent bright or dark colors.`
+  return how
+}
+
 type About = Pick<ProductAdTaskInput, 'productName' | 'details' | 'leadProduct' | 'revealLook'>
 function lead(input: About): string {
   return input.leadProduct?.trim() || 'the main product'
@@ -116,9 +130,9 @@ export function productStillPrompt(key: ProductStillKey, input: About): string {
     case 'lifestyle':
       return [a, 'Styled top-down flat lay: the product lying on soft linen with a few simple props that suit it (a comb, a folded towel, a small dish). Do not add fruit, flowers or ingredients unless they are named in the product description.', KEEP_PRODUCT, ONE_FRAME, STUDIO].join(' ')
     case 'texture':
-      return [a, 'Macro close-up of the product\'s own texture only (as it really looks: cream, gel, oil, serum or powder), a generous swirl or drop on a clean surface. No packaging, no label, no text in frame.', ONE_FRAME, STUDIO].join(' ')
+      return [a, textureLine(input), 'Macro close-up of that ONE texture only: a single generous swirl or drop on a clean surface. One texture, one color, one swatch; no other swatches.', NO_PEOPLE, ONE_FRAME, STUDIO].join(' ')
     case 'apply':
-      return [a, 'Close-up of the product\'s own texture being spread across a clean pale surface by a small metal spatula, a smooth ribbon of texture. No packaging, no label, no text in frame.', ONE_FRAME, STUDIO].join(' ')
+      return [a, textureLine(input), 'Close-up of that ONE texture being spread across a clean pale surface by the tip of a small metal spatula entering from the edge of the frame, a smooth ribbon of texture. One texture only.', NO_PEOPLE, ONE_FRAME, STUDIO].join(' ')
     case 'wetGlass':
       return revealStillPrompt(input.revealLook ?? 'wetGlass')
   }
@@ -158,9 +172,9 @@ export const REVEAL_MOTION: Record<RevealLook, string> = {
 /** Motion for the label-free texture clips (the reveal's motion is REVEAL_MOTION). */
 export const MOTION_PROMPTS = {
   texture:
-    'Locked-off camera, macro. The texture moves naturally at real-time speed: it slowly folds, drips and settles under its own weight, true to how this product really behaves. No hands, no packaging, no text, no camera movement.',
+    'Locked-off camera, macro. The texture moves naturally at real-time speed: it slowly folds, drips and settles under its own weight, true to how this product really behaves. No hands, no fingers, no person, no packaging, no text, no camera movement, no new colors.',
   apply:
-    'Locked-off camera, close-up. The metal spatula slowly spreads the texture across the surface in one smooth stroke, the texture behaving exactly as this product really does. No packaging, no label, no text, no camera movement.',
+    'Locked-off camera, close-up. Only the tip of the metal spatula is in frame: it slowly spreads the texture across the surface in one smooth stroke, the texture behaving exactly as this product really does. No hand, no fingers, no person ever enters the frame. No packaging, no label, no text, no camera movement, no new colors.',
 }
 
 /** Which stills a product needs: group only when the user gave 2+ photos; wet glass is made from the hero. */

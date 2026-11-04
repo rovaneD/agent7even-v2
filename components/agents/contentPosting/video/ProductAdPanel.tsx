@@ -339,8 +339,8 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                   <input value={leadProduct} disabled={!!stills} onChange={e => setLeadProduct(e.target.value)} placeholder="e.g. the vitamin C serum. It gets the label shot and the wet-glass reveal." className={fieldClass} />
                 </div>
                 <div>
-                  <p className="mb-1.5 text-[12.5px] font-medium text-[#C9CBD1]">Texture and ingredients (optional)</p>
-                  <textarea value={details} disabled={!!stills} onChange={e => setDetails(e.target.value)} rows={2} placeholder="e.g. light cream, coconut oil and agave. Only what you list here appears in the video." className={`${fieldClass} resize-none`} />
+                  <p className="mb-1.5 text-[12.5px] font-medium text-[#C9CBD1]">What the texture looks like, and ingredients (optional)</p>
+                  <textarea value={details} disabled={!!stills} onChange={e => setDetails(e.target.value)} rows={2} placeholder="e.g. clear orange serum, rich white cream; with vitamin C. Only what you list here appears in the video." className={`${fieldClass} resize-none`} />
                 </div>
               </section>
 
