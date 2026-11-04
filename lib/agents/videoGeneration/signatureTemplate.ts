@@ -33,7 +33,9 @@ export type SignatureSlot = {
   take: number
   /** Clicks only in the bursts (owner edit: 11 clicks in the first 1.2s, quiet middle, burst at the end). */
   click: boolean
-  move?: 'drift' | 'crash' | 'frosted' | 'focusPull'
+  move?: 'drift' | 'crash' | 'frosted' | 'focusPull' | 'push'
+  /** How this shot enters (default hard cut). 'flash' = white-flash reveal (Creative). */
+  enter?: 'flash'
 }
 
 const B = true, Q = false
@@ -121,6 +123,50 @@ const MIN_IN = 0.6
 
 /** Fill the template with one product's assets. Returns shots in edit order (refs, not buffers). */
 export function planSignature<R>(assets: SignatureAssets<R>): SignaturePlanShot<R>[] {
+  return planSlots(SIGNATURE_SLOTS, assets, true)
+}
+
+/**
+ * Clean (option 1, owner-approved 2026-10-30): steady studio shots, label stills with the edit push the
+ * owner liked (~27% over 0.6s), label-free texture shots, hard cuts. Structure read from the approved
+ * Clean cut (Being Frens, product-cut-1793401886077): duo, hero, swirl, tube leaning, spatula, knife
+ * spread, then the second label to end on. ~11.6s.
+ */
+export const CLEAN_SLOTS: SignatureSlot[] = [
+  { frames: 43, role: 'group', take: 0, click: Q, move: 'push' },
+  { frames: 38, role: 'hero', take: 0, click: Q, move: 'push' },
+  { frames: 38, role: 'textureStill', take: 0, click: Q },
+  { frames: 34, role: 'angle', take: 0, click: Q, move: 'push' },
+  { frames: 43, role: 'textureMotion', take: 0, click: Q },
+  { frames: 34, role: 'apply', take: 1, click: Q }, // take 1: a later moment of the same clip, not a repeat
+  { frames: 48, role: 'hero', take: 1, click: Q, move: 'push' }, // end on the label
+]
+
+/**
+ * Creative (option 2, owner: keep it, no slides): product meets its texture, the reveal look then a
+ * white flash onto the real label, and a hard cut back to the opening frame so it loops. Structure read
+ * from the Creative cut (Being Frens, product-cut-1793421541358): flat lay, frost, flash to the label,
+ * squeeze, smear, texture, second label, back to the flat lay. ~10.3s.
+ */
+export const CREATIVE_SLOTS: SignatureSlot[] = [
+  { frames: 29, role: 'lifestyle', take: 0, click: Q, move: 'drift' },
+  { frames: 48, role: 'frost', take: 0, click: Q },
+  { frames: 24, role: 'hero', take: 0, click: Q, enter: 'flash', move: 'drift' },
+  { frames: 46, role: 'pour', take: 0, click: Q },
+  { frames: 48, role: 'apply', take: 0, click: Q },
+  { frames: 38, role: 'textureStill', take: 1, click: Q },
+  { frames: 38, role: 'hero2', take: 0, click: Q, move: 'drift' },
+  { frames: 14, role: 'lifestyle', take: 0, click: Q },
+]
+
+export type ProductTemplate = 'clean' | 'creative' | 'signature'
+export function planProductTemplate<R>(template: ProductTemplate, assets: SignatureAssets<R>): SignaturePlanShot<R>[] {
+  if (template === 'clean') return planSlots(CLEAN_SLOTS, assets, false)
+  if (template === 'creative') return planSlots(CREATIVE_SLOTS, assets, false)
+  return planSignature(assets)
+}
+
+function planSlots<R>(slots: SignatureSlot[], assets: SignatureAssets<R>, wetGlassReveal: boolean): SignaturePlanShot<R>[] {
   const lists = new Map<SignatureRole, SignatureAsset<R>[]>()
   for (const [k, v] of Object.entries(assets) as Array<[SignatureRole, SignatureAsset<R> | SignatureAsset<R>[] | undefined]>) {
     const arr = v ? (Array.isArray(v) ? v : [v]) : []
@@ -134,9 +180,9 @@ export function planSignature<R>(assets: SignatureAssets<R>): SignaturePlanShot<
   }
   // How many distinct takes the template asks of each role (to spread auto in-points).
   const takesWanted = new Map<SignatureRole, number>()
-  for (const s of SIGNATURE_SLOTS) takesWanted.set(s.role, Math.max(takesWanted.get(s.role) ?? 0, s.take + 1))
+  for (const s of slots) takesWanted.set(s.role, Math.max(takesWanted.get(s.role) ?? 0, s.take + 1))
 
-  const shots = SIGNATURE_SLOTS.map((slot): SignaturePlanShot<R> => {
+  const shots = slots.map((slot): SignaturePlanShot<R> => {
     const len = slot.frames / 24
     const [role, list] = resolve(slot.role)
     // Moments: every explicit take of every asset, in order; assets without takes count once per wanted take.
@@ -167,10 +213,12 @@ export function planSignature<R>(assets: SignatureAssets<R>): SignaturePlanShot<
       else if (slot.move === 'crash') { shot.zoom = 1; shot.zoomSec = Math.min(0.25, len) }
       else if (slot.move === 'frosted') { shot.frostHold = len; shot.frostSec = 0.04 }
       else if (slot.move === 'focusPull') { shot.frostFog = false; shot.frostHold = 0.2; shot.frostSec = Math.max(0.3, len - 0.45) }
+      else if (slot.move === 'push') { shot.zoom = 0.27; shot.zoomSec = Math.min(0.6, len) }
     }
+    if (slot.enter === 'flash') { shot.transition = 'flash'; shot.transitionSec = 0.25 }
     return shot
   })
-  return applyWetGlassReveal(shots, lists)
+  return wetGlassReveal ? applyWetGlassReveal(shots, lists) : shots
 }
 
 /**

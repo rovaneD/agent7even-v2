@@ -20,6 +20,8 @@ export const ACTION_CREDIT_COST = {
   // stills + wet-glass clip + 2 texture clips).
   product_ad_stills: 5,
   product_ad_signature: 70,
+  product_ad_creative: 70, // same assets as Signature
+  product_ad_clean: 55, // no reveal still or clip (~$1 less)
   publish: 1,
   brandkit_gen: 1,
   foundation_gen: 0,

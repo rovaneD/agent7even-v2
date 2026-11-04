@@ -21,6 +21,7 @@ import {
   REVEAL_MOTION,
   PRODUCT_AD_AGENT,
   PRODUCT_AD_READY_OPTIONS,
+  needsReveal,
   PRODUCT_AD_REDOS,
   signedProductStills,
   stillKeysFor,
@@ -150,19 +151,22 @@ export async function POST(req: Request) {
     }
     const caption = body.caption !== undefined ? clean(body.caption, 2200) : input.caption
     try {
+      const reveal = needsReveal(input.option)
       const [wetUrl, textureUrl, applyUrl] = await Promise.all(
         [input.stills.wetGlass, input.stills.texture, input.stills.apply].map(p => (p ? createPostAssetSignedUrl(p, 60 * 60 * 6) : Promise.resolve(null))),
       )
-      if (!wetUrl || !textureUrl || !applyUrl) throw new Error('could not sign the stills')
+      if ((reveal && !wetUrl) || !textureUrl || !applyUrl) throw new Error('could not sign the stills')
       const [wetGlass, texture, apply] = await Promise.all([
-        // First AND last frame locked to the approved still: only the water on the glass can move.
-        submitVideoJob({ model: CLIP_MODEL, prompt: REVEAL_MOTION[input.revealLook ?? 'wetGlass'], aspectRatio: '9:16', duration: 3, resolution: '1080p', firstFrameUrl: wetUrl, lastFrameUrl: wetUrl, generateAudio: false }),
+        // First AND last frame locked to the approved still: only the surroundings can move.
+        reveal
+          ? submitVideoJob({ model: CLIP_MODEL, prompt: REVEAL_MOTION[input.revealLook ?? 'wetGlass'], aspectRatio: '9:16', duration: 3, resolution: '1080p', firstFrameUrl: wetUrl!, lastFrameUrl: wetUrl!, generateAudio: false })
+          : Promise.resolve(null),
         submitVideoJob({ model: CLIP_MODEL, prompt: MOTION_PROMPTS.texture, aspectRatio: '9:16', duration: 5, resolution: '1080p', referenceUrls: [textureUrl], generateAudio: false }),
         submitVideoJob({ model: CLIP_MODEL, prompt: MOTION_PROMPTS.apply, aspectRatio: '9:16', duration: 5, resolution: '1080p', referenceUrls: [applyUrl], generateAudio: false }),
       ])
       await supabase
         .from('agent_tasks')
-        .update({ action_type: actionType, input: { ...input, caption, stage: 'rendering', jobs: { wetGlass: wetGlass.id, texture: texture.id, apply: apply.id } } })
+        .update({ action_type: actionType, input: { ...input, caption, stage: 'rendering', jobs: { ...(wetGlass ? { wetGlass: wetGlass.id } : {}), texture: texture.id, apply: apply.id } } })
         .eq('id', task.id)
       return NextResponse.json({ taskId: task.id, status: 'rendering', credits: cost })
     } catch (err) {
@@ -250,7 +254,7 @@ export async function POST(req: Request) {
     const made = await Promise.all(keys.map(k => makeStillFor(supabase, input, k)))
     const next: ProductAdTaskInput = { ...input, stills: Object.fromEntries(keys.map((k, i) => [k, made[i]!])) }
     // The wet glass is made from the hero still so the product and framing match exactly.
-    next.stills.wetGlass = await makeStillFor(supabase, next, 'wetGlass')
+    if (needsReveal(option)) next.stills.wetGlass = await makeStillFor(supabase, next, 'wetGlass')
     next.stage = 'review'
     await supabase.from('agent_tasks').update({ input: next }).eq('id', taskId)
     return NextResponse.json({ taskId, stills: await signedProductStills(next.stills), revealLook, redosLeft: PRODUCT_AD_REDOS, credits: cost })

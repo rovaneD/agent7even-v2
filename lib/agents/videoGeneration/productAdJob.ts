@@ -13,7 +13,7 @@ import { posterFrame } from './assemble'
 import { failVideoTask } from './failVideoTask'
 import { pollVideoJob } from './openRouterVideo'
 import { assembleProductCut, type ProductShot } from './productCut'
-import { planSignature, type SignatureAssets } from './signatureTemplate'
+import { planProductTemplate, type SignatureAssets } from './signatureTemplate'
 
 /**
  * Product ad (no person), owner-approved recipe (project doc claude/product_ad_format_spec.md):
@@ -38,7 +38,9 @@ export type StillCheck = { passed: boolean; issues: string[] }
 
 export type ProductAdOption = 'clean' | 'creative' | 'signature'
 /** Options the edit can make today. Clean and Creative get their own templates next. */
-export const PRODUCT_AD_READY_OPTIONS: ProductAdOption[] = ['signature']
+export const PRODUCT_AD_READY_OPTIONS: ProductAdOption[] = ['clean', 'creative', 'signature']
+/** Clean has no reveal moment, so it skips the reveal still and its clip (~$1 less). */
+export const needsReveal = (option: ProductAdOption) => option !== 'clean'
 
 /**
  * The reveal look (owner 2026-11-03): the wet glass is lovely but would get repetitive, so each video gets
@@ -230,11 +232,12 @@ async function toFrame(png: Buffer): Promise<Buffer> {
   }
 }
 
-/** Signature: fill the owner's edit template with this product's stills and clips. */
-export function signatureShots(input: ProductAdTaskInput, stills: Partial<Record<ProductStillKey, Buffer>>, clips: { wetGlass: Buffer; texture: Buffer; apply: Buffer }): ProductShot[] {
+/** Fill the chosen option's edit template (Clean / Creative / Signature) with this product's stills and clips. */
+export function templateShots(input: ProductAdTaskInput, stills: Partial<Record<ProductStillKey, Buffer>>, clips: { wetGlass?: Buffer; texture: Buffer; apply: Buffer }): ProductShot[] {
   const buf = new Map<string, Buffer>()
   const img = (k: ProductStillKey) => (stills[k] ? (buf.set(k, stills[k]!), { ref: k, kind: 'image' as const }) : undefined)
-  buf.set('clip:wetGlass', clips.wetGlass).set('clip:texture', clips.texture).set('clip:apply', clips.apply)
+  buf.set('clip:texture', clips.texture).set('clip:apply', clips.apply)
+  if (clips.wetGlass) buf.set('clip:wetGlass', clips.wetGlass)
   const assets: SignatureAssets<string> = {
     hero: img('hero'),
     hero2: img('angle'),
@@ -245,10 +248,10 @@ export function signatureShots(input: ProductAdTaskInput, stills: Partial<Record
     pour: { ref: 'clip:texture', kind: 'video', duration: 5 },
     textureMotion: { ref: 'clip:apply', kind: 'video', duration: 5 },
     apply: { ref: 'clip:apply', kind: 'video', duration: 5 },
-    frost: { ref: 'clip:wetGlass', kind: 'video', duration: 3, baked: true, wetGlass: true },
+    frost: clips.wetGlass ? { ref: 'clip:wetGlass', kind: 'video', duration: 3, baked: true, wetGlass: true } : undefined,
   }
   for (const k of Object.keys(assets) as Array<keyof typeof assets>) if (!assets[k]) delete assets[k]
-  return planSignature(assets).map(({ ref, kind, role: _role, ...rest }) => ({ ...rest, ...(kind === 'image' ? { image: buf.get(ref)! } : { video: buf.get(ref)! }) }))
+  return planProductTemplate(input.option, assets).map(({ ref, kind, role: _role, ...rest }) => ({ ...rest, ...(kind === 'image' ? { image: buf.get(ref)! } : { video: buf.get(ref)! }) }))
 }
 
 /**
@@ -268,7 +271,8 @@ export async function advanceProductAdTask(
     const since = input.editingSince ? Date.parse(input.editingSince) : 0
     if (Date.now() - since < 6 * 60_000) return { status: 'editing' }
   }
-  const ids = [input.jobs?.wetGlass, input.jobs?.texture, input.jobs?.apply]
+  const reveal = needsReveal(input.option)
+  const ids = [...(reveal ? [input.jobs?.wetGlass] : []), input.jobs?.texture, input.jobs?.apply]
   if (ids.some(id => !id)) {
     await failVideoTask(supabase, task.id, task.user_id)
     return { status: 'failed' }
@@ -296,10 +300,12 @@ export async function advanceProductAdTask(
       return src ? fetchBytes(src, openRouterHeaders()) : Promise.resolve(null)
     }))
     if (videos.some(v => !v)) throw new Error('could not download a rendered clip')
-    const [wetGlass, texture, apply] = videos as Buffer[]
+    const vids = videos as Buffer[]
+    const wetGlass = reveal ? vids[0] : undefined
+    const [texture, apply] = reveal ? vids.slice(1) : vids
     // Keep the raw clips so the edit can be redone (or another option cut) without new renders.
     await Promise.all(
-      (['wetGlass', 'texture', 'apply'] as const).map((k, i) =>
+      ((reveal ? ['wetGlass', 'texture', 'apply'] : ['texture', 'apply']) as Array<'wetGlass' | 'texture' | 'apply'>).map((k, i) =>
         supabase.storage.from(POST_ASSETS_BUCKET).upload(`${input.profileId}/product-raw-${task.id}-${k}.mp4`, (videos as Buffer[])[i]!, { contentType: 'video/mp4', upsert: true }),
       ),
     ).catch(() => {})
@@ -310,8 +316,7 @@ export async function advanceProductAdTask(
     }))
     if (!stills.hero) throw new Error('hero still missing')
 
-    if (input.option !== 'signature') throw new Error(`option ${input.option} not ready`)
-    const out = await assembleProductCut({ shots: signatureShots(input, stills, { wetGlass: wetGlass!, texture: texture!, apply: apply! }) })
+    const out = await assembleProductCut({ shots: templateShots(input, stills, { wetGlass, texture: texture!, apply: apply! }) })
 
     const storagePath = `${input.profileId}/${randomUUID()}.mp4`
     const { error: upErr } = await supabase.storage.from(POST_ASSETS_BUCKET).upload(storagePath, out.video, { contentType: 'video/mp4', upsert: false })
@@ -345,7 +350,7 @@ export async function advanceProductAdTask(
     })
 
     const stillsMade = Object.keys(input.stills).length + (PRODUCT_AD_REDOS - input.redosLeft)
-    const cost = stillsMade * USD.still + USD.kling3s1080 + 2 * USD.kling5s
+    const cost = stillsMade * USD.still + (reveal ? USD.kling3s1080 : 0) + 2 * USD.kling5s
     await recordAgentTaskCost(task.id, {
       action_type: (task.action_type as ActionCreditKey) ?? 'product_ad_signature',
       cost_usd: Math.round(cost * 100) / 100,

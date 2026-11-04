@@ -16,8 +16,13 @@ type Job = { taskId: string; status: 'starting' | 'rendering' | 'editing' | 'com
 
 // Placeholder prices (owner to set): keep in step with ACTION_CREDIT_COST product_ad_*.
 const STILLS_CREDITS = 5
-const VIDEO_CREDITS: Record<Option, number> = { clean: 0, creative: 0, signature: 70 }
-const READY: Option[] = ['signature']
+const VIDEO_CREDITS: Record<Option, number> = { clean: 55, creative: 70, signature: 70 }
+const READY: Option[] = ['clean', 'creative', 'signature']
+const OPTION_HINT: Record<Option, string> = {
+  clean: 'Clean: steady studio shots, a smooth push onto each label, hard cuts.',
+  creative: 'Creative: your product meets its texture, a reveal onto the label, loops back to the start.',
+  signature: 'Signature: fast cuts, stop-motion beats, a slow reveal onto your label.',
+}
 
 const STILL_LABELS: Record<StillKey, string> = {
   hero: 'Label shot',
@@ -284,15 +289,15 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                   value={option}
                   onChange={v => { if (READY.includes(v)) { setOption(v); setStills(null) } else setError(`${v === 'clean' ? 'Clean' : 'Creative'} is coming soon.`) }}
                   options={[
-                    { value: 'clean' as Option, label: 'Clean · soon' },
-                    { value: 'creative' as Option, label: 'Creative · soon' },
+                    { value: 'clean' as Option, label: 'Clean' },
+                    { value: 'creative' as Option, label: 'Creative' },
                     { value: 'signature' as Option, label: 'Signature' },
                   ]}
                 />
-                <p className="mt-1.5 text-[11.5px] leading-snug text-[#6B6E76]">Signature: fast cuts, stop-motion beats, a slow reveal onto your label.</p>
+                <p className="mt-1.5 text-[11.5px] leading-snug text-[#6B6E76]">{OPTION_HINT[option]}</p>
               </section>
 
-              <section>
+              {option !== 'clean' && <section>
                 <p className="mb-2 text-[12.5px] font-medium text-[#C9CBD1]">Reveal look</p>
                 <select value={look} disabled={!!stills} onChange={e => setLook(e.target.value as Look)} className={fieldClass}>
                   <option value="auto">Surprise me (a different look each time)</option>
@@ -302,7 +307,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                   <option value="water">Water ripple</option>
                 </select>
                 <p className="mt-1.5 text-[11.5px] leading-snug text-[#6B6E76]">The moment your label is revealed. Only the surroundings move, never your product.</p>
-              </section>
+              </section>}
 
               <section>
                 <p className="mb-2 text-[12.5px] font-medium text-[#C9CBD1]">Your product photos (1–4)</p>
@@ -393,7 +398,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                     const now = order.indexOf(job.status)
                     const done = job.status !== 'failed' && i < now
                     const active = job.status === st && st !== 'completed'
-                    const label = ['Starting', 'Filming the texture and the reveal (about 5 min)', 'Cutting the Signature edit', 'In Approvals'][i]
+                    const label = ['Starting', `Filming the texture${option === 'clean' ? '' : ' and the reveal'} (about 5 min)`, `Cutting the ${option === 'clean' ? 'Clean' : option === 'creative' ? 'Creative' : 'Signature'} edit`, 'In Approvals'][i]
                     return (
                       <div key={st} className="flex items-center gap-2 py-1 text-[13px]">
                         {done || (st === 'completed' && job.status === 'completed') ? (
