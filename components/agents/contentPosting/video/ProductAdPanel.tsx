@@ -30,10 +30,13 @@ const STILL_LABELS: Record<StillKey, string> = {
 }
 const STILL_ORDER: StillKey[] = ['hero', 'angle', 'group', 'lifestyle', 'texture', 'apply', 'wetGlass']
 
-/** Phone photos are often 5-12 MB; send a 1600px JPEG (the request limit is ~4.5 MB). */
+/**
+ * Phone photos are often 5-12 MB; send a 2400px JPEG (the request limit is ~4.5 MB). 2400 not 1600 so
+ * the label's small print stays readable for the stills and the product check.
+ */
 async function downsize(file: File): Promise<Blob> {
   const bmp = await createImageBitmap(file)
-  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height))
+  const scale = Math.min(1, 2400 / Math.max(bmp.width, bmp.height))
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(bmp.width * scale)
   canvas.height = Math.round(bmp.height * scale)

@@ -6,7 +6,8 @@ import { generateImageForComparison, openRouterHeaders } from '@/lib/agents/imag
 import { recordAgentTaskCost } from '@/lib/agents/taskInstrumentation'
 import { generateText } from 'ai'
 import { openrouter } from '@/lib/ai/client'
-import { loadPostAssetDataUrl, VISION_CAPTION_MODEL } from '@/lib/agents/visionCaption'
+import { VISION_CAPTION_MODEL } from '@/lib/agents/visionCaption'
+import { compressImageForApiPayload } from '@/lib/postAssetsImagePayload'
 import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 import { posterFrame } from './assemble'
 import { failVideoTask } from './failVideoTask'
@@ -349,18 +350,17 @@ export async function advanceProductAdTask(
   }
 }
 
-const CHECK_LABEL_SHOT = `You check AI-made product photos against the customer's real product photos before anyone pays to animate them.
+const CHECK_LABEL_SHOT = `You are a strict packaging proofreader. You check AI-made product photos against the customer's real product photos before anyone pays to animate them.
 The FIRST image(s) are the customer's real product photo(s). The LAST image is the AI-made still to check.
 
-For every product that appears in the AI still, compare it with the same product in the real photo(s):
-- container type and shape (bottle vs jar vs tube vs pump; tall vs squat; proportions)
-- cap / pump / lid shape and color, body color and finish
-- every line of label text: transcribe what is painted in the AI still exactly (do NOT autocorrect) and compare with the real label. Fail on invented words, garbled or misspelled text, doubled words, missing lines that should be legible, or a logo/icon taken from a different product.
-- products that do not exist in the real photos, or a product duplicated
-Small text that is blurred or hidden by glass, water, fabric or shadow is fine; only fail text you can read that is wrong.
-Also fail if the still is a grid/collage of several panels.
+Work in this order and be strict:
+1. For each product in the AI still, find the same product in the real photo(s).
+2. Shape: container type (bottle / jar / tube / pump bottle / dropper), proportions (tall vs squat), cap/pump/lid shape and color, body color. Any change fails.
+3. Text: for each product, transcribe every readable line of the label in the AI still EXACTLY as painted (OCR, never autocorrect), then transcribe the same lines from the real photo, and compare word by word. Numbers and percentages, ingredient names, step numbers and the brand name must match exactly. Fail on any wrong number, misspelled or invented word, doubled word, or a line that is missing. Also fail on an icon/logo taken from a different product.
+4. Fail if a product is invented or duplicated, or if the still is a grid/collage of panels.
+Only skip text that is physically hidden or blurred in the AI still by glass, water, fabric, shadow or depth of field, or that is not legible in the real photo either.
 
-Return ONLY JSON: {"passed": true|false, "issues": ["short, specific problem a customer would understand"]}`
+Return ONLY JSON: {"passed": true|false, "issues": ["short, specific problem a customer would understand, e.g. 'Firming treatment label says 12 Brighteners, real label says 13'"]}`
 
 const CHECK_TEXTURE_SHOT = `You check an AI-made close-up of a skincare/product texture before it is animated.
 Fail if any packaging, label, text, logo or a hand/person appears, or if the image is a grid/collage.
@@ -371,13 +371,25 @@ Return ONLY JSON: {"passed": true|false, "issues": ["short, specific problem"]}`
  * doubled "VITAMIN C" and made up small print; the user should not be the one who has to spot that.
  * Never blocks: on any error the still counts as unchecked (passed, no issues).
  */
-export async function checkProductStill(input: ProductAdTaskInput, key: ProductStillKey): Promise<StillCheck> {
+/**
+ * Load an image for the check at high resolution: at the default 1536px the 2K still's small print is
+ * unreadable to the checker, so it passed a label that said "12 Brighteners + 3 Antioxidants" for
+ * "13 + 9" (Allies of Skin, 2026-11-03).
+ */
+async function loadForCheck(path: string): Promise<{ dataUrl: string } | null> {
+  const bytes = await downloadPostAsset(path)
+  if (!bytes) return null
+  const c = await compressImageForApiPayload(bytes, { maxDimension: 2752 })
+  return { dataUrl: `data:${c.mime};base64,${c.bytes.toString('base64')}` }
+}
+
+export async function checkProductStill(input: Pick<ProductAdTaskInput, 'stills' | 'photos' | 'productName' | 'details'>, key: ProductStillKey): Promise<StillCheck> {
   const still = input.stills[key]
   if (!still) return { passed: true, issues: [] }
   try {
     const texture = key === 'texture' || key === 'apply'
     const refs = texture ? [] : input.photos.slice(0, 4)
-    const loaded = await Promise.all([...refs, still].map(p => loadPostAssetDataUrl(p)))
+    const loaded = await Promise.all([...refs, still].map(p => loadForCheck(p)))
     if (loaded.some(l => !l)) return { passed: true, issues: [] }
     const result = await generateText({
       model: openrouter(VISION_CAPTION_MODEL),
@@ -388,7 +400,7 @@ export async function checkProductStill(input: ProductAdTaskInput, key: ProductS
           { type: 'text' as const, text: `${texture ? CHECK_TEXTURE_SHOT : CHECK_LABEL_SHOT}\n\nWhat the customer said the product is: ${input.productName}${input.details ? ` (${input.details})` : ''}.` },
         ],
       }],
-      maxOutputTokens: 600,
+      maxOutputTokens: 1500,
       temperature: 0,
     })
     const m = result.text.match(/\{[\s\S]*\}/)
