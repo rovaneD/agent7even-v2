@@ -8,6 +8,8 @@ import { Segmented, fieldClass } from './ui'
 
 type Option = 'clean' | 'creative' | 'signature'
 type StillKey = 'hero' | 'angle' | 'group' | 'lifestyle' | 'texture' | 'apply' | 'wetGlass'
+type Look = 'auto' | 'wetGlass' | 'shadow' | 'silk' | 'water'
+const LOOK_LABELS: Record<Exclude<Look, 'auto'>, string> = { wetGlass: 'Wet glass', shadow: 'Shadow play', silk: 'Silk', water: 'Water ripple' }
 type Photo = { path: string; url: string }
 type Job = { taskId: string; status: 'starting' | 'rendering' | 'editing' | 'completed' | 'failed'; videoUrl?: string | null }
 
@@ -50,6 +52,8 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
   const [name, setName] = useState('')
   const [details, setDetails] = useState('')
   const [leadProduct, setLeadProduct] = useState('')
+  const [look, setLook] = useState<Look>('auto')
+  const [madeLook, setMadeLook] = useState<Exclude<Look, 'auto'> | null>(null)
   const [stills, setStills] = useState<{ taskId: string; urls: Partial<Record<StillKey, string | null>>; redosLeft: number } | null>(null)
   const [busy, setBusy] = useState<null | 'all' | StillKey>(null)
   const [job, setJob] = useState<Job | null>(null)
@@ -97,10 +101,11 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
       const r = await fetch('/api/posts/video-product', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'stills', option, productName: name, details, leadProduct, photos: photos.map(p => p.path) }),
+        body: JSON.stringify({ action: 'stills', option, productName: name, details, leadProduct, revealLook: look, photos: photos.map(p => p.path) }),
       })
-      const d = (await r.json().catch(() => ({}))) as { taskId?: string; stills?: Partial<Record<StillKey, string | null>>; redosLeft?: number; message?: string }
+      const d = (await r.json().catch(() => ({}))) as { taskId?: string; stills?: Partial<Record<StillKey, string | null>>; revealLook?: Exclude<Look, 'auto'>; redosLeft?: number; message?: string }
       if (!r.ok || !d.taskId || !d.stills) throw new Error(d.message ?? 'The stills could not be made.')
+      setMadeLook(d.revealLook ?? null)
       setStills({ taskId: d.taskId, urls: d.stills, redosLeft: d.redosLeft ?? 0 })
       setPreview('hero')
     } catch (e) {
@@ -238,7 +243,19 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                     { value: 'signature' as Option, label: 'Signature' },
                   ]}
                 />
-                <p className="mt-1.5 text-[11.5px] leading-snug text-[#6B6E76]">Signature: fast cuts, stop-motion beats, a wet-glass reveal onto your label.</p>
+                <p className="mt-1.5 text-[11.5px] leading-snug text-[#6B6E76]">Signature: fast cuts, stop-motion beats, a slow reveal onto your label.</p>
+              </section>
+
+              <section>
+                <p className="mb-2 text-[12.5px] font-medium text-[#C9CBD1]">Reveal look</p>
+                <select value={look} disabled={!!stills} onChange={e => setLook(e.target.value as Look)} className={fieldClass}>
+                  <option value="auto">Surprise me (a different look each time)</option>
+                  <option value="wetGlass">Wet glass</option>
+                  <option value="shadow">Shadow play</option>
+                  <option value="silk">Silk</option>
+                  <option value="water">Water ripple</option>
+                </select>
+                <p className="mt-1.5 text-[11.5px] leading-snug text-[#6B6E76]">The moment your label is revealed. Only the surroundings move, never your product.</p>
               </section>
 
               <section>
@@ -299,7 +316,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                             <span className="absolute inset-0 flex items-center justify-center bg-black/50"><Loader2 size={16} className="animate-spin text-white" /></span>
                           )}
                         </button>
-                        <p className="truncate text-[10.5px] text-[#9A9DA5]">{STILL_LABELS[k]}</p>
+                        <p className="truncate text-[10.5px] text-[#9A9DA5]">{k === 'wetGlass' && madeLook ? LOOK_LABELS[madeLook] : STILL_LABELS[k]}</p>
                         <button type="button" onClick={() => redo(k)} disabled={stills.redosLeft <= 0 || busy !== null || !!job} className="inline-flex items-center gap-1 text-[11px] text-[#7FB0FF] hover:text-white disabled:opacity-40">
                           <RotateCcw size={10} /> Redo
                         </button>
@@ -325,7 +342,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                     const now = order.indexOf(job.status)
                     const done = job.status !== 'failed' && i < now
                     const active = job.status === st && st !== 'completed'
-                    const label = ['Starting', 'Filming the texture and the wet glass (about 5 min)', 'Cutting the Signature edit', 'In Approvals'][i]
+                    const label = ['Starting', 'Filming the texture and the reveal (about 5 min)', 'Cutting the Signature edit', 'In Approvals'][i]
                     return (
                       <div key={st} className="flex items-center gap-2 py-1 text-[13px]">
                         {done || (st === 'completed' && job.status === 'completed') ? (

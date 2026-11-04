@@ -34,6 +34,22 @@ export type ProductAdOption = 'clean' | 'creative' | 'signature'
 /** Options the edit can make today. Clean and Creative get their own templates next. */
 export const PRODUCT_AD_READY_OPTIONS: ProductAdOption[] = ['signature']
 
+/**
+ * The reveal look (owner 2026-11-03): the wet glass is lovely but would get repetitive, so each video gets
+ * one of four looks, all made the same safe way (a still from the approved label shot, animated with the
+ * first AND last frame locked so only the surroundings move). Tested on Allies of Skin: product locked in
+ * every clip. The still key stays 'wetGlass' for the reveal still, whatever the look.
+ */
+export type RevealLook = 'wetGlass' | 'shadow' | 'silk' | 'water'
+export const REVEAL_LOOKS: RevealLook[] = ['wetGlass', 'shadow', 'silk', 'water']
+export const REVEAL_LOOK_LABELS: Record<RevealLook, string> = { wetGlass: 'Wet glass', shadow: 'Shadow play', silk: 'Silk', water: 'Water ripple' }
+
+/** Rotate: never the look this user got last time (random among the rest). */
+export function pickRevealLook(last: RevealLook | null | undefined): RevealLook {
+  const pool = REVEAL_LOOKS.filter(l => l !== last)
+  return pool[Math.floor(Math.random() * pool.length)]!
+}
+
 export type ProductStillKey = 'hero' | 'angle' | 'group' | 'lifestyle' | 'texture' | 'apply' | 'wetGlass'
 
 export type ProductAdTaskInput = {
@@ -48,6 +64,8 @@ export type ProductAdTaskInput = {
    * test 2026-11-03: one photo of four products gave a 2x2 grid as the "label shot".
    */
   leadProduct?: string
+  /** The reveal look for this video (still + locked clip). Older tasks: wet glass. */
+  revealLook?: RevealLook
   /** The user's own product photos (storage paths). */
   photos: string[]
   stills: Partial<Record<ProductStillKey, string>>
@@ -65,7 +83,7 @@ const ONE_FRAME = 'One single photograph: never a grid, collage, split screen or
 const STUDIO =
   'Premium beauty/product photography, soft diffused studio light with gentle shadows, warm neutral palette, minimal set, shallow depth of field, vertical 9:16, photoreal.'
 
-type About = Pick<ProductAdTaskInput, 'productName' | 'details' | 'leadProduct'>
+type About = Pick<ProductAdTaskInput, 'productName' | 'details' | 'leadProduct' | 'revealLook'>
 function lead(input: About): string {
   return input.leadProduct?.trim() || 'the main product'
 }
@@ -92,6 +110,16 @@ export function productStillPrompt(key: ProductStillKey, input: About): string {
     case 'apply':
       return [a, 'Close-up of the product\'s own texture being spread across a clean pale surface by a small metal spatula, a smooth ribbon of texture. No packaging, no label, no text in frame.', ONE_FRAME, STUDIO].join(' ')
     case 'wetGlass':
+      return revealStillPrompt(input.revealLook ?? 'wetGlass')
+  }
+}
+
+const KEEP_SCENE =
+  'Keep the product exactly as in the reference image: same product, same position, size and framing, same label text, colors and cap. Do not change the product. Vertical 9:16 product photograph, photoreal, no added text.'
+
+function revealStillPrompt(look: RevealLook): string {
+  switch (look) {
+    case 'wetGlass':
       return [
         'The exact same product, same position and framing as the reference image, photographed through a pane of glass placed right in front of the camera lens.',
         'The glass is covered in fine condensation with many beads of water and a few drops running down, the droplets in sharp focus on the glass. The glass is fogged enough that the product behind it is clearly soft and diffused: its shape, colors and large name read through, but small print on the label is not legible.',
@@ -99,12 +127,26 @@ export function productStillPrompt(key: ProductStillKey, input: About): string {
         'Do not change the product, its shape, colors or label. Vertical 9:16 product photograph, no added text.',
         ONE_FRAME,
       ].join(' ')
+    case 'shadow':
+      return ['The exact same scene as the reference image, now lit by warm low sunlight through leaves: soft dappled shadows of leaves fall across the back wall, the surface and part of the product, with gentle contrast.', KEEP_SCENE, ONE_FRAME].join(' ')
+    case 'silk':
+      return ['The exact same scene as the reference image, with a sheer translucent cream silk fabric floating in the foreground, draped diagonally across the lower part of the frame and partly in front of the base of the product, catching the soft light. The label stays visible above the silk.', KEEP_SCENE, ONE_FRAME].join(' ')
+    case 'water':
+      return ['The same product as the reference image standing on a shallow, perfectly still water surface, its clear mirrored reflection in the water below it, soft warm studio light, minimal neutral background.', KEEP_SCENE, ONE_FRAME].join(' ')
   }
 }
 
-export const MOTION_PROMPTS = {
+const STILL_REST = ' The product, its label, the camera and everything else stay completely still and unchanged. No camera movement, no zoom.'
+export const REVEAL_MOTION: Record<RevealLook, string> = {
   wetGlass:
     'Locked-off static camera. Only the water on the glass in front of the lens moves: a few water droplets slowly run down the glass, leaving thin wet trails, tiny beads tremble. The product, its label, the light and the background stay completely still and unchanged. No camera movement, no zoom, nothing else moves.',
+  shadow: 'Locked-off static camera. Only the leaf shadows move: the soft dappled shadows sway slowly across the wall, the surface and the product, as if a light breeze moves branches outside the window.' + STILL_REST,
+  silk: 'Locked-off static camera. Only the sheer silk moves: it slowly drifts, ripples and floats in a gentle breeze in front of the base of the product, catching the light.' + STILL_REST,
+  water: 'Locked-off static camera. Only the water moves: a few gentle ripples spread slowly across the water surface around the base of the product, softly distorting the reflection, then settle.' + STILL_REST,
+}
+
+/** Motion for the label-free texture clips (the reveal's motion is REVEAL_MOTION). */
+export const MOTION_PROMPTS = {
   texture:
     'Locked-off camera, macro. The texture moves naturally at real-time speed: it slowly folds, drips and settles under its own weight, true to how this product really behaves. No hands, no packaging, no text, no camera movement.',
   apply:

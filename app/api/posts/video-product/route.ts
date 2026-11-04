@@ -15,6 +15,9 @@ import {
   CLIP_MODEL,
   makeStillFor,
   MOTION_PROMPTS,
+  pickRevealLook,
+  REVEAL_LOOKS,
+  REVEAL_MOTION,
   PRODUCT_AD_AGENT,
   PRODUCT_AD_READY_OPTIONS,
   PRODUCT_AD_REDOS,
@@ -23,6 +26,7 @@ import {
   type ProductAdOption,
   type ProductAdTaskInput,
   type ProductStillKey,
+  type RevealLook,
 } from '@/lib/agents/videoGeneration/productAdJob'
 
 export const maxDuration = 300
@@ -36,6 +40,7 @@ type Body = {
   option?: ProductAdOption
   productName?: string
   leadProduct?: string
+  revealLook?: RevealLook | 'auto'
   details?: string
   photos?: string[]
   title?: string
@@ -126,7 +131,7 @@ export async function POST(req: Request) {
       if (!wetUrl || !textureUrl || !applyUrl) throw new Error('could not sign the stills')
       const [wetGlass, texture, apply] = await Promise.all([
         // First AND last frame locked to the approved still: only the water on the glass can move.
-        submitVideoJob({ model: CLIP_MODEL, prompt: MOTION_PROMPTS.wetGlass, aspectRatio: '9:16', duration: 3, resolution: '1080p', firstFrameUrl: wetUrl, lastFrameUrl: wetUrl, generateAudio: false }),
+        submitVideoJob({ model: CLIP_MODEL, prompt: REVEAL_MOTION[input.revealLook ?? 'wetGlass'], aspectRatio: '9:16', duration: 3, resolution: '1080p', firstFrameUrl: wetUrl, lastFrameUrl: wetUrl, generateAudio: false }),
         submitVideoJob({ model: CLIP_MODEL, prompt: MOTION_PROMPTS.texture, aspectRatio: '9:16', duration: 5, resolution: '1080p', referenceUrls: [textureUrl], generateAudio: false }),
         submitVideoJob({ model: CLIP_MODEL, prompt: MOTION_PROMPTS.apply, aspectRatio: '9:16', duration: 5, resolution: '1080p', referenceUrls: [applyUrl], generateAudio: false }),
       ])
@@ -159,6 +164,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'insufficient_credits', message: `This video uses ${total} credits in total and your balance is ${Number(bal?.balance ?? 0)}.` }, { status: 402 })
   }
 
+  // Reveal look: the user's pick, or rotate so nobody gets the same look twice in a row.
+  let revealLook: RevealLook
+  if (body.revealLook && body.revealLook !== 'auto' && REVEAL_LOOKS.includes(body.revealLook)) revealLook = body.revealLook
+  else {
+    const { data: last } = await supabase
+      .from('agent_tasks')
+      .select('input')
+      .eq('user_id', workspaceId)
+      .eq('agent', PRODUCT_AD_AGENT)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    revealLook = pickRevealLook(((last?.input as ProductAdTaskInput | null)?.revealLook) ?? 'wetGlass')
+  }
+
   const input: ProductAdTaskInput = {
     profileId: workspaceId,
     typeId: 'product_ad',
@@ -166,6 +186,7 @@ export async function POST(req: Request) {
     productName,
     details: clean(body.details, 400),
     leadProduct: clean(body.leadProduct, 120) || undefined,
+    revealLook,
     photos,
     stills: {},
     redosLeft: PRODUCT_AD_REDOS,
@@ -207,7 +228,7 @@ export async function POST(req: Request) {
     next.stills.wetGlass = await makeStillFor(supabase, next, 'wetGlass')
     next.stage = 'review'
     await supabase.from('agent_tasks').update({ input: next }).eq('id', taskId)
-    return NextResponse.json({ taskId, stills: await signedProductStills(next.stills), redosLeft: PRODUCT_AD_REDOS, credits: cost })
+    return NextResponse.json({ taskId, stills: await signedProductStills(next.stills), revealLook, redosLeft: PRODUCT_AD_REDOS, credits: cost })
   } catch (err) {
     console.error('[video-product] stills failed', taskId, err instanceof Error ? err.message : err)
     await failVideoTask(supabase, taskId, workspaceId)
