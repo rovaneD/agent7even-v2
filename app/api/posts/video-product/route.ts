@@ -12,6 +12,7 @@ import { failVideoTask } from '@/lib/agents/videoGeneration/failVideoTask'
 import { presenterVideoUrl } from '@/lib/agents/videoGeneration/presenterJob'
 import {
   advanceProductAdTask,
+  checkProductStill,
   CLIP_MODEL,
   makeStillFor,
   MOTION_PROMPTS,
@@ -35,7 +36,7 @@ const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024 // the client downsizes phone photos first (request limit ~4.5 MB)
 
 type Body = {
-  action?: 'stills' | 'redo' | 'create'
+  action?: 'stills' | 'redo' | 'create' | 'check'
   taskId?: string
   option?: ProductAdOption
   productName?: string
@@ -46,6 +47,9 @@ type Body = {
   title?: string
   caption?: string
   which?: ProductStillKey
+  /** check: which stills (default all). redo: auto = the check's one free remake. */
+  keys?: ProductStillKey[]
+  auto?: boolean
 }
 
 const clean = (s: unknown, max: number) => String(s ?? '').trim().slice(0, max)
@@ -82,7 +86,7 @@ export async function POST(req: Request) {
 
   const body = (await req.json().catch(() => ({}))) as Body
 
-  if (body.action === 'redo' || body.action === 'create') {
+  if (body.action === 'redo' || body.action === 'create' || body.action === 'check') {
     const { data: task } = await supabase
       .from('agent_tasks')
       .select('id,user_id,status,input,action_type')
@@ -94,16 +98,37 @@ export async function POST(req: Request) {
     const input = task.input as ProductAdTaskInput
     if (input.stage !== 'review') return NextResponse.json({ error: 'wrong_stage', message: 'This video is already being made.' }, { status: 409 })
 
+    if (body.action === 'check') {
+      // Free. Runs in its own request so the stills request stays well under the ~100s gateway limit.
+      const keys = (body.keys?.length ? body.keys : (Object.keys(input.stills) as ProductStillKey[])).filter(k => input.stills[k])
+      const results = await Promise.all(keys.map(k => checkProductStill(input, k)))
+      const { data: fresh } = await supabase.from('agent_tasks').select('input').eq('id', task.id).maybeSingle()
+      const cur = (fresh?.input as ProductAdTaskInput | undefined) ?? input
+      const checks = { ...(cur.checks ?? {}) }
+      keys.forEach((k, i) => { checks[k] = results[i]! })
+      await supabase.from('agent_tasks').update({ input: { ...cur, checks } }).eq('id', task.id)
+      return NextResponse.json({ taskId: task.id, checks, autoRedone: cur.autoRedone ?? [] })
+    }
+
     if (body.action === 'redo') {
-      if (input.redosLeft <= 0) return NextResponse.json({ error: 'no_redos', message: 'No redos left for this video.' }, { status: 429 })
       const key = body.which
       if (!key || !input.stills[key]) return NextResponse.json({ error: 'bad_still' }, { status: 400 })
+      const auto = body.auto === true
+      if (auto && (input.autoRedone ?? []).includes(key)) return NextResponse.json({ error: 'already_redone' }, { status: 429 })
+      if (!auto && input.redosLeft <= 0) return NextResponse.json({ error: 'no_redos', message: 'No redos left for this video.' }, { status: 429 })
       try {
-        const next: ProductAdTaskInput = { ...input, stills: { ...input.stills } }
+        const next: ProductAdTaskInput = { ...input, stills: { ...input.stills }, checks: { ...(input.checks ?? {}) } }
         next.stills[key] = await makeStillFor(supabase, next, key)
-        next.redosLeft = input.redosLeft - 1
+        delete next.checks![key]
+        if (auto) next.autoRedone = [...(input.autoRedone ?? []), key]
+        else next.redosLeft = input.redosLeft - 1
+        // The wet glass is made from the label shot: remake it too when the label shot changes.
+        if (key === 'hero' && next.stills.wetGlass) {
+          next.stills.wetGlass = await makeStillFor(supabase, next, 'wetGlass')
+          delete next.checks!.wetGlass
+        }
         await supabase.from('agent_tasks').update({ input: next }).eq('id', task.id)
-        return NextResponse.json({ taskId: task.id, stills: await signedProductStills(next.stills), redosLeft: next.redosLeft })
+        return NextResponse.json({ taskId: task.id, stills: await signedProductStills(next.stills), redosLeft: next.redosLeft, checks: next.checks, autoRedone: next.autoRedone ?? [] })
       } catch (err) {
         console.error('[video-product] redo failed', err instanceof Error ? err.message : err)
         return NextResponse.json({ error: 'redo_failed', message: 'That still could not be remade. Try again.' }, { status: 502 })

@@ -11,6 +11,7 @@ type StillKey = 'hero' | 'angle' | 'group' | 'lifestyle' | 'texture' | 'apply' |
 type Look = 'auto' | 'wetGlass' | 'shadow' | 'silk' | 'water'
 const LOOK_LABELS: Record<Exclude<Look, 'auto'>, string> = { wetGlass: 'Wet glass', shadow: 'Shadow play', silk: 'Silk', water: 'Water ripple' }
 type Photo = { path: string; url: string }
+type Check = { passed: boolean; issues: string[] }
 type Job = { taskId: string; status: 'starting' | 'rendering' | 'editing' | 'completed' | 'failed'; videoUrl?: string | null }
 
 // Placeholder prices (owner to set): keep in step with ACTION_CREDIT_COST product_ad_*.
@@ -54,6 +55,8 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
   const [leadProduct, setLeadProduct] = useState('')
   const [look, setLook] = useState<Look>('auto')
   const [madeLook, setMadeLook] = useState<Exclude<Look, 'auto'> | null>(null)
+  const [checks, setChecks] = useState<Partial<Record<StillKey, Check>>>({})
+  const [checking, setChecking] = useState(false)
   const [stills, setStills] = useState<{ taskId: string; urls: Partial<Record<StillKey, string | null>>; redosLeft: number } | null>(null)
   const [busy, setBusy] = useState<null | 'all' | StillKey>(null)
   const [job, setJob] = useState<Job | null>(null)
@@ -108,10 +111,43 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
       setMadeLook(d.revealLook ?? null)
       setStills({ taskId: d.taskId, urls: d.stills, redosLeft: d.redosLeft ?? 0 })
       setPreview('hero')
+      setBusy(null)
+      void runChecks(d.taskId)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The stills could not be made.')
     } finally {
       setBusy(null)
+    }
+  }
+
+  /**
+   * Automatic product check: compare every still with the user's photos; remake a failing still once for
+   * free, check it again, and flag anything that still fails so the user looks at it first.
+   */
+  async function runChecks(taskId: string) {
+    setChecking(true)
+    const post = async (body: Record<string, unknown>) => {
+      const r = await fetch('/api/posts/video-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId, ...body }) })
+      return (await r.json().catch(() => ({}))) as { checks?: Partial<Record<StillKey, Check>>; autoRedone?: StillKey[]; stills?: Partial<Record<StillKey, string | null>>; redosLeft?: number }
+    }
+    try {
+      const first = await post({ action: 'check' })
+      setChecks(first.checks ?? {})
+      const failed = (Object.entries(first.checks ?? {}) as Array<[StillKey, Check]>).filter(([k, c]) => !c.passed && !(first.autoRedone ?? []).includes(k)).map(([k]) => k)
+      if (!failed.length) return
+      for (const k of failed) {
+        setBusy(k)
+        const d = await post({ action: 'redo', which: k, auto: true })
+        if (d.stills) setStills(st => (st ? { ...st, urls: d.stills!, redosLeft: d.redosLeft ?? st.redosLeft } : st))
+      }
+      setBusy(null)
+      const again = await post({ action: 'check', keys: failed.includes('hero') ? [...failed, 'wetGlass'] : failed })
+      setChecks(again.checks ?? {})
+    } catch {
+      // The check never blocks the user; they still review every still.
+    } finally {
+      setBusy(null)
+      setChecking(false)
     }
   }
 
@@ -129,6 +165,13 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
       if (!r.ok || !d.stills) throw new Error(d.message ?? 'That still could not be remade.')
       setStills(s => (s ? { ...s, urls: d.stills!, redosLeft: d.redosLeft ?? 0 } : s))
       setPreview(key)
+      setChecks(c => { const n = { ...c }; delete n[key]; if (key === 'hero') delete n.wetGlass; return n })
+      if (stills) {
+        void fetch('/api/posts/video-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'check', taskId: stills.taskId, keys: key === 'hero' ? ['hero', 'wetGlass'] : [key] }) })
+          .then(r => r.json())
+          .then((x: { checks?: Partial<Record<StillKey, Check>> }) => x.checks && setChecks(x.checks))
+          .catch(() => {})
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That still could not be remade.')
     } finally {
@@ -301,7 +344,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
               {stills && (
                 <section>
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-[12px] font-medium text-[#9A9DA5]">Stills · check every label before filming</p>
+                    <p className="text-[12px] font-medium text-[#9A9DA5]">{checking ? 'Checking each still against your photos…' : 'Stills · check every label before filming'}</p>
                     <span className="text-[11.5px] text-[#6B6E76]">{stills.redosLeft} redo{stills.redosLeft === 1 ? '' : 's'} left</span>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
@@ -317,6 +360,11 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                           )}
                         </button>
                         <p className="truncate text-[10.5px] text-[#9A9DA5]">{k === 'wetGlass' && madeLook ? LOOK_LABELS[madeLook] : STILL_LABELS[k]}</p>
+                        {checks[k] && (
+                          <p className={`text-[10px] leading-tight ${checks[k]!.passed ? 'text-[#4ADE80]' : 'text-[#F5C26B]'}`} title={checks[k]!.issues.join(' · ')}>
+                            {checks[k]!.passed ? '✓ Matches your photo' : `Check: ${checks[k]!.issues[0] ?? 'looks different from your photo'}`}
+                          </p>
+                        )}
                         <button type="button" onClick={() => redo(k)} disabled={stills.redosLeft <= 0 || busy !== null || !!job} className="inline-flex items-center gap-1 text-[11px] text-[#7FB0FF] hover:text-white disabled:opacity-40">
                           <RotateCcw size={10} /> Redo
                         </button>
@@ -388,7 +436,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                 </>
               ) : (
                 <>
-                  <button type="button" onClick={create} disabled={busy !== null} className="w-full rounded-[12px] bg-brand-primary py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#1D62D6] disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-[#8A8D95]">
+                  <button type="button" onClick={create} disabled={busy !== null || checking} className="w-full rounded-[12px] bg-brand-primary py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#1D62D6] disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-[#8A8D95]">
                     Make the video · {VIDEO_CREDITS[option]} credits
                   </button>
                   <p className="mt-2 text-center text-[11.5px] leading-snug text-[#6B6E76]">Charged once. If the video fails, all its credits come back automatically.</p>

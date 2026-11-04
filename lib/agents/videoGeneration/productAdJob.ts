@@ -4,6 +4,9 @@ import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { createPostAssetSignedUrl, downloadPostAsset } from '@/lib/postAssets'
 import { generateImageForComparison, openRouterHeaders } from '@/lib/agents/imageGeneration/openRouterImage'
 import { recordAgentTaskCost } from '@/lib/agents/taskInstrumentation'
+import { generateText } from 'ai'
+import { openrouter } from '@/lib/ai/client'
+import { loadPostAssetDataUrl, VISION_CAPTION_MODEL } from '@/lib/agents/visionCaption'
 import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 import { posterFrame } from './assemble'
 import { failVideoTask } from './failVideoTask'
@@ -29,6 +32,8 @@ export const STILL_MODEL = 'google/gemini-3-pro-image'
 export const CLIP_MODEL = 'kwaivgi/kling-v3.0-pro'
 export const PRODUCT_AD_REDOS = 3
 const USD = { still: 0.13, kling5s: 0.56, kling3s1080: 0.84 }
+
+export type StillCheck = { passed: boolean; issues: string[] }
 
 export type ProductAdOption = 'clean' | 'creative' | 'signature'
 /** Options the edit can make today. Clean and Creative get their own templates next. */
@@ -70,6 +75,10 @@ export type ProductAdTaskInput = {
   photos: string[]
   stills: Partial<Record<ProductStillKey, string>>
   redosLeft: number
+  /** Automatic product check per still (owner 2026-11-03: an eye-cream bottle came back as a jar). */
+  checks?: Partial<Record<ProductStillKey, StillCheck>>
+  /** Stills already remade once by the check (free, never counted against the user's redos). */
+  autoRedone?: ProductStillKey[]
   stage: 'stills' | 'review' | 'rendering' | 'editing' | 'done'
   jobs?: { wetGlass?: string; texture?: string; apply?: string }
   title: string
@@ -337,5 +346,57 @@ export async function advanceProductAdTask(
     console.error('[product-ad] edit failed', task.id, err instanceof Error ? err.message : err)
     await failVideoTask(supabase, task.id, task.user_id)
     return { status: 'failed' }
+  }
+}
+
+const CHECK_LABEL_SHOT = `You check AI-made product photos against the customer's real product photos before anyone pays to animate them.
+The FIRST image(s) are the customer's real product photo(s). The LAST image is the AI-made still to check.
+
+For every product that appears in the AI still, compare it with the same product in the real photo(s):
+- container type and shape (bottle vs jar vs tube vs pump; tall vs squat; proportions)
+- cap / pump / lid shape and color, body color and finish
+- every line of label text: transcribe what is painted in the AI still exactly (do NOT autocorrect) and compare with the real label. Fail on invented words, garbled or misspelled text, doubled words, missing lines that should be legible, or a logo/icon taken from a different product.
+- products that do not exist in the real photos, or a product duplicated
+Small text that is blurred or hidden by glass, water, fabric or shadow is fine; only fail text you can read that is wrong.
+Also fail if the still is a grid/collage of several panels.
+
+Return ONLY JSON: {"passed": true|false, "issues": ["short, specific problem a customer would understand"]}`
+
+const CHECK_TEXTURE_SHOT = `You check an AI-made close-up of a skincare/product texture before it is animated.
+Fail if any packaging, label, text, logo or a hand/person appears, or if the image is a grid/collage.
+Return ONLY JSON: {"passed": true|false, "issues": ["short, specific problem"]}`
+
+/**
+ * Compare one still with the user's photos (vision model). Owner 2026-11-03: the stills invented a jar,
+ * doubled "VITAMIN C" and made up small print; the user should not be the one who has to spot that.
+ * Never blocks: on any error the still counts as unchecked (passed, no issues).
+ */
+export async function checkProductStill(input: ProductAdTaskInput, key: ProductStillKey): Promise<StillCheck> {
+  const still = input.stills[key]
+  if (!still) return { passed: true, issues: [] }
+  try {
+    const texture = key === 'texture' || key === 'apply'
+    const refs = texture ? [] : input.photos.slice(0, 4)
+    const loaded = await Promise.all([...refs, still].map(p => loadPostAssetDataUrl(p)))
+    if (loaded.some(l => !l)) return { passed: true, issues: [] }
+    const result = await generateText({
+      model: openrouter(VISION_CAPTION_MODEL),
+      messages: [{
+        role: 'user',
+        content: [
+          ...loaded.map(l => ({ type: 'image' as const, image: new URL(l!.dataUrl) })),
+          { type: 'text' as const, text: `${texture ? CHECK_TEXTURE_SHOT : CHECK_LABEL_SHOT}\n\nWhat the customer said the product is: ${input.productName}${input.details ? ` (${input.details})` : ''}.` },
+        ],
+      }],
+      maxOutputTokens: 600,
+      temperature: 0,
+    })
+    const m = result.text.match(/\{[\s\S]*\}/)
+    const parsed = m ? (JSON.parse(m[0]) as Partial<StillCheck>) : null
+    if (!parsed || typeof parsed.passed !== 'boolean') return { passed: true, issues: [] }
+    return { passed: parsed.passed, issues: (parsed.issues ?? []).map(String).slice(0, 4) }
+  } catch (err) {
+    console.error('[product-ad] check failed', key, err instanceof Error ? err.message : err)
+    return { passed: true, issues: [] }
   }
 }
