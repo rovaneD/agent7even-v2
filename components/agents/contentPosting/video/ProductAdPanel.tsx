@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Clock, Download, ImagePlus, Loader2, RotateCcw, X } from 'lucide-react'
 import { VIDEO_TYPES, videoTypeById, type VideoTypeId } from '@/lib/agents/contentPosting/videoTypes'
 import { VIDEO_TYPE_ICONS, VideoTypePoster, useExampleUrl } from './videoTypeVisuals'
@@ -65,7 +65,12 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
   const [madeLook, setMadeLook] = useState<Exclude<Look, 'auto'> | null>(null)
   const [checks, setChecks] = useState<Partial<Record<StillKey, Check>>>({})
   const [checking, setChecking] = useState(false)
-  const [stills, setStills] = useState<{ taskId: string; urls: Partial<Record<StillKey, string | null>>; redosLeft: number } | null>(null)
+  // `option` is the style this task was actually submitted as. The live style control can change
+  // while stills are generating (~1 min); the charge and the edit follow the task, not that control.
+  const [stills, setStills] = useState<{ taskId: string; option: Option; urls: Partial<Record<StillKey, string | null>>; redosLeft: number } | null>(null)
+  // Which task the screen is showing. Checks and redos keep running after a style change; their
+  // results must not land on a newer task (wrong pictures, right charge).
+  const activeTask = useRef<string | null>(null)
   const [busy, setBusy] = useState<null | 'all' | StillKey>(null)
   const [job, setJob] = useState<Job | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -95,7 +100,9 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
         if (!r.ok || !d.path || !d.url) throw new Error(d.message ?? 'The photo could not be uploaded.')
         setPhotos(p => [...p, { path: d.path!, url: d.url! }])
       }
+      activeTask.current = null
       setStills(null)
+      setChecking(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The photo could not be uploaded.')
     } finally {
@@ -106,18 +113,25 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
   async function makeStills() {
     if (!photos.length) return setError('Add at least one photo of your product.')
     if (!name.trim()) return setError('Say what the product is.')
+    // Freeze the request. Stills take about a minute; the price (Clean 55, Signature/Creative 70)
+    // and the edit are whatever style was submitted here, not a later click on the style control.
+    const style = option
+    const reveal = look
     setError(null)
     setBusy('all')
     try {
       const r = await fetch('/api/posts/video-product', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'stills', option, productName: name, details, leadProduct, revealLook: look, photos: photos.map(p => p.path) }),
+        body: JSON.stringify({ action: 'stills', option: style, productName: name, details, leadProduct, revealLook: reveal, photos: photos.map(p => p.path) }),
       })
       const d = (await r.json().catch(() => ({}))) as { taskId?: string; stills?: Partial<Record<StillKey, string | null>>; revealLook?: Exclude<Look, 'auto'>; redosLeft?: number; message?: string }
       if (!r.ok || !d.taskId || !d.stills) throw new Error(d.message ?? 'The stills could not be made.')
+      activeTask.current = d.taskId
+      setOption(style)
+      setLook(reveal)
       setMadeLook(d.revealLook ?? null)
-      setStills({ taskId: d.taskId, urls: d.stills, redosLeft: d.redosLeft ?? 0 })
+      setStills({ taskId: d.taskId, option: style, urls: d.stills, redosLeft: d.redosLeft ?? 0 })
       setPreview('hero')
       setBusy(null)
       void runChecks(d.taskId)
@@ -134,52 +148,61 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
    */
   async function runChecks(taskId: string) {
     setChecking(true)
+    const live = () => activeTask.current === taskId
     const post = async (body: Record<string, unknown>) => {
       const r = await fetch('/api/posts/video-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId, ...body }) })
       return (await r.json().catch(() => ({}))) as { checks?: Partial<Record<StillKey, Check>>; autoRedone?: StillKey[]; stills?: Partial<Record<StillKey, string | null>>; redosLeft?: number }
     }
     try {
       const first = await post({ action: 'check' })
+      if (!live()) return
       setChecks(first.checks ?? {})
       const failed = (Object.entries(first.checks ?? {}) as Array<[StillKey, Check]>).filter(([k, c]) => !c.passed && !(first.autoRedone ?? []).includes(k)).map(([k]) => k)
       if (!failed.length) return
       for (const k of failed) {
+        if (!live()) return
         setBusy(k)
         const d = await post({ action: 'redo', which: k, auto: true })
-        if (d.stills) setStills(st => (st ? { ...st, urls: d.stills!, redosLeft: d.redosLeft ?? st.redosLeft } : st))
+        if (!live()) return
+        if (d.stills) setStills(st => (st && st.taskId === taskId ? { ...st, urls: d.stills!, redosLeft: d.redosLeft ?? st.redosLeft } : st))
       }
+      if (!live()) return
       setBusy(null)
       const again = await post({ action: 'check', keys: failed.includes('hero') ? [...failed, 'wetGlass'] : failed })
+      if (!live()) return
       setChecks(again.checks ?? {})
     } catch {
       // The check never blocks the user; they still review every still.
     } finally {
-      setBusy(null)
-      setChecking(false)
+      // A newer task may already be generating. Don't clear its busy flag.
+      if (activeTask.current === taskId) {
+        setBusy(null)
+        setChecking(false)
+      }
     }
   }
 
   async function redo(key: StillKey) {
     if (!stills || stills.redosLeft <= 0) return
+    const taskId = stills.taskId
     setError(null)
     setBusy(key)
     try {
       const r = await fetch('/api/posts/video-product', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'redo', taskId: stills.taskId, which: key }),
+        body: JSON.stringify({ action: 'redo', taskId, which: key }),
       })
       const d = (await r.json().catch(() => ({}))) as { stills?: Partial<Record<StillKey, string | null>>; redosLeft?: number; message?: string }
       if (!r.ok || !d.stills) throw new Error(d.message ?? 'That still could not be remade.')
-      setStills(s => (s ? { ...s, urls: d.stills!, redosLeft: d.redosLeft ?? 0 } : s))
+      if (activeTask.current !== taskId) return
+      setStills(s => (s && s.taskId === taskId ? { ...s, urls: d.stills!, redosLeft: d.redosLeft ?? 0 } : s))
       setPreview(key)
       setChecks(c => { const n = { ...c }; delete n[key]; if (key === 'hero') delete n.wetGlass; return n })
-      if (stills) {
-        void fetch('/api/posts/video-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'check', taskId: stills.taskId, keys: key === 'hero' ? ['hero', 'wetGlass'] : [key] }) })
-          .then(r => r.json())
-          .then((x: { checks?: Partial<Record<StillKey, Check>> }) => x.checks && setChecks(x.checks))
-          .catch(() => {})
-      }
+      void fetch('/api/posts/video-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'check', taskId, keys: key === 'hero' ? ['hero', 'wetGlass'] : [key] }) })
+        .then(r => r.json())
+        .then((x: { checks?: Partial<Record<StillKey, Check>> }) => { if (activeTask.current === taskId && x.checks) setChecks(x.checks) })
+        .catch(() => {})
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That still could not be remade.')
     } finally {
@@ -221,6 +244,8 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
 
   const stillKeys = STILL_ORDER.filter(k => stills?.urls[k] !== undefined)
   const previewUrl = stills?.urls[preview] ?? null
+  // Price and edit name follow the task that will be charged, not a style click during generation.
+  const charged: Option = stills?.option ?? option
 
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/80 backdrop-blur-md lg:overflow-hidden" role="dialog" aria-modal="true" aria-label={type.name}>
@@ -287,7 +312,8 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                 <Segmented
                   label="Style"
                   value={option}
-                  onChange={v => { if (READY.includes(v)) { setOption(v); setStills(null) } else setError(`${v === 'clean' ? 'Clean' : 'Creative'} is coming soon.`) }}
+                  disabled={busy !== null}
+                  onChange={v => { if (busy !== null) return; if (READY.includes(v)) { setOption(v); activeTask.current = null; setStills(null); setChecks({}); setChecking(false) } else setError(`${v === 'clean' ? 'Clean' : 'Creative'} is coming soon.`) }}
                   options={[
                     { value: 'clean' as Option, label: 'Clean' },
                     { value: 'creative' as Option, label: 'Creative' },
@@ -299,7 +325,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
 
               {option !== 'clean' && <section>
                 <p className="mb-2 text-[12.5px] font-medium text-[#C9CBD1]">Reveal look</p>
-                <select value={look} disabled={!!stills} onChange={e => setLook(e.target.value as Look)} className={fieldClass}>
+                <select value={look} disabled={!!stills || busy !== null} onChange={e => setLook(e.target.value as Look)} className={fieldClass}>
                   <option value="auto">Surprise me (a different look each time)</option>
                   <option value="wetGlass">Wet glass</option>
                   <option value="shadow">Shadow play</option>
@@ -316,14 +342,14 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                     <div key={p.path} className="relative aspect-square overflow-hidden rounded-[8px] ring-1 ring-white/[0.08]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p.url} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
-                      {!stills && (
+                      {!stills && busy === null && (
                         <button type="button" aria-label="Remove photo" onClick={() => setPhotos(ps => ps.filter(x => x.path !== p.path))} className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white">
                           <X size={11} />
                         </button>
                       )}
                     </div>
                   ))}
-                  {photos.length < 4 && !stills && (
+                  {photos.length < 4 && !stills && busy === null && (
                     <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-[8px] border border-dashed border-white/[0.15] text-[11px] text-[#9A9DA5] hover:border-white/30 hover:text-white">
                       {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
                       {uploading ? 'Uploading' : 'Add'}
@@ -337,15 +363,15 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
               <section className="space-y-3">
                 <div>
                   <p className="mb-1.5 text-[12.5px] font-medium text-[#C9CBD1]">What is it?</p>
-                  <input value={name} disabled={!!stills} onChange={e => setName(e.target.value)} placeholder="e.g. Milky body lotion" className={fieldClass} />
+                  <input value={name} disabled={!!stills || busy !== null} onChange={e => setName(e.target.value)} placeholder="e.g. Milky body lotion" className={fieldClass} />
                 </div>
                 <div>
                   <p className="mb-1.5 text-[12.5px] font-medium text-[#C9CBD1]">Lead product (if there are several)</p>
-                  <input value={leadProduct} disabled={!!stills} onChange={e => setLeadProduct(e.target.value)} placeholder="e.g. the vitamin C serum. It gets the label shot and the wet-glass reveal." className={fieldClass} />
+                  <input value={leadProduct} disabled={!!stills || busy !== null} onChange={e => setLeadProduct(e.target.value)} placeholder="e.g. the vitamin C serum. It gets the label shot and the wet-glass reveal." className={fieldClass} />
                 </div>
                 <div>
                   <p className="mb-1.5 text-[12.5px] font-medium text-[#C9CBD1]">What the texture looks like, and ingredients (optional)</p>
-                  <textarea value={details} disabled={!!stills} onChange={e => setDetails(e.target.value)} rows={2} placeholder="e.g. clear orange serum, rich white cream; with vitamin C. Only what you list here appears in the video." className={`${fieldClass} resize-none`} />
+                  <textarea value={details} disabled={!!stills || busy !== null} onChange={e => setDetails(e.target.value)} rows={2} placeholder="e.g. clear orange serum, rich white cream; with vitamin C. Only what you list here appears in the video." className={`${fieldClass} resize-none`} />
                 </div>
               </section>
 
@@ -398,7 +424,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                     const now = order.indexOf(job.status)
                     const done = job.status !== 'failed' && i < now
                     const active = job.status === st && st !== 'completed'
-                    const label = ['Starting', `Filming the texture${option === 'clean' ? '' : ' and the reveal'} (about 5 min)`, `Cutting the ${option === 'clean' ? 'Clean' : option === 'creative' ? 'Creative' : 'Signature'} edit`, 'In Approvals'][i]
+                    const label = ['Starting', `Filming the texture${charged === 'clean' ? '' : ' and the reveal'} (about 5 min)`, `Cutting the ${charged === 'clean' ? 'Clean' : charged === 'creative' ? 'Creative' : 'Signature'} edit`, 'In Approvals'][i]
                     return (
                       <div key={st} className="flex items-center gap-2 py-1 text-[13px]">
                         {done || (st === 'completed' && job.status === 'completed') ? (
@@ -439,13 +465,13 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                     {busy === 'all' ? 'Making the stills (about 1 min)…' : `Make stills · ${STILLS_CREDITS} credits`}
                   </button>
                   <p className="mt-2 text-center text-[11.5px] leading-snug text-[#6B6E76]">
-                    You check every still before filming. Filming is {VIDEO_CREDITS[option]} credits more ({STILLS_CREDITS + VIDEO_CREDITS[option]} in total).
+                    You check every still before filming. Filming is {VIDEO_CREDITS[charged]} credits more ({STILLS_CREDITS + VIDEO_CREDITS[charged]} in total).
                   </p>
                 </>
               ) : (
                 <>
                   <button type="button" onClick={create} disabled={busy !== null || checking} className="w-full rounded-[12px] bg-brand-primary py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-[#1D62D6] disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-[#8A8D95]">
-                    Make the video · {VIDEO_CREDITS[option]} credits
+                    Make the video · {VIDEO_CREDITS[charged]} credits
                   </button>
                   <p className="mt-2 text-center text-[11.5px] leading-snug text-[#6B6E76]">Charged once. If the video fails, all its credits come back automatically.</p>
                 </>
