@@ -5,11 +5,13 @@ export function Segmented<T extends string | number>({
   options,
   onChange,
   label,
+  disabled = false,
 }: {
   value: T
   options: Array<{ value: T; label: string }>
   onChange: (v: T) => void
   label: string
+  disabled?: boolean
 }) {
   return (
     <div role="radiogroup" aria-label={label} className="inline-flex rounded-[10px] bg-white/[0.05] p-[3px] ring-1 ring-white/[0.06]">
@@ -21,10 +23,12 @@ export function Segmented<T extends string | number>({
             type="button"
             role="radio"
             aria-checked={on}
-            onClick={() => onChange(o.value)}
+            aria-disabled={disabled}
+            disabled={disabled}
+            onClick={() => { if (!disabled) onChange(o.value) }}
             className={`rounded-[8px] px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
               on ? 'bg-white/[0.14] text-white' : 'text-[#9A9DA5] hover:text-white'
-            }`}
+            } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
           >
             {o.label}
           </button>
