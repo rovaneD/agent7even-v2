@@ -362,6 +362,24 @@ Only skip text that is physically hidden or blurred in the AI still by glass, wa
 
 Return ONLY JSON: {"passed": true|false, "issues": ["short, specific problem a customer would understand, e.g. 'Firming treatment label says 12 Brighteners, real label says 13'"]}`
 
+/**
+ * Owner 2026-11-03 (option B): multi-product shots (group, angle, flat lay) are on screen for 1-5 frames
+ * at phone size and almost always garble some secondary small print, so there the check stays strict on
+ * shapes, invented/duplicated products and big text, but lets small print go. The label shot and the
+ * reveal are proofread word for word.
+ */
+const CHECK_WIDE_SHOT = `You check an AI-made product photo (a wide shot with several products) against the customer's real product photos before anyone pays to animate it.
+The FIRST image(s) are the customer's real product photo(s). The LAST image is the AI-made still.
+
+Fail only on what a viewer would notice in a fast cut on a phone:
+- a product with the wrong container type or shape (bottle vs jar vs tube vs pump; tall vs squat), wrong cap/pump/lid, or wrong body color
+- an invented product, a duplicated product, or a product missing that the shot clearly needs
+- the brand name or a product NAME (the big headline text on the label) misspelled, doubled or wrong
+- a grid/collage of panels
+Do NOT fail on small print (step lines, usage lines, ingredient lists, small numbers): ignore it entirely.
+
+Return ONLY JSON: {"passed": true|false, "issues": ["short, specific problem a customer would understand"]}`
+
 const CHECK_TEXTURE_SHOT = `You check an AI-made close-up of a skincare/product texture before it is animated.
 Fail if any packaging, label, text, logo or a hand/person appears, or if the image is a grid/collage.
 Return ONLY JSON: {"passed": true|false, "issues": ["short, specific problem"]}`
@@ -397,7 +415,7 @@ export async function checkProductStill(input: Pick<ProductAdTaskInput, 'stills'
         role: 'user',
         content: [
           ...loaded.map(l => ({ type: 'image' as const, image: new URL(l!.dataUrl) })),
-          { type: 'text' as const, text: `${texture ? CHECK_TEXTURE_SHOT : CHECK_LABEL_SHOT}\n\nWhat the customer said the product is: ${input.productName}${input.details ? ` (${input.details})` : ''}.` },
+          { type: 'text' as const, text: `${texture ? CHECK_TEXTURE_SHOT : key === 'hero' || key === 'wetGlass' ? CHECK_LABEL_SHOT : CHECK_WIDE_SHOT}\n\nWhat the customer said the product is: ${input.productName}${input.details ? ` (${input.details})` : ''}.` },
         ],
       }],
       maxOutputTokens: 1500,
