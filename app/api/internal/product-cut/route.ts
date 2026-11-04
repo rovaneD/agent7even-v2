@@ -5,6 +5,7 @@ import { createPostAssetSignedUrl, downloadPostAsset } from '@/lib/postAssets'
 import { POST_ASSETS_BUCKET } from '@/lib/postAssetLimits'
 import { posterFrame } from '@/lib/agents/videoGeneration/assemble'
 import { assembleProductCut, type ProductShot, type ProductTransition } from '@/lib/agents/videoGeneration/productCut'
+import { toFrame } from '@/lib/agents/videoGeneration/productAdJob'
 import { planProductTemplate, type SignatureAsset, type SignatureAssets, type SignatureRole } from '@/lib/agents/videoGeneration/signatureTemplate'
 
 /**
@@ -82,6 +83,12 @@ export async function POST(req: Request) {
     return { buf: v }
   }
   const num = (x: unknown) => (x != null ? Number(x) : undefined)
+  const frames = new Map<string, Buffer>()
+  const frameOnce = async (p: string, b: Buffer) => {
+    let f = frames.get(p)
+    if (!f) { f = await toFrame(b); frames.set(p, f) }
+    return f
+  }
   for (const s of list) {
     const common = {
       from: Number(s.from), to: Number(s.to), zoom: num(s.zoom), zoomSec: num(s.zoomSec),
@@ -102,7 +109,8 @@ export async function POST(req: Request) {
     }
     const r = await load(s.imagePath ?? s.path ?? (s.jobId ? `${profileId}/bakeoff-video-${s.jobId.replace(/[^a-zA-Z0-9-]/g, '')}.mp4` : null))
     if (r.error) return r.error
-    shots.push({ ...common, ...(s.imagePath ? { image: r.buf! } : { video: r.buf! }) })
+    // 2K stills fed once per shot ran the function out of memory / past the ffmpeg timeout (2026-11-03).
+    shots.push({ ...common, ...(s.imagePath ? { image: await frameOnce(s.imagePath, r.buf!) } : { video: r.buf! }) })
   }
 
   let soundtrack: Buffer | undefined

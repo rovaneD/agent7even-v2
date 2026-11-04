@@ -223,7 +223,7 @@ async function fetchBytes(url: string, headers?: Record<string, string>): Promis
  * to ffmpeg many times (one input per shot), and at 2K the first real run (2026-11-03) ran the function
  * out of memory. Scale once to the output frame as a JPEG first.
  */
-async function toFrame(png: Buffer): Promise<Buffer> {
+export async function toFrame(png: Buffer): Promise<Buffer> {
   try {
     const sharp = (await import('sharp')).default
     return await sharp(png).resize(1080, 1920, { fit: 'cover' }).jpeg({ quality: 92 }).toBuffer()
