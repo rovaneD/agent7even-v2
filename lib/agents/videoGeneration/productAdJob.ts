@@ -150,6 +150,20 @@ async function fetchBytes(url: string, headers?: Record<string, string>): Promis
   }
 }
 
+/**
+ * Stills are made at 2K (1536x2752 PNG) for sharp label print; the edit is 1080x1920. Each still is fed
+ * to ffmpeg many times (one input per shot), and at 2K the first real run (2026-11-03) ran the function
+ * out of memory. Scale once to the output frame as a JPEG first.
+ */
+async function toFrame(png: Buffer): Promise<Buffer> {
+  try {
+    const sharp = (await import('sharp')).default
+    return await sharp(png).resize(1080, 1920, { fit: 'cover' }).jpeg({ quality: 92 }).toBuffer()
+  } catch {
+    return png
+  }
+}
+
 /** Signature: fill the owner's edit template with this product's stills and clips. */
 export function signatureShots(input: ProductAdTaskInput, stills: Partial<Record<ProductStillKey, Buffer>>, clips: { wetGlass: Buffer; texture: Buffer; apply: Buffer }): ProductShot[] {
   const buf = new Map<string, Buffer>()
@@ -226,7 +240,7 @@ export async function advanceProductAdTask(
     const stills: Partial<Record<ProductStillKey, Buffer>> = {}
     await Promise.all(Object.entries(input.stills).map(async ([k, p]) => {
       const b = p ? await downloadPostAsset(p) : null
-      if (b) stills[k as ProductStillKey] = b
+      if (b) stills[k as ProductStillKey] = await toFrame(b)
     }))
     if (!stills.hero) throw new Error('hero still missing')
 
