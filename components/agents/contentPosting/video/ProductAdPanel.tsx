@@ -297,17 +297,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                 <p className="mt-1.5 text-[11.5px] leading-snug text-[#6B6E76]">{OPTION_HINT[option]}</p>
               </section>
 
-              {option !== 'clean' && <section>
-                <p className="mb-2 text-[12.5px] font-medium text-[#C9CBD1]">Reveal look</p>
-                <select value={look} disabled={!!stills} onChange={e => setLook(e.target.value as Look)} className={fieldClass}>
-                  <option value="auto">Surprise me (a different look each time)</option>
-                  <option value="wetGlass">Wet glass</option>
-                  <option value="shadow">Shadow play</option>
-                  <option value="silk">Silk</option>
-                  <option value="water">Water ripple</option>
-                </select>
-                <p className="mt-1.5 text-[11.5px] leading-snug text-[#6B6E76]">The moment your label is revealed. Only the surroundings move, never your product.</p>
-              </section>}
+              {/* Reveal look picker hidden (owner 2026-11-03): wet glass only until variety is redesigned. */}
 
               <section>
                 <p className="mb-2 text-[12.5px] font-medium text-[#C9CBD1]">Your product photos (1–4)</p>

@@ -17,7 +17,7 @@ import {
   makeStillFor,
   MOTION_PROMPTS,
   pickRevealLook,
-  REVEAL_LOOKS,
+  LIVE_REVEAL_LOOKS,
   REVEAL_MOTION,
   PRODUCT_AD_AGENT,
   PRODUCT_AD_READY_OPTIONS,
@@ -195,7 +195,7 @@ export async function POST(req: Request) {
 
   // Reveal look: the user's pick, or rotate so nobody gets the same look twice in a row.
   let revealLook: RevealLook
-  if (body.revealLook && body.revealLook !== 'auto' && REVEAL_LOOKS.includes(body.revealLook)) revealLook = body.revealLook
+  if (body.revealLook && body.revealLook !== 'auto' && LIVE_REVEAL_LOOKS.includes(body.revealLook)) revealLook = body.revealLook
   else {
     const { data: last } = await supabase
       .from('agent_tasks')

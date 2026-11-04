@@ -52,10 +52,14 @@ export type RevealLook = 'wetGlass' | 'shadow' | 'silk' | 'water'
 export const REVEAL_LOOKS: RevealLook[] = ['wetGlass', 'shadow', 'silk', 'water']
 export const REVEAL_LOOK_LABELS: Record<RevealLook, string> = { wetGlass: 'Wet glass', shadow: 'Shadow play', silk: 'Silk', water: 'Water ripple' }
 
-/** Rotate: never the look this user got last time (random among the rest). */
-export function pickRevealLook(last: RevealLook | null | undefined): RevealLook {
-  const pool = REVEAL_LOOKS.filter(l => l !== last)
-  return pool[Math.floor(Math.random() * pool.length)]!
+/**
+ * Owner 2026-11-03, after seeing shadow/silk/water inside full Signature cuts: "they feel disconnected and
+ * no purpose ... superfluous rather than meaningful"; the wet glass "has a strong visual impact". Until he
+ * decides how to add variety, every video uses the wet glass. The other looks stay in code, unused.
+ */
+export const LIVE_REVEAL_LOOKS: RevealLook[] = ['wetGlass']
+export function pickRevealLook(_last: RevealLook | null | undefined): RevealLook {
+  return LIVE_REVEAL_LOOKS[0]!
 }
 
 export type ProductStillKey = 'hero' | 'angle' | 'group' | 'lifestyle' | 'texture' | 'apply' | 'wetGlass'
