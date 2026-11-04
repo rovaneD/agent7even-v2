@@ -134,7 +134,10 @@ export function productStillPrompt(key: ProductStillKey, input: About): string {
     case 'group':
       return [a, 'All the products from the reference photos together in one composition, labels facing the camera, arranged on plinths at different heights.', KEEP_PRODUCT, ONE_FRAME, STUDIO].join(' ')
     case 'lifestyle':
-      return [a, 'Styled top-down flat lay: the product lying on soft linen with a few simple props that suit it (a comb, a folded towel, a small dish). Do not add fruit, flowers or ingredients unless they are named in the product description.', KEEP_PRODUCT, ONE_FRAME, STUDIO].join(' ')
+      // Owner 2026-11-04: a comb next to a skincare routine was "probably not ideal": the props came from
+      // a fixed list (comb, towel, dish) written for the Being Frens body/hair products. Props must fit
+      // how THIS product is used.
+      return [a, 'Styled top-down flat lay: the product lying on soft linen with one or two simple, neutral styling props that belong to how this kind of product is actually used (for skincare: a folded cotton towel, a small ceramic dish or a smooth stone; for haircare: a comb or brush; for a candle: a matchbox). Never a prop from a different product category. Do not add fruit, flowers, leaves or ingredients unless they are named in the product description.', KEEP_PRODUCT, ONE_FRAME, STUDIO].join(' ')
     case 'texture':
       return [a, textureLine(input), 'Macro close-up of that ONE texture only: a single generous swirl or drop on a clean surface. One texture, one color, one swatch; no other swatches.', NO_PEOPLE, ONE_FRAME, STUDIO].join(' ')
     case 'apply':
