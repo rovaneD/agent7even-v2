@@ -30,6 +30,13 @@ import {
   type ProductStillKey,
   type RevealLook,
 } from '@/lib/agents/videoGeneration/productAdJob'
+import {
+  applyStillChecks,
+  isReviewStillKey,
+  mergeProductRedo,
+  requestedStillKeys,
+  reviewStillGuards,
+} from '@/lib/agents/videoGeneration/productAdReview'
 
 export const maxDuration = 300
 
@@ -54,6 +61,29 @@ type Body = {
 }
 
 const clean = (s: unknown, max: number) => String(s ?? '').trim().slice(0, max)
+
+type Db = ReturnType<typeof createServiceClient>
+
+async function readReviewInput(supabase: Db, taskId: string): Promise<ProductAdTaskInput | null> {
+  const { data, error } = await supabase.from('agent_tasks').select('input').eq('id', taskId).maybeSingle()
+  if (error || !data?.input) return null
+  return data.input as ProductAdTaskInput
+}
+
+/** Save a review-stage input only if those stills are still the ones we merged onto. */
+async function commitReviewInput(supabase: Db, taskId: string, next: ProductAdTaskInput, basedOn: ProductAdTaskInput['stills']): Promise<boolean> {
+  let update = supabase
+    .from('agent_tasks')
+    .update({ input: next })
+    .eq('id', taskId)
+    .eq('status', 'running')
+    .eq('input->>stage', 'review')
+  for (const [key, path] of reviewStillGuards(basedOn)) {
+    update = update.eq(`input->stills->>${key}`, path)
+  }
+  const { data, error } = await update.select('id')
+  return !error && (data?.length ?? 0) > 0
+}
 
 /**
  * Product ad (no person), in two paid steps so nobody pays to animate a still with a wrong label:
@@ -101,35 +131,72 @@ export async function POST(req: Request) {
 
     if (body.action === 'check') {
       // Free. Runs in its own request so the stills request stays well under the ~100s gateway limit.
-      const keys = (body.keys?.length ? body.keys : (Object.keys(input.stills) as ProductStillKey[])).filter(k => input.stills[k])
+      // The verdict is for the stills we just read. A remake that lands while the vision call runs
+      // must keep its new picture, and a task that has started filming must not be rewound.
+      const keys = requestedStillKeys(body.keys, input.stills)
       const results = await Promise.all(keys.map(k => checkProductStill(input, k)))
-      const { data: fresh } = await supabase.from('agent_tasks').select('input').eq('id', task.id).maybeSingle()
-      const cur = (fresh?.input as ProductAdTaskInput | undefined) ?? input
-      const checks = { ...(cur.checks ?? {}) }
-      keys.forEach((k, i) => { checks[k] = results[i]! })
-      await supabase.from('agent_tasks').update({ input: { ...cur, checks } }).eq('id', task.id)
-      return NextResponse.json({ taskId: task.id, checks, autoRedone: cur.autoRedone ?? [] })
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const cur = await readReviewInput(supabase, task.id)
+        if (!cur) return NextResponse.json({ error: 'not_found', message: 'This video is no longer open. Make the stills again.' }, { status: 404 })
+        const applied = applyStillChecks(input, cur, keys, results)
+        if (!applied) return NextResponse.json({ error: 'wrong_stage', message: 'This video is already being made.' }, { status: 409 })
+        if (await commitReviewInput(supabase, task.id, applied.input, cur.stills)) {
+          return NextResponse.json({ taskId: task.id, checks: applied.checks, autoRedone: cur.autoRedone ?? [] })
+        }
+      }
+      const cur = await readReviewInput(supabase, task.id)
+      return NextResponse.json({
+        error: 'still_changed',
+        message: 'Those stills changed while they were being checked.',
+        ...(cur ? { checks: cur.checks ?? {}, autoRedone: cur.autoRedone ?? [], stills: await signedProductStills(cur.stills), redosLeft: cur.redosLeft } : {}),
+      }, { status: 409 })
     }
 
     if (body.action === 'redo') {
       const key = body.which
-      if (!key || !input.stills[key]) return NextResponse.json({ error: 'bad_still' }, { status: 400 })
+      if (!isReviewStillKey(key) || !input.stills[key]) return NextResponse.json({ error: 'bad_still' }, { status: 400 })
       const auto = body.auto === true
       if (auto && (input.autoRedone ?? []).includes(key)) return NextResponse.json({ error: 'already_redone' }, { status: 429 })
       if (!auto && input.redosLeft <= 0) return NextResponse.json({ error: 'no_redos', message: 'No redos left for this video.' }, { status: 429 })
       try {
-        const next: ProductAdTaskInput = { ...input, stills: { ...input.stills }, checks: { ...(input.checks ?? {}) } }
-        next.stills[key] = await makeStillFor(supabase, next, key)
-        delete next.checks![key]
-        if (auto) next.autoRedone = [...(input.autoRedone ?? []), key]
-        else next.redosLeft = input.redosLeft - 1
+        const madeStill = await makeStillFor(supabase, input, key)
         // The wet glass is made from the label shot: remake it too when the label shot changes.
-        if (key === 'hero' && next.stills.wetGlass) {
-          next.stills.wetGlass = await makeStillFor(supabase, next, 'wetGlass')
-          delete next.checks!.wetGlass
+        const madeWet = key === 'hero' && input.stills.wetGlass
+          ? await makeStillFor(supabase, { ...input, stills: { ...input.stills, hero: madeStill } }, 'wetGlass')
+          : undefined
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const cur = await readReviewInput(supabase, task.id)
+          if (!cur) return NextResponse.json({ error: 'not_found', message: 'This video is no longer open. Make the stills again.' }, { status: 404 })
+          const merged = mergeProductRedo(input, cur, key, { still: madeStill, wetGlass: madeWet }, auto)
+          if (!merged.ok) {
+            if (merged.reason === 'no_redos') return NextResponse.json({ error: 'no_redos', message: 'No redos left for this video.', redosLeft: cur.redosLeft }, { status: 429 })
+            if (merged.reason === 'already_redone') return NextResponse.json({ error: 'already_redone', redosLeft: cur.redosLeft, autoRedone: cur.autoRedone ?? [] }, { status: 429 })
+            if (merged.reason === 'wrong_stage') return NextResponse.json({ error: 'wrong_stage', message: 'This video is already being made.' }, { status: 409 })
+            return NextResponse.json({
+              error: 'still_changed',
+              message: 'That still was already updated.',
+              stills: await signedProductStills(cur.stills),
+              redosLeft: cur.redosLeft,
+              checks: cur.checks ?? {},
+              autoRedone: cur.autoRedone ?? [],
+            }, { status: 409 })
+          }
+          if (await commitReviewInput(supabase, task.id, merged.input, cur.stills)) {
+            return NextResponse.json({
+              taskId: task.id,
+              stills: await signedProductStills(merged.input.stills),
+              redosLeft: merged.input.redosLeft,
+              checks: merged.input.checks,
+              autoRedone: merged.input.autoRedone ?? [],
+            })
+          }
         }
-        await supabase.from('agent_tasks').update({ input: next }).eq('id', task.id)
-        return NextResponse.json({ taskId: task.id, stills: await signedProductStills(next.stills), redosLeft: next.redosLeft, checks: next.checks, autoRedone: next.autoRedone ?? [] })
+        const cur = await readReviewInput(supabase, task.id)
+        return NextResponse.json({
+          error: 'still_changed',
+          message: 'That still was already updated.',
+          ...(cur ? { stills: await signedProductStills(cur.stills), redosLeft: cur.redosLeft, checks: cur.checks ?? {}, autoRedone: cur.autoRedone ?? [] } : {}),
+        }, { status: 409 })
       } catch (err) {
         console.error('[video-product] redo failed', err instanceof Error ? err.message : err)
         return NextResponse.json({ error: 'redo_failed', message: 'That still could not be remade. Try again.' }, { status: 502 })
