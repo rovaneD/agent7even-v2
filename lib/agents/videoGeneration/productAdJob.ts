@@ -11,7 +11,7 @@ import { compressImageForApiPayload } from '@/lib/postAssetsImagePayload'
 import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 import { posterFrame } from './assemble'
 import { failVideoTask } from './failVideoTask'
-import { pollVideoJob } from './openRouterVideo'
+import { pollVideoJobSafely } from './videoPoll'
 import { assembleProductCut, type ProductShot } from './productCut'
 import { planProductTemplate, type SignatureAssets } from './signatureTemplate'
 
@@ -284,12 +284,13 @@ export async function advanceProductAdTask(
     await failVideoTask(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
-  const polls = await Promise.all(ids.map(id => pollVideoJob(id!)))
-  if (polls.some(p => p.status === 'failed')) {
+  const polls = await Promise.all(ids.map(id => pollVideoJobSafely(id!)))
+  if (polls.some(p => !p)) return { status: 'rendering' }
+  if (polls.some(p => p!.status === 'failed')) {
     await failVideoTask(supabase, task.id, task.user_id)
     return { status: 'failed' }
   }
-  if (polls.some(p => p.status !== 'completed')) return { status: 'rendering' }
+  if (polls.some(p => p!.status !== 'completed')) return { status: 'rendering' }
 
   const claimed = { ...input, stage: 'editing' as const, editingSince: new Date().toISOString() }
   const { data: won } = await supabase
@@ -303,7 +304,7 @@ export async function advanceProductAdTask(
 
   try {
     const videos = await Promise.all(polls.map(p => {
-      const src = p.unsigned_urls?.[0]
+      const src = p!.unsigned_urls?.[0]
       return src ? fetchBytes(src, openRouterHeaders()) : Promise.resolve(null)
     }))
     if (videos.some(v => !v)) throw new Error('could not download a rendered clip')
