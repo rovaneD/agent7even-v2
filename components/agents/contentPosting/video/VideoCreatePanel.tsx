@@ -14,6 +14,7 @@ import {
 import { VIDEO_TYPE_ICONS, VideoTypePoster, useExampleUrl } from './videoTypeVisuals'
 import { Segmented, fieldClass } from './ui'
 import CreatorsSheet, { loadLibrary, readSavedCreator, saveCreator, type PickedCreator } from './CreatorsSheet'
+import { useVideoJobPoll } from './useVideoJobPoll'
 
 type Plan = {
   title: string
@@ -192,19 +193,8 @@ export default function VideoCreatePanel({ typeId, format, onClose, onSwitch }: 
   }
 
   // Poll a running video every 12s until it is done or failed.
-  useEffect(() => {
-    if (!job || !['rendering', 'editing'].includes(job.status)) return
-    const t = setTimeout(async () => {
-      try {
-        const r = await fetch(`${statusUrl}?taskId=${encodeURIComponent(job.taskId)}`)
-        const d = (await r.json()) as { status?: string; videoUrl?: string | null }
-        if (d.status === 'completed' || d.status === 'failed' || d.status === 'rendering' || d.status === 'editing') {
-          setJob(j => (j ? { ...j, status: d.status as 'completed', videoUrl: d.videoUrl ?? j.videoUrl } : j))
-        }
-      } catch {}
-    }, 12_000)
-    return () => clearTimeout(t)
-  }, [job, statusUrl])
+  // A failed read schedules another. One dropped response used to stop the chain.
+  useVideoJobPoll(job, setJob, statusUrl)
 
   async function approveAndCreate() {
     if (!plan || !creator) return
