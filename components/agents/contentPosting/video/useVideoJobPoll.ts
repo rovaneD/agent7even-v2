@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { videoPollAdvance } from '@/lib/agents/videoGeneration/videoPoll'
+import { videoPollAdvance } from '@/lib/agents/videoGeneration/videoPollAdvance'
 
 type Job = {
   taskId: string

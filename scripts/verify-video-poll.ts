@@ -3,7 +3,19 @@
  * The create panel is the only thing that keeps filming and cutting moving.
  */
 import assert from 'node:assert/strict'
-import { videoPollAdvance } from '../lib/agents/videoGeneration/videoPoll'
+import { readFileSync } from 'node:fs'
+import { videoPollAdvance } from '../lib/agents/videoGeneration/videoPollAdvance'
+
+// The panel runs in the browser. Importing the server poll helper pulls OpenRouter
+// and sharp into that bundle, and `next build` fails on fs/child_process.
+const panelPoll = readFileSync(new URL('../components/agents/contentPosting/video/useVideoJobPoll.ts', import.meta.url), 'utf8')
+assert.equal(panelPoll.includes('videoGeneration/videoPoll\''), false)
+assert.equal(panelPoll.includes('videoGeneration/videoPoll"'), false)
+assert.ok(panelPoll.includes('videoPollAdvance'))
+const pure = readFileSync(new URL('../lib/agents/videoGeneration/videoPollAdvance.ts', import.meta.url), 'utf8')
+assert.equal(pure.includes('openRouter'), false)
+assert.equal(pure.includes('sharp'), false)
+assert.equal(pure.includes('pollVideoJob'), false)
 
 const rendering = videoPollAdvance('rendering', { httpOk: false })
 assert.equal(rendering.status, 'rendering')
