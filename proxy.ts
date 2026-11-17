@@ -17,6 +17,8 @@ const isPublicRoute = createRouteMatcher([
   '/careers',
   '/contact',
   '/pricing',
+  '/voix',
+  '/api/voix/pilot',
   '/privacy',
   '/terms',
   '/security',
