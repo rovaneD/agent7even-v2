@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { isAtlasClerkSignup } from '@/lib/auth/clerkSignupProduct'
+import { isAtlasClerkSignup, isVoixClerkSignup } from '@/lib/auth/clerkSignupProduct'
 import { activateTeamInviteForProfile, findPendingTeamInviteByEmail } from '@/lib/team/activateTeamInvite'
 
 export type ClerkUserCreatedData = {
@@ -14,6 +14,7 @@ export type ClerkUserCreatedData = {
 
 export type UserCreatedResult =
   | { action: 'skipped_atlas_only' }
+  | { action: 'skipped_voix_only' }
   | { action: 'linked_existing'; profileId: string; joinedViaTeamInvite: boolean }
   | {
       action: 'provisioned'
@@ -58,6 +59,11 @@ export async function handleClerkUserCreated(
 
   if (atlasIntent && !pendingInvite) {
     return { action: 'skipped_atlas_only' }
+  }
+
+  // Voix staff sign up to see their spa's calls; access comes from voix_members.
+  if (isVoixClerkSignup(data) && !pendingInvite) {
+    return { action: 'skipped_voix_only' }
   }
 
   const id = data.id
