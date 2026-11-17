@@ -5,20 +5,30 @@ import { loadMonitor } from '@/lib/voix/monitor'
 import type { VoixAccount, VoixMember } from '@/lib/voix/types'
 import AdminConsole, { type PilotRequestRow } from './AdminConsole'
 import MonitorView from './MonitorView'
+import OutreachView from './OutreachView'
+import { PROSPECT_SELECT, type VoixProspect } from '@/lib/voix/prospects'
 
 export const dynamic = 'force-dynamic'
 
 export default async function VoixAdminPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const { viewer, supabase } = await requireVoixViewer()
   if (!viewer.isAdmin) redirect('/voix/app')
-  const view = (await searchParams).view === 'spas' ? 'spas' : 'monitor'
+  const rawView = (await searchParams).view
+  const view = rawView === 'spas' || rawView === 'outreach' ? rawView : 'monitor'
 
   const { data: accountRows } = await supabase.from('voix_accounts').select(ACCOUNT_SELECT).order('created_at', { ascending: true })
   const accounts = (accountRows ?? []) as VoixAccount[]
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.agent7even.ai').replace(/\/$/, '')
 
   let body: React.ReactNode
-  if (view === 'monitor') {
+  if (view === 'outreach') {
+    const { data: prospects } = await supabase
+      .from('voix_prospects')
+      .select(PROSPECT_SELECT)
+      .order('next_follow_up', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false })
+    body = <OutreachView prospects={(prospects ?? []) as VoixProspect[]} />
+  } else if (view === 'monitor') {
     const data = await loadMonitor(supabase, accounts)
     body = <MonitorView data={data} accountNames={Object.fromEntries(accounts.map((a) => [a.id, a.name]))} />
   } else {
@@ -53,9 +63,9 @@ export default async function VoixAdminPage({ searchParams }: { searchParams: Pr
     )
   }
 
-  const tab = (key: 'monitor' | 'spas', label: string) => (
+  const tab = (key: 'monitor' | 'spas' | 'outreach', label: string) => (
     <Link
-      href={key === 'monitor' ? '/voix/app/admin' : '/voix/app/admin?view=spas'}
+      href={key === 'monitor' ? '/voix/app/admin' : `/voix/app/admin?view=${key}`}
       className={`rounded-full px-4 py-2 text-sm font-medium ${
         view === key ? 'bg-[#1B2236] text-white' : 'border border-[#ECEDF1] bg-white text-[#4A5061]'
       }`}
@@ -84,6 +94,7 @@ export default async function VoixAdminPage({ searchParams }: { searchParams: Pr
       <div className="mb-6 flex gap-2">
         {tab('monitor', 'Monitor')}
         {tab('spas', 'Spas & setup')}
+        {tab('outreach', 'Outreach')}
       </div>
       {body}
     </div>
