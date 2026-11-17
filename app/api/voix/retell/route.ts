@@ -57,7 +57,9 @@ export async function POST(req: Request) {
 
   try {
     const result = await ingestRetellEvent(supabase, payload.event ?? '', call)
-    if ('ignored' in result) {
+    if ('sales' in result) {
+      await logDelivery(supabase, { ...base, result: 'stored', detail: result.sales })
+    } else if ('ignored' in result) {
       await logDelivery(supabase, { ...base, account_id: result.accountId ?? null, result: 'ignored', detail: result.ignored })
     } else {
       await logDelivery(supabase, {

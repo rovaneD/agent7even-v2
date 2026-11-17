@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { requireVoixViewer, ACCOUNT_SELECT } from '@/lib/voix/access'
 import { loadMonitor } from '@/lib/voix/monitor'
 import type { VoixAccount, VoixMember } from '@/lib/voix/types'
-import AdminConsole from './AdminConsole'
+import AdminConsole, { type PilotRequestRow } from './AdminConsole'
 import MonitorView from './MonitorView'
 
 export const dynamic = 'force-dynamic'
@@ -36,8 +36,14 @@ export default async function VoixAdminPage({ searchParams }: { searchParams: Pr
         callCount.set(a.id, { real: real ?? 0, sample: sample ?? 0 })
       }),
     )
+    const { data: requests } = await supabase
+      .from('voix_pilot_requests')
+      .select('id, source, status, contact_name, spa_name, email, phone, instagram, booking_software, locations, preferred_time, notes, account_id, created_at')
+      .order('created_at', { ascending: false })
+      .limit(100)
     body = (
       <AdminConsole
+        requests={(requests ?? []) as PilotRequestRow[]}
         accounts={accounts.map((a) => ({
           ...a,
           members: ((members ?? []) as VoixMember[]).filter((m) => m.account_id === a.id),

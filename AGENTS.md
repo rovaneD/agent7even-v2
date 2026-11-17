@@ -99,6 +99,7 @@ deploy to production on `www.agent7even.ai` (0 active external customers as of S
 - Voix sign-up lives at `/voix/sign-up` and stamps `product: "voix"`; `user.created` skips Maya profile + welcome for it (same pattern as Atlas).
 - Retell webhook: `POST /api/voix/retell`, verified with `RETELL_API_KEY` (the Retell key with the webhook badge). Every delivery is logged to `voix_webhook_events`. Schema: `46_voix_core.sql`, `47_voix_digest_monitoring.sql` (both applied to production Supabase on 17 Nov 2026).
 - Daily digest: hourly cron `/api/cron/voix-digest` sends each spa one email per local day at `digest_hour` (default 8am) to `alert_emails`, else owners. Log in `voix_digest_log`.
+- Pilot requests: `/voix` form (incl. Instagram) and calls to Voix's own sales line both land in `voix_pilot_requests` (`48_voix_pilot_requests.sql`, applied) and email the notify address; admins turn them into spas from "Spas & setup". Sales line = Retell agent id(s) in `VOIX_SALES_AGENT_ID`; its button shows when `NEXT_PUBLIC_VOIX_SALES_PHONE` is set. `NEXT_PUBLIC_VOIX_DEMO_PHONE` = the Lumen spa demo line ("Call the spa demo").
 - Admin monitor `/voix/app/admin` (default tab): per-spa health, flagged calls, webhook issues. Vercel previews are SSO-protected, so Retell can only reach production.
 
 ## Current docs to read first

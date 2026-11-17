@@ -62,6 +62,10 @@ export default function PilotForm() {
           <input id="voix-phone" name="phone" type="tel" autoComplete="tel" style={field} />
         </div>
       </div>
+      <div style={group}>
+        <label htmlFor="voix-instagram" style={label}>Spa Instagram</label>
+        <input id="voix-instagram" name="instagram" type="text" placeholder="@yourspa" autoCapitalize="none" autoCorrect="off" spellCheck={false} style={field} />
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
         <div style={{ ...group, flex: '1 1 180px' }}>
           <label htmlFor="voix-software" style={label}>Booking software</label>

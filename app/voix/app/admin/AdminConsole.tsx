@@ -7,6 +7,126 @@ import type { VoixAccount, VoixMember } from '@/lib/voix/types'
 
 type AccountRow = VoixAccount & { members: VoixMember[]; calls: { real: number; sample: number } }
 
+export type PilotRequestRow = {
+  id: string
+  source: 'form' | 'phone'
+  status: 'new' | 'contacted' | 'set_up' | 'declined'
+  contact_name: string | null
+  spa_name: string | null
+  email: string | null
+  phone: string | null
+  instagram: string | null
+  booking_software: string | null
+  locations: string | null
+  preferred_time: string | null
+  notes: string | null
+  account_id: string | null
+  created_at: string
+}
+
+const REQUEST_STATUS: Record<PilotRequestRow['status'], string> = {
+  new: 'New',
+  contacted: 'Contacted',
+  set_up: 'Set up',
+  declined: 'Declined',
+}
+
+function PilotRequests({ requests }: { requests: PilotRequestRow[] }) {
+  const { busy, message, call } = useAdmin()
+  const open = requests.filter((r) => r.status === 'new' || r.status === 'contacted')
+  const [showAll, setShowAll] = useState(false)
+  const list = showAll ? requests : open
+  return (
+    <section className="rounded-2xl border border-[#ECEDF1] bg-white p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Pilot requests</h2>
+          <p className="text-sm text-[#5B6070]">From the website form and calls to the Voix line. {open.length} to follow up.</p>
+        </div>
+        {requests.length > open.length ? (
+          <button type="button" onClick={() => setShowAll((v) => !v)} className="text-sm font-medium text-[#3355D6]">
+            {showAll ? 'Show open only' : `Show all (${requests.length})`}
+          </button>
+        ) : null}
+      </div>
+      {list.length ? (
+        <ul className="mt-4 divide-y divide-[#ECEDF1] rounded-xl border border-[#ECEDF1]">
+          {list.map((r) => {
+            const ig = r.instagram?.startsWith('@') ? `https://instagram.com/${r.instagram.slice(1)}` : null
+            return (
+              <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{r.spa_name || 'Spa name not given'}</span>
+                    <span className="text-[#5B6070]">· {r.contact_name || 'No name'}</span>
+                    <span className="rounded-full bg-[#F2F3F6] px-2 py-0.5 text-[11px] text-[#5B6070]">
+                      {r.source === 'phone' ? 'By phone' : 'Form'} · {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[#4A5061]">
+                    {[r.email, r.phone].filter(Boolean).join(' · ') || 'No contact details'}
+                    {r.instagram ? (
+                      <>
+                        {' · '}
+                        {ig ? (
+                          <a href={ig} target="_blank" rel="noreferrer" className="text-[#3355D6]">
+                            {r.instagram}
+                          </a>
+                        ) : (
+                          r.instagram
+                        )}
+                      </>
+                    ) : null}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#5B6070]">
+                    {[r.booking_software, r.locations ? `${r.locations} location(s)` : null, r.preferred_time ? `Best time: ${r.preferred_time}` : null]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                  {r.notes ? <p className="mt-1 line-clamp-3 text-xs text-[#4A5061]">{r.notes}</p> : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={r.status}
+                    disabled={busy}
+                    onChange={(e) => void call({ action: 'update_request', requestId: r.id, status: e.target.value }, 'Updated.')}
+                    className="rounded-lg border border-[#ECEDF1] bg-white px-2 py-1.5 text-sm"
+                  >
+                    {Object.entries(REQUEST_STATUS).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                  {r.account_id ? (
+                    <Link href={`/voix/app/${r.account_id}/calls`} className={BTN_LIGHT}>
+                      Open spa
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void call({ action: 'create_spa_from_request', requestId: r.id }, 'Spa created. Link its Retell agent below.')}
+                      className={BTN}
+                    >
+                      Create spa
+                    </button>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm text-[#5B6070]">No open requests.</p>
+      )}
+      <div className="mt-2">
+        <Message message={message} />
+      </div>
+    </section>
+  )
+}
+
 const INPUT = 'w-full rounded-lg border border-[#ECEDF1] bg-white px-3 py-2 text-sm outline-none focus:border-[#3355D6]'
 const LABEL = 'mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-[#5B6070]'
 const BTN = 'rounded-full bg-[#1B2236] px-4 py-2 text-sm font-medium text-white disabled:opacity-50'
@@ -295,10 +415,11 @@ function AccountCard({ account }: { account: AccountRow }) {
   )
 }
 
-export default function AdminConsole({ accounts }: { accounts: AccountRow[] }) {
-  const [creating, setCreating] = useState(accounts.length === 0)
+export default function AdminConsole({ accounts, requests }: { accounts: AccountRow[]; requests: PilotRequestRow[] }) {
+  const [creating, setCreating] = useState(false)
   return (
     <div className="space-y-6">
+      <PilotRequests requests={requests} />
       {accounts.map((a) => (
         <AccountCard key={a.id} account={a} />
       ))}

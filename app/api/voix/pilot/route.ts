@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
-import { getNotifyEmail } from '@/lib/getNotifyEmail'
+import { createServiceClient } from '@/lib/supabase/server'
+import { recordPilotRequest } from '@/lib/voix/pilotRequests'
 
 const clean = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 
@@ -22,26 +22,22 @@ export async function POST(req: Request) {
   const phone = clean(body.phone, 40)
   const software = clean(body.software, 60)
   const locations = clean(body.locations, 20)
+  const instagram = clean(body.instagram, 120)
 
   if (!name || !spa || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Please add your name, spa name and a valid email.' }, { status: 400 })
   }
 
   try {
-    const to = await getNotifyEmail()
-    await sendTransactionalEmail({
-      to,
-      replyTo: email,
-      subject: `Voix pilot application — ${spa}`,
-      title: 'New Voix pilot application',
-      body: [
-        `Name: ${name}`,
-        `Spa: ${spa}`,
-        `Email: ${email}`,
-        `Phone: ${phone || '—'}`,
-        `Booking software: ${software || '—'}`,
-        `Locations: ${locations || '—'}`,
-      ].join('\n'),
+    await recordPilotRequest(createServiceClient(), {
+      source: 'form',
+      contact_name: name,
+      spa_name: spa,
+      email,
+      phone: phone || null,
+      instagram: instagram || null,
+      booking_software: software || null,
+      locations: locations || null,
     })
   } catch (err) {
     console.error('Voix pilot email failed:', err)

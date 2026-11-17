@@ -4,12 +4,14 @@ import { mapRetellCall, type FollowupSignal, type RetellCall, type RetellEvent }
 import { formatPhone } from '@/lib/voix/format'
 import { REASON_LABELS, type VoixFollowupReason, type VoixOutcome } from '@/lib/voix/types'
 import { followupReasonFor } from '@/lib/voix/followupReason'
+import { recordPilotRequest } from '@/lib/voix/pilotRequests'
 
 const STATUS_RANK = { ongoing: 0, ended: 1, analyzed: 2 } as const
 type CallStatus = keyof typeof STATUS_RANK
 
 export type IngestResult =
   | { ok: true; ignored: string; accountId?: string }
+  | { ok: true; sales: string }
   | { ok: true; callId: string; accountId: string; followupCreated: boolean }
 
 /** Store one Retell webhook event. Safe to receive twice or out of order. */
@@ -21,6 +23,8 @@ export async function ingestRetellEvent(
   if (!['call_started', 'call_ended', 'call_analyzed'].includes(event)) return { ok: true, ignored: `event ${event}` }
   if (!call?.call_id) return { ok: true, ignored: 'no call_id' }
   if (!call.agent_id) return { ok: true, ignored: 'no agent_id' }
+
+  if (salesAgentIds().includes(call.agent_id)) return ingestSalesCall(supabase, event, call)
 
   const { data: account } = await supabase
     .from('voix_accounts')
@@ -122,4 +126,43 @@ async function sendFollowupAlert(
     link: `/voix/app/${account.id}/calls/${call.id}`,
     ctaLabel: 'Open the call →',
   })
+}
+
+/** VOIX_SALES_AGENT_ID: Retell agent id(s) of Voix's own sales line, comma-separated. */
+function salesAgentIds(): string[] {
+  return (process.env.VOIX_SALES_AGENT_ID ?? '').split(',').map((v) => v.trim()).filter(Boolean)
+}
+
+function text(v: unknown, max = 200): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+}
+
+/**
+ * Calls to Voix's own line (the AI that explains the product). These are spa
+ * owners, not patients: a finished call with interest becomes a pilot request.
+ * Custom analysis fields on that agent: contact_name, spa_name, email,
+ * callback_phone, instagram, booking_software, locations, preferred_time, wants_pilot.
+ */
+async function ingestSalesCall(supabase: SupabaseClient, event: RetellEvent, call: RetellCall): Promise<IngestResult> {
+  if (event !== 'call_analyzed') return { ok: true, sales: `sales line ${event}` }
+  const a = call.call_analysis ?? {}
+  const c = (a.custom_analysis_data ?? {}) as Record<string, unknown>
+  const wants = c.wants_pilot === true || String(c.wants_pilot).toLowerCase() === 'true'
+  const spa = text(c.spa_name)
+  if (!wants && !spa) return { ok: true, sales: 'sales line call, no pilot interest' }
+
+  await recordPilotRequest(supabase, {
+    source: 'phone',
+    retell_call_id: call.call_id ?? null,
+    contact_name: text(c.contact_name),
+    spa_name: spa,
+    email: text(c.email, 320),
+    phone: text(c.callback_phone, 40) ?? text(call.from_number, 40),
+    instagram: text(c.instagram, 120),
+    booking_software: text(c.booking_software, 60),
+    locations: text(c.locations, 40),
+    preferred_time: text(c.preferred_time),
+    notes: text(a.call_summary, 2000),
+  })
+  return { ok: true, sales: 'Pilot request saved from sales line' }
 }
