@@ -33,11 +33,25 @@ export type VoixAccountContext = {
   supabase: SupabaseClient
 }
 
+/**
+ * Voix-only admins: comma-separated emails in VOIX_ADMIN_EMAILS get the Voix
+ * admin page without needing an Agent7even (Maya) admin profile.
+ */
+function voixAdminEmails(): Set<string> {
+  return new Set(
+    (process.env.VOIX_ADMIN_EMAILS ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  )
+}
+
 async function isAgent7evenAdmin(
   supabase: SupabaseClient,
   clerkUserId: string,
   email: string | null,
 ): Promise<boolean> {
+  if (email && voixAdminEmails().has(email.trim().toLowerCase())) return true
   try {
     const profile = await getDashboardProfileForClerkUser(supabase, clerkUserId, email)
     return ['admin', 'owner'].includes(profile?.role ?? '')
