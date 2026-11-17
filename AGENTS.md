@@ -97,7 +97,9 @@ deploy to production on `www.agent7even.ai` (0 active external customers as of S
 - Spa dashboard `/voix/app` (calls inbox, call detail, follow-ups) and `/voix/app/admin` (admins only: create spas, link Retell agent ids, invite staff, sample calls). Separate from the Maya `/dashboard`; no Maya subscription or profile needed.
 - Access = `voix_members` rows (matched by Clerk user id, or email on first visit). Agent7even admins (`profiles.role` admin/owner) see every spa.
 - Voix sign-up lives at `/voix/sign-up` and stamps `product: "voix"`; `user.created` skips Maya profile + welcome for it (same pattern as Atlas).
-- Retell webhook: `POST /api/voix/retell`, verified with `RETELL_API_KEY` (the Retell key with the webhook badge). Schema: `46_voix_core.sql`.
+- Retell webhook: `POST /api/voix/retell`, verified with `RETELL_API_KEY` (the Retell key with the webhook badge). Every delivery is logged to `voix_webhook_events`. Schema: `46_voix_core.sql`, `47_voix_digest_monitoring.sql` (both applied to production Supabase on 17 Nov 2026).
+- Daily digest: hourly cron `/api/cron/voix-digest` sends each spa one email per local day at `digest_hour` (default 8am) to `alert_emails`, else owners. Log in `voix_digest_log`.
+- Admin monitor `/voix/app/admin` (default tab): per-spa health, flagged calls, webhook issues. Vercel previews are SSO-protected, so Retell can only reach production.
 
 ## Current docs to read first
 - `CONTEXTV32.md` — latest handoff: customer count audit, internal account exclusions, marketing copy push, PR #62 prep (September 21, 2026).

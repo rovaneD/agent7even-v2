@@ -91,6 +91,8 @@ export type VoixAccount = {
   transfer_number: string | null
   alert_emails: string[]
   status: 'pilot' | 'active' | 'paused'
+  digest_enabled: boolean
+  digest_hour: number
   created_at: string
 }
 
@@ -103,6 +105,7 @@ export type VoixMember = {
   role: 'owner' | 'staff'
   invited_at: string
   joined_at: string | null
+  last_seen_at: string | null
 }
 
 export type VoixTranscriptTurn = { role: string; content: string }

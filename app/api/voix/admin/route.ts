@@ -2,10 +2,18 @@ import { NextResponse } from 'next/server'
 import { getVoixAdminContext, ACCOUNT_SELECT } from '@/lib/voix/access'
 import { addSampleCalls, removeSampleCalls } from '@/lib/voix/samples'
 import { sendTransactionalEmail } from '@/lib/email/sendTransactionalEmail'
+import { sendDigest } from '@/lib/voix/digest'
 import type { VoixAccount } from '@/lib/voix/types'
 
 type Body = {
-  action?: 'create_account' | 'update_account' | 'add_member' | 'remove_member' | 'add_samples' | 'remove_samples'
+  action?:
+    | 'create_account'
+    | 'update_account'
+    | 'add_member'
+    | 'remove_member'
+    | 'add_samples'
+    | 'remove_samples'
+    | 'send_test_digest'
   accountId?: string
   name?: string
   timezone?: string
@@ -19,6 +27,8 @@ type Body = {
   role?: string
   memberId?: string
   sendInvite?: boolean
+  digestEnabled?: boolean
+  digestHour?: number | string
 }
 
 const EMAIL_RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/
@@ -53,6 +63,8 @@ function accountFields(body: Body): { fields: Record<string, unknown> } | { erro
   if (bad) return { error: `Not an email address: ${bad}` }
   const agentIds = list(body.agentIds)
   const status = ['pilot', 'active', 'paused'].includes(body.status ?? '') ? body.status : 'pilot'
+  const hour = Number(body.digestHour ?? 8)
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return { error: 'Digest hour must be 0–23' }
   return {
     fields: {
       name,
@@ -62,6 +74,8 @@ function accountFields(body: Body): { fields: Record<string, unknown> } | { erro
       transfer_number: body.transferNumber?.trim() || null,
       alert_emails: alertEmails,
       status,
+      digest_enabled: body.digestEnabled !== false,
+      digest_hour: hour,
     },
   }
 }
@@ -160,6 +174,14 @@ export async function POST(req: Request) {
         if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
         const removed = await removeSampleCalls(supabase, account.id)
         return NextResponse.json({ ok: true, removed })
+      }
+      case 'send_test_digest': {
+        const account = await loadAccount()
+        if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+        if (!admin.viewer.email) return NextResponse.json({ error: 'Your login has no email address' }, { status: 400 })
+        const res = await sendDigest(supabase, account, { test: true, to: [admin.viewer.email] })
+        if (!res.sent) return NextResponse.json({ error: res.reason ?? 'Not sent' }, { status: 400 })
+        return NextResponse.json({ ok: true, to: admin.viewer.email })
       }
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 })

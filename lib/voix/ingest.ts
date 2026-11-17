@@ -9,8 +9,8 @@ const STATUS_RANK = { ongoing: 0, ended: 1, analyzed: 2 } as const
 type CallStatus = keyof typeof STATUS_RANK
 
 export type IngestResult =
-  | { ok: true; ignored: string }
-  | { ok: true; callId: string; followupCreated: boolean }
+  | { ok: true; ignored: string; accountId?: string }
+  | { ok: true; callId: string; accountId: string; followupCreated: boolean }
 
 /** Store one Retell webhook event. Safe to receive twice or out of order. */
 export async function ingestRetellEvent(
@@ -59,7 +59,7 @@ export async function ingestRetellEvent(
   if (incoming === 'analyzed' && followup.needed) {
     followupCreated = await createFollowupIfMissing(supabase, account, saved, followup)
   }
-  return { ok: true, callId: saved.id, followupCreated }
+  return { ok: true, callId: saved.id, accountId: account.id, followupCreated }
 }
 
 async function createFollowupIfMissing(

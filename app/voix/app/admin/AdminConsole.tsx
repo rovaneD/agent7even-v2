@@ -61,6 +61,8 @@ function AccountForm({ account, onDone }: { account?: AccountRow; onDone?: () =>
       transferNumber: f.get('transferNumber'),
       alertEmails: f.get('alertEmails'),
       status: f.get('status'),
+      digestEnabled: f.get('digestEnabled') === 'on',
+      digestHour: Number(f.get('digestHour') ?? 8),
     }
     const ok = await call(body, account ? 'Saved.' : 'Spa created.')
     if (ok && !account) form.reset()
@@ -111,6 +113,22 @@ function AccountForm({ account, onDone }: { account?: AccountRow; onDone?: () =>
           <option value="active">Active</option>
           <option value="paused">Paused</option>
         </select>
+      </div>
+      <div>
+        <label className={LABEL}>Daily digest</label>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="digestEnabled" defaultChecked={account?.digest_enabled ?? true} /> Send at
+          </label>
+          <select name="digestHour" defaultValue={String(account?.digest_hour ?? 8)} className={`${INPUT} w-28`}>
+            {Array.from({ length: 24 }, (_, h) => (
+              <option key={h} value={h}>
+                {h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-[#5B6070]">spa time</span>
+        </div>
       </div>
       <div className="flex items-center gap-3 sm:col-span-2">
         <button type="submit" disabled={busy} className={BTN}>
@@ -244,7 +262,7 @@ function AccountCard({ account }: { account: AccountRow }) {
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#ECEDF1] pt-5">
-        <span className="mr-2 text-sm font-semibold">Sample calls</span>
+        <span className="mr-2 text-sm font-semibold">Testing</span>
         <button
           type="button"
           disabled={busy}
@@ -252,6 +270,14 @@ function AccountCard({ account }: { account: AccountRow }) {
           className={BTN_LIGHT}
         >
           Add samples
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void call({ action: 'send_test_digest', accountId: account.id }, 'Test digest sent to your email.')}
+          className={BTN_LIGHT}
+        >
+          Email me a test digest
         </button>
         {account.calls.sample ? (
           <button

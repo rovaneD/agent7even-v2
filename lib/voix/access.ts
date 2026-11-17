@@ -15,7 +15,7 @@ import type { VoixAccount, VoixMember } from '@/lib/voix/types'
  */
 
 export const ACCOUNT_SELECT =
-  'id, name, timezone, retell_agent_ids, phone_number, transfer_number, alert_emails, status, created_at'
+  'id, name, timezone, retell_agent_ids, phone_number, transfer_number, alert_emails, status, digest_enabled, digest_hour, created_at'
 
 export type VoixViewer = {
   clerkUserId: string
@@ -63,7 +63,7 @@ async function loadViewer(supabase: SupabaseClient, clerkUserId: string): Promis
       .is('clerk_user_id', null)
   }
 
-  const MEMBER_SELECT = 'id, account_id, email, full_name, clerk_user_id, role, invited_at, joined_at'
+  const MEMBER_SELECT = 'id, account_id, email, full_name, clerk_user_id, role, invited_at, joined_at, last_seen_at'
   const [{ data: byClerk }, { data: byEmail }] = await Promise.all([
     supabase.from('voix_members').select(MEMBER_SELECT).eq('clerk_user_id', clerkUserId),
     email
@@ -123,7 +123,17 @@ export async function requireVoixAccount(accountId: string): Promise<VoixAccount
   const { viewer, supabase } = await requireVoixViewer()
   const resolved = await resolveAccount(supabase, viewer, accountId)
   if (!resolved) redirect('/voix/app')
+  await touchLastSeen(supabase, resolved.member)
   return { viewer, supabase, ...resolved }
+}
+
+/** Record staff activity for the admin monitor (at most every 10 minutes). */
+async function touchLastSeen(supabase: SupabaseClient, member: VoixMember | null) {
+  if (!member) return
+  const last = member.last_seen_at ? new Date(member.last_seen_at).getTime() : 0
+  if (Date.now() - last < 10 * 60_000) return
+  const { error } = await supabase.from('voix_members').update({ last_seen_at: new Date().toISOString() }).eq('id', member.id)
+  if (error) console.error('[voix/access] last_seen update failed:', error.message)
 }
 
 /** API helper: returns the context or an HTTP status to send back. */
