@@ -134,7 +134,7 @@ export default function VoixHero() {
   const ease = reduced ? 'none' : 'opacity 700ms ease, transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1)'
 
   return (
-    <div style={{ flex: '1.45 1 600px', minWidth: 0, position: 'relative', minHeight: 'clamp(560px, 62vw, 700px)', borderRadius: 28, overflow: 'hidden', background: '#2B2A2E', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 22 }}>
+    <div style={{ flex: '1.45 1 600px', minWidth: 0, position: 'relative', minHeight: 'clamp(640px, 62vw, 700px)', borderRadius: 28, overflow: 'hidden', background: '#2B2A2E', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 22 }}>
       {SCENARIOS.map((s, i) => (
         <video
           key={s.video}
@@ -149,9 +149,19 @@ export default function VoixHero() {
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: `opacity ${FADE_MS}ms ease-in-out`, opacity: i === idx ? 1 : 0 }}
         />
       ))}
+      <style>{`
+        @media (max-width: 640px) {
+          .voix-chips { flex-wrap: nowrap !important; overflow-x: auto; margin-right: -22px; padding-right: 22px; scrollbar-width: none; }
+          .voix-chips::-webkit-scrollbar { display: none; }
+          .voix-stage { min-height: 380px !important; margin: 12px 0 !important; }
+          .voix-row { padding-left: 0 !important; padding-right: 0 !important; }
+          .voix-bubble { max-width: 86% !important; font-size: 15px !important; }
+          .voix-bubble-caller { max-width: 78% !important; }
+        }
+      `}</style>
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.45) 100%)' }} />
 
-      <div role="group" aria-label="Demo scenarios" style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <div role="group" aria-label="Demo scenarios" className="voix-chips" style={{ position: 'relative', zIndex: 2, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {SCENARIOS.map((s, i) => {
           const on = i === idx
           return (
@@ -160,7 +170,7 @@ export default function VoixHero() {
               type="button"
               onClick={() => pick(i)}
               aria-pressed={on}
-              style={{ font: 'inherit', fontSize: 13, borderRadius: 999, padding: '9px 16px', minHeight: 38, cursor: 'pointer', border: 0, background: on ? ink : 'rgba(255,255,255,0.88)', color: on ? '#FFFFFF' : ink }}
+              style={{ flex: '0 0 auto', whiteSpace: 'nowrap', font: 'inherit', fontSize: 13, borderRadius: 999, padding: '9px 16px', minHeight: 38, cursor: 'pointer', border: 0, background: on ? ink : 'rgba(255,255,255,0.88)', color: on ? '#FFFFFF' : ink }}
             >
               {s.chip}
             </button>
@@ -168,17 +178,18 @@ export default function VoixHero() {
         })}
       </div>
 
-      <div aria-live="polite" style={{ position: 'relative', flex: '1 1 auto', minHeight: 340, margin: '16px 0' }}>
+      <div aria-live="polite" className="voix-stage" style={{ position: 'relative', flex: '1 1 auto', minHeight: 340, margin: '16px 0', overflow: 'hidden' }}>
         {SCENARIOS.map((s, si) => {
           const active = si === idx
           return (
-            <div key={s.chip} aria-hidden={!active} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, padding: '0 6px' }}>
+            <div key={s.chip} aria-hidden={!active} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 14, padding: '0 6px' }}>
               {s.lines.map((l, i) => {
                 const isVoix = l.who === 'voix'
                 const visible = active && i < shown
                 return (
                   <div
                     key={i}
+                    className="voix-row"
                     style={{
                       display: 'flex',
                       justifyContent: isVoix ? 'flex-start' : 'flex-end',
@@ -189,12 +200,12 @@ export default function VoixHero() {
                     }}
                   >
                     {isVoix ? (
-                      <div style={{ maxWidth: 'min(62%, 420px)', display: 'flex', alignItems: 'center', gap: 12, background: '#FFFFFF', color: ink, borderRadius: 22, padding: '12px 20px 12px 12px', fontSize: 16, lineHeight: 1.4, boxShadow: '0 10px 30px rgba(0,0,0,0.18)' }}>
+                      <div className="voix-bubble" style={{ maxWidth: 'min(62%, 420px)', display: 'flex', alignItems: 'center', gap: 12, background: '#FFFFFF', color: ink, borderRadius: 22, padding: '12px 20px 12px 12px', fontSize: 16, lineHeight: 1.4, boxShadow: '0 10px 30px rgba(0,0,0,0.18)' }}>
                         <span aria-hidden="true" style={{ flex: '0 0 auto', width: 30, height: 30, borderRadius: 999, background: pinkOrb }} />
                         <span>{l.text}</span>
                       </div>
                     ) : (
-                      <div style={{ maxWidth: 'min(52%, 360px)', background: 'rgba(255,255,255,0.32)', color: '#FFFFFF', borderRadius: 22, padding: '13px 20px', fontSize: 16, lineHeight: 1.4, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+                      <div className="voix-bubble voix-bubble-caller" style={{ maxWidth: 'min(52%, 360px)', background: 'rgba(255,255,255,0.32)', color: '#FFFFFF', borderRadius: 22, padding: '13px 20px', fontSize: 16, lineHeight: 1.4, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
                         {l.text}
                       </div>
                     )}
