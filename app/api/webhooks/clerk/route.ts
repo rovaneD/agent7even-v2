@@ -69,6 +69,9 @@ export async function POST(req: Request) {
     if (result.action === 'skipped_atlas_only') {
       console.info('[clerk/webhook] Atlas-only signup — skip Maya enrollment and welcome')
     }
+    if (result.action === 'skipped_voix_only') {
+      console.info('[clerk/webhook] Voix-only signup — skip Maya enrollment and welcome')
+    }
   }
 
   if (evt.type === 'user.updated') {

@@ -1,6 +1,8 @@
 /** Shared Clerk signup metadata. Atlas stamps `product: "atlas"`. */
 
 export const ATLAS_CLERK_PRODUCT = "atlas";
+/** Voix (AI receptionist) staff sign-ups stamp `product: "voix"` — no Maya profile. */
+export const VOIX_CLERK_PRODUCT = "voix";
 
 export function clerkSignupProduct(data: {
   unsafe_metadata?: unknown;
@@ -19,4 +21,11 @@ export function isAtlasClerkSignup(data: {
   public_metadata?: unknown;
 }): boolean {
   return clerkSignupProduct(data) === ATLAS_CLERK_PRODUCT;
+}
+
+export function isVoixClerkSignup(data: {
+  unsafe_metadata?: unknown;
+  public_metadata?: unknown;
+}): boolean {
+  return clerkSignupProduct(data) === VOIX_CLERK_PRODUCT;
 }

@@ -19,6 +19,12 @@ const isPublicRoute = createRouteMatcher([
   '/pricing',
   '/voix',
   '/api/voix/pilot',
+  // Retell signs its webhooks (x-retell-signature); verified in the route.
+  '/api/voix/retell',
+  // Voix dashboard handles its own sign-in redirect (to /voix/sign-in, not the Maya sign-in).
+  '/voix/app(.*)',
+  '/voix/sign-in(.*)',
+  '/voix/sign-up(.*)',
   '/privacy',
   '/terms',
   '/security',

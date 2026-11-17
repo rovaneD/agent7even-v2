@@ -92,6 +92,13 @@ deploy to production on `www.agent7even.ai` (0 active external customers as of S
 ## Atlas signup on shared Clerk (23 Sep 2026)
 `user.created` treats `unsafe_metadata.product` / `public_metadata.product === "atlas"` as onboarding intent only. Atlas-only signups skip Maya profile + welcome. A pending Maya team invite still provisions and activates. Deliberate later Maya entry (`/dashboard`) calls `ensureProfileForClerkUser` and then the normal start-trial gate — no subscription is granted.
 
+## Voix — AI receptionist (Nov 2026)
+- Marketing page `/voix`; pilot form posts to `/api/voix/pilot`.
+- Spa dashboard `/voix/app` (calls inbox, call detail, follow-ups) and `/voix/app/admin` (admins only: create spas, link Retell agent ids, invite staff, sample calls). Separate from the Maya `/dashboard`; no Maya subscription or profile needed.
+- Access = `voix_members` rows (matched by Clerk user id, or email on first visit). Agent7even admins (`profiles.role` admin/owner) see every spa.
+- Voix sign-up lives at `/voix/sign-up` and stamps `product: "voix"`; `user.created` skips Maya profile + welcome for it (same pattern as Atlas).
+- Retell webhook: `POST /api/voix/retell`, verified with `RETELL_API_KEY` (the Retell key with the webhook badge). Schema: `46_voix_core.sql`.
+
 ## Current docs to read first
 - `CONTEXTV32.md` — latest handoff: customer count audit, internal account exclusions, marketing copy push, PR #62 prep (September 21, 2026).
 - `CONTEXTV31.md` — prior handoff: HeaderBack homepage, Maya Phase 2 (per-member sessions, MayaShell removed), schema snapshot, Vercel cron repair (Clerk + sharp), internal billing guard (September 21, 2026).
