@@ -169,14 +169,23 @@ export default function VoixLanding() {
 
               <div style={{ ...lightCard, minHeight: 500 }}>
                 <Num n="06" />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                  <span style={{ background: '#FFFFFF', borderRadius: 999, padding: '12px 22px', fontSize: 14 }}>Source: Instagram Reel</span>
-                  <span aria-hidden="true" style={{ width: 1, height: 20, background: '#C9CDD6' }} />
-                  <span style={{ background: '#FFFFFF', borderRadius: 999, padding: '12px 22px', fontSize: 14 }}>Call answered by Voix</span>
-                  <span aria-hidden="true" style={{ width: 1, height: 20, background: '#C9CDD6' }} />
-                  <span style={{ background: ink, color: '#FFFFFF', borderRadius: 999, padding: '12px 22px', fontSize: 14 }}>Consult booked</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    ['Line 1', 'Lip filler consult', 'Booked'],
+                    ['Line 2', 'Pricing question', 'Answered'],
+                    ['Line 3', 'Reschedule', 'Moved to Mon'],
+                  ].map(([lineName, topic, outcome]) => (
+                    <div key={lineName} style={{ background: '#FFFFFF', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span aria-hidden="true" style={{ flex: '0 0 auto', width: 10, height: 10, borderRadius: 999, background: '#2F9E6E' }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 12, color: muted }}>{lineName} · live</span>
+                        <span style={{ fontSize: 14 }}>{topic}</span>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{outcome}</span>
+                    </div>
+                  ))}
                 </div>
-                <FeatureFoot title="See what fills your calendar" text="Paired with Maya, Agent7even’s marketing tool, every booking traces back to the post or ad behind it." />
+                <FeatureFoot title="Every caller, at the same time" text="On launch days and Monday mornings, Voix answers several calls at once. Nobody hears a busy signal or waits on hold." />
               </div>
             </div>
           </div>
