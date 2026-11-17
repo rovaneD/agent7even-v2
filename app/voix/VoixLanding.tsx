@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import Link from 'next/link'
 import VoixHero from './VoixHero'
 import PilotForm from './PilotForm'
-import { DEMO_TEL, blue, body, eyebrow, h2, ink, line, muted, pillDark, pillLight, sans, serif, wrap } from './voixStyles'
+import { DEMO_TEL, SALES_TEL, displayPhone, blue, body, eyebrow, h2, ink, line, muted, pillDark, pillLight, sans, serif, wrap } from './voixStyles'
 
 const blueOrb = 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #A9C8FF 38%, #3A6FF2 100%)'
 
@@ -63,7 +63,7 @@ export default function VoixLanding() {
           <a href="#faq" style={{ color: ink, textDecoration: 'none' }}>FAQ</a>
         </nav>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {DEMO_TEL && <a href={DEMO_TEL} style={{ ...pillLight, padding: '13px 22px', fontSize: 15 }}>Call the demo</a>}
+          {DEMO_TEL && <a href={DEMO_TEL} style={{ ...pillLight, padding: '13px 22px', fontSize: 15 }}>Call the spa demo</a>}
           <a href="#pilot" style={{ ...pillDark, padding: '13px 22px', fontSize: 15 }}>Apply for the pilot</a>
         </div>
       </header>
@@ -244,6 +244,16 @@ export default function VoixLanding() {
                   </ul>
                 </div>
               </div>
+              {SALES_TEL && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#FFFFFF', borderRadius: 20, padding: '18px 20px', marginTop: 8, maxWidth: 520 }}>
+                  <span aria-hidden="true" style={{ flex: '0 0 auto', width: 40, height: 40, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Call Voix itself. It answers your questions and books your setup call.</p>
+                  </div>
+                  <a href={SALES_TEL} style={{ ...pillDark, padding: '12px 18px', fontSize: 14, whiteSpace: 'nowrap' }}>{displayPhone(SALES_TEL)}</a>
+                </div>
+              )}
             </div>
             <PilotForm />
           </div>

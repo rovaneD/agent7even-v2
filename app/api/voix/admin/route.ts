@@ -14,6 +14,8 @@ type Body = {
     | 'add_samples'
     | 'remove_samples'
     | 'send_test_digest'
+    | 'update_request'
+    | 'create_spa_from_request'
   accountId?: string
   name?: string
   timezone?: string
@@ -29,6 +31,7 @@ type Body = {
   sendInvite?: boolean
   digestEnabled?: boolean
   digestHour?: number | string
+  requestId?: string
 }
 
 const EMAIL_RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/
@@ -182,6 +185,45 @@ export async function POST(req: Request) {
         const res = await sendDigest(supabase, account, { test: true, to: [admin.viewer.email] })
         if (!res.sent) return NextResponse.json({ error: res.reason ?? 'Not sent' }, { status: 400 })
         return NextResponse.json({ ok: true, to: admin.viewer.email })
+      }
+      case 'update_request': {
+        const status = ['new', 'contacted', 'set_up', 'declined'].includes(body.status ?? '') ? body.status : null
+        if (!body.requestId || !status) return NextResponse.json({ error: 'Missing request or status' }, { status: 400 })
+        const { error } = await supabase
+          .from('voix_pilot_requests')
+          .update({ status, updated_at: new Date().toISOString() })
+          .eq('id', body.requestId)
+        if (error) throw error
+        return NextResponse.json({ ok: true })
+      }
+      case 'create_spa_from_request': {
+        if (!body.requestId) return NextResponse.json({ error: 'Missing request' }, { status: 400 })
+        const { data: req } = await supabase
+          .from('voix_pilot_requests')
+          .select('id, spa_name, contact_name, email, account_id')
+          .eq('id', body.requestId)
+          .maybeSingle()
+        if (!req) return NextResponse.json({ error: 'Request not found' }, { status: 404 })
+        if (req.account_id) return NextResponse.json({ error: 'A spa already exists for this request' }, { status: 409 })
+        const name = (req.spa_name as string | null)?.trim() || `${req.contact_name ?? 'New'} spa`
+        const { data: account, error } = await supabase
+          .from('voix_accounts')
+          .insert({ name, status: 'pilot' })
+          .select('id')
+          .single()
+        if (error) throw error
+        const email = (req.email as string | null)?.trim().toLowerCase()
+        if (email && EMAIL_RE.test(email)) {
+          const { error: mErr } = await supabase
+            .from('voix_members')
+            .insert({ account_id: account.id, email, full_name: req.contact_name ?? null, role: 'owner' })
+          if (mErr) console.error('[voix/admin] owner insert failed:', mErr.message)
+        }
+        await supabase
+          .from('voix_pilot_requests')
+          .update({ status: 'set_up', account_id: account.id, updated_at: new Date().toISOString() })
+          .eq('id', req.id)
+        return NextResponse.json({ ok: true, id: account.id })
       }
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 })

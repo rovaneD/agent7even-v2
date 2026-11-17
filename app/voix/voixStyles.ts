@@ -14,6 +14,16 @@ export const eyebrow: CSSProperties = { margin: 0, fontSize: 12, letterSpacing: 
 export const pillDark: CSSProperties = { textDecoration: 'none', background: ink, color: '#FFFFFF', borderRadius: 999, padding: '16px 26px', fontSize: 16, fontWeight: 500, display: 'inline-block' }
 export const pillLight: CSSProperties = { textDecoration: 'none', border: '1px solid #D5D8E0', background: '#FFFFFF', color: ink, borderRadius: 999, padding: '16px 26px', fontSize: 16, display: 'inline-block' }
 
-/** Set NEXT_PUBLIC_VOIX_DEMO_PHONE (e.g. +14805550123) in Vercel to show the "Call" buttons. */
+/** NEXT_PUBLIC_VOIX_DEMO_PHONE: the fictional spa demo line ("Call the spa demo" buttons). */
 const demoPhone = process.env.NEXT_PUBLIC_VOIX_DEMO_PHONE?.trim()
 export const DEMO_TEL: string | null = demoPhone ? `tel:${demoPhone}` : null
+
+/** NEXT_PUBLIC_VOIX_SALES_PHONE: Voix's own AI line that explains the product and takes pilot requests. */
+const salesPhone = process.env.NEXT_PUBLIC_VOIX_SALES_PHONE?.trim()
+export const SALES_TEL: string | null = salesPhone ? `tel:${salesPhone}` : null
+
+/** "(253) 322-9496" for display. */
+export function displayPhone(tel: string | null): string {
+  const d = (tel ?? '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '')
+  return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : (tel ?? '').replace('tel:', '')
+}
