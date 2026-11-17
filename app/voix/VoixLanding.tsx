@@ -85,6 +85,16 @@ export default function VoixLanding() {
                 <a href="#how" style={pillLight}>See how it works</a>
               </div>
               <p style={{ margin: 0, fontSize: 13, color: muted }}>Your number. Your voice. Always there.</p>
+              {SALES_TEL && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 12, maxWidth: 500 }}>
+                  <span aria-hidden="true" style={{ flex: '0 0 auto', width: 36, height: 36, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
+                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Call Voix itself. It answers your questions and books your setup call.</p>
+                  </div>
+                  <a href={SALES_TEL} style={{ ...pillDark, padding: '12px 18px', fontSize: 14, whiteSpace: 'nowrap' }}>{displayPhone(SALES_TEL)}</a>
+                </div>
+              )}
             </div>
           </div>
           <VoixHero />
