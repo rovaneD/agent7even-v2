@@ -36,8 +36,8 @@ export default function PilotForm() {
   if (status === 'sent') {
     return (
       <div role="status" style={{ ...box, gap: 12 }}>
-        <h3 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Thanks — you’re on the list.</h3>
-        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: muted }}>We’ll reply within two business days to set up your 30-minute setup call.</p>
+        <h3 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Thanks, your application is in.</h3>
+        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: muted }}>We review every application and reply within one business day. If the 10 founding spots fill, we’ll offer you a place in the next group.</p>
       </div>
     )
   }
@@ -94,7 +94,7 @@ export default function PilotForm() {
         <input id="voix-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
       <button type="submit" disabled={status === 'sending'} style={{ font: 'inherit', fontSize: 15, fontWeight: 500, background: ink, color: '#FFFFFF', border: 0, borderRadius: 999, padding: '16px 24px', minHeight: 52, cursor: status === 'sending' ? 'wait' : 'pointer', marginTop: 8, opacity: status === 'sending' ? 0.7 : 1 }}>
-        {status === 'sending' ? 'Sending…' : 'Apply for the pilot'}
+        {status === 'sending' ? 'Sending…' : 'Apply for a founding spot'}
       </button>
       {status === 'error' && <p role="alert" style={{ margin: 0, fontSize: 13, color: '#B4232A' }}>{error}</p>}
       <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: muted }}>We’ll reply within two business days. We never share your details.</p>
