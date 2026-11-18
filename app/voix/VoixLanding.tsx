@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import Link from 'next/link'
 import VoixHero from './VoixHero'
 import PilotForm from './PilotForm'
+import MissedCallCost from './MissedCallCost'
 import { DEMO_TEL, SALES_TEL, displayPhone, blue, body, eyebrow, h2, ink, line, muted, pillDark, pillLight, sans, serif, wrap } from './voixStyles'
 
 const blueOrb = 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #A9C8FF 38%, #3A6FF2 100%)'
@@ -100,6 +101,8 @@ export default function VoixLanding() {
           </div>
           <VoixHero />
         </section>
+
+        <MissedCallCost />
 
         <section id="features" style={{ borderTop: `1px solid ${line}` }}>
           <div style={{ ...wrap, paddingTop: 72, paddingBottom: 96, display: 'flex', flexDirection: 'column', gap: 48 }}>
