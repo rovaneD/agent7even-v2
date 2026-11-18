@@ -34,6 +34,21 @@ function Step({ n, title, children }: { n: string; title: string; children: Reac
   )
 }
 
+/** Sales-line CTA: says what the button does, with the number in small type. */
+function ExperienceVoix() {
+  if (!SALES_TEL) return null
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+      <a href={SALES_TEL} style={{ ...pillDark, padding: '12px 20px', fontSize: 14, whiteSpace: 'nowrap' }}>
+        Experience Voix
+      </a>
+      <span style={{ fontSize: 12, lineHeight: 1.4, color: muted, maxWidth: 200 }}>
+        Starts a call to our AI line, {displayPhone(SALES_TEL)}. No sign-up.
+      </span>
+    </div>
+  )
+}
+
 const faqs: [string, string][] = [
   ['Will callers know they’re talking to an AI?', 'Yes. Voix says so at the start of every call, and callers can ask for a person at any time.'],
   ['Does it replace my front desk?', 'No. It covers the calls your team can’t take, so they can focus on the clients in front of them.'],
@@ -92,9 +107,9 @@ export default function VoixLanding() {
                   <span aria-hidden="true" style={{ flex: '0 0 auto', width: 36, height: 36, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
                   <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Call Voix itself. It answers your questions and books your setup call.</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions and can book your setup call.</p>
                   </div>
-                  <a href={SALES_TEL} style={{ ...pillDark, padding: '12px 18px', fontSize: 14, whiteSpace: 'nowrap' }}>{displayPhone(SALES_TEL)}</a>
+                  <ExperienceVoix />
                 </div>
               )}
             </div>
@@ -263,9 +278,9 @@ export default function VoixLanding() {
                   <span aria-hidden="true" style={{ flex: '0 0 auto', width: 40, height: 40, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Call Voix itself. It answers your questions and books your setup call.</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions and can book your setup call.</p>
                   </div>
-                  <a href={SALES_TEL} style={{ ...pillDark, padding: '12px 18px', fontSize: 14, whiteSpace: 'nowrap' }}>{displayPhone(SALES_TEL)}</a>
+                  <ExperienceVoix />
                 </div>
               )}
             </div>
