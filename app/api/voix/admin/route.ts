@@ -187,7 +187,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, to: admin.viewer.email })
       }
       case 'update_request': {
-        const status = ['new', 'contacted', 'set_up', 'declined'].includes(body.status ?? '') ? body.status : null
+        const status = ['new', 'contacted', 'waitlist', 'set_up', 'declined'].includes(body.status ?? '') ? body.status : null
         if (!body.requestId || !status) return NextResponse.json({ error: 'Missing request or status' }, { status: 400 })
         const { error } = await supabase
           .from('voix_pilot_requests')

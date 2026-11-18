@@ -38,6 +38,7 @@ const faqs: [string, string][] = [
   ['Does it replace my front desk?', 'No. It covers the calls your team can’t take, so they can focus on the clients in front of them.'],
   ['Can I change what it says?', 'Anytime. Update a price, policy or special, approve it, and Voix uses it from the next call.'],
   ['Do I need a new phone number?', 'No. You forward missed and after-hours calls to Voix. Your number stays the same.'],
+  ['How many spas are in the pilot?', 'Ten founding spas. We review every application and pick spas where Voix can make the biggest difference. If the first group fills, we’ll offer you a place in the next one.'],
   ['What does it cost after the pilot?', 'We’ll share founding-spa pricing during your trial. There’s no obligation to continue after the 14 days.'],
 ]
 
@@ -64,7 +65,7 @@ export default function VoixLanding() {
         </nav>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {DEMO_TEL && <a href={DEMO_TEL} style={{ ...pillLight, padding: '13px 22px', fontSize: 15 }}>Call the spa demo</a>}
-          <a href="#pilot" style={{ ...pillDark, padding: '13px 22px', fontSize: 15 }}>Apply for the pilot</a>
+          <a href="#pilot" style={{ ...pillDark, padding: '13px 22px', fontSize: 15 }}>Apply for a pilot spot</a>
         </div>
       </header>
 
@@ -74,14 +75,14 @@ export default function VoixLanding() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
               <p style={{ margin: 0, alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: muted, background: '#F2F3F6', borderRadius: 999, padding: '7px 14px' }}>
                 <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 999, background: blue, display: 'inline-block' }} />
-                Now onboarding founding pilot spas
+                Applications open for 10 founding pilot spas
               </p>
               <h1 style={{ margin: 0, fontFamily: serif, fontWeight: 400, fontSize: 'clamp(52px, 7vw, 88px)', lineHeight: 0.95, letterSpacing: '-0.025em' }}>The front desk that never misses a call.</h1>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: body, maxWidth: 440 }}>Voix is the AI receptionist for med spas. It answers after hours, between clients and on your busiest days, and books consultations straight into your schedule, in your spa’s voice.</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                <a href="#pilot" style={pillDark}>Apply for the pilot</a>
+                <a href="#pilot" style={pillDark}>Apply for one of 10 spots</a>
                 <a href="#how" style={pillLight}>See how it works</a>
               </div>
               <p style={{ margin: 0, fontSize: 13, color: muted }}>Your number. Your voice. Always there.</p>
@@ -235,7 +236,7 @@ export default function VoixLanding() {
             <div style={{ flex: '1 1 440px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 16 }}>
               <p style={eyebrow}>Founding pilot</p>
               <h2 style={h2}>Try Voix free for 14 days.</h2>
-              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: body, maxWidth: 460 }}>We’re working closely with a few spas to get Voix right. We do the setup; you tell us what works.</p>
+              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: body, maxWidth: 460 }}>We’re opening 10 founding spots and working closely with each spa to get Voix right. We review every application and reply within one business day. We do the setup; you tell us what works.</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 40, marginTop: 8 }}>
                 <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>You get</h3>

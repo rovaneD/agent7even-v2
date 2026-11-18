@@ -10,7 +10,7 @@ type AccountRow = VoixAccount & { members: VoixMember[]; calls: { real: number; 
 export type PilotRequestRow = {
   id: string
   source: 'form' | 'phone'
-  status: 'new' | 'contacted' | 'set_up' | 'declined'
+  status: 'new' | 'contacted' | 'waitlist' | 'set_up' | 'declined'
   contact_name: string | null
   spa_name: string | null
   email: string | null
@@ -27,6 +27,7 @@ export type PilotRequestRow = {
 const REQUEST_STATUS: Record<PilotRequestRow['status'], string> = {
   new: 'New',
   contacted: 'Contacted',
+  waitlist: 'Waitlist',
   set_up: 'Set up',
   declined: 'Declined',
 }
