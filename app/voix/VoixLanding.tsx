@@ -43,9 +43,8 @@ function ExperienceVoix() {
       <a href={SALES_TEL} style={{ ...pillDark, padding: '12px 20px', fontSize: 14, whiteSpace: 'nowrap' }}>
         Experience Voix
       </a>
-      <span style={{ fontSize: 12, lineHeight: 1.4, color: muted, maxWidth: 200 }}>
-        Starts a call to our AI line. No sign-up.
-      </span>
+      {/* Non-breaking space and hyphen keep "No sign-up." together (no widow). */}
+      <span style={{ fontSize: 12, lineHeight: 1.4, color: muted }}>{'Starts a call to our AI line. No\u00a0sign\u2011up.'}</span>
     </div>
   )
 }
