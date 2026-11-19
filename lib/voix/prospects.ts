@@ -30,6 +30,8 @@ export type VoixProspect = {
   contact_name: string | null
   email: string | null
   phone: string | null
+  email_subject: string | null
+  email_body: string | null
   channel: ProspectChannel
   status: ProspectStatus
   last_contacted_at: string | null
@@ -40,7 +42,7 @@ export type VoixProspect = {
 }
 
 export const PROSPECT_SELECT =
-  'id, spa_name, website, instagram, city, contact_name, email, phone, channel, status, last_contacted_at, next_follow_up, notes, created_at, updated_at'
+  'id, spa_name, website, instagram, city, contact_name, email, phone, email_subject, email_body, channel, status, last_contacted_at, next_follow_up, notes, created_at, updated_at'
 
 /** Latest automatic outreach top-up (see lib/voix/prospectFinder.ts). */
 export type ProspectRun = {
@@ -50,4 +52,9 @@ export type ProspectRun = {
   error: string | null
   started_at: string
   finished_at: string | null
+}
+
+/** Footer every outreach email ends with (US cold-email rules: postal address + opt-out). */
+export function outreachFooter(address: string | null | undefined): string {
+  return `--\nAgent7even · ${address?.trim() || '[your business address]'}\nReply "stop" and I won't email again.`
 }

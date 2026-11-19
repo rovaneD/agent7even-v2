@@ -123,7 +123,12 @@ function AddProspect() {
   )
 }
 
-function ProspectRow({ p }: { p: VoixProspect }) {
+function mailtoHref(p: VoixProspect, footer: string): string {
+  const body = `${p.email_body ?? ''}\n\n${footer}`
+  return `mailto:${p.email ?? ''}?subject=${encodeURIComponent(p.email_subject ?? '')}&body=${encodeURIComponent(body)}`
+}
+
+function ProspectRow({ p, footer }: { p: VoixProspect; footer: string }) {
   const { busy, error, call } = useProspects()
   const [editing, setEditing] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
@@ -228,6 +233,15 @@ function ProspectRow({ p }: { p: VoixProspect }) {
             onChange={(e) => void call({ action: 'update', id: p.id, next_follow_up: e.target.value || null })}
             className="rounded-lg border border-[#ECEDF1] bg-white px-2 py-1.5 text-sm"
           />
+          {p.email_body ? (
+            <a
+              href={mailtoHref(p, footer)}
+              title={p.email ? `Opens your email app, addressed to ${p.email}` : 'No email on file: add the address in your email app'}
+              className="rounded-full bg-[#1B2236] px-3 py-1.5 text-sm font-medium text-white"
+            >
+              Open email
+            </a>
+          ) : null}
           <button
             type="button"
             disabled={busy}
@@ -293,7 +307,15 @@ function FindMore({ run }: { run: ProspectRun | null }) {
   )
 }
 
-export default function OutreachView({ prospects, lastRun }: { prospects: VoixProspect[]; lastRun: ProspectRun | null }) {
+export default function OutreachView({
+  prospects,
+  lastRun,
+  footer,
+}: {
+  prospects: VoixProspect[]
+  lastRun: ProspectRun | null
+  footer: string
+}) {
   const [filter, setFilter] = useState<Filter>('active')
   const t = today()
   const isActive = (p: VoixProspect) => !['pilot', 'not_interested'].includes(p.status)
@@ -334,7 +356,7 @@ export default function OutreachView({ prospects, lastRun }: { prospects: VoixPr
       {list.length ? (
         <ul className="mt-4 divide-y divide-[#ECEDF1] rounded-xl border border-[#ECEDF1]">
           {list.map((p) => (
-            <ProspectRow key={`${p.id}-${p.updated_at}`} p={p} />
+            <ProspectRow key={`${p.id}-${p.updated_at}`} p={p} footer={footer} />
           ))}
         </ul>
       ) : (

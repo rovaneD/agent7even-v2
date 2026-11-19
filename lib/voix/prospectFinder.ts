@@ -3,6 +3,7 @@ import Exa from 'exa-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { openrouter } from '@/lib/ai/client'
 import { normalizeInstagram } from '@/lib/voix/pilotRequests'
+import { outreachFooter } from '@/lib/voix/prospects'
 
 /**
  * Outreach top-up for Voix. When every spa in Outreach has been contacted,
@@ -192,7 +193,7 @@ async function choosePicks(candidates: Candidate[], count: number): Promise<Pick
     .slice(0, count)
 }
 
-const FOOTER = `--\nAgent7even · ${process.env.VOIX_OUTREACH_ADDRESS || '[your business address]'}\nReply "stop" and I won't email again.`
+const FOOTER = outreachFooter(process.env.VOIX_OUTREACH_ADDRESS)
 
 function notesFor(p: Pick, date: string): string {
   return [
@@ -254,6 +255,8 @@ export async function topUpProspects(supabase: SupabaseClient, trigger: TopUpTri
       contact_name: p.contact_name?.slice(0, 120) || null,
       email: p.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email) ? p.email.toLowerCase().slice(0, 200) : null,
       phone: p.phone?.slice(0, 40) || null,
+      email_subject: p.email_subject?.slice(0, 200) || null,
+      email_body: p.email_body?.slice(0, 3000) || null,
       channel: p.phone ? 'phone' : p.email ? 'email' : 'ig_dm',
       status: 'to_contact',
       notes: notesFor(p, date),

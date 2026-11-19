@@ -5,3 +5,7 @@
 
 ALTER TABLE public.voix_prospects ADD COLUMN IF NOT EXISTS email text;
 ALTER TABLE public.voix_prospects ADD COLUMN IF NOT EXISTS phone text;
+
+-- Drafted email for the "Open email" button (body without the footer; the app adds it).
+ALTER TABLE public.voix_prospects ADD COLUMN IF NOT EXISTS email_subject text;
+ALTER TABLE public.voix_prospects ADD COLUMN IF NOT EXISTS email_body text;

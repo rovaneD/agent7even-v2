@@ -6,7 +6,7 @@ import type { VoixAccount, VoixMember } from '@/lib/voix/types'
 import AdminConsole, { type PilotRequestRow } from './AdminConsole'
 import MonitorView from './MonitorView'
 import OutreachView from './OutreachView'
-import { PROSPECT_SELECT, type ProspectRun, type VoixProspect } from '@/lib/voix/prospects'
+import { outreachFooter, PROSPECT_SELECT, type ProspectRun, type VoixProspect } from '@/lib/voix/prospects'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +33,9 @@ export default async function VoixAdminPage({ searchParams }: { searchParams: Pr
       .order('started_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    body = <OutreachView prospects={(prospects ?? []) as VoixProspect[]} lastRun={(lastRun as ProspectRun | null) ?? null} />
+    body = <OutreachView prospects={(prospects ?? []) as VoixProspect[]} lastRun={(lastRun as ProspectRun | null) ?? null}
+        footer={outreachFooter(process.env.VOIX_OUTREACH_ADDRESS)}
+      />
   } else if (view === 'monitor') {
     const data = await loadMonitor(supabase, accounts)
     body = <MonitorView data={data} accountNames={Object.fromEntries(accounts.map((a) => [a.id, a.name]))} />
