@@ -28,6 +28,8 @@ export type VoixProspect = {
   instagram: string | null
   city: string | null
   contact_name: string | null
+  email: string | null
+  phone: string | null
   channel: ProspectChannel
   status: ProspectStatus
   last_contacted_at: string | null
@@ -38,7 +40,7 @@ export type VoixProspect = {
 }
 
 export const PROSPECT_SELECT =
-  'id, spa_name, website, instagram, city, contact_name, channel, status, last_contacted_at, next_follow_up, notes, created_at, updated_at'
+  'id, spa_name, website, instagram, city, contact_name, email, phone, channel, status, last_contacted_at, next_follow_up, notes, created_at, updated_at'
 
 /** Latest automatic outreach top-up (see lib/voix/prospectFinder.ts). */
 export type ProspectRun = {

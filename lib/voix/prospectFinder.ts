@@ -6,8 +6,11 @@ import { normalizeInstagram } from '@/lib/voix/pilotRequests'
 
 /**
  * Outreach top-up for Voix. When every spa in Outreach has been contacted,
- * research the next batch of independent med spas anywhere in the US, write a
- * first DM and a follow-up for each, and add them as "To contact".
+ * research the next batch of independent med spas anywhere in the US and add them
+ * as "To contact" with an outreach plan in the notes:
+ *   1. an after-hours call (if nobody answers, that missed call is the pitch),
+ *   2. an email built around that call,
+ *   3. an Instagram DM as a backup (DMs from non-followers land in message requests).
  *
  * Search: Exa (3 city searches). Writing: one Claude call over the candidates.
  * Roughly a few cents per run.
@@ -49,7 +52,7 @@ const CHAIN_HINTS = [
   'aesthetics-360', 'beautyandthemed', 'unveilmedspa', 'evolve-medspa', 
 ]
 
-type Candidate = { url: string; host: string; title: string; text: string }
+type Candidate = { url: string; host: string; title: string; text: string; emails: string[]; phones: string[] }
 
 type Pick = {
   website: string
@@ -58,10 +61,23 @@ type Pick = {
   instagram: string | null
   contact_name: string | null
   phone: string | null
+  email: string | null
   angle: string
+  call_note: string
+  email_subject: string
+  email_body: string
   dm: string
-  follow_up: string
   checks: string
+}
+
+const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi
+const PHONE_RE = /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g
+const JUNK_EMAIL = /(example|sentry|wixpress|domain\.com|yourname|email\.com|\.(png|jpe?g|gif|webp|svg)$)/i
+
+function contactsIn(text: string): { emails: string[]; phones: string[] } {
+  const emails = [...new Set((text.match(EMAIL_RE) ?? []).map((e) => e.toLowerCase()).filter((e) => !JUNK_EMAIL.test(e)))]
+  const phones = [...new Set((text.match(PHONE_RE) ?? []).map((p) => p.trim()))]
+  return { emails: emails.slice(0, 3), phones: phones.slice(0, 3) }
 }
 
 export function hostOf(url: string | null | undefined): string | null {
@@ -94,7 +110,7 @@ async function searchCandidates(cities: string[], skipHosts: Set<string>): Promi
           type: 'auto',
           numResults: 10,
           excludeDomains: EXCLUDE_DOMAINS,
-          contents: { text: { maxCharacters: 2500 } },
+          contents: { text: { maxCharacters: 8000 } },
         })
         .then((r) => r.results ?? [])
         .catch((err) => {
@@ -112,41 +128,45 @@ async function searchCandidates(cities: string[], skipHosts: Set<string>): Promi
     const text = (r as { text?: string }).text?.trim()
     if (!text) continue
     seen.add(host)
-    out.push({ url: r.url, host, title: r.title ?? '', text })
+    out.push({ url: r.url, host, title: r.title ?? '', text, ...contactsIn(text) })
   }
   return out.slice(0, 18)
 }
 
 const SYSTEM = `You research med spas for Voix, an AI receptionist for med spas made by Agent7even.
 Voix answers every call, handles treatment questions and books consultations, even when the team is busy or closed.
-Pilot offer (use exactly these facts, nothing else): 10 pilot spots, 14 days free, no credit card.
+Pilot offer (use exactly these facts, nothing else): 10 pilot spots, 14 days free, no credit card. Sign-up: agent7even.ai/voix.
 
 From the candidate websites, choose the spas that best fit the pilot:
 - Independent, owner-run, 1 to 3 locations. Reject chains, franchise networks with many studios, hospitals,
   dermatology groups with many doctors, directories, blogs, product brands and anything that is not a med spa's own site.
-- A phone number on the site is a strong plus. Short hours, no weekend hours, a request form for new patients,
-  free or paid consultations, current specials, or a small team are good angles.
+- Prefer spas with a phone number AND an email address on the site. Short hours, no weekend hours, a request form for
+  new patients, free or paid consultations, current specials or a small team are good angles.
 
-For each chosen spa, write:
+Outreach leads with a phone call, then an email. Instagram DMs are only a backup, because DMs from accounts they
+don't follow land in message requests. For each chosen spa, write:
 - angle: one sentence on why Voix fits this spa, based only on facts in its text.
-- dm: an Instagram DM in this shape:
-  1) a warm, specific compliment using a real fact from the site (years open, reviews, a service, a special);
-  2) "Quick question:" plus one question about who answers calls in the situation that fits them (after hours,
-     mid-treatment, during specials, weekends); note many callers book with whichever spa answers first;
-  3) "We built Voix, an AI receptionist for med spas. It answers every call, handles treatment questions and books
-     consultations, even when your team is busy or closed.";
-  4) "We're opening 10 pilot spots: 14 days free, no credit card. Would you be open to trying it?"
-  Address it to "<Spa name> team" unless the site clearly names the owner, then use their name.
-  Plain, friendly, no emoji, no hashtags, no links, no em dashes.
-- follow_up: a short follow-up for 3 to 4 days later that offers to set up a test line with their services so they
-  can call it themselves.
-- checks: what to verify before sending (unconfirmed owner, unknown hours, dated specials, agency-run site, etc.).
+- call_note: when to call and what to listen for. Pick a time when the front desk is likely closed or busy, based on
+  the hours in the text if given (say "after closing" or "at lunch" if hours are unknown), and give it in the spa's
+  local time. If someone answers, ask who manages the front desk and phones.
+- email_subject: short and plain, e.g. "I called <Spa name> at [time]".
+- email_body: an email to send after the call, under 120 words. Open with the missed call using placeholders the sender
+  fills in: "I called <Spa name> on [day] at [time] and [it went to voicemail / no one picked up]." Then: if that was a
+  new client, they'd likely have booked with the next spa that answered. Then one specific, true compliment from the
+  site. Then introduce Voix in one sentence (answers every call, handles treatment questions, books consultations,
+  even when the team is busy or closed). Then the pilot offer and a question: "Would you be open to trying it?"
+  Sign off as "Rovane, Agent7even". Address it to the owner by name only if the site clearly names them, else "Hi <Spa name> team".
+  Plain and friendly, no emoji, no links, no em dashes. Do not add an address or unsubscribe line; the sender adds it.
+- dm: a short Instagram DM backup (3 to 4 sentences, same facts, ends with the same question).
+- checks: what to verify before sending (unconfirmed owner, unknown hours, dated specials, agency-run site, no email found, etc.).
 
-Rules: use only facts that appear in the candidate text. Never invent names, numbers, hours, reviews or handles.
-instagram: the handle only if it appears in the text, else null. contact_name: only if the site names the owner
-or lead provider, else null. phone: as written on the site, else null. city: "City, ST".
+Rules: use only facts that appear in the candidate text. Never invent names, numbers, hours, reviews, emails or handles.
+email: choose from "Emails found" for that candidate (prefer info@, hello@, contact@, front desk), else null.
+phone: choose from "Phones found" or the text, else null. instagram: the handle only if it appears in the text, else null.
+contact_name: only if the site names the owner or lead provider, else null. city: "City, ST".
 Return ONLY JSON: {"picks":[{"website":"","spa_name":"","city":"","instagram":null,"contact_name":null,"phone":null,
-"angle":"","dm":"","follow_up":"","checks":""}]}. Return at most the number asked for, fewer if fewer fit.`
+"email":null,"angle":"","call_note":"","email_subject":"","email_body":"","dm":"","checks":""}]}.
+Return at most the number asked for, fewer if fewer fit.`
 
 function stripFence(raw: string): string {
   return raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
@@ -154,27 +174,32 @@ function stripFence(raw: string): string {
 
 async function choosePicks(candidates: Candidate[], count: number): Promise<Pick[]> {
   const listing = candidates
-    .map((c, i) => `### Candidate ${i + 1}\nURL: ${c.url}\nTitle: ${c.title}\n${c.text.slice(0, 1600)}`)
+    .map(
+      (c, i) =>
+        `### Candidate ${i + 1}\nURL: ${c.url}\nTitle: ${c.title}\nEmails found: ${c.emails.join(', ') || 'none'}\nPhones found: ${c.phones.join(', ') || 'none'}\n${c.text.slice(0, 1600)}`
+    )
     .join('\n\n')
   const { text } = await generateText({
     model: openrouter(MODEL),
     system: SYSTEM,
     messages: [{ role: 'user', content: `Choose up to ${count} spas.\n\n${listing}` }],
-    maxOutputTokens: 6000,
+    maxOutputTokens: 8000,
   })
   const parsed = JSON.parse(stripFence(text)) as { picks?: Partial<Pick>[] }
   const byHost = new Map(candidates.map((c) => [c.host, c]))
   return (parsed.picks ?? [])
-    .filter((p): p is Pick => !!p.website && !!p.spa_name && !!p.dm && byHost.has(hostOf(p.website) ?? ''))
+    .filter((p): p is Pick => !!p.website && !!p.spa_name && !!p.email_body && byHost.has(hostOf(p.website) ?? ''))
     .slice(0, count)
 }
+
+const FOOTER = `--\nAgent7even · ${process.env.VOIX_OUTREACH_ADDRESS || '[your business address]'}\nReply "stop" and I won't email again.`
 
 function notesFor(p: Pick, date: string): string {
   return [
     `Auto-added ${date}. ${p.angle}`,
-    p.phone ? `Phone: ${p.phone}` : null,
-    `\nFirst DM:\n${p.dm}`,
-    p.follow_up ? `\nFollow-up (3–4 days later):\n${p.follow_up}` : null,
+    `\n1) Call${p.phone ? ` ${p.phone}` : ''}: ${p.call_note}`,
+    `\n2) Email${p.email ? ` ${p.email}` : ' (no email found: use the contact form)'}\nSubject: ${p.email_subject}\n\n${p.email_body}\n\n${FOOTER}`,
+    p.dm ? `\n3) Instagram DM (backup, follow and engage first):\n${p.dm}` : null,
     p.checks ? `\nBefore sending: ${p.checks}` : null,
   ]
     .filter(Boolean)
@@ -227,7 +252,9 @@ export async function topUpProspects(supabase: SupabaseClient, trigger: TopUpTri
       instagram: normalizeInstagram(p.instagram),
       city: p.city?.slice(0, 80) || null,
       contact_name: p.contact_name?.slice(0, 120) || null,
-      channel: 'ig_dm',
+      email: p.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email) ? p.email.toLowerCase().slice(0, 200) : null,
+      phone: p.phone?.slice(0, 40) || null,
+      channel: p.phone ? 'phone' : p.email ? 'email' : 'ig_dm',
       status: 'to_contact',
       notes: notesFor(p, date),
     }))

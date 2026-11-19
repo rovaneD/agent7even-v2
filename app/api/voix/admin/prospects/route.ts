@@ -16,6 +16,8 @@ type Body = {
   instagram?: string
   city?: string
   contact_name?: string
+  email?: string
+  phone?: string
   channel?: string
   status?: string
   next_follow_up?: string | null
@@ -50,6 +52,12 @@ function fields(body: Body): { fields: Record<string, unknown> } | { error: stri
   if ('instagram' in body) out.instagram = normalizeInstagram(body.instagram)
   if ('city' in body) out.city = text(body.city, 80)
   if ('contact_name' in body) out.contact_name = text(body.contact_name, 120)
+  if ('email' in body) {
+    const email = text(body.email, 200)
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Email looks wrong' }
+    out.email = email?.toLowerCase() ?? null
+  }
+  if ('phone' in body) out.phone = text(body.phone, 40)
   if ('notes' in body) out.notes = text(body.notes, 4000)
   if ('channel' in body) {
     if (!PROSPECT_CHANNELS.includes(body.channel as never)) return { error: 'Unknown channel' }

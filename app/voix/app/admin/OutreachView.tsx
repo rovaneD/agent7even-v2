@@ -69,6 +69,8 @@ function DetailsFields({ p }: { p?: VoixProspect }) {
       <input name="instagram" defaultValue={p?.instagram ?? ''} placeholder="Instagram handle or link" className={input} />
       <input name="city" defaultValue={p?.city ?? ''} placeholder="City" className={input} />
       <input name="contact_name" defaultValue={p?.contact_name ?? ''} placeholder="Contact (owner, manager)" className={input} />
+      <input name="email" type="email" defaultValue={p?.email ?? ''} placeholder="Email" className={input} />
+      <input name="phone" defaultValue={p?.phone ?? ''} placeholder="Phone" className={input} />
       <select name="channel" defaultValue={p?.channel ?? 'ig_dm'} className={input}>
         {PROSPECT_CHANNELS.map((c) => (
           <option key={c} value={c}>
@@ -82,7 +84,7 @@ function DetailsFields({ p }: { p?: VoixProspect }) {
 
 function formFields(e: FormEvent<HTMLFormElement>) {
   const f = new FormData(e.currentTarget)
-  return Object.fromEntries(['spa_name', 'website', 'instagram', 'city', 'contact_name', 'channel'].map((k) => [k, String(f.get(k) ?? '')]))
+  return Object.fromEntries(['spa_name', 'website', 'instagram', 'city', 'contact_name', 'email', 'phone', 'channel'].map((k) => [k, String(f.get(k) ?? '')]))
 }
 
 function AddProspect() {
@@ -177,6 +179,16 @@ function ProspectRow({ p }: { p: VoixProspect }) {
             {p.city ? <span>{p.city}</span> : null}
             {p.contact_name ? <span>{p.contact_name}</span> : null}
             <span>{PROSPECT_CHANNEL_LABEL[p.channel]}</span>
+            {p.phone ? (
+              <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-[#3355D6]">
+                {p.phone}
+              </a>
+            ) : null}
+            {p.email ? (
+              <a href={`mailto:${p.email}`} className="text-[#3355D6]">
+                {p.email}
+              </a>
+            ) : null}
             {p.website ? (
               <a href={p.website} target="_blank" rel="noreferrer" className="text-[#3355D6]">
                 {p.website.replace(/^https?:\/\/(www\.)?/, '')}
@@ -255,7 +267,7 @@ function ProspectRow({ p }: { p: VoixProspect }) {
 type Filter = 'active' | 'due' | 'all'
 
 function runLabel(run: ProspectRun | null): string {
-  if (!run) return 'When every spa here has been contacted, Voix finds 5 new independent med spas and drafts the DMs.'
+  if (!run) return 'When every spa here has been contacted, Voix finds 5 new independent med spas and drafts the call note, email and DM.'
   const when = new Date(run.finished_at ?? run.started_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
   if (run.status === 'running') return 'Finding 5 new spas… refresh in a minute.'
   if (run.status === 'failed') return `Last search failed (${when}): ${run.error ?? 'unknown error'}`
