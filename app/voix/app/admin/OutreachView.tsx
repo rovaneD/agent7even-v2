@@ -143,13 +143,20 @@ function EmailButtons({ p, footer }: { p: VoixProspect; footer: string }) {
   return (
     <>
       <a
+        href={mailtoHref(p, footer)}
+        title={p.email ? `Opens a draft to ${p.email} in your mail app` : 'Opens a draft in your mail app. No email on file: add the address there'}
+        className="rounded-full bg-[#1B2236] px-3 py-1.5 text-sm font-medium text-white"
+      >
+        Open in Mail
+      </a>
+      <a
         href={gmailHref(p, footer)}
         target="_blank"
         rel="noreferrer"
-        title={p.email ? `Opens a Gmail draft to ${p.email}` : 'Opens a Gmail draft. No email on file: add the address in Gmail'}
-        className="rounded-full bg-[#1B2236] px-3 py-1.5 text-sm font-medium text-white"
+        title="Opens a Gmail draft in a new tab"
+        className="rounded-full border border-[#ECEDF1] bg-white px-3 py-1.5 text-sm font-medium"
       >
-        Open in Gmail
+        Gmail
       </a>
       <button
         type="button"
