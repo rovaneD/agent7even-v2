@@ -53,7 +53,7 @@ const CHAIN_HINTS = [
   'aesthetics-360', 'beautyandthemed', 'unveilmedspa', 'evolve-medspa', 
 ]
 
-type Candidate = { url: string; host: string; title: string; text: string; emails: string[]; phones: string[] }
+type Candidate = { url: string; host: string; title: string; text: string; emails: string[]; phones: string[]; booking: string | null }
 
 type Pick = {
   website: string
@@ -69,11 +69,34 @@ type Pick = {
   email_body: string
   dm: string
   checks: string
+  booking?: string | null
 }
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi
 const PHONE_RE = /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g
 const JUNK_EMAIL = /(example|sentry|wixpress|domain\.com|yourname|email\.com|\.(png|jpe?g|gif|webp|svg)$)/i
+
+// Booking software, detected from the site's links and text. Boulevard spas get Boulevard's own
+// AI receptionist (Beau) inside software they already pay for, so they are a harder sell.
+const BOOKING_PATTERNS: [string, RegExp][] = [
+  ['Boulevard', /blvd\.app|joinblvd\.com|boulevard\.io/i],
+  ['Zenoti', /zenoti\.com|\/webstoreNew\//i],
+  ['Vagaro', /vagaro\.com/i],
+  ['Mangomint', /mangomint\.com/i],
+  ['GlossGenius', /glossgenius\.com/i],
+  ['Mindbody', /mindbodyonline\.com|mindbody\.io|clients\.mindbodyonline/i],
+  ['Aesthetic Record', /aestheticrecord\.com/i],
+  ['Jane', /\.janeapp\.com/i],
+  ['Square', /squareup\.com\/appointments|square\.site/i],
+  ['Acuity', /acuityscheduling\.com/i],
+  ['Fresha', /fresha\.com/i],
+  ['Meevo', /meevo\.com/i],
+  ['Booker', /booker\.com|go\.booker/i],
+]
+
+export function bookingSoftwareIn(haystack: string): string | null {
+  return BOOKING_PATTERNS.find(([, re]) => re.test(haystack))?.[0] ?? null
+}
 
 function contactsIn(text: string): { emails: string[]; phones: string[] } {
   const emails = [...new Set((text.match(EMAIL_RE) ?? []).map((e) => e.toLowerCase()).filter((e) => !JUNK_EMAIL.test(e)))]
@@ -111,7 +134,7 @@ async function searchCandidates(cities: string[], skipHosts: Set<string>): Promi
           type: 'auto',
           numResults: 10,
           excludeDomains: EXCLUDE_DOMAINS,
-          contents: { text: { maxCharacters: 8000 } },
+          contents: { text: { maxCharacters: 8000 }, extras: { links: 60 } },
         })
         .then((r) => r.results ?? [])
         .catch((err) => {
@@ -129,8 +152,11 @@ async function searchCandidates(cities: string[], skipHosts: Set<string>): Promi
     const text = (r as { text?: string }).text?.trim()
     if (!text) continue
     seen.add(host)
-    out.push({ url: r.url, host, title: r.title ?? '', text, ...contactsIn(text) })
+    const links = ((r as { extras?: { links?: string[] } }).extras?.links ?? []).join(' ')
+    out.push({ url: r.url, host, title: r.title ?? '', text, ...contactsIn(text), booking: bookingSoftwareIn(`${links} ${text}`) })
   }
+  // Boulevard spas last: they can switch on Boulevard's own AI receptionist.
+  out.sort((a, b) => Number(a.booking === 'Boulevard') - Number(b.booking === 'Boulevard'))
   return out.slice(0, 18)
 }
 
@@ -141,6 +167,8 @@ Pilot offer (use exactly these facts, nothing else): 10 pilot spots, 14 days fre
 From the candidate websites, choose the spas that best fit the pilot:
 - Independent, owner-run, 1 to 3 locations. Reject chains, franchise networks with many studios, hospitals,
   dermatology groups with many doctors, directories, blogs, product brands and anything that is not a med spa's own site.
+- Avoid spas whose booking software is Boulevard (Boulevard sells its own AI receptionist inside its software);
+  pick them only if there aren't enough other good fits, and say so in checks.
 - Prefer spas with a phone number AND an email address on the site. Short hours, no weekend hours, a request form for
   new patients, free or paid consultations, current specials or a small team are good angles.
 
@@ -177,7 +205,7 @@ async function choosePicks(candidates: Candidate[], count: number): Promise<Pick
   const listing = candidates
     .map(
       (c, i) =>
-        `### Candidate ${i + 1}\nURL: ${c.url}\nTitle: ${c.title}\nEmails found: ${c.emails.join(', ') || 'none'}\nPhones found: ${c.phones.join(', ') || 'none'}\n${c.text.slice(0, 1600)}`
+        `### Candidate ${i + 1}\nURL: ${c.url}\nTitle: ${c.title}\nEmails found: ${c.emails.join(', ') || 'none'}\nPhones found: ${c.phones.join(', ') || 'none'}\nBooking software: ${c.booking ?? 'unknown'}\n${c.text.slice(0, 1600)}`
     )
     .join('\n\n')
   const { text } = await generateText({
@@ -191,6 +219,7 @@ async function choosePicks(candidates: Candidate[], count: number): Promise<Pick
   return (parsed.picks ?? [])
     .filter((p): p is Pick => !!p.website && !!p.spa_name && !!p.email_body && byHost.has(hostOf(p.website) ?? ''))
     .slice(0, count)
+    .map((p) => ({ ...p, booking: byHost.get(hostOf(p.website) ?? '')?.booking ?? null }))
 }
 
 const FOOTER = outreachFooter(process.env.VOIX_OUTREACH_ADDRESS)
@@ -198,6 +227,7 @@ const FOOTER = outreachFooter(process.env.VOIX_OUTREACH_ADDRESS)
 function notesFor(p: Pick, date: string): string {
   return [
     `Auto-added ${date}. ${p.angle}`,
+    p.booking ? `Booking software: ${p.booking}${p.booking === 'Boulevard' ? ' (they can switch on Boulevard\u2019s own AI receptionist, Beau, so lead with "works with any booking software")' : ''}` : 'Booking software: unknown (ask on the call)',
     `\n1) Call${p.phone ? ` ${p.phone}` : ''}: ${p.call_note}`,
     `\n2) Email${p.email ? ` ${p.email}` : ' (no email found: use the contact form)'}\nSubject: ${p.email_subject}\n\n${p.email_body}\n\n${FOOTER}`,
     p.dm ? `\n3) Instagram DM (backup, follow and engage first):\n${p.dm}` : null,
