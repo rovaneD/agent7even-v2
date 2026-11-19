@@ -123,9 +123,53 @@ function AddProspect() {
   )
 }
 
+function emailText(p: VoixProspect, footer: string): string {
+  return `${p.email_body ?? ''}\n\n${footer}`
+}
+
+/** Gmail compose in a new tab: works without a desktop mail app. */
+function gmailHref(p: VoixProspect, footer: string): string {
+  const q = new URLSearchParams({ view: 'cm', fs: '1', to: p.email ?? '', su: p.email_subject ?? '', body: emailText(p, footer) })
+  return `https://mail.google.com/mail/?${q.toString()}`
+}
+
 function mailtoHref(p: VoixProspect, footer: string): string {
-  const body = `${p.email_body ?? ''}\n\n${footer}`
-  return `mailto:${p.email ?? ''}?subject=${encodeURIComponent(p.email_subject ?? '')}&body=${encodeURIComponent(body)}`
+  return `mailto:${p.email ?? ''}?subject=${encodeURIComponent(p.email_subject ?? '')}&body=${encodeURIComponent(emailText(p, footer))}`
+}
+
+function EmailButtons({ p, footer }: { p: VoixProspect; footer: string }) {
+  const [copied, setCopied] = useState(false)
+  if (!p.email_body) return null
+  return (
+    <>
+      <a
+        href={gmailHref(p, footer)}
+        target="_blank"
+        rel="noreferrer"
+        title={p.email ? `Opens a Gmail draft to ${p.email}` : 'Opens a Gmail draft. No email on file: add the address in Gmail'}
+        className="rounded-full bg-[#1B2236] px-3 py-1.5 text-sm font-medium text-white"
+      >
+        Open in Gmail
+      </a>
+      <button
+        type="button"
+        onClick={async () => {
+          const text = `${p.email ? `To: ${p.email}\n` : ''}Subject: ${p.email_subject ?? ''}\n\n${emailText(p, footer)}`
+          try {
+            await navigator.clipboard.writeText(text)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          } catch {
+            window.location.href = mailtoHref(p, footer)
+          }
+        }}
+        title="Copy the address, subject and email"
+        className="rounded-full border border-[#ECEDF1] bg-white px-3 py-1.5 text-sm font-medium"
+      >
+        {copied ? 'Copied' : 'Copy email'}
+      </button>
+    </>
+  )
 }
 
 function ProspectRow({ p, footer }: { p: VoixProspect; footer: string }) {
@@ -233,15 +277,7 @@ function ProspectRow({ p, footer }: { p: VoixProspect; footer: string }) {
             onChange={(e) => void call({ action: 'update', id: p.id, next_follow_up: e.target.value || null })}
             className="rounded-lg border border-[#ECEDF1] bg-white px-2 py-1.5 text-sm"
           />
-          {p.email_body ? (
-            <a
-              href={mailtoHref(p, footer)}
-              title={p.email ? `Opens your email app, addressed to ${p.email}` : 'No email on file: add the address in your email app'}
-              className="rounded-full bg-[#1B2236] px-3 py-1.5 text-sm font-medium text-white"
-            >
-              Open email
-            </a>
-          ) : null}
+          <EmailButtons p={p} footer={footer} />
           <button
             type="button"
             disabled={busy}
