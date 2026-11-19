@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { trackEvent } from '@/lib/gtag'
 import { ink, muted } from './voixStyles'
 
 const field: CSSProperties = { font: 'inherit', fontSize: 15, padding: '13px 14px', border: '1px solid #E1E4EA', borderRadius: 10, background: '#F7F8FA', color: ink, width: '100%', boxSizing: 'border-box' }
@@ -10,6 +11,7 @@ const group: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6 
 export default function PilotForm() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [error, setError] = useState('')
+  const started = useRef(false)
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -24,8 +26,10 @@ export default function PilotForm() {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(json.error || 'Something went wrong. Please try again.')
+      trackEvent('voix_form_submit', { software: String(data.software ?? ''), locations: String(data.locations ?? '') })
       setStatus('sent')
     } catch (err) {
+      trackEvent('voix_form_error', { message: err instanceof Error ? err.message : 'unknown' })
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setStatus('error')
     }
@@ -43,7 +47,16 @@ export default function PilotForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} aria-label="Pilot application" style={box}>
+    <form
+      onSubmit={onSubmit}
+      onFocus={(e) => {
+        if (started.current) return
+        started.current = true
+        trackEvent('voix_form_start', { field: (e.target as HTMLElement).getAttribute('name') ?? '' })
+      }}
+      aria-label="Pilot application"
+      style={box}
+    >
       <div style={group}>
         <label htmlFor="voix-name" style={label}>Your name</label>
         <input id="voix-name" name="name" type="text" autoComplete="name" required style={field} />

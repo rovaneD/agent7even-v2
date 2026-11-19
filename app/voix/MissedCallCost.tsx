@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, type CSSProperties } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
+import { trackEvent } from '@/lib/gtag'
 import { blue, body, eyebrow, h2, ink, line, muted, serif, wrap } from './voixStyles'
 
 const WEEKS_PER_MONTH = 52 / 12
@@ -53,6 +54,15 @@ export default function MissedCallCost() {
   const [missedPct, setMissedPct] = useState(37)
   const [bookPct, setBookPct] = useState(20)
   const [visit, setVisit] = useState(527)
+  const used = useRef(false)
+  // One event the first time someone moves a slider: they engaged with the cost math.
+  const onAny = <T,>(set: (v: T) => void) => (v: T) => {
+    if (!used.current) {
+      used.current = true
+      trackEvent('voix_calculator_used')
+    }
+    set(v)
+  }
 
   const missedPerWeek = calls * (missedPct / 100)
   const lostBookingsPerMonth = missedPerWeek * (bookPct / 100) * WEEKS_PER_MONTH
@@ -91,7 +101,7 @@ export default function MissedCallCost() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'stretch' }}>
           <div style={{ flex: '1 1 420px', minWidth: 0, background: '#F3F4F6', borderRadius: 24, padding: 'clamp(24px, 4vw, 36px)', display: 'flex', flexDirection: 'column', gap: 26 }}>
             <h3 style={{ margin: 0, fontSize: 21, fontWeight: 600 }}>Run your own numbers</h3>
-            <Slider label="Calls per week" hint="All inbound calls to your spa." value={calls} min={20} max={400} step={5} format={(n) => String(n)} onChange={setCalls} />
+            <Slider label="Calls per week" hint="All inbound calls to your spa." value={calls} min={20} max={400} step={5} format={(n) => String(n)} onChange={onAny(setCalls)} />
             <Slider
               label="Calls that go unanswered"
               hint="Industry average is 37%. Include after-hours calls."
@@ -100,7 +110,7 @@ export default function MissedCallCost() {
               max={70}
               step={1}
               format={(n) => `${n}%`}
-              onChange={setMissedPct}
+              onChange={onAny(setMissedPct)}
             />
             <Slider
               label="Missed callers who would have booked"
@@ -110,7 +120,7 @@ export default function MissedCallCost() {
               max={60}
               step={1}
               format={(n) => `${n}%`}
-              onChange={setBookPct}
+              onChange={onAny(setBookPct)}
             />
             <Slider
               label="Value of a first visit"
@@ -120,7 +130,7 @@ export default function MissedCallCost() {
               max={2000}
               step={25}
               format={money}
-              onChange={setVisit}
+              onChange={onAny(setVisit)}
             />
           </div>
 

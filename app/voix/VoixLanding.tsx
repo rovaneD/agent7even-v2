@@ -3,6 +3,7 @@ import Link from 'next/link'
 import VoixHero from './VoixHero'
 import PilotForm from './PilotForm'
 import MissedCallCost from './MissedCallCost'
+import VoixTracker from './VoixTracker'
 import { DEMO_TEL, SALES_TEL, displayPhone, blue, body, eyebrow, h2, ink, line, muted, pillDark, pillLight, sans, serif, wrap } from './voixStyles'
 
 const blueOrb = 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #A9C8FF 38%, #3A6FF2 100%)'
@@ -68,6 +69,7 @@ const safety: [string, string][] = [
 export default function VoixLanding() {
   return (
     <div style={{ fontFamily: sans, color: ink, background: '#FFFFFF', width: '100%' }}>
+      <VoixTracker />
       <header style={{ ...wrap, paddingTop: 20, paddingBottom: 20, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderBottom: `1px solid ${line}` }}>
         <Link href="/voix" style={{ display: 'flex', alignItems: 'baseline', gap: 10, textDecoration: 'none', color: ink }}>
           <span style={{ fontFamily: serif, fontSize: 34, letterSpacing: '-0.01em', lineHeight: 1 }}>Voix</span>
