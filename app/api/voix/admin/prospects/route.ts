@@ -1,10 +1,15 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import { getVoixAdminContext } from '@/lib/voix/access'
 import { normalizeInstagram } from '@/lib/voix/pilotRequests'
 import { PROSPECT_CHANNELS, PROSPECT_STATUSES } from '@/lib/voix/prospects'
+import { topUpProspects } from '@/lib/voix/prospectFinder'
+
+export const runtime = 'nodejs'
+// The automatic top-up runs after the response (search + writing, up to ~1 min).
+export const maxDuration = 300
 
 type Body = {
-  action?: 'create' | 'update' | 'contacted_today' | 'delete'
+  action?: 'create' | 'update' | 'contacted_today' | 'delete' | 'find_more'
   id?: string
   spa_name?: string
   website?: string
@@ -69,6 +74,10 @@ export async function POST(req: Request) {
   const body = ((await req.json().catch(() => null)) ?? {}) as Body
   const now = new Date().toISOString()
 
+  // When the last spa in "To contact" moves on, research the next batch in the background.
+  const topUpIfEmpty = () =>
+    after(() => topUpProspects(supabase, 'queue_empty').catch((err) => console.error('[voix/admin/prospects] top-up', err)))
+
   try {
     switch (body.action) {
       case 'create': {
@@ -87,6 +96,7 @@ export async function POST(req: Request) {
           .update({ ...parsed.fields, updated_at: now })
           .eq('id', body.id)
         if (error) throw error
+        if ('status' in parsed.fields) topUpIfEmpty()
         return NextResponse.json({ ok: true })
       }
       case 'contacted_today': {
@@ -104,13 +114,19 @@ export async function POST(req: Request) {
           })
           .eq('id', body.id)
         if (error) throw error
+        topUpIfEmpty()
         return NextResponse.json({ ok: true })
       }
       case 'delete': {
         if (!body.id) return NextResponse.json({ error: 'Missing prospect' }, { status: 400 })
         const { error } = await supabase.from('voix_prospects').delete().eq('id', body.id)
         if (error) throw error
+        topUpIfEmpty()
         return NextResponse.json({ ok: true })
+      }
+      case 'find_more': {
+        after(() => topUpProspects(supabase, 'manual').catch((err) => console.error('[voix/admin/prospects] find more', err)))
+        return NextResponse.json({ ok: true, started: true })
       }
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 })

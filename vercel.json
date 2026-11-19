@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/voix-digest",
       "schedule": "7 * * * *"
+    },
+    {
+      "path": "/api/cron/voix-prospects",
+      "schedule": "23 16 * * *"
     }
   ]
 }

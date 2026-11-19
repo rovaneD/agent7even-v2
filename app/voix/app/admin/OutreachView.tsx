@@ -7,6 +7,7 @@ import {
   PROSPECT_CHANNEL_LABEL,
   PROSPECT_STATUSES,
   PROSPECT_STATUS_LABEL,
+  type ProspectRun,
   type ProspectStatus,
   type VoixProspect,
 } from '@/lib/voix/prospects'
@@ -253,7 +254,34 @@ function ProspectRow({ p }: { p: VoixProspect }) {
 
 type Filter = 'active' | 'due' | 'all'
 
-export default function OutreachView({ prospects }: { prospects: VoixProspect[] }) {
+function runLabel(run: ProspectRun | null): string {
+  if (!run) return 'When every spa here has been contacted, Voix finds 5 new independent med spas and drafts the DMs.'
+  const when = new Date(run.finished_at ?? run.started_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  if (run.status === 'running') return 'Finding 5 new spas… refresh in a minute.'
+  if (run.status === 'failed') return `Last search failed (${when}): ${run.error ?? 'unknown error'}`
+  return `Last search ${when}: added ${run.added} spa${run.added === 1 ? '' : 's'}. Runs again when "To contact" is empty.`
+}
+
+function FindMore({ run }: { run: ProspectRun | null }) {
+  const { busy, error, call } = useProspects()
+  const running = run?.status === 'running'
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-[#FAFAFB] px-4 py-3 text-sm text-[#5B6070]">
+      <span className="min-w-0 flex-1">{runLabel(run)}</span>
+      <button
+        type="button"
+        disabled={busy || running}
+        onClick={() => void call({ action: 'find_more' })}
+        className="rounded-full border border-[#ECEDF1] bg-white px-3 py-1.5 font-medium text-[#1B2236] disabled:opacity-50"
+      >
+        {busy ? 'Starting…' : 'Find 5 more now'}
+      </button>
+      {error ? <span className="w-full text-[#A12B2B]">{error}</span> : null}
+    </div>
+  )
+}
+
+export default function OutreachView({ prospects, lastRun }: { prospects: VoixProspect[]; lastRun: ProspectRun | null }) {
   const [filter, setFilter] = useState<Filter>('active')
   const t = today()
   const isActive = (p: VoixProspect) => !['pilot', 'not_interested'].includes(p.status)
@@ -285,6 +313,7 @@ export default function OutreachView({ prospects }: { prospects: VoixProspect[] 
         </div>
         <AddProspect />
       </div>
+      <FindMore run={lastRun} />
       <div className="mt-4 flex flex-wrap gap-2">
         {chip('active', `Active (${prospects.filter(isActive).length})`)}
         {chip('due', `Follow-ups due (${prospects.filter(isDue).length})`)}

@@ -39,3 +39,13 @@ export type VoixProspect = {
 
 export const PROSPECT_SELECT =
   'id, spa_name, website, instagram, city, contact_name, channel, status, last_contacted_at, next_follow_up, notes, created_at, updated_at'
+
+/** Latest automatic outreach top-up (see lib/voix/prospectFinder.ts). */
+export type ProspectRun = {
+  status: 'running' | 'done' | 'failed'
+  trigger: 'queue_empty' | 'cron' | 'manual'
+  added: number
+  error: string | null
+  started_at: string
+  finished_at: string | null
+}
