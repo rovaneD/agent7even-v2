@@ -46,13 +46,38 @@ export async function recordPilotRequest(supabase: SupabaseClient, input: PilotR
     input.notes ? `Notes: ${input.notes}` : null,
   ].filter(Boolean)
 
-  await sendTransactionalEmail({
-    to: await getNotifyEmail(),
-    replyTo: input.email || undefined,
-    subject: `Voix pilot request — ${input.spa_name || input.contact_name || 'new spa'}${input.source === 'phone' ? ' (by phone)' : ''}`,
-    title: 'New Voix pilot request',
-    body: lines.join('\n'),
-    link: '/voix/app/admin?view=spas',
-    ctaLabel: 'Open pilot requests →',
-  })
+  let teamEmailError: unknown = null
+  try {
+    await sendTransactionalEmail({
+      to: await getNotifyEmail(),
+      replyTo: input.email || undefined,
+      subject: `Voix pilot request — ${input.spa_name || input.contact_name || 'new spa'}${input.source === 'phone' ? ' (by phone)' : ''}`,
+      title: 'New Voix pilot request',
+      body: lines.join('\n'),
+      link: '/voix/app/admin?view=spas',
+      ctaLabel: 'Open pilot requests →',
+      throwOnError: true,
+    })
+  } catch (err) {
+    teamEmailError = err
+    console.error('[voix/pilot] team email failed:', err)
+  }
+
+  // Confirmation to the applicant (website form only; phone callers hear it on the call).
+  if (input.source === 'form' && input.email) {
+    await sendTransactionalEmail({
+      to: input.email,
+      replyTo: await getNotifyEmail(),
+      subject: 'We got your Voix pilot application',
+      title: `Thanks${input.contact_name ? `, ${input.contact_name.split(' ')[0]}` : ''}. Your application is in.`,
+      body: [
+        `We received your application for ${input.spa_name || 'your spa'} to join the Voix pilot.`,
+        'We review every application and reply within two business days. If the 10 founding spots fill, we\u2019ll offer you a place in the next group.',
+        'Questions in the meantime? Just reply to this email.',
+      ].join('\n\n'),
+    }).catch((err) => console.error('[voix/pilot] confirmation email failed:', err))
+  }
+
+  // Only fail the request if nothing reached us at all.
+  if (error && teamEmailError) throw teamEmailError
 }

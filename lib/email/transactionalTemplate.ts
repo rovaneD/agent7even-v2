@@ -49,7 +49,7 @@ export function buildTransactionalEmailHtml(opts: {
           <tr>
             <td style="padding:32px;">
               <h1 style="margin:0 0 12px;font-size:20px;font-weight:600;line-height:1.35;color:${b.textPrimary};">${escapeHtml(title)}</h1>
-              <p style="margin:0 0 28px;font-size:15px;line-height:1.65;color:${b.textSecondary};">${escapeHtml(body)}</p>
+              <p style="margin:0 0 28px;font-size:15px;line-height:1.65;color:${b.textSecondary};white-space:pre-line;">${escapeHtml(body)}</p>
               ${href ? `
               <a href="${escapeHtml(href)}" style="display:inline-block;background:${b.primary};color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:600;padding:14px 24px;border-radius:12px;">
                 ${escapeHtml(ctaLabel)}

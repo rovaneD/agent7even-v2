@@ -41,7 +41,7 @@ export default function PilotForm() {
     return (
       <div role="status" style={{ ...box, gap: 12 }}>
         <h3 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Thanks, your application is in.</h3>
-        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: muted }}>We review every application and reply within one business day. If the 10 founding spots fill, we’ll offer you a place in the next group.</p>
+        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: muted }}>We review every application and reply within two business days. We also sent a confirmation to your email. If the 10 founding spots fill, we’ll offer you a place in the next group.</p>
       </div>
     )
   }

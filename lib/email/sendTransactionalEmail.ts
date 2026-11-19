@@ -11,6 +11,8 @@ type SendTransactionalEmailParams = {
   from?: string
   text?: string
   replyTo?: string | string[]
+  /** Throw when Resend rejects the email (default: log it and carry on). */
+  throwOnError?: boolean
 }
 
 export async function sendTransactionalEmail(params: SendTransactionalEmailParams): Promise<void> {
@@ -19,7 +21,8 @@ export async function sendTransactionalEmail(params: SendTransactionalEmailParam
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.agent7even.ai'
 
-  await resend.emails.send({
+  // Resend reports failures in the result (it does not throw), so check it.
+  const { error } = await resend.emails.send({
     from: params.from ?? transactionalFromAddress(),
     to: params.to,
     subject: params.subject,
@@ -33,4 +36,8 @@ export async function sendTransactionalEmail(params: SendTransactionalEmailParam
     }),
     text: params.text,
   })
+  if (error) {
+    console.error('[email] Resend rejected email', { subject: params.subject, error })
+    if (params.throwOnError) throw new Error(`Email not sent: ${error.message}`)
+  }
 }
