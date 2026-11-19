@@ -221,7 +221,7 @@ export default function VoixHero() {
           })}
         </div>
 
-        <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span aria-hidden="true" style={{ flex: '0 0 auto', width: 44, height: 44, borderRadius: 999, border: '3px solid rgba(255,255,255,0.9)', background: blueOrb }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, color: '#FFFFFF' }}>

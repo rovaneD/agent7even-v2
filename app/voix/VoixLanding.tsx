@@ -4,7 +4,7 @@ import VoixHero from './VoixHero'
 import PilotForm from './PilotForm'
 import MissedCallCost from './MissedCallCost'
 import VoixTracker from './VoixTracker'
-import { DEMO_TEL, SALES_TEL, displayPhone, blue, body, eyebrow, h2, ink, line, muted, pillDark, pillLight, sans, serif, wrap } from './voixStyles'
+import { DEMO_TEL, SALES_TEL, blue, body, eyebrow, h2, ink, line, muted, pillDark, pillLight, sans, serif, wrap } from './voixStyles'
 
 const blueOrb = 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #A9C8FF 38%, #3A6FF2 100%)'
 
@@ -44,7 +44,7 @@ function ExperienceVoix() {
         Experience Voix
       </a>
       <span style={{ fontSize: 12, lineHeight: 1.4, color: muted, maxWidth: 200 }}>
-        Starts a call to our AI line, {displayPhone(SALES_TEL)}. No sign-up.
+        Starts a call to our AI line. No sign-up.
       </span>
     </div>
   )
@@ -105,11 +105,11 @@ export default function VoixLanding() {
               </div>
               <p style={{ margin: 0, fontSize: 13, color: muted }}>Your number. Your voice. Always there.</p>
               {SALES_TEL && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 12, maxWidth: 500 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 12, maxWidth: 560 }}>
                   <span aria-hidden="true" style={{ flex: '0 0 auto', width: 36, height: 36, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
-                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                  <div style={{ flex: '1 1 300px', minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions and can book your setup call.</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions<br /><span style={{ whiteSpace: 'nowrap' }}>and can book your setup call.</span></p>
                   </div>
                   <ExperienceVoix />
                 </div>
@@ -276,11 +276,11 @@ export default function VoixLanding() {
                 </div>
               </div>
               {SALES_TEL && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#FFFFFF', borderRadius: 20, padding: '18px 20px', marginTop: 8, maxWidth: 520 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#FFFFFF', borderRadius: 20, padding: '18px 20px', marginTop: 8, maxWidth: 620 }}>
                   <span aria-hidden="true" style={{ flex: '0 0 auto', width: 40, height: 40, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions and can book your setup call.</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions<br /><span style={{ whiteSpace: 'nowrap' }}>and can book your setup call.</span></p>
                   </div>
                   <ExperienceVoix />
                 </div>
