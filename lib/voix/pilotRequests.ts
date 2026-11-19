@@ -71,9 +71,11 @@ export async function recordPilotRequest(supabase: SupabaseClient, input: PilotR
       subject: 'We got your Voix pilot application',
       title: `Thanks${input.contact_name ? `, ${input.contact_name.split(' ')[0]}` : ''}. Your application is in.`,
       body: [
-        `We received your application for ${input.spa_name || 'your spa'} to join the Voix pilot.`,
-        'We review every application and reply within two business days. If the 10 founding spots fill, we\u2019ll offer you a place in the next group.',
-        'Questions in the meantime? Just reply to this email.',
+        `We received your application for ${input.spa_name || 'your spa'} to join the Voix pilot. Here\u2019s what happens next:`,
+        '1. We review your application and reply within one business day.\n2. A 30-minute setup call: we learn your treatments, pricing, policies and how you like to sound. We do the setup.\n3. You approve every answer. Nothing goes live until you do.\n4. Voix starts answering: you forward missed and after-hours calls, your number stays the same, and you get a summary of every call.',
+        'The pilot is 14 days free, no credit card. We ask for the setup call, access to your booking software and a short weekly check-in.',
+        'When the 14 days end, you get a results report. We share founding-spa pricing during your trial, and there\u2019s no obligation to continue: if you stop, you simply stop forwarding calls to Voix.',
+        'If the 10 founding spots fill, we\u2019ll offer you a place in the next group. Questions in the meantime? Just reply to this email.',
       ].join('\n\n'),
     }).catch((err) => console.error('[voix/pilot] confirmation email failed:', err))
   }
