@@ -136,7 +136,7 @@ export default function MissedCallCost() {
 
           <div style={{ flex: '1 1 340px', minWidth: 0, background: ink, color: '#FFFFFF', borderRadius: 24, padding: 'clamp(24px, 4vw, 36px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 32 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <span style={{ fontSize: 14, color: '#B9BFD0' }}>Estimated revenue walking out the door</span>
+              <span style={{ fontSize: 14, color: '#B9BFD0' }}>Potential booking value from missed calls</span>
               <span style={{ fontFamily: serif, fontSize: 'clamp(56px, 7vw, 84px)', lineHeight: 1, letterSpacing: '-0.025em', fontVariantNumeric: 'tabular-nums' }} aria-live="polite">
                 {money(lostPerMonth)}
               </span>
@@ -147,8 +147,12 @@ export default function MissedCallCost() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: 15, lineHeight: 1.5, color: '#D9DDE8' }}>
               <span>
                 That’s about <strong style={{ color: '#FFFFFF' }}>{Math.round(missedPerWeek)} missed calls a week</strong> and{' '}
-                <strong style={{ color: '#FFFFFF' }}>{Math.round(lostBookingsPerMonth)} lost first visits a month</strong>, before counting repeat
+                <strong style={{ color: '#FFFFFF' }}>{Math.round(lostBookingsPerMonth)} first visits a month at stake</strong>, before counting repeat
                 visits, memberships or referrals.
+              </span>
+              <span style={{ fontSize: 13, lineHeight: 1.5, color: '#B9BFD0' }}>
+                An estimate from the numbers above, not a guarantee. Some callers leave a message, book online or call back, and not every
+                consultation becomes a treatment. Your pilot report shows what Voix actually booked.
               </span>
               <a href="#pilot" style={{ alignSelf: 'flex-start', textDecoration: 'none', background: '#FFFFFF', color: ink, borderRadius: 999, padding: '14px 22px', fontSize: 15, fontWeight: 500 }}>
                 Stop missing calls: apply for a spot
