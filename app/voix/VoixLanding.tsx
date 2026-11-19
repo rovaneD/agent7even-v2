@@ -97,7 +97,7 @@ export default function VoixLanding() {
               <h1 style={{ margin: 0, fontFamily: serif, fontWeight: 400, fontSize: 'clamp(52px, 7vw, 88px)', lineHeight: 0.95, letterSpacing: '-0.025em' }}>The front desk that never misses a call.</h1>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: body, maxWidth: 440 }}>Voix is the AI receptionist for med spas. It answers after hours, between clients and on your busiest days, and books consultations straight into your schedule, in your spa’s voice.</p>
+              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: body, maxWidth: 440 }}>An AI receptionist customized to your med spa. Voix answers missed and after-hours calls in your spa’s voice, uses only the answers you approve, and captures every consultation request.</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                 <a href="#pilot" style={pillDark}>Apply for one of 10 spots</a>
                 <a href="#how" style={pillLight}>See how it works</a>
