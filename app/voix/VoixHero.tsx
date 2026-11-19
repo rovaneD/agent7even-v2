@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEMO_TEL, ink } from './voixStyles'
+import DemoQr from './DemoQr'
 
 type Line = { who: 'caller' | 'voix'; text: string }
 type Scenario = { chip: string; title: string; sub: string; video: string; poster: string; lines: Line[] }
@@ -228,12 +229,15 @@ export default function VoixHero() {
               <span className="voix-sub" style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)' }}>{current.sub}</span>
             </div>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {DEMO_TEL && (
             <a href={DEMO_TEL} style={{ textDecoration: 'none', background: '#FFFFFF', color: ink, borderRadius: 999, padding: '13px 22px', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
               <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" /></svg>
               Call the spa demo
             </a>
           )}
+          <DemoQr dark size={72} />
+          </div>
         </div>
       </div>
     </div>
