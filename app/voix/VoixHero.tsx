@@ -14,13 +14,13 @@ const BUBBLE_GAP_MS = 1500
 
 const SCENARIOS: Scenario[] = [
   {
-    chip: 'After hours', title: 'After-hours booking', sub: 'Books consults while you’re closed',
+    chip: 'After hours', title: 'After-hours requests', sub: 'Captures consult requests while you’re closed',
     video: '/voix/call-1.mp4', poster: '/voix/call-1.jpg',
     lines: [
       { who: 'caller', text: 'Do you have a lip filler consult this week?' },
-      { who: 'voix', text: 'I have Thursday at 4:30 or Friday at 11. Which works better?' },
-      { who: 'caller', text: 'Friday, please.' },
-      { who: 'voix', text: 'You’re booked for Friday at 11. I’ve texted you a secure deposit link.' },
+      { who: 'voix', text: 'I’d love to set that up. What day and time work best for you?' },
+      { who: 'caller', text: 'Friday morning, please.' },
+      { who: 'voix', text: 'Got it. I’ve sent your Friday-morning request to the team. They’ll text you to confirm.' },
     ],
   },
   {
@@ -44,13 +44,13 @@ const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    chip: 'Reschedule', title: 'Rescheduling', sub: 'Moves appointments in seconds',
+    chip: 'Reschedule', title: 'Rescheduling', sub: 'Takes reschedule requests for your team',
     video: '/voix/call-4.mp4', poster: '/voix/call-4.jpg',
     lines: [
       { who: 'caller', text: 'I need to move my HydraFacial on Thursday.' },
-      { who: 'voix', text: 'No problem. I can do Saturday at 10 or Monday at 2.' },
-      { who: 'caller', text: 'Monday works.' },
-      { who: 'voix', text: 'Done. You’ll get a confirmation by text.' },
+      { who: 'voix', text: 'No problem. What day would work better?' },
+      { who: 'caller', text: 'Monday afternoon.' },
+      { who: 'voix', text: 'I’ve passed that to the team. They’ll text you to confirm the new time.' },
     ],
   },
   {
@@ -60,7 +60,7 @@ const SCENARIOS: Scenario[] = [
       { who: 'caller', text: 'I saw your post about a lip filler special?' },
       { who: 'voix', text: 'Yes! This month first-time lip filler clients get our new-client special.' },
       { who: 'caller', text: 'Can I book that?' },
-      { who: 'voix', text: 'Of course. I have Wednesday at 3 or Thursday at 11.' },
+      { who: 'voix', text: 'Of course. What day suits you? I’ll send it to the team to confirm.' },
     ],
   },
   {

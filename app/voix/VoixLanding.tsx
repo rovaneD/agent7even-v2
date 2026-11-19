@@ -55,13 +55,14 @@ const faqs: [string, string][] = [
   ['Can I change what it says?', 'Anytime. Update a price, policy or special, approve it, and Voix uses it from the next call.'],
   ['Do I need a new phone number?', 'No. You forward missed and after-hours calls to Voix. Your number stays the same.'],
   ['How many spas are in the pilot?', 'Ten founding spas. We review every application and pick spas where Voix can make the biggest difference. If the first group fills, we’ll offer you a place in the next one.'],
+  ['Which booking software does Voix work with?', 'All of them, in request mode: Voix collects the service and the time that suits the caller, and your team confirms it in your own software. We’re building direct booking system by system, starting with the systems our pilot spas use. Tell us yours in the application.'],
   ['What does it cost after the pilot?', 'We’ll share founding-spa pricing during your trial. There’s no obligation to continue after the 14 days.'],
 ]
 
 const safety: [string, string][] = [
   ['Honest from the first word.', 'Every call opens by saying it’s an AI assistant for your spa.'],
   ['No medical advice.', 'Questions about suitability, medications or side effects go to a provider callback.'],
-  ['Urgent concerns go straight to people.', 'A caller describing a reaction is routed to your on-call team immediately.'],
+  ['Urgent concerns go straight to people.', 'A caller describing a reaction is told to call 911 if it’s an emergency, and your team is alerted for an urgent callback.'],
   ['Only what booking needs.', 'Name, contact details, service and time. Nothing more.'],
 ]
 
@@ -108,7 +109,7 @@ export default function VoixLanding() {
                   <span aria-hidden="true" style={{ flex: '0 0 auto', width: 36, height: 36, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
                   <div style={{ flex: '1 1 300px', minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions<br /><span style={{ whiteSpace: 'nowrap' }}>and can book your setup call.</span></p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions<br /><span style={{ whiteSpace: 'nowrap' }}>and can request your setup call.</span></p>
                   </div>
                   <ExperienceVoix />
                 </div>
@@ -143,7 +144,7 @@ export default function VoixLanding() {
                   </div>
                   <p style={{ margin: 0, fontSize: 14, paddingLeft: 6, color: 'rgba(255,255,255,0.92)' }}>Summary sent to your front desk</p>
                 </div>
-                <FeatureFoot dark title="Books while you’re closed" text="Evening and weekend callers get a confirmed appointment, not a recording that lists your hours." />
+                <FeatureFoot dark title="Captures requests while you’re closed" text="Evening and weekend callers get a real conversation and a request your team confirms, not a recording that lists your hours." />
               </div>
 
               <div style={lightCard}>
@@ -158,7 +159,7 @@ export default function VoixLanding() {
                     })}
                   </div>
                 </div>
-                <FeatureFoot title="Books into your schedule" text="Voix checks real availability and confirms the time while the caller is still on the line." />
+                <FeatureFoot title="Works with your booking software" text="Voix collects the service and the time that suits the caller. Your team confirms it in the software you already use." />
               </div>
 
               <div style={{ ...card, background: 'radial-gradient(120% 100% at 30% 10%, #E2CDB2 0%, #B08862 50%, #744B32 100%)', color: '#FFFFFF' }}>
@@ -179,10 +180,10 @@ export default function VoixLanding() {
                 <Num n="04" />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <span style={{ fontSize: 13, color: muted, paddingLeft: 4 }}>Text message</span>
-                  <p style={{ margin: 0, background: '#FFFFFF', borderRadius: 18, padding: '18px 20px', fontSize: 15, lineHeight: 1.5 }}>Here’s your secure link for the deposit on your Friday 11:00 consult.</p>
-                  <span style={{ alignSelf: 'flex-start', fontSize: 14, background: ink, color: '#FFFFFF', borderRadius: 999, padding: '10px 18px' }}>Pay deposit securely</span>
+                  <p style={{ margin: 0, background: '#FFFFFF', borderRadius: 18, padding: '18px 20px', fontSize: 15, lineHeight: 1.5 }}>For your security, I can’t take card details over the phone.</p>
+                  <span style={{ alignSelf: 'flex-start', fontSize: 14, background: ink, color: '#FFFFFF', borderRadius: 999, padding: '10px 18px' }}>Deposits stay with your team</span>
                 </div>
-                <FeatureFoot title="Deposits by secure link" text="Voix texts a payment link. It never asks for card numbers over the phone." />
+                <FeatureFoot title="No card numbers on calls" text="Voix never asks for card details over the phone. Deposits stay in your booking software." />
               </div>
 
               <div style={{ ...card, minHeight: 500, background: 'radial-gradient(120% 100% at 30% 0%, #6A7A96 0%, #2E3C58 50%, #141B2D 100%)', color: '#FFFFFF' }}>
@@ -194,16 +195,16 @@ export default function VoixLanding() {
                   </div>
                   <p style={{ margin: 0, fontSize: 13, paddingLeft: 4, color: 'rgba(255,255,255,0.85)' }}>Your team takes it from here.</p>
                 </div>
-                <FeatureFoot dark title="Clinical questions go to your team" text="Voix never gives medical advice. Urgent concerns reach your on-call provider right away." />
+                <FeatureFoot dark title="Clinical questions go to your team" text="Voix never gives medical advice. Urgent concerns are flagged to your team right away." />
               </div>
 
               <div style={{ ...lightCard, minHeight: 500 }}>
                 <Num n="06" />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {[
-                    ['Line 1', 'Lip filler consult', 'Booked'],
+                    ['Line 1', 'Lip filler consult', 'Request sent'],
                     ['Line 2', 'Pricing question', 'Answered'],
-                    ['Line 3', 'Reschedule', 'Moved to Mon'],
+                    ['Line 3', 'Reschedule', 'Request: Mon'],
                   ].map(([lineName, topic, outcome]) => (
                     <div key={lineName} style={{ background: '#FFFFFF', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span aria-hidden="true" style={{ flex: '0 0 auto', width: 10, height: 10, borderRadius: 999, background: '#2F9E6E' }} />
@@ -227,7 +228,7 @@ export default function VoixLanding() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 40 }}>
               <Step n="01" title="We learn your spa">One 30-minute call covers your treatments, pricing, policies and how you like to sound. We handle the setup.</Step>
               <Step n="02" title="You approve every answer">Review the script and the answers Voix can give. Nothing goes live until you approve it.</Step>
-              <Step n="03" title="Voix answers and books">Forward missed and after-hours calls. Your number stays the same, and you get a summary of every call.</Step>
+              <Step n="03" title="Voix answers and captures requests">Forward missed and after-hours calls. Your number stays the same, and you get a summary of every call.</Step>
             </div>
           </div>
         </section>
@@ -237,7 +238,7 @@ export default function VoixLanding() {
             <div style={{ flex: '1 1 380px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
               <p style={{ ...eyebrow, color: '#AEB6CC' }}>Built for medical aesthetics</p>
               <h2 style={{ ...h2, fontSize: 'clamp(40px, 4.5vw, 56px)' }}>A receptionist, never a provider.</h2>
-              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#C9CEDD' }}>Voix books appointments and answers the questions you’ve approved. Clinical decisions stay with your team.</p>
+              <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: '#C9CEDD' }}>Voix takes booking requests and answers the questions you’ve approved. Clinical decisions stay with your team.</p>
             </div>
             <ul style={{ flex: '1 1 440px', minWidth: 0, margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 20, fontSize: 15, lineHeight: 1.55 }}>
               {safety.map(([t, d]) => (
@@ -279,7 +280,7 @@ export default function VoixLanding() {
                   <span aria-hidden="true" style={{ flex: '0 0 auto', width: 40, height: 40, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions<br /><span style={{ whiteSpace: 'nowrap' }}>and can book your setup call.</span></p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions<br /><span style={{ whiteSpace: 'nowrap' }}>and can request your setup call.</span></p>
                   </div>
                   <ExperienceVoix />
                 </div>

@@ -79,11 +79,16 @@ export default function PilotForm() {
           <label htmlFor="voix-software" style={label}>Booking software</label>
           <select id="voix-software" name="software" defaultValue="" style={field}>
             <option value="" disabled>Choose one</option>
-            <option>Zenoti</option>
+            <option>Aesthetic Record</option>
+            <option>AestheticsPro</option>
             <option>Boulevard</option>
-            <option>Vagaro</option>
-            <option>Mangomint</option>
             <option>GlossGenius</option>
+            <option>Mangomint</option>
+            <option>Mindbody</option>
+            <option>Moxie</option>
+            <option>Square</option>
+            <option>Vagaro</option>
+            <option>Zenoti</option>
             <option>Other</option>
           </select>
         </div>
