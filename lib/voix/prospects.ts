@@ -1,4 +1,4 @@
-export const PROSPECT_STATUSES = ['to_contact', 'contacted', 'replied', 'demo', 'pilot', 'not_interested'] as const
+export const PROSPECT_STATUSES = ['to_contact', 'contacted', 'replied', 'demo', 'pilot', 'not_interested', 'later'] as const
 export type ProspectStatus = (typeof PROSPECT_STATUSES)[number]
 
 export const PROSPECT_STATUS_LABEL: Record<ProspectStatus, string> = {
@@ -8,6 +8,7 @@ export const PROSPECT_STATUS_LABEL: Record<ProspectStatus, string> = {
   demo: 'Demo booked',
   pilot: 'In pilot',
   not_interested: 'Not interested',
+  later: 'Later',
 }
 
 export const PROSPECT_CHANNELS = ['ig_dm', 'email', 'in_person', 'phone', 'other'] as const

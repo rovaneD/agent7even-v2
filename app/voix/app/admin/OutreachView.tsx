@@ -19,6 +19,7 @@ const STATUS_TONE: Record<ProspectStatus, string> = {
   demo: 'bg-[#F3EAFF] text-[#6B3FC4]',
   pilot: 'bg-[#E6F6EC] text-[#17663F]',
   not_interested: 'bg-[#F7EDED] text-[#A12B2B]',
+  later: 'bg-[#F4F1EA] text-[#7A6A45]',
 }
 
 const input = 'w-full rounded-lg border border-[#ECEDF1] bg-white px-3 py-2 text-sm outline-none focus:border-[#3355D6]'
@@ -184,7 +185,7 @@ function ProspectRow({ p, footer }: { p: VoixProspect; footer: string }) {
   const [editing, setEditing] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const [notes, setNotes] = useState(p.notes ?? '')
-  const due = p.next_follow_up && p.next_follow_up <= today() && !['pilot', 'not_interested'].includes(p.status)
+  const due = p.next_follow_up && p.next_follow_up <= today() && !['pilot', 'not_interested', 'later'].includes(p.status)
   const ig = p.instagram?.startsWith('@') ? `https://instagram.com/${p.instagram.slice(1)}` : null
 
   if (editing) {
@@ -321,7 +322,7 @@ function ProspectRow({ p, footer }: { p: VoixProspect; footer: string }) {
   )
 }
 
-type Filter = 'active' | 'due' | 'all'
+type Filter = 'active' | 'due' | 'later' | 'all'
 
 function runLabel(run: ProspectRun | null): string {
   if (!run) return 'When every spa here has been contacted, Voix finds 5 new independent med spas and drafts the call note, email and DM.'
@@ -361,13 +362,15 @@ export default function OutreachView({
 }) {
   const [filter, setFilter] = useState<Filter>('active')
   const t = today()
-  const isActive = (p: VoixProspect) => !['pilot', 'not_interested'].includes(p.status)
+  const isActive = (p: VoixProspect) => !['pilot', 'not_interested', 'later'].includes(p.status)
   const isDue = (p: VoixProspect) => isActive(p) && !!p.next_follow_up && p.next_follow_up <= t
   const counts = Object.fromEntries(PROSPECT_STATUSES.map((s) => [s, prospects.filter((p) => p.status === s).length])) as Record<
     ProspectStatus,
     number
   >
-  const list = prospects.filter((p) => (filter === 'all' ? true : filter === 'due' ? isDue(p) : isActive(p)))
+  const list = prospects.filter((p) =>
+    filter === 'all' ? true : filter === 'due' ? isDue(p) : filter === 'later' ? p.status === 'later' : isActive(p)
+  )
   const chip = (key: Filter, label: string) => (
     <button
       type="button"
@@ -394,6 +397,7 @@ export default function OutreachView({
       <div className="mt-4 flex flex-wrap gap-2">
         {chip('active', `Active (${prospects.filter(isActive).length})`)}
         {chip('due', `Follow-ups due (${prospects.filter(isDue).length})`)}
+        {chip('later', `Later (${counts.later})`)}
         {chip('all', `All (${prospects.length})`)}
       </div>
       {list.length ? (
