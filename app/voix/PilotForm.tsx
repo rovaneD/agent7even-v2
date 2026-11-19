@@ -158,8 +158,8 @@ function PilotSubmitted({ box, firstName }: { box: CSSProperties; firstName: str
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <span style={h4}>When the 14 days end</span>
         <p style={small}>
-          You get a results report on what Voix handled. We share founding-spa pricing during your trial, so you can decide with real
-          numbers. There’s no obligation to continue: if you stop, you simply stop forwarding calls to Voix.
+          You get a results report on what Voix handled. To continue, founding spas pay $149 a month per location with unlimited calls,
+          locked for 12 months. No setup fee, no contract. If you don’t continue, you simply stop forwarding calls to Voix.
         </p>
       </div>
 
