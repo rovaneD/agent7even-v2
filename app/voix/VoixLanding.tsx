@@ -80,6 +80,7 @@ export default function VoixLanding() {
           <a href="#features" style={{ color: ink, textDecoration: 'none' }}>Features</a>
           <a href="#safety" style={{ color: ink, textDecoration: 'none' }}>Safety</a>
           <a href="#faq" style={{ color: ink, textDecoration: 'none' }}>FAQ</a>
+          <Link href="/voix/app" style={{ color: muted, textDecoration: 'none' }}>Sign in</Link>
         </nav>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {DEMO_TEL && <a href={DEMO_TEL} style={{ ...pillLight, padding: '13px 22px', fontSize: 15 }}>Call the spa demo</a>}
@@ -318,6 +319,7 @@ export default function VoixLanding() {
             <Link href="/" style={{ color: '#C9CEDD', textDecoration: 'none' }}>agent7even.ai</Link>
             <Link href="/privacy" style={{ color: '#C9CEDD', textDecoration: 'none' }}>Privacy</Link>
             <Link href="/terms" style={{ color: '#C9CEDD', textDecoration: 'none' }}>Terms</Link>
+            <Link href="/voix/app" style={{ color: '#C9CEDD', textDecoration: 'none' }}>Spa sign in</Link>
             <span>© 2026 Agent7even</span>
           </div>
         </div>
