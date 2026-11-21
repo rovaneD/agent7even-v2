@@ -110,7 +110,7 @@ export default function VoixLanding() {
                   <span aria-hidden="true" style={{ flex: '0 0 auto', width: 36, height: 36, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
                   <div style={{ flex: '1 1 300px', minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions<br /><span style={{ whiteSpace: 'nowrap' }}>and can request your setup call.</span></p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. <span style={{ whiteSpace: 'nowrap' }}>It answers your questions</span><br /><span style={{ whiteSpace: 'nowrap' }}>and can request your setup call.</span></p>
                   </div>
                   <ExperienceVoix />
                 </div>
@@ -281,7 +281,7 @@ export default function VoixLanding() {
                   <span aria-hidden="true" style={{ flex: '0 0 auto', width: 40, height: 40, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, #FFFFFF 0%, #C9D4FF 35%, #3355D6 100%)' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Rather talk it through?</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. It answers your questions<br /><span style={{ whiteSpace: 'nowrap' }}>and can request your setup call.</span></p>
+                    <p style={{ margin: '2px 0 0', fontSize: 14, lineHeight: 1.5, color: body }}>Talk to Voix live. <span style={{ whiteSpace: 'nowrap' }}>It answers your questions</span><br /><span style={{ whiteSpace: 'nowrap' }}>and can request your setup call.</span></p>
                   </div>
                   <ExperienceVoix />
                 </div>
