@@ -9,15 +9,17 @@ type Props = {
   accountName: string
   accounts: { id: string; name: string }[]
   openFollowups: number
+  pendingAppointments?: number
   isAdmin: boolean
 }
 
-export default function VoixNav({ accountId, accountName, accounts, openFollowups, isAdmin }: Props) {
+export default function VoixNav({ accountId, accountName, accounts, openFollowups, pendingAppointments = 0, isAdmin }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const base = `/voix/app/${accountId}`
   const links = [
     { href: `${base}/calls`, label: 'Calls' },
+    { href: `${base}/appointments`, label: 'Appointments', badge: pendingAppointments },
     { href: `${base}/followups`, label: 'Follow-ups', badge: openFollowups },
   ]
 
