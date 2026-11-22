@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { VoixAppointment } from '@/lib/voix/appointments'
+import type { BookingWindows, VoixAppointment } from '@/lib/voix/appointments'
+import WeekCalendar from './WeekCalendar'
 import { formatPhone } from '@/lib/voix/format'
 
 const STATUS: Record<VoixAppointment['status'], { label: string; cls: string }> = {
@@ -29,8 +30,11 @@ function timeLabel(iso: string, tz: string) {
   return new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).format(new Date(iso))
 }
 
-export default function AppointmentsBoard({ accountId, timezone, items }: { accountId: string; timezone: string; items: VoixAppointment[] }) {
+export default function AppointmentsBoard({
+  accountId, timezone, items, windows,
+}: { accountId: string; timezone: string; items: VoixAppointment[]; windows: BookingWindows }) {
   const router = useRouter()
+  const [view, setView] = useState<'week' | 'list'>('week')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -114,8 +118,33 @@ export default function AppointmentsBoard({ accountId, timezone, items }: { acco
     </li>
   )
 
+  const toggle = (
+    <div className="mb-4 inline-flex rounded-full border border-[#ECEDF1] bg-white p-1">
+      {(['week', 'list'] as const).map((v) => (
+        <button
+          key={v}
+          onClick={() => setView(v)}
+          className={`rounded-full px-4 py-1.5 text-sm font-medium ${view === v ? 'bg-[#1B2236] text-white' : 'text-[#4A5061]'}`}
+        >
+          {v === 'week' ? 'Week' : 'List'}
+        </button>
+      ))}
+    </div>
+  )
+
+  if (view === 'week') {
+    return (
+      <div>
+        {toggle}
+        {error ? <p className="mb-3 rounded-xl bg-[#FDECEC] px-4 py-3 text-sm text-[#A12B2B]">{error}</p> : null}
+        <WeekCalendar items={items} timezone={timezone} windows={windows} onAct={act} busyId={busy} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
+      {toggle}
       {error ? <p className="rounded-xl bg-[#FDECEC] px-4 py-3 text-sm text-[#A12B2B]">{error}</p> : null}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#5B6070]">Needs confirmation ({pending.length})</h2>
