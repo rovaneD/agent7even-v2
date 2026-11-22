@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function AppointmentsPage({ params }: { params: Promise<{ accountId: string }> }) {
   const { accountId } = await params
-  const { account, supabase } = await requireVoixAccount(accountId)
+  const { account, supabase, viewer } = await requireVoixAccount(accountId)
   const since = new Date(Date.now() - 35 * 86_400_000).toISOString()
   const { data: cfg } = await supabase.from('voix_accounts').select('booking_windows').eq('id', account.id).maybeSingle()
   const { data } = await supabase
@@ -29,6 +29,7 @@ export default async function AppointmentsPage({ params }: { params: Promise<{ a
       </div>
       <AppointmentsBoard accountId={account.id} timezone={account.timezone} items={(data ?? []) as VoixAppointment[]}
         windows={((cfg?.booking_windows ?? {}) as BookingWindows)}
+        isAdmin={viewer.isAdmin}
       />
     </div>
   )

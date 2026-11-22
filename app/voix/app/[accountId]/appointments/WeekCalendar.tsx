@@ -4,13 +4,13 @@ import { useMemo, useState } from 'react'
 import type { BookingWindows, VoixAppointment } from '@/lib/voix/appointments'
 import { formatPhone } from '@/lib/voix/format'
 
-const ROW_PX = 36 // height of one 30-minute row
+const ROW_PX = 40 // height of one 30-minute row
 
 const TONE: Record<VoixAppointment['status'], string> = {
-  pending: 'border-[#E8B44C] bg-[#FFF4E0] text-[#6B4500]',
-  confirmed: 'border-[#7CC495] bg-[#E7F6EC] text-[#1E5A33]',
-  declined: 'border-[#D5D8E0] bg-[#F1F2F5] text-[#8A8F9C] line-through',
-  cancelled: 'border-[#D5D8E0] bg-[#F1F2F5] text-[#8A8F9C] line-through',
+  pending: 'border-l-[#D99A1E] bg-[#FFF4E0] text-[#5C3B00]',
+  confirmed: 'border-l-[#3E9B63] bg-[#E7F6EC] text-[#1B4D2E]',
+  declined: 'border-l-[#B9BDC7] bg-[#F1F2F5] text-[#8A8F9C] line-through',
+  cancelled: 'border-l-[#B9BDC7] bg-[#F1F2F5] text-[#8A8F9C] line-through',
 }
 
 /** y/m/d, weekday and minutes-after-midnight of an instant in a time zone. */
@@ -131,11 +131,15 @@ export default function WeekCalendar({
                   <button
                     key={a.id}
                     onClick={() => setSelected(a.id === selected ? null : a.id)}
-                    className={`absolute inset-x-1 overflow-hidden rounded-lg border px-1.5 py-[3px] text-left text-[11px] leading-[14px] shadow-sm ${TONE[a.status]} ${a.id === selected ? 'ring-2 ring-[#1B2236]' : ''}`}
-                    style={{ top: ((a.startMin - startMin) / 30) * ROW_PX + 1, height: Math.max((a.duration_min / 30) * ROW_PX - 2, 32) }}
+                    title={`${clock(a.startMin)} · ${a.caller_name || 'Caller'}${a.service ? ` · ${a.service}` : ''}`}
+                    className={`absolute inset-x-1 overflow-hidden rounded-md border-l-[3px] px-2 py-1 text-left text-[12px] leading-[15px] shadow-[0_1px_2px_rgba(27,34,54,0.08)] transition hover:brightness-[0.98] ${TONE[a.status]} ${a.id === selected ? 'z-10 ring-2 ring-[#1B2236]' : ''}`}
+                    style={{ top: ((a.startMin - startMin) / 30) * ROW_PX + 1, height: Math.max((a.duration_min / 30) * ROW_PX - 2, ROW_PX - 2) }}
                   >
-                    <div className="font-semibold">{clock(a.startMin)} {a.status === 'pending' ? '· to confirm' : ''}</div>
-                    <div className="truncate">{a.caller_name || 'Caller'}{a.service ? ` · ${a.service}` : ''}</div>
+                    <div className="flex items-center gap-1 truncate font-semibold">
+                      {a.status === 'pending' ? <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#D99A1E]" /> : null}
+                      <span className="truncate">{a.caller_name || 'Caller'}</span>
+                    </div>
+                    <div className="truncate opacity-80">{clock(a.startMin)}{a.service ? ` · ${a.service}` : ''}</div>
                   </button>
                 ))}
               </div>
@@ -145,8 +149,8 @@ export default function WeekCalendar({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-4 text-xs text-[#5B6070]">
-        <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3 rounded border border-[#E8B44C] bg-[#FFF4E0]" />Needs confirmation</span>
-        <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3 rounded border border-[#7CC495] bg-[#E7F6EC]" />Confirmed</span>
+        <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3 rounded-sm border-l-[3px] border-l-[#D99A1E] bg-[#FFF4E0]" />Needs confirmation</span>
+        <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3 rounded-sm border-l-[3px] border-l-[#3E9B63] bg-[#E7F6EC]" />Confirmed</span>
         <span className="flex items-center gap-1.5"><i className="inline-block h-3 w-3 rounded border border-[#ECEDF1] bg-[repeating-linear-gradient(135deg,#F1F2F5,#F1F2F5_3px,#FBFBFC_3px,#FBFBFC_6px)]" />Outside booking hours</span>
       </div>
 

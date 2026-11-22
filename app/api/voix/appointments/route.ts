@@ -4,20 +4,48 @@ import { placeConfirmationCall, slotLabel, toE164 } from '@/lib/voix/appointment
 
 export const runtime = 'nodejs'
 
+const DEMO_NOTE = 'Demo: confirming calls your phone'
+
 /** Confirm or decline a pending appointment. Confirming places the Retell callback. */
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as {
     accountId?: string
     id?: string
-    action?: 'confirm' | 'decline'
+    action?: 'confirm' | 'decline' | 'reset_demo'
     callback?: boolean
   } | null
-  if (!body?.accountId || !body.id || !['confirm', 'decline'].includes(body.action ?? '')) {
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
-  }
+  if (!body?.accountId) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   const res = await getVoixApiContext(body.accountId)
   if ('status' in res) return NextResponse.json({ error: 'Not allowed' }, { status: res.status })
   const { ctx } = res
+
+  // Admin only: put the demo appointments back to "needs confirmation", moved into the future.
+  if (body.action === 'reset_demo') {
+    if (!ctx.viewer.isAdmin) return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
+    const { data: demos } = await ctx.supabase
+      .from('voix_appointments')
+      .select('id, start_at')
+      .eq('account_id', ctx.account.id)
+      .eq('notes', DEMO_NOTE)
+    const week = 7 * 86_400_000
+    const soon = Date.now() + 86_400_000
+    for (const d of demos ?? []) {
+      let t = new Date(d.start_at as string).getTime()
+      while (t < soon) t += week
+      await ctx.supabase
+        .from('voix_appointments')
+        .update({
+          status: 'pending', start_at: new Date(t).toISOString(), decided_at: null, decided_by_member_id: null,
+          decided_by_label: null, callback_status: 'none', callback_call_id: null, callback_error: null, updated_at: new Date().toISOString(),
+        })
+        .eq('id', d.id)
+    }
+    return NextResponse.json({ ok: true, reset: demos?.length ?? 0 })
+  }
+
+  if (!body.id || !['confirm', 'decline'].includes(body.action ?? '')) {
+    return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  }
 
   const { data: appt } = await ctx.supabase
     .from('voix_appointments')

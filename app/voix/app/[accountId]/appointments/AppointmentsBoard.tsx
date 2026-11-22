@@ -31,8 +31,8 @@ function timeLabel(iso: string, tz: string) {
 }
 
 export default function AppointmentsBoard({
-  accountId, timezone, items, windows,
-}: { accountId: string; timezone: string; items: VoixAppointment[]; windows: BookingWindows }) {
+  accountId, timezone, items, windows, isAdmin = false,
+}: { accountId: string; timezone: string; items: VoixAppointment[]; windows: BookingWindows; isAdmin?: boolean }) {
   const router = useRouter()
   const [view, setView] = useState<'week' | 'list'>('week')
   const [busy, setBusy] = useState<string | null>(null)
@@ -118,8 +118,21 @@ export default function AppointmentsBoard({
     </li>
   )
 
+  async function resetDemo() {
+    setError(null)
+    const res = await fetch('/api/voix/appointments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId, action: 'reset_demo' }),
+    })
+    if (!res.ok) setError('Reset failed')
+    router.refresh()
+  }
+  const hasDemo = items.some((a) => a.notes === 'Demo: confirming calls your phone')
+
   const toggle = (
-    <div className="mb-4 inline-flex rounded-full border border-[#ECEDF1] bg-white p-1">
+    <div className="mb-4 flex flex-wrap items-center gap-3">
+    <div className="inline-flex rounded-full border border-[#ECEDF1] bg-white p-1">
       {(['week', 'list'] as const).map((v) => (
         <button
           key={v}
@@ -129,6 +142,12 @@ export default function AppointmentsBoard({
           {v === 'week' ? 'Week' : 'List'}
         </button>
       ))}
+    </div>
+    {isAdmin && hasDemo ? (
+      <button onClick={resetDemo} className="ml-auto text-sm font-medium text-[#3355D6] hover:underline">
+        Reset demo appointments
+      </button>
+    ) : null}
     </div>
   )
 
