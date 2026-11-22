@@ -136,12 +136,15 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
     setChecking(true)
     const post = async (body: Record<string, unknown>) => {
       const r = await fetch('/api/posts/video-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId, ...body }) })
-      return (await r.json().catch(() => ({}))) as { checks?: Partial<Record<StillKey, Check>>; autoRedone?: StillKey[]; stills?: Partial<Record<StillKey, string | null>>; redosLeft?: number }
+      const data = (await r.json().catch(() => ({}))) as { checks?: Partial<Record<StillKey, Check>>; autoRedone?: StillKey[]; stills?: Partial<Record<StillKey, string | null>>; redosLeft?: number }
+      return { ok: r.ok, ...data }
     }
     try {
       const first = await post({ action: 'check' })
-      setChecks(first.checks ?? {})
-      const failed = (Object.entries(first.checks ?? {}) as Array<[StillKey, Check]>).filter(([k, c]) => !c.passed && !(first.autoRedone ?? []).includes(k)).map(([k]) => k)
+      // A conflict means the stills moved on. Don't remake from a verdict for the old pictures.
+      if (!first.ok || !first.checks) return
+      setChecks(first.checks)
+      const failed = (Object.entries(first.checks) as Array<[StillKey, Check]>).filter(([k, c]) => !c.passed && !(first.autoRedone ?? []).includes(k)).map(([k]) => k)
       if (!failed.length) return
       for (const k of failed) {
         setBusy(k)
@@ -150,7 +153,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
       }
       setBusy(null)
       const again = await post({ action: 'check', keys: failed.includes('hero') ? [...failed, 'wetGlass'] : failed })
-      setChecks(again.checks ?? {})
+      if (again.ok && again.checks) setChecks(again.checks)
     } catch {
       // The check never blocks the user; they still review every still.
     } finally {
@@ -169,16 +172,21 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'redo', taskId: stills.taskId, which: key }),
       })
-      const d = (await r.json().catch(() => ({}))) as { stills?: Partial<Record<StillKey, string | null>>; redosLeft?: number; message?: string }
+      const d = (await r.json().catch(() => ({}))) as { stills?: Partial<Record<StillKey, string | null>>; redosLeft?: number; checks?: Partial<Record<StillKey, Check>>; message?: string }
+      if (d.stills) setStills(s => (s ? { ...s, urls: d.stills!, redosLeft: d.redosLeft ?? s.redosLeft } : s))
+      if (d.checks) setChecks(d.checks)
       if (!r.ok || !d.stills) throw new Error(d.message ?? 'That still could not be remade.')
-      setStills(s => (s ? { ...s, urls: d.stills!, redosLeft: d.redosLeft ?? 0 } : s))
       setPreview(key)
       setChecks(c => { const n = { ...c }; delete n[key]; if (key === 'hero') delete n.wetGlass; return n })
       if (stills) {
-        void fetch('/api/posts/video-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'check', taskId: stills.taskId, keys: key === 'hero' ? ['hero', 'wetGlass'] : [key] }) })
-          .then(r => r.json())
-          .then((x: { checks?: Partial<Record<StillKey, Check>> }) => x.checks && setChecks(x.checks))
+        // Hold Redo and Make the video until this verdict is saved, so a click can't overlap it.
+        const taskId = stills.taskId
+        setChecking(true)
+        void fetch('/api/posts/video-product', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'check', taskId, keys: key === 'hero' ? ['hero', 'wetGlass'] : [key] }) })
+          .then(async r => ({ ok: r.ok, ...(await r.json().catch(() => ({}))) }) as { ok: boolean; checks?: Partial<Record<StillKey, Check>> })
+          .then(x => { if (x.ok && x.checks) setChecks(x.checks) })
           .catch(() => {})
+          .finally(() => setChecking(false))
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'That still could not be remade.')
@@ -363,7 +371,7 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
                             {checks[k]!.passed ? '✓ Matches your photo' : `Check: ${checks[k]!.issues[0] ?? 'looks different from your photo'}`}
                           </p>
                         )}
-                        <button type="button" onClick={() => redo(k)} disabled={stills.redosLeft <= 0 || busy !== null || !!job} className="inline-flex items-center gap-1 text-[11px] text-[#7FB0FF] hover:text-white disabled:opacity-40">
+                        <button type="button" onClick={() => redo(k)} disabled={stills.redosLeft <= 0 || busy !== null || checking || !!job} className="inline-flex items-center gap-1 text-[11px] text-[#7FB0FF] hover:text-white disabled:opacity-40">
                           <RotateCcw size={10} /> Redo
                         </button>
                       </div>
