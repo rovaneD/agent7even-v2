@@ -205,6 +205,8 @@ export async function placeRescheduleCall(input: {
   originalLabel: string
   alternatives: Slot[]
   appointmentId: string
+  /** declined: the requested time was never confirmed. moved: a confirmed appointment has to change. */
+  reason?: 'declined' | 'moved'
 }): Promise<string> {
   const apiKey = process.env.RETELL_API_KEY
   if (!apiKey) throw new Error('RETELL_API_KEY is not set')
@@ -212,9 +214,12 @@ export async function placeRescheduleCall(input: {
   const first = input.callerName?.split(/\s+/)[0]
   const what = input.service ? `your ${input.service} appointment` : 'your appointment'
   const options = spokenList(input.alternatives.map((a) => a.label))
+  const problem = input.reason === 'moved'
+    ? `Unfortunately the team needs to move it`
+    : `Unfortunately the team can't do that time`
   const begin = input.alternatives.length
-    ? `Hi${first ? ` ${first}` : ''}, this is ${spa}'s AI assistant. I'm calling about ${what} on ${input.originalLabel}. Unfortunately the team can't do that time, but they can see you ${options}. Would one of those work for you?`
-    : `Hi${first ? ` ${first}` : ''}, this is ${spa}'s AI assistant. I'm calling about ${what} on ${input.originalLabel}. Unfortunately the team can't do that time. What other day and time would work for you?`
+    ? `Hi${first ? ` ${first}` : ''}, this is ${spa}'s AI assistant. I'm calling about ${what} on ${input.originalLabel}. ${problem}, but they can see you ${options}. Would one of those work for you?`
+    : `Hi${first ? ` ${first}` : ''}, this is ${spa}'s AI assistant. I'm calling about ${what} on ${input.originalLabel}. ${problem}. What other day and time would work for you?`
   const res = await fetch('https://api.retellai.com/v2/create-phone-call', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },

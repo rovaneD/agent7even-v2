@@ -33,6 +33,7 @@ export default function AppointmentsBoard({
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [declining, setDeclining] = useState<VoixAppointment | null>(null)
+  const [mode, setMode] = useState<'decline' | 'reschedule'>('decline')
 
   // Live view: new requests from calls appear within a few seconds.
   useEffect(() => {
@@ -42,8 +43,9 @@ export default function AppointmentsBoard({
     return () => clearInterval(t)
   }, [router])
 
-  async function act(id: string, action: 'confirm' | 'decline') {
-    if (action === 'decline') {
+  async function act(id: string, action: 'confirm' | 'decline' | 'reschedule') {
+    if (action === 'decline' || action === 'reschedule') {
+      setMode(action)
       setDeclining(items.find((a) => a.id === id) ?? null)
       return
     }
@@ -110,6 +112,13 @@ export default function AppointmentsBoard({
               {busy === a.id ? 'Confirming…' : 'Confirm'}
             </button>
           </div>
+        ) : a.status === 'confirmed' && new Date(a.start_at).getTime() > Date.now() ? (
+          <button
+            onClick={() => act(a.id, 'reschedule')}
+            className="rounded-full border border-[#D5D8E0] bg-white px-4 py-2 text-sm font-medium"
+          >
+            Reschedule
+          </button>
         ) : null}
       </div>
     </li>
@@ -159,11 +168,12 @@ export default function AppointmentsBoard({
             accountId={accountId}
             timezone={timezone}
             appt={declining}
+            mode={mode}
             onClose={() => setDeclining(null)}
             onDone={(r) => {
               setDeclining(null)
-              if (r.callback === 'failed') setError(`Declined, but the call failed: ${r.reason}. Call the client to reschedule.`)
-              else if (r.callback === 'skipped' && r.reason !== 'Declined without a call') setError(`Declined. No call placed: ${r.reason}`)
+              if (r.callback === 'failed') setError(`Saved, but the call failed: ${r.reason}. Call the client to reschedule.`)
+              else if (r.callback === 'skipped' && !/without a call/.test(r.reason ?? '')) setError(`Saved. No call placed: ${r.reason}`)
               router.refresh()
             }}
           />
@@ -180,11 +190,12 @@ export default function AppointmentsBoard({
             accountId={accountId}
             timezone={timezone}
             appt={declining}
+            mode={mode}
             onClose={() => setDeclining(null)}
             onDone={(r) => {
               setDeclining(null)
-              if (r.callback === 'failed') setError(`Declined, but the call failed: ${r.reason}. Call the client to reschedule.`)
-              else if (r.callback === 'skipped' && r.reason !== 'Declined without a call') setError(`Declined. No call placed: ${r.reason}`)
+              if (r.callback === 'failed') setError(`Saved, but the call failed: ${r.reason}. Call the client to reschedule.`)
+              else if (r.callback === 'skipped' && !/without a call/.test(r.reason ?? '')) setError(`Saved. No call placed: ${r.reason}`)
               router.refresh()
             }}
           />

@@ -8,8 +8,9 @@ import type { Slot, VoixAppointment } from '@/lib/voix/appointments'
  * Voix calls the client, offers them, and books the one they pick.
  */
 export default function DeclineDialog({
-  accountId, timezone, appt, onClose, onDone,
+  accountId, timezone, appt, onClose, onDone, mode = 'decline',
 }: {
+  mode?: 'decline' | 'reschedule'
   accountId: string
   timezone: string
   appt: VoixAppointment
@@ -62,7 +63,7 @@ export default function DeclineDialog({
       const res = await fetch('/api/voix/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId, id: appt.id, action: 'decline', alternatives: callback ? picked : [], callback }),
+        body: JSON.stringify({ accountId, id: appt.id, action: mode, alternatives: callback ? picked : [], callback }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { setError(data.error || 'Something went wrong'); return }
@@ -75,9 +76,9 @@ export default function DeclineDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#1B2236]/40 p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="decline-title" onClick={onClose}>
       <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl sm:p-6" onClick={(e) => e.stopPropagation()}>
-        <h2 id="decline-title" className="text-[28px] leading-tight" style={{ fontFamily: 'var(--voix-serif), Georgia, serif' }}>Offer other times</h2>
+        <h2 id="decline-title" className="text-[28px] leading-tight" style={{ fontFamily: 'var(--voix-serif), Georgia, serif' }}>{mode === 'reschedule' ? 'Reschedule appointment' : 'Offer other times'}</h2>
         <p className="mt-1 text-sm text-[#4A5061]">
-          {appt.caller_name || 'The caller'} asked for <strong>{requested}</strong>{appt.service ? ` (${appt.service})` : ''}. Pick up to 3 times you can do. Voix will call them, offer these, and book the one they choose.
+          {appt.caller_name || 'The client'} {mode === 'reschedule' ? 'is booked for' : 'asked for'} <strong>{requested}</strong>{appt.service ? ` (${appt.service})` : ''}. Pick up to 3 times you can do. Voix will call them, offer these, and book the one they choose.
         </p>
 
         <div className="mt-5 space-y-4">
@@ -123,11 +124,11 @@ export default function DeclineDialog({
             disabled={busy}
             className="min-h-[48px] rounded-full bg-[#1B2236] px-5 text-sm font-medium text-white disabled:opacity-50"
           >
-            {busy ? 'Working…' : picked.length ? `Decline and have Voix offer ${picked.length === 1 ? 'this time' : `these ${picked.length} times`}` : 'Decline and have Voix call to reschedule'}
+            {busy ? 'Working…' : picked.length ? `${mode === 'reschedule' ? 'Have' : 'Decline and have'} Voix offer ${picked.length === 1 ? 'this time' : `these ${picked.length} times`}` : `${mode === 'reschedule' ? 'Have' : 'Decline and have'} Voix call to reschedule`}
           </button>
           <div className="flex gap-2">
             <button type="button" onClick={() => submit(false)} disabled={busy} className="min-h-[44px] flex-1 rounded-full border border-[#D5D8E0] bg-white px-4 text-sm font-medium disabled:opacity-50">
-              Decline without a call
+              {mode === 'reschedule' ? 'Cancel without a call' : 'Decline without a call'}
             </button>
             <button type="button" onClick={onClose} disabled={busy} className="min-h-[44px] flex-1 rounded-full px-4 text-sm font-medium text-[#4A5061]">
               Cancel

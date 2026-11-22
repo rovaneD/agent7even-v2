@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as {
     accountId?: string
     id?: string
-    action?: 'confirm' | 'decline' | 'reset_demo'
+    action?: 'confirm' | 'decline' | 'reschedule' | 'reset_demo'
     callback?: boolean
     alternatives?: string[]
   } | null
@@ -63,10 +63,16 @@ export async function POST(req: Request) {
         })
         .eq('id', d.id)
     }
+    // Sample (already confirmed) appointments: undo any demo reschedules.
+    await ctx.supabase.from('voix_appointments').delete()
+      .eq('account_id', ctx.account.id).eq('notes', 'Sample appointment').not('rescheduled_from', 'is', null)
+    await ctx.supabase.from('voix_appointments')
+      .update({ status: 'confirmed', alternatives: [], reschedule_status: 'none', callback_status: 'none', callback_call_id: null, callback_error: null })
+      .eq('account_id', ctx.account.id).eq('notes', 'Sample appointment').eq('status', 'cancelled')
     return NextResponse.json({ ok: true, reset: ids.length })
   }
 
-  if (!body.id || !['confirm', 'decline'].includes(body.action ?? '')) {
+  if (!body.id || !['confirm', 'decline', 'reschedule'].includes(body.action ?? '')) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
@@ -77,7 +83,10 @@ export async function POST(req: Request) {
     .eq('account_id', ctx.account.id)
     .maybeSingle()
   if (!appt) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (appt.status !== 'pending') return NextResponse.json({ error: 'Already decided' }, { status: 409 })
+  const moving = body.action === 'reschedule'
+  if (moving ? appt.status !== 'confirmed' : appt.status !== 'pending') {
+    return NextResponse.json({ error: moving ? 'Only confirmed appointments can be rescheduled' : 'Already decided' }, { status: 409 })
+  }
 
   const decided = {
     decided_at: new Date().toISOString(),
@@ -91,7 +100,7 @@ export async function POST(req: Request) {
   const agentId = ctx.account.retell_agent_ids[0]
   const cannotCall = !to ? 'No client number' : !from ? 'Spa has no Voix number set' : !agentId ? 'No agent linked' : null
 
-  if (body.action === 'decline') {
+  if (body.action === 'decline' || moving) {
     // Only accept offered times that are real open slots right now.
     const { data: cfg } = await ctx.supabase.from('voix_accounts').select('booking_windows, slot_minutes').eq('id', ctx.account.id).maybeSingle()
     const open = await openSlots(ctx.supabase, {
@@ -107,13 +116,13 @@ export async function POST(req: Request) {
 
     const wantsCall = body.callback !== false
     await ctx.supabase.from('voix_appointments').update({
-      status: 'declined', ...decided,
+      status: moving ? 'cancelled' : 'declined', ...decided,
       alternatives: offered.map((s) => s.iso),
       reschedule_status: wantsCall ? 'offered' : 'none',
     }).eq('id', appt.id)
 
     if (!wantsCall || cannotCall) {
-      const why = !wantsCall ? 'Declined without a call' : cannotCall
+      const why = !wantsCall ? (moving ? 'Cancelled without a call' : 'Declined without a call') : cannotCall
       await ctx.supabase.from('voix_appointments').update({ callback_status: 'skipped', callback_error: why, reschedule_status: wantsCall ? 'callback_needed' : 'none' }).eq('id', appt.id)
       return NextResponse.json({ ok: true, callback: 'skipped', reason: why })
     }
@@ -122,6 +131,7 @@ export async function POST(req: Request) {
         fromNumber: from!, toNumber: to!, agentId,
         spaName: ctx.account.name, callerName: appt.caller_name, service: appt.service,
         originalLabel: slotLabel(appt.start_at, tz), alternatives: offered, appointmentId: appt.id,
+        reason: moving ? 'moved' : 'declined',
       })
       await ctx.supabase.from('voix_appointments').update({ callback_status: 'placed', callback_call_id: callId }).eq('id', appt.id)
       return NextResponse.json({ ok: true, callback: 'placed' })

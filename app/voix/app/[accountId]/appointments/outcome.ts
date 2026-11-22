@@ -4,14 +4,15 @@ import type { VoixAppointment } from '@/lib/voix/appointments'
 export function outcomeLine(a: VoixAppointment, tz: string): { text: string; tone: 'muted' | 'warn' | 'good' } | null {
   const short = (iso: string) =>
     new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(iso))
-  if (a.status === 'declined') {
+  if (a.status === 'declined' || a.status === 'cancelled') {
+    const verb = a.status === 'cancelled' ? 'Cancelled' : 'Declined'
     if (a.reschedule_status === 'rescheduled') return { text: 'Rescheduled: the client picked a new time', tone: 'good' }
     if (a.reschedule_status === 'callback_needed') return { text: `Call the client to reschedule${a.callback_error ? ` (${a.callback_error})` : ''}`, tone: 'warn' }
     if (a.reschedule_status === 'offered') {
       const offered = (a.alternatives ?? []).map(short)
       return { text: offered.length ? `Voix is calling to offer ${offered.join(', ')}` : 'Voix is calling to ask what works instead', tone: 'muted' }
     }
-    return { text: `Declined${a.decided_by_label ? ` by ${a.decided_by_label}` : ''}`, tone: 'muted' }
+    return { text: `${verb}${a.decided_by_label ? ` by ${a.decided_by_label}` : ''}`, tone: 'muted' }
   }
   if (a.status === 'confirmed') {
     const who = a.decided_by_label ? `Confirmed by ${a.decided_by_label}` : 'Confirmed'

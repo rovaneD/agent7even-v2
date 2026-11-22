@@ -38,7 +38,7 @@ export default function WeekCalendar({
   items: VoixAppointment[]
   timezone: string
   windows: BookingWindows
-  onAct: (id: string, action: 'confirm' | 'decline') => void
+  onAct: (id: string, action: 'confirm' | 'decline' | 'reschedule') => void
   busyId: string | null
 }) {
   const [offset, setOffset] = useState(0)
@@ -196,7 +196,12 @@ export default function WeekCalendar({
               </button>
             </div>
           ) : (
-            <span className="max-w-[320px] text-right text-sm text-[#5B6070]">{outcomeLine(sel, timezone)?.text ?? ''}</span>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <span className="max-w-[320px] text-right text-sm text-[#5B6070]">{outcomeLine(sel, timezone)?.text ?? ''}</span>
+              {sel.status === 'confirmed' && new Date(sel.start_at).getTime() > Date.now() ? (
+                <button onClick={() => onAct(sel.id, 'reschedule')} className="rounded-full border border-[#D5D8E0] bg-white px-4 py-2 text-sm font-medium">Reschedule</button>
+              ) : null}
+            </div>
           )}
         </div>
       ) : null}
