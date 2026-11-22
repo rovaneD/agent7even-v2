@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BookingWindows, VoixAppointment } from '@/lib/voix/appointments'
 import { formatPhone } from '@/lib/voix/format'
 
@@ -77,11 +77,24 @@ export default function WeekCalendar({
     let lo = Infinity, hi = -Infinity
     for (const list of Object.values(windows)) for (const [a, b] of list) { lo = Math.min(lo, toMin(a)); hi = Math.max(hi, toMin(b)) }
     for (const d of days) for (const a of byDay.get(d.key) ?? []) { lo = Math.min(lo, a.startMin); hi = Math.max(hi, a.startMin + a.duration_min) }
-    if (!Number.isFinite(lo)) { lo = 9 * 60; hi = 18 * 60 }
-    return [Math.floor(lo / 60) * 60, Math.ceil(hi / 60) * 60]
+    // Always show at least 7 AM–9 PM so early and late spas fit; widen further if needed.
+    lo = Math.min(Number.isFinite(lo) ? lo : 7 * 60, 7 * 60)
+    hi = Math.max(Number.isFinite(hi) ? hi : 21 * 60, 21 * 60)
+    return [Math.max(0, Math.floor(lo / 60) * 60), Math.min(24 * 60, Math.ceil(hi / 60) * 60)]
   }, [windows, days, byDay])
 
   const rows = (endMin - startMin) / 30
+
+  // Open scrolled to the spa's earliest booking hour (or earliest appointment this week).
+  const scroller = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let first = Infinity
+    for (const list of Object.values(windows)) for (const [a] of list) first = Math.min(first, toMin(a))
+    for (const d of days) for (const a of byDay.get(d.key) ?? []) first = Math.min(first, a.startMin)
+    if (!Number.isFinite(first) || !scroller.current) return
+    scroller.current.scrollTop = Math.max(0, ((first - startMin) / 30) * ROW_PX - ROW_PX)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offset])
   const sel = items.find((a) => a.id === selected) ?? null
   const weekLabel = `${days[0].date} – ${days[6].date}`
   const pendingThisWeek = days.reduce((n, d) => n + (byDay.get(d.key) ?? []).filter((a) => a.status === 'pending').length, 0)
@@ -96,11 +109,11 @@ export default function WeekCalendar({
         {pendingThisWeek ? <span className="ml-auto text-sm text-[#8A5A00]">{pendingThisWeek} to confirm this week</span> : null}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-[#ECEDF1] bg-white">
+      <div ref={scroller} className="max-h-[640px] overflow-auto rounded-2xl border border-[#ECEDF1] bg-white">
         <div className="grid min-w-[760px]" style={{ gridTemplateColumns: '56px repeat(7, minmax(0, 1fr))' }}>
-          <div className="border-b border-[#ECEDF1]" />
+          <div className="sticky top-0 z-20 border-b border-[#ECEDF1] bg-white" />
           {days.map((d) => (
-            <div key={d.key} className={`border-b border-l border-[#ECEDF1] px-2 py-2 text-center ${d.isToday ? 'bg-[#EAF0FF]' : ''}`}>
+            <div key={d.key} className={`sticky top-0 z-20 border-b border-l border-[#ECEDF1] px-2 py-2 text-center ${d.isToday ? 'bg-[#EAF0FF]' : 'bg-white'}`}>
               <div className="text-[11px] font-semibold uppercase tracking-wide text-[#5B6070]">{d.label}</div>
               <div className={`text-sm ${d.isToday ? 'font-semibold text-[#2A47B8]' : ''}`}>{d.date}</div>
             </div>
