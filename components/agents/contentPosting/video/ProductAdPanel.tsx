@@ -5,6 +5,7 @@ import { Clock, Download, ImagePlus, Loader2, RotateCcw, X } from 'lucide-react'
 import { VIDEO_TYPES, videoTypeById, type VideoTypeId } from '@/lib/agents/contentPosting/videoTypes'
 import { VIDEO_TYPE_ICONS, VideoTypePoster, useExampleUrl } from './videoTypeVisuals'
 import { Segmented, fieldClass } from './ui'
+import { useVideoJobPoll } from './useVideoJobPoll'
 
 type Option = 'clean' | 'creative' | 'signature'
 type StillKey = 'hero' | 'angle' | 'group' | 'lifestyle' | 'texture' | 'apply' | 'wetGlass'
@@ -207,17 +208,8 @@ export default function ProductAdPanel({ onClose, onSwitch }: { onClose: () => v
   }
 
   // Poll every 12s; the poll also moves the video forward (clips -> edit -> Approvals).
-  useEffect(() => {
-    if (!job || !['rendering', 'editing'].includes(job.status)) return
-    const t = setTimeout(async () => {
-      try {
-        const r = await fetch(`/api/posts/video-product?taskId=${encodeURIComponent(job.taskId)}`)
-        const d = (await r.json()) as { status?: Job['status']; videoUrl?: string | null }
-        if (d.status && d.status !== 'starting') setJob(j => (j ? { ...j, status: d.status!, videoUrl: d.videoUrl ?? j.videoUrl } : j))
-      } catch {}
-    }, 12_000)
-    return () => clearTimeout(t)
-  }, [job])
+  // A failed read schedules another. One dropped response used to stop the chain.
+  useVideoJobPoll(job, setJob, '/api/posts/video-product')
 
   const stillKeys = STILL_ORDER.filter(k => stills?.urls[k] !== undefined)
   const previewUrl = stills?.urls[preview] ?? null

@@ -7,7 +7,7 @@ import { recordAgentTaskCost } from '@/lib/agents/taskInstrumentation'
 import type { ActionCreditKey } from '@/lib/credits/actionCosts'
 import { assembleVideo, posterFrame, type TimedText } from './assemble'
 import { failVideoTask } from './failVideoTask'
-import { pollVideoJob } from './openRouterVideo'
+import { pollVideoJobSafely } from './videoPoll'
 
 type Supabase = ReturnType<typeof createServiceClient>
 
@@ -66,7 +66,8 @@ export async function advancePresenterTask(
     return { status: 'failed' }
   }
 
-  const poll = await pollVideoJob(input.presenter_job_id)
+  const poll = await pollVideoJobSafely(input.presenter_job_id)
+  if (!poll) return { status: 'rendering' }
   if (poll.status === 'failed') {
     await failVideoTask(supabase, task.id, task.user_id)
     return { status: 'failed' }
