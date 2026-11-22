@@ -14,6 +14,22 @@ export const CONTENT_POSTING_FLOW_LABELS: Record<ContentPostingFlow, string> = {
   weekly: 'Weekly content',
 }
 
+/**
+ * Agents whose approval is a video post: approving creates a Posts draft.
+ * Product ads use their own task agent (`video_product_ad`); the output row is
+ * still `video_generation`. The approve route reads the task agent.
+ */
+const VIDEO_POST_AGENTS = new Set([
+  'video_presenter',
+  'video_broll',
+  'video_generation',
+  'video_product_ad',
+])
+
+export function isVideoPostAgent(agentId: string): boolean {
+  return VIDEO_POST_AGENTS.has(agentId)
+}
+
 export function resolveContentPostingFlow(input: Record<string, unknown>): ContentPostingFlow {
   const raw = input.contentFlow ?? input.content_flow
   return raw === 'weekly' ? 'weekly' : 'single'
@@ -69,8 +85,8 @@ export function approvalQueueKind(task: {
   const agent = task.agent
 
   if (agent === 'post_caption') return 'post'
-  // Video posts (presenter pipeline and the older video flow) are posts to review.
-  if (agent === 'video_presenter' || agent === 'video_broll' || agent === 'video_generation') return 'post'
+  // Video posts (presenter, B-roll, product ad, and the older video flow) are posts to review.
+  if (isVideoPostAgent(agent)) return 'post'
   if (agent === 'weekly_content') return 'plan'
   if (agent === 'content_posting') {
     return resolveContentPostingFlow(input) === 'weekly' ? 'plan' : 'post'
@@ -129,7 +145,7 @@ export function singlePostPublishBlockReason(opts: {
 
   if (opts.agentId === 'post_caption') return null
   // Approved video posts become a Posts draft (the owner schedules or publishes from Posts).
-  if ((opts.agentId === 'video_presenter' || opts.agentId === 'video_broll' || opts.agentId === 'video_generation') && media.media_mime?.startsWith('video/')) return null
+  if (isVideoPostAgent(opts.agentId) && media.media_mime?.startsWith('video/')) return null
   if (opts.agentId === 'content_posting' && resolveContentPostingFlow(opts.taskInput) === 'single') return null
   return 'This approval type does not publish to Posts.'
 }
