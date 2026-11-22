@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { BookingWindows, VoixAppointment } from '@/lib/voix/appointments'
 import WeekCalendar from './WeekCalendar'
+import DeclineDialog from './DeclineDialog'
+import { outcomeLine } from './outcome'
 import { formatPhone } from '@/lib/voix/format'
 
 const STATUS: Record<VoixAppointment['status'], { label: string; cls: string }> = {
@@ -11,13 +13,6 @@ const STATUS: Record<VoixAppointment['status'], { label: string; cls: string }> 
   confirmed: { label: 'Confirmed', cls: 'bg-[#E7F6EC] text-[#1E6B3A]' },
   declined: { label: 'Declined', cls: 'bg-[#F1F2F5] text-[#5B6070]' },
   cancelled: { label: 'Cancelled', cls: 'bg-[#F1F2F5] text-[#5B6070]' },
-}
-
-const CALLBACK: Record<VoixAppointment['callback_status'], string | null> = {
-  none: null,
-  placed: 'Voix is calling the client to confirm',
-  failed: 'Callback failed',
-  skipped: 'No callback',
 }
 
 function dayKey(iso: string, tz: string) {
@@ -37,6 +32,7 @@ export default function AppointmentsBoard({
   const [view, setView] = useState<'week' | 'list'>('week')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [declining, setDeclining] = useState<VoixAppointment | null>(null)
 
   // Live view: new requests from calls appear within a few seconds.
   useEffect(() => {
@@ -47,6 +43,10 @@ export default function AppointmentsBoard({
   }, [router])
 
   async function act(id: string, action: 'confirm' | 'decline') {
+    if (action === 'decline') {
+      setDeclining(items.find((a) => a.id === id) ?? null)
+      return
+    }
     setBusy(id)
     setError(null)
     try {
@@ -88,13 +88,10 @@ export default function AppointmentsBoard({
             {a.service ? ` · ${a.service}` : ''}
           </p>
           {a.notes ? <p className="mt-1 text-sm text-[#5B6070]">{a.notes}</p> : null}
-          {a.status !== 'pending' && (a.decided_by_label || CALLBACK[a.callback_status]) ? (
-            <p className="mt-1 text-xs text-[#5B6070]">
-              {a.decided_by_label ? `${STATUS[a.status].label} by ${a.decided_by_label}` : ''}
-              {CALLBACK[a.callback_status] ? ` · ${CALLBACK[a.callback_status]}` : ''}
-              {a.callback_status === 'failed' && a.callback_error ? ` (${a.callback_error})` : ''}
-            </p>
-          ) : null}
+          {(() => {
+            const o = outcomeLine(a, timezone)
+            return o ? <p className={`mt-1 text-xs ${o.tone === 'warn' ? 'font-medium text-[#8A5A00]' : o.tone === 'good' ? 'text-[#1E6B3A]' : 'text-[#5B6070]'}`}>{o.text}</p> : null
+          })()}
         </div>
         {a.status === 'pending' ? (
           <div className="flex gap-2">
@@ -157,6 +154,20 @@ export default function AppointmentsBoard({
         {toggle}
         {error ? <p className="mb-3 rounded-xl bg-[#FDECEC] px-4 py-3 text-sm text-[#A12B2B]">{error}</p> : null}
         <WeekCalendar items={items} timezone={timezone} windows={windows} onAct={act} busyId={busy} />
+        {declining ? (
+          <DeclineDialog
+            accountId={accountId}
+            timezone={timezone}
+            appt={declining}
+            onClose={() => setDeclining(null)}
+            onDone={(r) => {
+              setDeclining(null)
+              if (r.callback === 'failed') setError(`Declined, but the call failed: ${r.reason}. Call the client to reschedule.`)
+              else if (r.callback === 'skipped' && r.reason !== 'Declined without a call') setError(`Declined. No call placed: ${r.reason}`)
+              router.refresh()
+            }}
+          />
+        ) : null}
       </div>
     )
   }
@@ -164,6 +175,20 @@ export default function AppointmentsBoard({
   return (
     <div className="space-y-8">
       {toggle}
+      {declining ? (
+          <DeclineDialog
+            accountId={accountId}
+            timezone={timezone}
+            appt={declining}
+            onClose={() => setDeclining(null)}
+            onDone={(r) => {
+              setDeclining(null)
+              if (r.callback === 'failed') setError(`Declined, but the call failed: ${r.reason}. Call the client to reschedule.`)
+              else if (r.callback === 'skipped' && r.reason !== 'Declined without a call') setError(`Declined. No call placed: ${r.reason}`)
+              router.refresh()
+            }}
+          />
+        ) : null}
       {error ? <p className="rounded-xl bg-[#FDECEC] px-4 py-3 text-sm text-[#A12B2B]">{error}</p> : null}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#5B6070]">Needs confirmation ({pending.length})</h2>

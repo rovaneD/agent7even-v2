@@ -1,0 +1,24 @@
+import type { VoixAppointment } from '@/lib/voix/appointments'
+
+/** One line saying what happened after the team decided. */
+export function outcomeLine(a: VoixAppointment, tz: string): { text: string; tone: 'muted' | 'warn' | 'good' } | null {
+  const short = (iso: string) =>
+    new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(iso))
+  if (a.status === 'declined') {
+    if (a.reschedule_status === 'rescheduled') return { text: 'Rescheduled: the client picked a new time', tone: 'good' }
+    if (a.reschedule_status === 'callback_needed') return { text: `Call the client to reschedule${a.callback_error ? ` (${a.callback_error})` : ''}`, tone: 'warn' }
+    if (a.reschedule_status === 'offered') {
+      const offered = (a.alternatives ?? []).map(short)
+      return { text: offered.length ? `Voix is calling to offer ${offered.join(', ')}` : 'Voix is calling to ask what works instead', tone: 'muted' }
+    }
+    return { text: `Declined${a.decided_by_label ? ` by ${a.decided_by_label}` : ''}`, tone: 'muted' }
+  }
+  if (a.status === 'confirmed') {
+    const who = a.decided_by_label ? `Confirmed by ${a.decided_by_label}` : 'Confirmed'
+    if (a.rescheduled_from) return { text: `${who} (rescheduled)`, tone: 'good' }
+    if (a.callback_status === 'placed') return { text: `${who} · Voix called the client to confirm`, tone: 'good' }
+    if (a.callback_status === 'failed') return { text: `${who} · Callback failed${a.callback_error ? ` (${a.callback_error})` : ''}`, tone: 'warn' }
+    return { text: who, tone: 'muted' }
+  }
+  return null
+}

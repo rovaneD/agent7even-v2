@@ -75,8 +75,14 @@ export async function POST(req: Request) {
     if (!open.some((s) => new Date(s.iso).getTime() === when.getTime())) {
       return say('That time is no longer open. Check availability again and offer other times.')
     }
-    const callerPhone = toE164(str(args.callback_number, 30)) ?? toE164(body.call?.from_number)
+    const dyn = body.call?.retell_llm_dynamic_variables ?? {}
+    const fromAppt = dyn.call_purpose === 'reschedule' ? str(dyn.appointment_id, 40) : null
+    // On our outbound calls the client is the callee, not the caller.
+    const clientNumber = body.call?.direction === 'outbound' ? body.call?.to_number : body.call?.from_number
+    const callerPhone = toE164(str(args.callback_number, 30)) ?? toE164(clientNumber)
+    if (fromAppt) await supabase.from('voix_appointments').update({ reschedule_status: 'rescheduled' }).eq('id', fromAppt).eq('account_id', acct.id)
     const { error } = await supabase.from('voix_appointments').insert({
+      rescheduled_from: fromAppt,
       account_id: acct.id,
       retell_call_id: body.call?.call_id ?? null,
       caller_name: str(args.caller_name, 80),
@@ -94,6 +100,49 @@ export async function POST(req: Request) {
     return say(
       `Pending appointment saved for ${label}. Tell the caller: "I've put you down for ${label}. The team will confirm shortly, and you'll get a quick call back to confirm." It is not confirmed yet.`,
     )
+  }
+
+  if (body.name === 'choose_offered_time') {
+    const dyn = body.call?.retell_llm_dynamic_variables ?? {}
+    const apptId = str(dyn.appointment_id, 40)
+    const iso = str(args.slot_iso, 40)
+    if (!apptId || !iso) return say('Could not find the offered times. Offer to have the team call back.')
+    const { data: orig } = await supabase
+      .from('voix_appointments')
+      .select('id, caller_name, caller_phone, service, notes, duration_min, alternatives, status')
+      .eq('id', apptId)
+      .eq('account_id', acct.id)
+      .maybeSingle()
+    if (!orig) return say('Could not find that appointment. Offer to have the team call back.')
+    const offered = ((orig.alternatives as string[]) ?? []).map((a) => new Date(a).getTime())
+    const when = new Date(iso)
+    if (!offered.includes(when.getTime())) return say('That is not one of the times the team offered. Repeat the offered times.')
+    const open = await openSlots(supabase, acct, { leadMinutes: 30 })
+    if (!open.some((s) => new Date(s.iso).getTime() === when.getTime())) {
+      return say('That time was just taken. Offer the other times the team offered, or check availability.')
+    }
+    const { error } = await supabase.from('voix_appointments').insert({
+      account_id: acct.id,
+      retell_call_id: body.call?.call_id ?? null,
+      caller_name: orig.caller_name,
+      caller_phone: orig.caller_phone,
+      service: orig.service,
+      notes: orig.notes,
+      start_at: when.toISOString(),
+      duration_min: orig.duration_min,
+      status: 'confirmed',
+      decided_at: new Date().toISOString(),
+      decided_by_label: 'Client, from times the team offered',
+      callback_status: 'skipped',
+      rescheduled_from: orig.id,
+    })
+    if (error) {
+      console.error('[voix/tools] reschedule insert failed:', error.message)
+      return say('Saving did not work. Say the team will call back to confirm.')
+    }
+    await supabase.from('voix_appointments').update({ reschedule_status: 'rescheduled' }).eq('id', orig.id)
+    const label = slotLabel(when.toISOString(), tz)
+    return say(`Booked and confirmed for ${label}; the team already approved this time. Tell the client: "You're all set for ${label}."`)
   }
 
   return say('Unknown function.')

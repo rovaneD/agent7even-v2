@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BookingWindows, VoixAppointment } from '@/lib/voix/appointments'
 import { formatPhone } from '@/lib/voix/format'
+import { outcomeLine } from './outcome'
 
 const ROW_PX = 40 // height of one 30-minute row
 
@@ -195,7 +196,7 @@ export default function WeekCalendar({
               </button>
             </div>
           ) : (
-            <span className="text-sm text-[#5B6070]">{sel.status === 'confirmed' ? 'Confirmed' : 'Declined'}{sel.decided_by_label ? ` by ${sel.decided_by_label}` : ''}</span>
+            <span className="max-w-[320px] text-right text-sm text-[#5B6070]">{outcomeLine(sel, timezone)?.text ?? ''}</span>
           )}
         </div>
       ) : null}

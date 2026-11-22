@@ -24,11 +24,14 @@ export type VoixAppointment = {
   callback_status: 'none' | 'placed' | 'failed' | 'skipped'
   callback_call_id: string | null
   callback_error: string | null
+  alternatives: string[]
+  reschedule_status: 'none' | 'offered' | 'rescheduled' | 'callback_needed'
+  rescheduled_from: string | null
   created_at: string
 }
 
 export const APPOINTMENT_SELECT =
-  'id, account_id, retell_call_id, caller_name, caller_phone, service, notes, start_at, duration_min, status, decided_at, decided_by_label, callback_status, callback_call_id, callback_error, created_at'
+  'id, account_id, retell_call_id, caller_name, caller_phone, service, notes, start_at, duration_min, status, decided_at, decided_by_label, callback_status, callback_call_id, callback_error, alternatives, reschedule_status, rescheduled_from, created_at'
 
 export type Slot = { iso: string; label: string }
 
@@ -175,6 +178,60 @@ export async function placeConfirmationCall(input: {
         client_name: input.callerName ?? '',
       },
       metadata: { voix_appointment_id: input.appointmentId, kind: 'confirmation' },
+    }),
+  })
+  const body = (await res.json().catch(() => ({}))) as { call_id?: string; message?: string; error_message?: string }
+  if (!res.ok || !body.call_id) throw new Error(body.message || body.error_message || `Retell returned ${res.status}`)
+  return body.call_id
+}
+
+/** "A, B or C" for speech. */
+export function spokenList(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? ''
+  return `${items.slice(0, -1).join(', ')} or ${items[items.length - 1]}`
+}
+
+/**
+ * Places the reschedule call: the team couldn't take the requested time and
+ * offered alternatives. The agent's choose_offered_time function books one.
+ */
+export async function placeRescheduleCall(input: {
+  fromNumber: string
+  toNumber: string
+  agentId: string
+  spaName: string
+  callerName: string | null
+  service: string | null
+  originalLabel: string
+  alternatives: Slot[]
+  appointmentId: string
+}): Promise<string> {
+  const apiKey = process.env.RETELL_API_KEY
+  if (!apiKey) throw new Error('RETELL_API_KEY is not set')
+  const spa = input.spaName.replace(/\s*\(demo\)\s*$/i, '')
+  const first = input.callerName?.split(/\s+/)[0]
+  const what = input.service ? `your ${input.service} appointment` : 'your appointment'
+  const options = spokenList(input.alternatives.map((a) => a.label))
+  const begin = input.alternatives.length
+    ? `Hi${first ? ` ${first}` : ''}, this is ${spa}'s AI assistant. I'm calling about ${what} on ${input.originalLabel}. Unfortunately the team can't do that time, but they can see you ${options}. Would one of those work for you?`
+    : `Hi${first ? ` ${first}` : ''}, this is ${spa}'s AI assistant. I'm calling about ${what} on ${input.originalLabel}. Unfortunately the team can't do that time. What other day and time would work for you?`
+  const res = await fetch('https://api.retellai.com/v2/create-phone-call', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from_number: input.fromNumber,
+      to_number: input.toNumber,
+      override_agent_id: input.agentId,
+      agent_override: { retell_llm: { start_speaker: 'agent', begin_message: begin } },
+      retell_llm_dynamic_variables: {
+        call_purpose: 'reschedule',
+        appointment_id: input.appointmentId,
+        appointment_when: input.originalLabel,
+        appointment_service: input.service ?? '',
+        client_name: input.callerName ?? '',
+        offered_times: input.alternatives.map((a) => `${a.label} (slot_iso ${a.iso})`).join('; ') || 'none',
+      },
+      metadata: { voix_appointment_id: input.appointmentId, kind: 'reschedule' },
     }),
   })
   const body = (await res.json().catch(() => ({}))) as { call_id?: string; message?: string; error_message?: string }
