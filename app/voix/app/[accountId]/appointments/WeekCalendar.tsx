@@ -41,6 +41,14 @@ export default function WeekCalendar({
   busyId: string | null
 }) {
   const [offset, setOffset] = useState(0)
+  const [compact, setCompact] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const on = () => { setCompact(mq.matches); setOffset(0) }
+    on()
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
   const [selected, setSelected] = useState<string | null>(null)
 
   // Monday-start week in the spa's time zone.
@@ -48,8 +56,9 @@ export default function WeekCalendar({
     const t = local(Date.now(), timezone)
     const today = new Date(Date.UTC(t.y, t.m - 1, t.d, 12))
     const monday = new Date(today)
-    monday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7) + offset * 7)
-    return Array.from({ length: 7 }, (_, i) => {
+    if (compact) monday.setUTCDate(today.getUTCDate() + offset * 3)
+    else monday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7) + offset * 7)
+    return Array.from({ length: compact ? 3 : 7 }, (_, i) => {
       const d = new Date(monday)
       d.setUTCDate(monday.getUTCDate() + i)
       const key = d.toISOString().slice(0, 10)
@@ -61,7 +70,7 @@ export default function WeekCalendar({
         date: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(d),
       }
     })
-  }, [offset, timezone])
+  }, [offset, timezone, compact])
 
   const byDay = useMemo(() => {
     const map = new Map<string, (VoixAppointment & { startMin: number })[]>()
@@ -94,23 +103,23 @@ export default function WeekCalendar({
     if (!Number.isFinite(first) || !scroller.current) return
     scroller.current.scrollTop = Math.max(0, ((first - startMin) / 30) * ROW_PX - ROW_PX)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offset])
+  }, [offset, compact])
   const sel = items.find((a) => a.id === selected) ?? null
-  const weekLabel = `${days[0].date} – ${days[6].date}`
+  const weekLabel = `${days[0].date} – ${days[days.length - 1].date}`
   const pendingThisWeek = days.reduce((n, d) => n + (byDay.get(d.key) ?? []).filter((a) => a.status === 'pending').length, 0)
 
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <button onClick={() => setOffset((o) => o - 1)} className="rounded-full border border-[#ECEDF1] bg-white px-3 py-1.5 text-sm" aria-label="Previous week">←</button>
-        <button onClick={() => setOffset(0)} className="rounded-full border border-[#ECEDF1] bg-white px-3.5 py-1.5 text-sm font-medium">This week</button>
-        <button onClick={() => setOffset((o) => o + 1)} className="rounded-full border border-[#ECEDF1] bg-white px-3 py-1.5 text-sm" aria-label="Next week">→</button>
+        <button onClick={() => setOffset((o) => o - 1)} className="rounded-full border border-[#ECEDF1] bg-white px-3 py-1.5 text-sm" aria-label={compact ? 'Previous days' : 'Previous week'}>←</button>
+        <button onClick={() => setOffset(0)} className="rounded-full border border-[#ECEDF1] bg-white px-3.5 py-1.5 text-sm font-medium">{compact ? 'Today' : 'This week'}</button>
+        <button onClick={() => setOffset((o) => o + 1)} className="rounded-full border border-[#ECEDF1] bg-white px-3 py-1.5 text-sm" aria-label={compact ? 'Next days' : 'Next week'}>→</button>
         <span className="ml-2 text-sm font-medium">{weekLabel}</span>
-        {pendingThisWeek ? <span className="ml-auto text-sm text-[#8A5A00]">{pendingThisWeek} to confirm this week</span> : null}
+        {pendingThisWeek ? <span className="ml-auto text-sm text-[#8A5A00]">{pendingThisWeek} to confirm</span> : null}
       </div>
 
       <div ref={scroller} className="max-h-[640px] overflow-auto rounded-2xl border border-[#ECEDF1] bg-white">
-        <div className="grid min-w-[760px]" style={{ gridTemplateColumns: '56px repeat(7, minmax(0, 1fr))' }}>
+        <div className={`grid ${compact ? '' : 'min-w-[760px]'}`} style={{ gridTemplateColumns: `${compact ? 48 : 56}px repeat(${days.length}, minmax(0, 1fr))` }}>
           <div className="sticky top-0 z-20 border-b border-[#ECEDF1] bg-white" />
           {days.map((d) => (
             <div key={d.key} className={`sticky top-0 z-20 border-b border-l border-[#ECEDF1] px-2 py-2 text-center ${d.isToday ? 'bg-[#EAF0FF]' : 'bg-white'}`}>

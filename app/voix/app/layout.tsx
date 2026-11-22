@@ -8,7 +8,7 @@ export const metadata: Metadata = privateRouteMetadata('Voix')
 export default function VoixAppLayout({ children }: { children: ReactNode }) {
   return (
     <div
-      className={`${voixSerif.variable} ${voixSans.variable} min-h-screen bg-[#F6F7F9] text-[#1B2236] antialiased`}
+      className={`${voixSerif.variable} ${voixSans.variable} min-h-screen overflow-x-clip bg-[#F6F7F9] text-[#1B2236] antialiased`}
       style={{ fontFamily: 'var(--voix-sans), system-ui, sans-serif' }}
     >
       {children}

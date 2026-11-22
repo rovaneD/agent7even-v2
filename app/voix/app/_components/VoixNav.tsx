@@ -25,8 +25,8 @@ export default function VoixNav({ accountId, accountName, accounts, openFollowup
 
   return (
     <header className="sticky top-0 z-20 border-b border-[#ECEDF1] bg-white/90 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-        <Link href={`${base}/calls`} className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:h-16 sm:flex-nowrap sm:py-0 sm:px-6">
+        <Link href={`${base}/calls`} className="flex shrink-0 items-center gap-2 text-[15px] font-semibold tracking-tight">
           <span className="inline-block h-6 w-6 rounded-full bg-gradient-to-br from-[#F7B3CF] to-[#3355D6]" />
           Voix
         </Link>
@@ -47,17 +47,21 @@ export default function VoixNav({ accountId, accountName, accounts, openFollowup
             ))}
           </select>
         ) : (
-          <span className="max-w-[40vw] truncate text-sm font-medium text-[#4A5061]">{accountName}</span>
+          <span className="min-w-0 max-w-[45vw] truncate text-sm font-medium text-[#4A5061]">{accountName}</span>
         )}
 
-        <nav className="ml-auto flex items-center gap-1">
+        <div className="ml-auto shrink-0 sm:hidden">
+          <UserButton />
+        </div>
+
+        <nav className="-mx-4 flex w-[calc(100%+2rem)] items-center gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:ml-auto sm:w-auto sm:overflow-visible sm:px-0 sm:pb-0">
           {links.map((l) => {
             const active = pathname.startsWith(l.href)
             return (
               <Link
                 key={l.href}
                 href={l.href}
-                className={`flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition ${
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium transition ${
                   active ? 'bg-[#1B2236] text-white' : 'text-[#4A5061] hover:bg-[#F2F3F6]'
                 }`}
               >
@@ -77,14 +81,14 @@ export default function VoixNav({ accountId, accountName, accounts, openFollowup
           {isAdmin ? (
             <Link
               href="/voix/app/admin"
-              className={`rounded-full px-3.5 py-2 text-sm font-medium ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium ${
                 pathname.startsWith('/voix/app/admin') ? 'bg-[#1B2236] text-white' : 'text-[#4A5061] hover:bg-[#F2F3F6]'
               }`}
             >
               Admin
             </Link>
           ) : null}
-          <div className="ml-2">
+          <div className="ml-2 hidden sm:block">
             <UserButton />
           </div>
         </nav>
