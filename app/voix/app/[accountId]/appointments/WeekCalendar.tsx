@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import type { BookingWindows, VoixAppointment } from '@/lib/voix/appointments'
 import { formatPhone } from '@/lib/voix/format'
 
-const ROW_PX = 26 // height of one 30-minute row
+const ROW_PX = 36 // height of one 30-minute row
 
 const TONE: Record<VoixAppointment['status'], string> = {
   pending: 'border-[#E8B44C] bg-[#FFF4E0] text-[#6B4500]',
@@ -109,8 +109,8 @@ export default function WeekCalendar({
           {/* Time gutter */}
           <div className="relative" style={{ height: rows * ROW_PX }}>
             {Array.from({ length: rows / 2 }, (_, i) => (
-              <div key={i} className="absolute right-2 -translate-y-1/2 text-[11px] text-[#8A8F9C]" style={{ top: i * 2 * ROW_PX }}>
-                {i === 0 ? '' : clock(startMin + i * 60)}
+              <div key={i} className="absolute right-2 text-[11px] text-[#8A8F9C]" style={{ top: i * 2 * ROW_PX + 3 }}>
+                {clock(startMin + i * 60)}
               </div>
             ))}
           </div>
@@ -131,8 +131,8 @@ export default function WeekCalendar({
                   <button
                     key={a.id}
                     onClick={() => setSelected(a.id === selected ? null : a.id)}
-                    className={`absolute inset-x-1 overflow-hidden rounded-lg border px-1.5 py-1 text-left text-[11px] leading-tight shadow-sm ${TONE[a.status]} ${a.id === selected ? 'ring-2 ring-[#1B2236]' : ''}`}
-                    style={{ top: ((a.startMin - startMin) / 30) * ROW_PX + 1, height: Math.max((a.duration_min / 30) * ROW_PX - 2, 22) }}
+                    className={`absolute inset-x-1 overflow-hidden rounded-lg border px-1.5 py-[3px] text-left text-[11px] leading-[14px] shadow-sm ${TONE[a.status]} ${a.id === selected ? 'ring-2 ring-[#1B2236]' : ''}`}
+                    style={{ top: ((a.startMin - startMin) / 30) * ROW_PX + 1, height: Math.max((a.duration_min / 30) * ROW_PX - 2, 32) }}
                   >
                     <div className="font-semibold">{clock(a.startMin)} {a.status === 'pending' ? '· to confirm' : ''}</div>
                     <div className="truncate">{a.caller_name || 'Caller'}{a.service ? ` · ${a.service}` : ''}</div>
