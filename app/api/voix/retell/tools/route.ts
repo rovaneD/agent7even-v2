@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifyRetellSignature, type RetellCall } from '@/lib/voix/retell'
 import { openSlots, parseWeekday, slotLabel, spread, toE164, type BookingWindows } from '@/lib/voix/appointments'
-import { decideRescheduleFollowUp, RESCHEDULE_OTHER_TIME } from '@/lib/voix/reschedule'
+import { decideRescheduleFollowUp, RESCHEDULE_NO_CHOICE, RESCHEDULE_OTHER_TIME } from '@/lib/voix/reschedule'
 
 export const runtime = 'nodejs'
 
@@ -27,6 +27,7 @@ type OrigAppt = {
   alternatives: unknown
   status: string
   reschedule_status: string | null
+  callback_error: string | null
 }
 
 /**
@@ -141,7 +142,7 @@ async function followUpOnReschedule(
 ) {
   const { data: orig } = await supabase
     .from('voix_appointments')
-    .select('id, caller_name, caller_phone, service, notes, duration_min, alternatives, status, reschedule_status')
+    .select('id, caller_name, caller_phone, service, notes, duration_min, alternatives, status, reschedule_status, callback_error')
     .eq('id', apptId)
     .eq('account_id', acct.id)
     .maybeSingle()
@@ -149,6 +150,7 @@ async function followUpOnReschedule(
   const row = orig as OrigAppt
   const decision = decideRescheduleFollowUp({
     rescheduleStatus: row.reschedule_status,
+    callbackError: row.callback_error,
     requestedIso: when.toISOString(),
     alternatives: row.alternatives,
   })
@@ -167,7 +169,7 @@ async function followUpOnReschedule(
   }
 
   const claim = decision === 'book_offered'
-    ? { reschedule_status: 'rescheduled' }
+    ? { reschedule_status: 'rescheduled', callback_error: null }
     : { reschedule_status: 'callback_needed', callback_error: RESCHEDULE_OTHER_TIME }
   const claimed = await claimOffer(supabase, row.id, acct.id, claim)
   if (!claimed) return say(await alreadySaved(supabase, acct.id, row.id, tz))
@@ -218,16 +220,30 @@ async function claimOffer(
   supabase: SupabaseClient,
   id: string,
   accountId: string,
-  patch: { reschedule_status: string; callback_error?: string },
+  patch: { reschedule_status: string; callback_error?: string | null },
 ): Promise<boolean> {
-  const { data, error } = await supabase
+  if (await takeOffer(supabase, id, accountId, patch, 'offered')) return true
+  // call_ended can mark "no choice" while this tool is still saving the time
+  // the client just picked. That note is not a finished reschedule.
+  return takeOffer(supabase, id, accountId, patch, 'no_choice')
+}
+
+async function takeOffer(
+  supabase: SupabaseClient,
+  id: string,
+  accountId: string,
+  patch: { reschedule_status: string; callback_error?: string | null },
+  which: 'offered' | 'no_choice',
+): Promise<boolean> {
+  let query = supabase
     .from('voix_appointments')
     .update(patch)
     .eq('id', id)
     .eq('account_id', accountId)
-    .eq('reschedule_status', 'offered')
-    .select('id')
-    .maybeSingle()
+  query = which === 'offered'
+    ? query.eq('reschedule_status', 'offered')
+    : query.eq('reschedule_status', 'callback_needed').eq('callback_error', RESCHEDULE_NO_CHOICE)
+  const { data, error } = await query.select('id').maybeSingle()
   if (error) {
     console.error('[voix/tools] reschedule claim failed:', error.message)
     return false

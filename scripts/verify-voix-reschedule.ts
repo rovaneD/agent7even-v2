@@ -12,6 +12,7 @@ import type { VoixAppointment } from '../lib/voix/appointments'
 import {
   decideRescheduleFollowUp,
   offeredInstants,
+  rescheduleOfferOpen,
   RESCHEDULE_NO_CHOICE,
   RESCHEDULE_OTHER_TIME,
 } from '../lib/voix/reschedule'
@@ -48,6 +49,32 @@ for (const status of ['rescheduled', 'callback_needed', 'none', null]) {
 assert.equal(
   decideRescheduleFollowUp({ rescheduleStatus: 'offered', requestedIso: null, alternatives: [offered] }),
   'request_other',
+)
+
+// The call's own webhook can mark "no choice" while the tool is still saving.
+// That row is still the open offer. A different callback note is finished.
+assert.equal(rescheduleOfferOpen('offered', null), true)
+assert.equal(rescheduleOfferOpen('callback_needed', RESCHEDULE_NO_CHOICE), true)
+assert.equal(rescheduleOfferOpen('callback_needed', RESCHEDULE_OTHER_TIME), false)
+assert.equal(rescheduleOfferOpen('callback_needed', 'Retell returned 500'), false)
+assert.equal(rescheduleOfferOpen('rescheduled', RESCHEDULE_NO_CHOICE), false)
+assert.equal(
+  decideRescheduleFollowUp({
+    rescheduleStatus: 'callback_needed',
+    callbackError: RESCHEDULE_NO_CHOICE,
+    requestedIso: offered,
+    alternatives: [offered],
+  }),
+  'book_offered',
+)
+assert.equal(
+  decideRescheduleFollowUp({
+    rescheduleStatus: 'callback_needed',
+    callbackError: RESCHEDULE_OTHER_TIME,
+    requestedIso: offered,
+    alternatives: [offered],
+  }),
+  'already_settled',
 )
 
 function appt(patch: Partial<VoixAppointment>): VoixAppointment {
@@ -92,9 +119,11 @@ const decide = readFileSync(resolve(root, 'app/api/voix/appointments/route.ts'),
 
 assert.equal(tools.includes("update({ reschedule_status: 'rescheduled' }).eq('id', fromAppt)"), false)
 assert.match(tools, /\.eq\('reschedule_status', 'offered'\)/)
+assert.match(tools, /RESCHEDULE_NO_CHOICE/)
 assert.match(tools, /releaseOffer\(/)
 assert.match(ingest, /RESCHEDULE_NO_CHOICE/)
 assert.match(ingest, /\.eq\('reschedule_status', 'offered'\)/)
 assert.match(decide, /\.eq\('status', moving \? 'confirmed' : 'pending'\)/)
+assert.match(decide, /reschedule_status: wantsCall \? 'offered' : 'none',[\s\S]*?callback_call_id: null/)
 
 console.log('ok · voix reschedule books once and does not look finished early')

@@ -121,6 +121,12 @@ export async function POST(req: Request) {
       status: moving ? 'cancelled' : 'declined', ...decided,
       alternatives: offered.map((s) => s.iso),
       reschedule_status: wantsCall ? 'offered' : 'none',
+      // callback_call_id still names the confirmation call until the new dial returns.
+      // call_analyzed for that call closes every `offered` row with that id, which
+      // drops this offer before the client can pick. Clear it in the same write.
+      callback_call_id: null,
+      callback_error: null,
+      callback_status: 'none',
     }).eq('id', appt.id).eq('status', moving ? 'confirmed' : 'pending').select('id').maybeSingle()
     if (saveError) {
       console.error('[voix/appointments] decision save failed:', saveError.message)
