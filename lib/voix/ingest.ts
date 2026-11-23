@@ -5,6 +5,7 @@ import { formatPhone } from '@/lib/voix/format'
 import { REASON_LABELS, type VoixFollowupReason, type VoixOutcome } from '@/lib/voix/types'
 import { followupReasonFor } from '@/lib/voix/followupReason'
 import { recordPilotRequest } from '@/lib/voix/pilotRequests'
+import { RESCHEDULE_NO_CHOICE } from '@/lib/voix/reschedule'
 
 const STATUS_RANK = { ongoing: 0, ended: 1, analyzed: 2 } as const
 type CallStatus = keyof typeof STATUS_RANK
@@ -62,6 +63,18 @@ export async function ingestRetellEvent(
   let followupCreated = false
   if (incoming === 'analyzed' && followup.needed) {
     followupCreated = await createFollowupIfMissing(supabase, account, saved, followup)
+  }
+  if (incoming === 'ended' || incoming === 'analyzed') {
+    // The offer stays `offered` when the client never picks. Leaving it there keeps
+    // the dashboard on "Voix is calling" after the call is over, and the old time
+    // is already cancelled. Only an offer that is still open is closed.
+    const { error: closeError } = await supabase
+      .from('voix_appointments')
+      .update({ reschedule_status: 'callback_needed', callback_error: RESCHEDULE_NO_CHOICE })
+      .eq('account_id', account.id)
+      .eq('callback_call_id', row.retell_call_id)
+      .eq('reschedule_status', 'offered')
+    if (closeError) console.error('[voix/ingest] reschedule close failed:', closeError.message)
   }
   return { ok: true, callId: saved.id, accountId: account.id, followupCreated }
 }
