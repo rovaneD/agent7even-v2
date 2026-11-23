@@ -40,6 +40,7 @@ export type RetellCall = {
   transcript?: string
   transcript_object?: { role?: string; content?: string }[]
   retell_llm_dynamic_variables?: Record<string, unknown>
+  metadata?: Record<string, unknown>
   call_analysis?: {
     call_summary?: string
     user_sentiment?: string

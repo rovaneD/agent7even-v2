@@ -26,6 +26,10 @@ export async function ingestRetellEvent(
 
   if (salesAgentIds().includes(call.agent_id)) return ingestSalesCall(supabase, event, call)
 
+  // Voix's own outbound callbacks (confirm / reschedule) are not calls the spa received:
+  // keep them out of Calls, follow-ups and the daily recap; record the result on the appointment.
+  if (call.direction === 'outbound') return ingestCallbackResult(supabase, event, call)
+
   const { data: account } = await supabase
     .from('voix_accounts')
     .select('id, name, alert_emails')
@@ -126,6 +130,29 @@ async function sendFollowupAlert(
     link: `/voix/app/${account.id}/calls/${call.id}`,
     ctaLabel: 'Open the call →',
   })
+}
+
+const NOT_REACHED = new Set(['voicemail_reached', 'dial_no_answer', 'dial_busy', 'dial_failed', 'machine_detected'])
+
+async function ingestCallbackResult(supabase: SupabaseClient, event: RetellEvent, call: RetellCall): Promise<IngestResult> {
+  const apptId = text(call.metadata?.voix_appointment_id, 40) ?? text(call.retell_llm_dynamic_variables?.appointment_id, 40)
+  if (!apptId || event !== 'call_ended') return { ok: true, ignored: `callback ${event}` }
+  const reason = call.disconnection_reason ?? ''
+  const voicemail = reason === 'voicemail_reached' || reason === 'machine_detected' || call.call_analysis?.in_voicemail === true
+  if (!NOT_REACHED.has(reason) && !voicemail) return { ok: true, ignored: 'callback answered' }
+
+  const note = voicemail ? 'Voicemail: Voix left a message' : 'No answer'
+  const { data: appt } = await supabase
+    .from('voix_appointments')
+    .select('id, account_id, reschedule_status')
+    .eq('id', apptId)
+    .maybeSingle()
+  if (!appt) return { ok: true, ignored: 'callback for unknown appointment' }
+  const patch: Record<string, unknown> = { callback_error: note, updated_at: new Date().toISOString() }
+  // A reschedule offer nobody heard live needs a person to follow up.
+  if (appt.reschedule_status === 'offered') patch.reschedule_status = 'callback_needed'
+  await supabase.from('voix_appointments').update(patch).eq('id', appt.id)
+  return { ok: true, ignored: `callback ${note}`, accountId: appt.account_id as string }
 }
 
 /** VOIX_SALES_AGENT_ID: Retell agent id(s) of Voix's own sales line, comma-separated. */

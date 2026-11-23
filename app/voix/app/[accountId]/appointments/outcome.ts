@@ -17,6 +17,8 @@ export function outcomeLine(a: VoixAppointment, tz: string): { text: string; ton
   if (a.status === 'confirmed') {
     const who = a.decided_by_label ? `Confirmed by ${a.decided_by_label}` : 'Confirmed'
     if (a.rescheduled_from) return { text: `${who} (rescheduled)`, tone: 'good' }
+    if (a.callback_status === 'placed' && a.callback_error?.startsWith('Voicemail')) return { text: `${who} · Voix left the client a voicemail`, tone: 'muted' }
+    if (a.callback_status === 'placed' && a.callback_error === 'No answer') return { text: `${who} · Client didn't answer the confirmation call`, tone: 'warn' }
     if (a.callback_status === 'placed') return { text: `${who} · Voix called the client to confirm`, tone: 'good' }
     if (a.callback_status === 'failed') return { text: `${who} · Callback failed${a.callback_error ? ` (${a.callback_error})` : ''}`, tone: 'warn' }
     return { text: who, tone: 'muted' }
