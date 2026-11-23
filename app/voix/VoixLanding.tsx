@@ -56,7 +56,7 @@ const faqs: [string, string][] = [
   ['Do I need a new phone number?', 'No. You forward missed and after-hours calls to Voix. Your number stays the same.'],
   ['How many spas are in the pilot?', 'Ten founding spas. We review every application and pick spas where Voix can make the biggest difference. If the first group fills, we’ll offer you a place in the next one.'],
   ['Which booking software does Voix work with?', 'All of them, in request mode: Voix collects the service and the time that suits the caller, and your team confirms it in your own software. We’re building direct booking system by system, starting with the systems our pilot spas use. Tell us yours in the application.'],
-  ['What does it cost after the pilot?', 'Founding spas pay $149 a month per location, with unlimited calls, and keep that price for 12 months. No setup fee, no contract. If you don’t continue after the 14 days, you simply stop forwarding calls.'],
+  ['What does it cost after the pilot?', 'Pricing depends on your spa: your call volume, number of locations and what you want Voix to handle. We set it with you during the pilot, using your real call numbers. There’s no obligation to continue after the 14 days; if you stop, you simply stop forwarding calls.'],
 ]
 
 const safety: [string, string][] = [
