@@ -5,6 +5,7 @@ import { formatPhone } from '@/lib/voix/format'
 import { REASON_LABELS, type VoixFollowupReason, type VoixOutcome } from '@/lib/voix/types'
 import { followupReasonFor } from '@/lib/voix/followupReason'
 import { recordPilotRequest } from '@/lib/voix/pilotRequests'
+import { callbackAppointmentUpdate, callbackKind, callbackResultNote } from '@/lib/voix/callbackResult'
 
 const STATUS_RANK = { ongoing: 0, ended: 1, analyzed: 2 } as const
 type CallStatus = keyof typeof STATUS_RANK
@@ -132,27 +133,55 @@ async function sendFollowupAlert(
   })
 }
 
-const NOT_REACHED = new Set(['voicemail_reached', 'dial_no_answer', 'dial_busy', 'dial_failed', 'machine_detected'])
-
 async function ingestCallbackResult(supabase: SupabaseClient, event: RetellEvent, call: RetellCall): Promise<IngestResult> {
   const apptId = text(call.metadata?.voix_appointment_id, 40) ?? text(call.retell_llm_dynamic_variables?.appointment_id, 40)
+  // call_ended carries disconnection_reason and omits call_analysis. A missed
+  // call is decided here; call_analyzed is not a second chance to record it.
   if (!apptId || event !== 'call_ended') return { ok: true, ignored: `callback ${event}` }
-  const reason = call.disconnection_reason ?? ''
-  const voicemail = reason === 'voicemail_reached' || reason === 'machine_detected' || call.call_analysis?.in_voicemail === true
-  if (!NOT_REACHED.has(reason) && !voicemail) return { ok: true, ignored: 'callback answered' }
 
-  const note = voicemail ? 'Voicemail: Voix left a message' : 'No answer'
-  const { data: appt } = await supabase
+  const { data: appt, error: readError } = await supabase
     .from('voix_appointments')
-    .select('id, account_id, reschedule_status')
+    .select('id, account_id, reschedule_status, callback_call_id')
     .eq('id', apptId)
     .maybeSingle()
+  if (readError) throw new Error(`voix_appointments read failed: ${readError.message}`)
   if (!appt) return { ok: true, ignored: 'callback for unknown appointment' }
-  const patch: Record<string, unknown> = { callback_error: note, updated_at: new Date().toISOString() }
-  // A reschedule offer nobody heard live needs a person to follow up.
-  if (appt.reschedule_status === 'offered') patch.reschedule_status = 'callback_needed'
-  await supabase.from('voix_appointments').update(patch).eq('id', appt.id)
-  return { ok: true, ignored: `callback ${note}`, accountId: appt.account_id as string }
+
+  const dyn = call.retell_llm_dynamic_variables ?? {}
+  const kind = callbackKind({
+    metadataKind: call.metadata?.kind,
+    callPurpose: dyn.call_purpose,
+    dynamicAppointmentId: dyn.appointment_id,
+  })
+  const decision = callbackAppointmentUpdate({
+    kind,
+    disconnectionReason: call.disconnection_reason,
+    inVoicemail: call.call_analysis?.in_voicemail === true,
+    rescheduleStatus: appt.reschedule_status as string | null,
+    storedCallId: appt.callback_call_id as string | null,
+    eventCallId: call.call_id,
+  })
+  if (!decision) {
+    const missed = callbackResultNote(call.disconnection_reason, call.call_analysis?.in_voicemail === true)
+    return {
+      ok: true,
+      ignored: missed ? 'callback not applied' : 'callback answered',
+      accountId: appt.account_id as string,
+    }
+  }
+
+  const patch: Record<string, unknown> = { ...decision, updated_at: new Date().toISOString() }
+  let update = supabase.from('voix_appointments').update(patch).eq('id', appt.id).neq('reschedule_status', 'rescheduled')
+  if (decision.reschedule_status) update = update.eq('reschedule_status', 'offered')
+  else if (kind === 'confirmation') update = update.eq('reschedule_status', 'none')
+  // Confirmation results only stick on the call id already stored (or not stored yet).
+  // A reschedule call's id is often not stored yet, so it must not use that filter.
+  if (kind !== 'reschedule' && call.call_id && /^[A-Za-z0-9_-]+$/.test(call.call_id)) {
+    update = update.or(`callback_call_id.is.null,callback_call_id.eq.${call.call_id}`)
+  }
+  const { error } = await update
+  if (error) throw new Error(`voix_appointments callback update failed: ${error.message}`)
+  return { ok: true, ignored: `callback ${decision.callback_error}`, accountId: appt.account_id as string }
 }
 
 /** VOIX_SALES_AGENT_ID: Retell agent id(s) of Voix's own sales line, comma-separated. */
