@@ -24,10 +24,6 @@ export async function GET(req: Request) {
     .maybeSingle()
   if (!task) return NextResponse.json({ status: 'unknown' })
 
-  if (task.status !== 'completed') {
-    return NextResponse.json({ status: task.status === 'failed' ? 'failed' : 'running' })
-  }
-
   const { data: output } = await supabase
     .from('agent_outputs')
     .select('id,content')
@@ -36,6 +32,13 @@ export async function GET(req: Request) {
     .limit(1)
     .maybeSingle()
   const path = (output?.content as { media_storage_path?: string } | null)?.media_storage_path
-  const videoUrl = path ? await createPostAssetSignedUrl(path, 60 * 60) : null
-  return NextResponse.json({ status: 'completed', videoUrl, outputId: output?.id ?? null })
+  if (path) {
+    const videoUrl = await createPostAssetSignedUrl(path, 60 * 60)
+    return NextResponse.json({ status: 'completed', videoUrl, outputId: output?.id ?? null })
+  }
+
+  if (task.status !== 'completed') {
+    return NextResponse.json({ status: task.status === 'failed' ? 'failed' : 'running' })
+  }
+  return NextResponse.json({ status: 'completed', videoUrl: null, outputId: output?.id ?? null })
 }

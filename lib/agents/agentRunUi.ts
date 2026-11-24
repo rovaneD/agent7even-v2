@@ -30,6 +30,12 @@ export function friendlyRunError(error: string | null | undefined): string {
   if (error.includes('INSUFFICIENT_CREDITS')) {
     return 'Not enough media credits to finish this run. Text agents stay free — top up or upgrade for images and video.'
   }
+  if (error === 'video_refunding' || error === 'video_refunded' || error === 'video_recharging' || error === 'video_recharged') {
+    return 'Video generation failed. Credits for this clip were refunded.'
+  }
+  if (error === 'video_fail_settled') {
+    return 'Video generation failed before a clip was saved.'
+  }
   const match = error.match(/run-route error \d+: (.+)/)
   if (match) {
     try {
