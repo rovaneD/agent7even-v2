@@ -115,11 +115,20 @@ export async function POST(req: Request) {
       .filter((s): s is Slot => !!s)
 
     const wantsCall = body.callback !== false
-    await ctx.supabase.from('voix_appointments').update({
+    // Claim the row before placing a call. A second click that lost the race must not
+    // overwrite the offered times or dial the client again.
+    const { data: saved, error: saveError } = await ctx.supabase.from('voix_appointments').update({
       status: moving ? 'cancelled' : 'declined', ...decided,
       alternatives: offered.map((s) => s.iso),
       reschedule_status: wantsCall ? 'offered' : 'none',
-    }).eq('id', appt.id)
+    }).eq('id', appt.id).eq('status', moving ? 'confirmed' : 'pending').select('id').maybeSingle()
+    if (saveError) {
+      console.error('[voix/appointments] decision save failed:', saveError.message)
+      return NextResponse.json({ error: 'Could not save' }, { status: 500 })
+    }
+    if (!saved) {
+      return NextResponse.json({ error: moving ? 'Only confirmed appointments can be rescheduled' : 'Already decided' }, { status: 409 })
+    }
 
     if (!wantsCall || cannotCall) {
       const why = !wantsCall ? (moving ? 'Cancelled without a call' : 'Declined without a call') : cannotCall

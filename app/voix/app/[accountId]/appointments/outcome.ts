@@ -1,4 +1,5 @@
 import type { VoixAppointment } from '@/lib/voix/appointments'
+import { RESCHEDULE_OTHER_TIME } from '@/lib/voix/reschedule'
 
 /** One line saying what happened after the team decided. */
 export function outcomeLine(a: VoixAppointment, tz: string): { text: string; tone: 'muted' | 'warn' | 'good' } | null {
@@ -7,7 +8,10 @@ export function outcomeLine(a: VoixAppointment, tz: string): { text: string; ton
   if (a.status === 'declined' || a.status === 'cancelled') {
     const verb = a.status === 'cancelled' ? 'Cancelled' : 'Declined'
     if (a.reschedule_status === 'rescheduled') return { text: 'Rescheduled: the client picked a new time', tone: 'good' }
-    if (a.reschedule_status === 'callback_needed') return { text: `Call the client to reschedule${a.callback_error ? ` (${a.callback_error})` : ''}`, tone: 'warn' }
+    if (a.reschedule_status === 'callback_needed') {
+      if (a.callback_error === RESCHEDULE_OTHER_TIME) return { text: RESCHEDULE_OTHER_TIME, tone: 'warn' }
+      return { text: `Call the client to reschedule${a.callback_error ? ` (${a.callback_error})` : ''}`, tone: 'warn' }
+    }
     if (a.reschedule_status === 'offered') {
       const offered = (a.alternatives ?? []).map(short)
       return { text: offered.length ? `Voix is calling to offer ${offered.join(', ')}` : 'Voix is calling to ask what works instead', tone: 'muted' }
